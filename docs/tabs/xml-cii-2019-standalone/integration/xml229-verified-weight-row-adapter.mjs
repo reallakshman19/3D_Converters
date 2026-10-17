@@ -3,6 +3,7 @@
  * canonical fact model unchanged; this adds only a VERIFIED read projection
  * for the mature 13-column Weight UI, never a second scoring/writer path.
  */
+import {resolveNodeNameValveHint} from '../../../converters/xml-cii2019-core/weight-valve-hints.js';
 const key=(b,n)=>JSON.stringify([b,n]);
 const fail=(code,detail)=>{const e=new Error(detail);e.code=code;throw e;};
 const text=x=>String(x??'').trim();
@@ -43,7 +44,7 @@ function allProposals(review,basisId,ids){
 }
 /** Cross-reference by PRE-CLEAN original branch/node ordinals only. */
 export function buildXml229VerifiedWeightRowProjection({
- session,sourceId,physicalOccurrences,originalOccurrences,previewResult,
+ session,sourceId,physicalOccurrences,originalOccurrences,previewResult,config={}, 
 }={}){
  const basisId=session?.basis?.basisId,review=session?.review;
  if(!basisId||!review||!Array.isArray(physicalOccurrences)||
@@ -112,13 +113,29 @@ export function buildXml229VerifiedWeightRowProjection({
     positive(bore)&&positive(calc.boreMm)&&Math.abs(bore-calc.boreMm)>0.000001||
     text(rating)&&text(calc.rating)&&text(rating)!==text(calc.rating));
   const display=calc&&!mismatch?calc:null;
+  // The original pre-clean physical signature includes exact source NodeName.
+  // Never infer it from a display NodeNumber or mutable UI/legacy row.
+  let signature;
+  try{signature=JSON.parse(id.componentSignature);}catch{
+    fail('PRESENTATION_COMPONENT_NAME_UNVERIFIED','Invalid source component signature');
+  }
+  if(!Array.isArray(signature)||signature.length!==4||
+     signature[0]!==orig.componentType||
+     signature[1]!==orig.componentRefNo||
+     signature[2]!==orig.endpoint||
+     typeof signature[3]!=='string')
+    fail('PRESENTATION_COMPONENT_NAME_UNVERIFIED','Original NodeName signature does not match source');
+  const nodeName=text(signature[3]);
+  const inferred=resolveNodeNameValveHint(nodeName,config);
+  const inferredValveName=inferred?inferred.code+' → '+inferred.label:'';
+  const shortName=inferred?.label||nodeName||text(display?.dtxr).slice(0,56)||orig.componentType;
   const ref=text(orig.componentRefNo).replace(/^=/,'');
   const endpoint=text(orig.endpoint);
   rows.set(occ,Object.freeze({
     basisId,sourceId,occurrenceId:occ,
     branchOccurrenceIndex:id.branchOccurrenceIndex,nodeOrdinal:id.nodeOrdinal,
     branchName:branch.branchName,lineKey:text(process.lineKey),
-    componentType:orig.componentType,nodeNumber:orig.nodeNumber,
+    componentType:orig.componentType,nodeName,shortName,inferredValveName,nodeNumber:orig.nodeNumber,
     componentRefNoEndpoint:ref&&endpoint?ref+'_'+endpoint:ref,
     boreMm:bore,rating,lengthMm:length,
     dtxr:display?.dtxr||'',dtxrSource:display?.dtxrSource||'',
