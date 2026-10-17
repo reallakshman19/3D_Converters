@@ -48,6 +48,9 @@ test('source-bound Worker page reuses existing review styling and bounded verifi
   assert.match(html,/Short name \/ Valve Hint/);
   assert.match(html,/DTXR/);
   assert.match(html,/data-p4-draft-marker/);
+ assert.match(html,/Draft \/ Accepted kg/);
+ assert.match(html,/Suggested draft \(kg\)/);
+ assert.match(html,/Accepted kg:/);
  assert.doesNotMatch(html,/XML mass resolved/);
  assert.equal(xml229WeightReviewPageModel(page,0).counts.unresolved,1);
 });
@@ -299,8 +302,10 @@ test('Auto Fill refuses a tampered projected kilogram value',async()=>{
 test('Auto Fill actually hydrates input values and selected candidates rather than placeholders only',async()=>{
  const file=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',import.meta.url),'utf8');
  assert.match(file,/planXml229RigidWeightDrafts\(session,/);
- assert.match(file,/tr\.querySelector\('\[data-p4-proposal\]'\)\.value=saved\.value/);
- assert.match(file,/tr\.querySelector\('\[data-p4-candidate\]'\)\.value=saved\.proposalId/);
+ const hydration=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs',import.meta.url),'utf8');
+ assert.match(hydration,/input\.value=saved\.value/);
+ assert.match(file,/hydrateXml229WeightDraftInputs\(table,page\.rows,draftValues\)/);
+ assert.match(hydration,/selection\.value=saved\.proposalId/);
  assert.match(file,/confirm\.disabled=!plan\.qualified/);
  assert.doesNotMatch(file,/nativeCiiReleaseAuthorized:true/);
  const raw=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs',import.meta.url),'utf8');
@@ -390,4 +395,42 @@ test('proposal confidence displays normalized percentage rather than 0 or 1 perc
  assert.match(html,/91%/);
  assert.doesNotMatch(html,/0\.91%/);
  assert.doesNotMatch(html,/ · 1% · master-match/);
+});
+
+test('qualified Worker plan and draft population reconcile one-for-one; drift is held',async()=>{
+ const basisId='a'.repeat(64),sourceId='SOURCE',readOffsets=[],writeEvents=[];
+ const rows=Array.from({length:51},(_,i)=>{
+   const p={proposalId:'master-'+i,ranking:1,value:i+31.25,
+     unit:'kg',qualified:true,score:0.97};
+   return {sourceId,occurrenceId:'o-'+i,componentType:'VALV',nodeName:'VGT-100',
+     sourceKg:null,match1Kg:null,finalKg:null,proposals:[p],
+     match1View:{match1Revision:'m',stageDecision:null,proposals:[p]},
+     finalView:{finalRevision:'f',stageDecision:null}};
+ });
+ const approved=rows.map(r=>({occurrenceId:r.occurrenceId,
+   proposalId:r.proposals[0].proposalId,value:r.proposals[0].value,
+   unit:'kg',qualified:true}));
+ const session={receipt:{basisId,sourceId},async readPage({offset,limit,filter,query}){
+   readOffsets.push(offset);
+   assert.equal(filter,'blank-rigid');assert.equal(query,'');
+   return {basisId,offset,totalCount:rows.length,complete:true,
+     rows:rows.slice(offset,offset+limit)};
+ },review(){writeEvents.push('write')}};
+ const saved=new Map([['o-3',{value:'41',proposalId:'',reason:'Engineer edit',autoFilled:false}]]);
+ const planned=await planXml229RigidWeightDrafts(session,{
+   minScorePercent:80,qualifiedSuggestions:approved,existingDrafts:saved});
+ assert.equal(planned.counts.workerQualified,51);
+ assert.equal(planned.counts.workerQualifiedPrepared,50);
+ assert.equal(planned.counts.workerQualifiedAlreadyDrafted,1);
+ assert.equal(planned.counts.prepared,50);
+ assert.equal(planned.firstPreparedIndex,0);
+ assert.equal(planned.drafts.get('o-25').value,'56.25');
+ assert.equal(saved.get('o-3').value,'41');
+ assert.deepEqual(readOffsets,[0,25,50]);
+ assert.deepEqual(writeEvents,[]);
+ assert.equal(planned.finalAcceptedAutomatically,false);
+ assert.equal(planned.nativeCiiReleaseAuthorized,false);
+ await assert.rejects(planXml229RigidWeightDrafts(session,{
+   minScorePercent:80,qualifiedSuggestions:[{...approved[0],value:999}],
+ }),{code:'SUGGESTION_WORKER_PLAN_PROPOSAL_DRIFT'});
 });
