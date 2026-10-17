@@ -156,3 +156,44 @@ export async function planXml229RigidWeightDrafts(session,{
 export async function planXml229UnqualifiedDrafts(session,options={}){
  return planXml229RigidWeightDrafts(session,{...options,unqualifiedOnly:true});
 }
+
+
+/**
+ * Shared by the live panel and Chromium regression. The returned count is
+ * measured from REAL number-input.value and selected option.value, not a
+ * placeholder or a calculated count. Never invokes the review writer.
+ */
+export function hydrateXml229WeightDraftInputs(table,rows,draftValues){
+ if(!table?.querySelectorAll||!Array.isArray(rows)||!(draftValues instanceof Map))
+   deny('SUGGESTION_VISIBLE_TABLE_REQUIRED');
+ let visiblePopulated=0;
+ for(const tr of table.querySelectorAll('tr[data-p4-row]')){
+   const row=rows[Number(tr.dataset.p4Row)];
+   const saved=row&&draftValues.get(row.occurrenceId);
+   if(!saved||row.occurrenceId!==tr.dataset.p4Occurrence)continue;
+   if(row.match1View?.stageDecision||row.finalView?.stageDecision){
+     draftValues.delete(row.occurrenceId);continue;
+   }
+   const candidate=(row.proposals||[]).find(p=>p.proposalId===saved.proposalId);
+   if(saved.proposalId&&(!candidate||!positive(candidate.value)||
+      String(candidate.value)!==String(saved.value)))
+     deny('SUGGESTION_VISIBLE_PROPOSAL_DRIFT');
+   const input=tr.querySelector('[data-p4-proposal]');
+   const selection=tr.querySelector('[data-p4-candidate]');
+   const reason=tr.querySelector('[data-p4-reason]');
+   if(!input||!selection||!reason)
+     deny('SUGGESTION_VISIBLE_INPUT_MISSING');
+   input.value=saved.value;
+   selection.value=saved.proposalId;
+   reason.value=saved.reason;
+   if(input.value!==String(saved.value)||selection.value!==saved.proposalId)
+     deny('SUGGESTION_VISIBLE_INPUT_NOT_APPLIED');
+   tr.dataset.p4DraftFilled='true';
+   const flag=tr.querySelector('[data-p4-draft-marker]');
+   if(flag)flag.textContent=saved.autoUnqualified
+     ?'Suggested draft only — engineering reason required for acceptance'
+     :'Qualified draft populated — use Apply all Match-1 for explicit confirmation';
+   visiblePopulated++;
+ }
+ return visiblePopulated;
+}
