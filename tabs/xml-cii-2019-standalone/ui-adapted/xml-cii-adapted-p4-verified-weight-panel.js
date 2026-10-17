@@ -17,7 +17,7 @@ import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest}
  from '../xml-cii-branch-scope.js';
 import {renderXml229WeightReviewPage,choiceForXml229WeightRow}
  from './xml229-p4-weight-review-presentation.mjs';
-import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions}
+import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs}
  from './xml229-p4-unqualified-drafts.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {prepareXml229G3G4LocalAggregateExport}
@@ -299,26 +299,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    if(draftOwner!==session)clearDrafts();
    table.innerHTML=renderXml229WeightReviewPage(page,offset,{filter:mode,query,minScorePercent});
    root.__p4VisibleRows=page.rows;
-   for(const tr of table.querySelectorAll('tr[data-p4-row]')){
-     const row=page.rows[Number(tr.dataset.p4Row)];
-     const saved=row&&draftValues.get(row.occurrenceId);
-     if(!saved||row.occurrenceId!==tr.dataset.p4Occurrence)continue;
-     // A confirmed weight is not an outstanding draft on subsequent pages.
-     if(row.match1View?.stageDecision||row.finalView?.stageDecision){
-       draftValues.delete(row.occurrenceId);continue;
-     }
-     const candidate=(row.proposals||[]).find(p=>p.proposalId===saved.proposalId);
-     if(saved.proposalId&&!candidate)continue; // never hydrate a stale proposal
-     tr.querySelector('[data-p4-proposal]').value=saved.value;
-     tr.querySelector('[data-p4-candidate]').value=saved.proposalId;
-     tr.querySelector('[data-p4-reason]').value=saved.reason;
-     if(saved.autoFilled||saved.autoUnqualified){
-       const flag=tr.querySelector('[data-p4-draft-marker]');
-       if(flag)flag.textContent=saved.autoUnqualified
-         ?'Unqualified draft only — enter an engineering reason before acceptance'
-         :'Qualified draft only — confirm Match-1 separately';
-     }
-   }
+   return hydrateXml229WeightDraftInputs(table,page.rows,draftValues);
  };
  root.addEventListener('input',event=>{
    if(event.target.closest?.('[data-p4-proposal],[data-p4-reason]')){
@@ -499,16 +480,30 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      if(planButton){
        const session=active;
        const plan=await session.planQualifiedBlankFill({minScorePercent});
+       if(!Number.isSafeInteger(plan?.qualified)||!Array.isArray(plan.qualifiedSuggestions)||
+          plan.qualifiedSuggestions.length!==plan.qualified)
+         err('SUGGESTION_WORKER_PLAN_INCOMPLETE',
+           'Worker qualified-count and source-proposal evidence do not match');
        const planned=await planXml229RigidWeightDrafts(session,{
          existingDrafts:draftValues,minScorePercent,
+         qualifiedSuggestions:plan.qualifiedSuggestions,
          isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
        });
        if(active!==session||live()!==session)
-         err('STALE_WEIGHT_AUTO_FILL_SOURCE','Verified source changed during Auto Fill');
-       for(const [id,draft] of planned.drafts)if(!draftValues.has(id))
-         draftValues.set(id,draft);
+         err('STALE_WEIGHT_AUTO_FILL_SOURCE','Verified source changed during suggestion preparation');
+       for(const [id,draft] of planned.drafts)
+         if(!draftValues.has(id))draftValues.set(id,draft);
        pendingBulk=plan;
-       await render(); // Hydrate actual input.value and select.value, not placeholders
+       // Show the first actual populated input. The formerly selected 25 rows
+       // may contain zero eligible suggestions even for a source-wide plan.
+       if(planned.firstPreparedIndex!==null){
+         mode='blank-rigid';query='';
+         offset=Math.floor(planned.firstPreparedIndex/25)*25;
+       }
+       const visiblePopulated=await render();
+       if(planned.counts.prepared>0&&!(visiblePopulated>0))
+         err('SUGGESTION_VISIBLE_INPUT_NOT_APPLIED',
+           'No actual proposed kilograms were populated on the selected page');
        bulkDetail.hidden=false;
        bulkDetail.textContent=formatXml229Match1Exclusions(plan);
        const confirm=table.querySelector('[data-p4-bulk-confirm]');
@@ -517,13 +512,15 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
          confirm.textContent='Apply all Match-1 ('+plan.qualified+')';
        }
        const c=planned.counts;
-       say('Apply all suggestions ≥'+minScorePercent+'%: '+c.prepared+' blank weight input(s) populated ('+
-         c.preparedQualified+' qualified drafts, '+c.preparedUnqualified+
-         ' unqualified drafts). '+plan.qualified+
-         ' qualified source-wide decisions await separate confirmation. '+
-         c.withoutProposal+' blank RIGIDs have no proposal, '+
-         c.alreadyDrafted+' user drafts preserved, '+c.belowThreshold+' below threshold; existing weights preserved. '+
-         'Nothing accepted yet; Final and native CII remain HELD.');
+       say('Apply all suggestions ≥'+minScorePercent+'%: '+c.prepared+
+         ' editable draft(s) prepared across the verified source. '+
+         visiblePopulated+' actual kg input(s) visible on this page. '+
+         c.workerQualified+' source-qualified candidate(s) reconciled ('+
+         c.workerQualifiedPrepared+' newly filled, '+
+         c.workerQualifiedAlreadyDrafted+' existing drafts kept); '+
+         c.preparedUnqualified+' review-only drafts. '+
+         c.withoutProposal+' no proposal, '+c.belowThreshold+
+         ' below threshold. Nothing accepted; Final/native CII remain HELD.');
        return;
      }
      if(draftFillButton){
