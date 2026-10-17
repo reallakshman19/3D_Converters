@@ -34,6 +34,16 @@ export function planExactSourceWeightCommands(service, { basisId, scopeId, pageS
   const eligible = [...physical.keys()].filter(id =>
     !physical.get(id).source && !existing.decisions[id]);
   const commands = []; let unresolved = 0;
+  // Disjoint full-source exclusion categories; lowerRankQualified is a subset
+  // of topRankUnqualified and is for diagnosis only, never auto-approval.
+  const exclusions = {
+    sourceMassPresent: [...physical.values()].filter(x => x.source).length,
+    match1DecisionPresent: Object.keys(existing.decisions).filter(id =>
+      physical.has(id) && !physical.get(id).source).length,
+    noRank1Proposal: 0, topRankUnqualified: 0,
+    topRankInvalidMass: 0, topRankInvalidUnit: 0,
+    lowerRankQualified: 0,
+  };
   // 80 physical occurrences × 5 legacy candidates ≤ one 500-item service page.
   // Still walk all continuation pages if another domain returns more.
   for (let offset = 0; offset < eligible.length; offset += 80) {
@@ -41,17 +51,26 @@ export function planExactSourceWeightCommands(service, { basisId, scopeId, pageS
     const proposals = pages(cursor => service.getProposals({
       basisId, occurrenceIds: ids, cursor, limit: 500,
     }));
-    const best = new Map();
+    const best = new Map(), byOccurrence = new Map();
     for (const proposal of proposals) {
+      if (!byOccurrence.has(proposal.occurrenceId)) byOccurrence.set(proposal.occurrenceId, []);
+      byOccurrence.get(proposal.occurrenceId).push(proposal);
       if (proposal.ranking === 1 && !best.has(proposal.occurrenceId)) {
         best.set(proposal.occurrenceId, proposal);
       }
     }
     for (const id of ids) {
       const candidate = best.get(id);
-      if (!candidate?.qualified || !positive(candidate.value) || candidate.unit !== 'kg') {
-        unresolved += 1; continue;
+      if (!candidate) { exclusions.noRank1Proposal++; unresolved++; continue; }
+      if (!candidate.qualified) {
+        exclusions.topRankUnqualified++;
+        if ((byOccurrence.get(id) || []).some(p =>
+          p.ranking !== 1 && p.qualified === true && positive(p.value) && p.unit === 'kg'))
+          exclusions.lowerRankQualified++;
+        unresolved++; continue;
       }
+      if (!positive(candidate.value)) { exclusions.topRankInvalidMass++; unresolved++; continue; }
+      if (candidate.unit !== 'kg') { exclusions.topRankInvalidUnit++; unresolved++; continue; }
       commands.push({
         commandId: JSON.stringify(['bulk-direct-exact', basisId, scopeId, id, candidate.proposalId]),
         basisId, scopeId, occurrenceId: id, expectedDecisionRevision: existing.decisionRevision,
@@ -63,7 +82,8 @@ export function planExactSourceWeightCommands(service, { basisId, scopeId, pageS
     basisId, scopeId, stage, expectedDecisionRevision: existing.decisionRevision,
     physicalCount: physical.size,
     alreadyReviewed: physical.size - eligible.length - [...physical.values()].filter(x => x.source).length,
-    preservedSourceWeights: [...physical.values()].filter(x => x.source).length,
+    preservedSourceWeights: exclusions.sourceMassPresent,
+    exclusions: Object.freeze(exclusions),
     unresolved, qualified: commands.length, commands,
   };
 }
