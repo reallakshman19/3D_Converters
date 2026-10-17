@@ -26,17 +26,23 @@ export function formatXml229Match1Exclusions(plan){
  ].join('\n');
 }
 
-export async function planXml229UnqualifiedDrafts(session,{
- existingDrafts=new Map(),isCurrent=()=>true,
+/** 
+ * Prepare UI-only source-wide blank RIGID proposals, including qualified ones.
+ * The actual qualified bulk acceptance list remains exclusively Worker-owned.
+ * This function NEVER writes to the review ledger, even for qualified proposals.
+ */
+export async function planXml229RigidWeightDrafts(session,{
+ existingDrafts=new Map(),isCurrent=()=>true,unqualifiedOnly=false,
 }={}){
  if(!session?.receipt?.basisId||typeof session.readPage!=='function'||
     !(existingDrafts instanceof Map)||typeof isCurrent!=='function')
    deny('UNQUALIFIED_DRAFT_SOURCE_REQUIRED');
  const basisId=session.receipt.basisId,sourceId=session.receipt.sourceId;
- const limit=25,limitPhysical=10000;
- const drafts=new Map();
+ const limit=25,limitPhysical=10000,drafts=new Map();
  const counts={blankRigid:0,withoutProposal:0,qualifiedPresent:0,
-   unqualifiedInvalid:0,existingReview:0,alreadyDrafted:0,prepared:0};
+   unqualifiedInvalid:0,existingReview:0,alreadyDrafted:0,
+   conflictingQualifiedValues:0,preparedQualified:0,preparedUnqualified:0,
+   prepared:0};
  let total=null,offset=0,matchRevision=null,finalRevision=null;
  do{
    if(!isCurrent())deny('UNQUALIFIED_DRAFT_STALE_SOURCE');
@@ -67,16 +73,27 @@ export async function planXml229UnqualifiedDrafts(session,{
      if(existingDrafts.has(row.occurrenceId)){counts.alreadyDrafted++;continue;}
      const proposals=Array.isArray(row.proposals)?row.proposals:[];
      if(!proposals.length){counts.withoutProposal++;continue;}
-     if(proposals.some(p=>p.qualified===true)){counts.qualifiedPresent++;continue;}
+     const qualified=proposals.filter(p=>p.qualified===true);
+     if(unqualifiedOnly&&qualified.length){counts.qualifiedPresent++;continue;}
      const top=proposals.find(p=>p.ranking===1);
-     if(!top||top.qualified!==false||!positive(top.value)||
-        typeof top.proposalId!=='string'||!top.proposalId){
+     const pinned=Array.isArray(row.match1View?.proposals)
+       ?row.match1View.proposals.find(p=>p.proposalId===top?.proposalId):null;
+     if(!top||!positive(top.value)||!top.proposalId||
+       typeof top.proposalId!=='string'||
+       (Array.isArray(row.match1View?.proposals)&&
+         (!pinned||pinned.value!==top.value||pinned.qualified!==top.qualified||
+          pinned.unit!=='kg'))||
+       (unqualifiedOnly&&top.qualified!==false)){
        counts.unqualifiedInvalid++;continue;
      }
+     if(qualified.some(p=>p.proposalId!==top.proposalId&&p.value!==top.value))
+       counts.conflictingQualifiedValues++;
      drafts.set(row.occurrenceId,Object.freeze({
        proposalId:top.proposalId,value:String(top.value),reason:'',
-       autoUnqualified:true,
+       autoUnqualified:top.qualified!==true,autoFilled:true,
      }));
+     if(top.qualified)counts.preparedQualified++;
+     else counts.preparedUnqualified++;
      counts.prepared++;
    }
    offset+=page.rows.length;
@@ -85,4 +102,9 @@ export async function planXml229UnqualifiedDrafts(session,{
  return Object.freeze({basisId,sourceId,counts:Object.freeze(counts),
    drafts,reviewDecisionsAuthorized:false,finalAcceptedAutomatically:false,
    nativeCiiReleaseAuthorized:false});
+}
+
+/** Backward-compatible unqualified-only convenience action. */
+export async function planXml229UnqualifiedDrafts(session,options={}){
+ return planXml229RigidWeightDrafts(session,{...options,unqualifiedOnly:true});
 }

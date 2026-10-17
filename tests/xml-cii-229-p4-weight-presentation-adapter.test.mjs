@@ -7,7 +7,7 @@ import {
 } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs';
 import {xml229UnbuiltIndependentStage}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-run-readiness-presentation.mjs';
-import {planXml229UnqualifiedDrafts,formatXml229Match1Exclusions}
+import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs';
 import {matchesXml229WeightReviewFilter,xml229WeightReviewFilters}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-weight-page-filter.mjs';
@@ -230,4 +230,86 @@ test('served production route is byte-identical to owned root files',async()=>{
    const served=await readFile(new URL('../docs/'+path,import.meta.url),'utf8');
    assert.equal(root,served,path);
  }
+});
+
+test('Auto Fill populates original RIGID rank-1 candidates across full Worker paging without acceptance',async()=>{
+ const basisId='b'.repeat(64),sourceId='SOURCE',writes=[],reads=[];
+ const rows=Array.from({length:27},(_,i)=>{
+   const top={proposalId:'p-'+i,ranking:1,value:i+20.125,qualified:i%2===0,unit:'kg'};
+   const proposals=i===3?[]:i===4?[top,{proposalId:'other',ranking:2,value:99.5,
+     qualified:true,unit:'kg'}]:[top];
+   return {sourceId,occurrenceId:'original-'+i,componentType:'RIGID',
+     sourceKg:null,match1Kg:null,finalKg:null,proposals,
+     match1View:{match1Revision:'m1',stageDecision:i===5?{state:'deferred'}:null,proposals},
+     finalView:{finalRevision:'f1',stageDecision:null}};
+ });
+ const entered={value:'manually entered',proposalId:'',reason:'Engineer typing'};
+ const existingDrafts=new Map([['original-6',entered]]);
+ const session={receipt:{basisId,sourceId},async readPage(args){
+   reads.push(args);
+   return {basisId,offset:args.offset,totalCount:rows.length,
+     complete:true,rows:rows.slice(args.offset,args.offset+args.limit)};
+ },review(){writes.push('write');}};
+ const result=await planXml229RigidWeightDrafts(session,{existingDrafts});
+ assert.equal(result.counts.blankRigid,27);
+ assert.equal(result.counts.withoutProposal,1);
+ assert.equal(result.counts.existingReview,1);
+ assert.equal(result.counts.alreadyDrafted,1);
+ assert.equal(result.counts.prepared,24);
+ assert.equal(result.counts.conflictingQualifiedValues,1);
+ assert(result.counts.preparedQualified>0&&result.counts.preparedUnqualified>0);
+ assert.equal(result.drafts.get('original-0').value,'20.125');
+ assert.equal(result.drafts.get('original-0').proposalId,'p-0');
+ assert.equal(result.drafts.get('original-0').autoUnqualified,false);
+ assert.equal(result.drafts.get('original-1').value,'21.125');
+ assert.equal(result.drafts.get('original-1').autoUnqualified,true);
+ assert.equal(result.drafts.has('original-3'),false);
+ assert.equal(result.drafts.has('original-5'),false);
+ assert.equal(result.drafts.has('original-6'),false);
+ assert.equal(existingDrafts.get('original-6'),entered);
+ assert.deepEqual(reads.map(x=>x.offset),[0,25]);
+ assert(reads.every(x=>x.filter==='blank-rigid'&&x.limit===25));
+ assert.deepEqual(writes,[]);
+ assert.equal(result.reviewDecisionsAuthorized,false);
+ assert.equal(result.finalAcceptedAutomatically,false);
+ assert.equal(result.nativeCiiReleaseAuthorized,false);
+});
+
+test('Auto Fill refuses a tampered projected kilogram value',async()=>{
+ const basisId='b'.repeat(64),sourceId='SOURCE',
+   pinned={proposalId:'p',ranking:1,value:35,qualified:true,unit:'kg'};
+ const session={receipt:{basisId,sourceId},async readPage({offset}){
+   return {basisId,offset,totalCount:1,complete:true,rows:[{
+     sourceId,occurrenceId:'o',componentType:'RIGID',
+     proposals:[{...pinned,value:514.448}],
+     match1View:{match1Revision:'m1',stageDecision:null,proposals:[pinned]},
+     finalView:{finalRevision:'f1',stageDecision:null},
+   }]};
+ }};
+ const plan=await planXml229RigidWeightDrafts(session);
+ assert.equal(plan.counts.prepared,0);
+ assert.equal(plan.counts.unqualifiedInvalid,1);
+ assert.equal(plan.drafts.size,0);
+});
+
+test('Auto Fill actually hydrates input values and selected candidates rather than placeholders only',async()=>{
+ const file=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',import.meta.url),'utf8');
+ assert.match(file,/planXml229RigidWeightDrafts\(session,/);
+ assert.match(file,/tr\.querySelector\('\[data-p4-proposal\]'\)\.value=saved\.value/);
+ assert.match(file,/tr\.querySelector\('\[data-p4-candidate\]'\)\.value=saved\.proposalId/);
+ assert.match(file,/confirm\.hidden=!plan\.qualified/);
+ assert.doesNotMatch(file,/nativeCiiReleaseAuthorized:true/);
+ const raw=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs',import.meta.url),'utf8');
+ const served=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs',import.meta.url),'utf8');
+ assert.equal(raw,served);
+});
+
+test('pinned Match-1 candidate cannot accept manually edited different kilograms',()=>{
+ const x=row();
+ assert.throws(()=>choiceForXml229WeightRow(x,{
+   stage:'match1',proposalId:'attested-master-1',value:'514.448',reason:'Checked',
+ }),/Draft kg differs from selected proposal/);
+ assert.equal(choiceForXml229WeightRow(x,{
+   stage:'match1',proposalId:'attested-master-1',value:'47.488',
+ }).choice.action,'accept-proposal');
 });

@@ -17,7 +17,7 @@ import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest}
  from '../xml-cii-branch-scope.js';
 import {renderXml229WeightReviewPage,choiceForXml229WeightRow}
  from './xml229-p4-weight-review-presentation.mjs';
-import {planXml229UnqualifiedDrafts,formatXml229Match1Exclusions}
+import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions}
  from './xml229-p4-unqualified-drafts.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {prepareXml229G3G4LocalAggregateExport}
@@ -270,7 +270,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      value:tr.querySelector('[data-p4-proposal]')?.value??'',
      proposalId:tr.querySelector('[data-p4-candidate]')?.value??'',
      reason:tr.querySelector('[data-p4-reason]')?.value??'',
-     autoUnqualified:false,
+     autoUnqualified:(row.proposals||[]).some(p=>
+       p.proposalId===tr.querySelector('[data-p4-candidate]')?.value&&p.qualified===false),
+     autoFilled:false,
    });
  };
  const say=(message,bad=false)=>{
@@ -306,9 +308,11 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      tr.querySelector('[data-p4-proposal]').value=saved.value;
      tr.querySelector('[data-p4-candidate]').value=saved.proposalId;
      tr.querySelector('[data-p4-reason]').value=saved.reason;
-     if(saved.autoUnqualified){
+     if(saved.autoFilled||saved.autoUnqualified){
        const flag=tr.querySelector('[data-p4-draft-marker]');
-       if(flag)flag.textContent='Unqualified draft only — enter an engineering reason before acceptance';
+       if(flag)flag.textContent=saved.autoUnqualified
+         ?'Unqualified draft only — enter an engineering reason before acceptance'
+         :'Qualified draft only — confirm Match-1 separately';
      }
    }
  };
@@ -475,19 +479,33 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        offset=0;pendingBulk=null;await render();return;
      }
      if(planButton){
-       pendingBulk=await active.planQualifiedBlankFill();
+       const session=active;
+       const plan=await session.planQualifiedBlankFill();
+       const planned=await planXml229RigidWeightDrafts(session,{
+         existingDrafts:draftValues,
+         isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
+       });
+       if(active!==session||live()!==session)
+         err('STALE_WEIGHT_AUTO_FILL_SOURCE','Verified source changed during Auto Fill');
+       for(const [id,draft] of planned.drafts)if(!draftValues.has(id))
+         draftValues.set(id,draft);
+       pendingBulk=plan;
+       await render(); // Hydrate actual input.value and select.value, not placeholders
        bulkDetail.hidden=false;
-       bulkDetail.textContent=formatXml229Match1Exclusions(pendingBulk);
-       if(!pendingBulk.qualified){
-         table.querySelector('[data-p4-bulk-confirm]').hidden=true;
-         say('Auto Fill Match-1: no qualified blank-only candidates on the verified full source. Nothing accepted.');
-       }else{
-         const confirm=table.querySelector('[data-p4-bulk-confirm]');
-         confirm.hidden=false;
-         confirm.textContent='Confirm '+pendingBulk.qualified+' qualified Match-1';
-         say('Auto Fill Match-1 planned: '+pendingBulk.qualified+' qualified; '+
-           pendingBulk.unresolved+' unresolved. Existing masses preserved. Confirm Match-1 separately; Final and native CII remain HELD.');
+       bulkDetail.textContent=formatXml229Match1Exclusions(plan);
+       const confirm=table.querySelector('[data-p4-bulk-confirm]');
+       if(confirm){
+         confirm.hidden=!plan.qualified;
+         if(plan.qualified)confirm.textContent='Confirm '+plan.qualified+' qualified Match-1';
        }
+       const c=planned.counts;
+       say('Auto Fill Match-1: '+c.prepared+' blank RIGID input(s) populated ('+
+         c.preparedQualified+' qualified drafts, '+c.preparedUnqualified+
+         ' unqualified drafts). '+plan.qualified+
+         ' qualified source-wide decisions await separate confirmation. '+
+         c.withoutProposal+' blank RIGIDs have no proposal, '+
+         c.alreadyDrafted+' user drafts preserved; existing weights preserved. '+
+         'Nothing accepted yet; Final and native CII remain HELD.');
        return;
      }
      if(draftFillButton){
