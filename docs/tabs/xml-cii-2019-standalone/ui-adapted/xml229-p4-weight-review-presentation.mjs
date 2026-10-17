@@ -5,6 +5,8 @@
  * masters, infer a Final decision, or authorize native CII Run.
  */
 import {xml229ProposalScorePercent} from '../integration/xml229-weight-review-focus.mjs';
+import {auditXml229AcceptedMatch1Row}
+ from '../integration/xml229-accepted-match1-family-audit.mjs';
 const txt=x=>String(x??'');
 export const escapeXml229WeightHtml=x=>txt(x).replaceAll('&','&amp;')
  .replaceAll('<','&lt;').replaceAll('>','&gt;')
@@ -37,6 +39,8 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
  const label=x=>txt(x)?e(x):'<span title="No verified source value" style="color:#94a3b8">—</span>';
  const rows=m.rows.map((r,i)=>{
   const state=xml229WeightReviewStatus(r),proposals=Array.isArray(r.proposals)?r.proposals:[];
+  const audit=auditXml229AcceptedMatch1Row(r);
+  const auditHold=audit&&audit.code!=='FAMILY_COMPATIBLE_ONLY';
   const chips=proposals.map(p=>{
    const scorePercent=xml229ProposalScorePercent(p);
    const score=scorePercent===null?'':' · '+e(Math.round(scorePercent))+'%';
@@ -51,10 +55,15 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
     r.dtxrSourcePath].filter(Boolean).join(' · ')||
     'DTXR metadata not independently available for this original physical occurrence';
   const accepted=positive(r.finalKg)?r.finalKg:positive(r.match1Kg)?r.match1Kg:r.sourceKg;
-  const statusColor=state.kind==='final'?'#86efac':state.kind==='match1'?'#fde68a':'#fca5a5';
+  const statusColor=auditHold?'#fca5a5':
+    state.kind==='final'?'#86efac':state.kind==='match1'?'#fde68a':'#fca5a5';
   return `<tr data-p4-row="${i}" data-p4-occurrence="${e(r.occurrenceId)}"
     data-p4-stage="${state.kind}" style="border-bottom:1px solid #253a55">
     <td style="color:${statusColor}" data-p4-decision-state="${state.kind}">${e(state.label)}
+     ${audit? `<small data-p4-family-audit="${e(audit.code)}" title="${e(audit.reason)}"
+       style="display:block;color:${auditHold?'#fca5a5':'#fde68a'}">
+       ${auditHold?'Engineering HOLD':'Family compatible only'} · ${e(audit.code.replaceAll('_',' '))}
+       · independent kg verification required</small>`:''}
      <small style="display:block;color:#94a3b8">${e(r.sourceId)}</small></td>
     <td title="${e(r.nodeName||r.shortName||'')}">${label(r.shortName||r.nodeName||r.valveHint)}</td>
     <td title="${e(tooltip)}" style="min-width:140px;max-width:260px;overflow-wrap:anywhere">${label(r.dtxr)}</td>
