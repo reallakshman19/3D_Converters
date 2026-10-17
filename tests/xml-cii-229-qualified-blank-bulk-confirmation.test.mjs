@@ -457,3 +457,20 @@ test('Owner-shaped 423 physical / 2961 facts / 125 explicitly accepted Match-1 +
  assert.equal(audit.summary.nativeCiiReleaseAuthorized,false);
  assert.equal(audit.population.factCount,2961);
 });
+
+test('Worker bulk scope predicate blocks excluded/low-score commands before Match-1 writes',()=>{
+ const h=harness(14,{reviewed:false,sourceMass:false});
+ const allowed=id(6);
+ const planned=planXml229QualifiedBlankFill(h.service,h.projection,{
+   basisId:basis.basisId,sourceId:'one',sequence:77,
+   candidateEligibility:occurrenceId=>occurrenceId===allowed,
+ });
+ assert.equal(planned.summary.qualified,1);
+ assert.equal(planned.summary.exclusions.excludedByScope,11);
+ assert.equal(Object.keys(decisions(h,'RigidMatch1')).length,0);
+ const committed=confirm(h,planned.pending);
+ assert.equal(committed.acceptedCount,1);
+ assert.equal(decisions(h,'RigidMatch1')[allowed].value,15);
+ assert.equal(Object.keys(decisions(h,'RigidMatch1')).length,1);
+ assert.equal(Object.keys(decisions(h,'Rigidmatch2')).length,0);
+});
