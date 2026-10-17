@@ -404,8 +404,8 @@ try{
   assert.equal(backup.schema,'XML229.SourceBoundGC-PWReviewBackup.v1');
   assert.equal(backup.basisId,firstBasis);
   assert.equal(backup.counts.match1,1);
-  assert.equal(backup.counts.final,0);
-  assert.equal(backup.counts.source,30);
+  assert.equal(backup.counts.final,reviewedOccurrence?1:0);
+  assert.equal(backup.counts.source,31-backup.counts.match1-backup.counts.final);
   assert.equal(backup.nativeCiiReleaseAuthorized,false);
 
   await page.reload({waitUntil:'domcontentloaded'});
@@ -503,8 +503,8 @@ try{
   ]);
   const afterRestore=JSON.parse(await readFile(await restoredExport.path(),'utf8'));
   assert.equal(afterRestore.counts.match1,1);
-  assert.equal(afterRestore.counts.source,30);
-  assert.equal(afterRestore.counts.final,0);
+  assert.equal(afterRestore.counts.source,31-afterRestore.counts.match1-afterRestore.counts.final);
+  assert.equal(afterRestore.counts.final,reviewedOccurrence?1:0);
   assert.deepEqual(afterRestore.reviewState,backup.reviewState,
     'restored portable command ledger differs from original saved review');
   record.stages.explicitReviewReloadRestore={
