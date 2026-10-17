@@ -130,13 +130,16 @@ test('P0 table labels accepted family mismatch HOLD and compatible only is not F
  assert.match(html,/independent kg verification required/);
  assert.match(html,/Native CII Run remains HELD/);
 });
-test('P0 Worker exports accepted audit through existing read-only provenance endpoint',async()=>{
+test('P0 Worker exports accepted audit through the read-only provenance endpoint',async()=>{
  const worker=await readFile(new URL(
   '../tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs',
   import.meta.url),'utf8');
- assert.match(worker,/auditXml229AcceptedMatch1Population/);
- assert.match(worker,/acceptedFamilyAudit:familyAudit/);
- assert.match(worker,/getProposals:ids=>weightProjection.proposals\(ids\)/);
+ const auditModule=await readFile(new URL(
+  '../tabs/xml-cii-2019-standalone/integration/xml229-accepted-match1-family-audit.mjs',
+  import.meta.url),'utf8');
+ assert.match(worker,/projectXml229AuditedDecisionProvenance/);
+ assert.match(auditModule,/acceptedFamilyAudit/);
+ assert.match(auditModule,/getProposals:ids=>weightProjection.proposals\\(ids\\)/);
 });
 test('P0 new root and served modules are byte-identical',async()=>{
  for(const path of [
