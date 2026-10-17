@@ -64,6 +64,11 @@ export function classifySourceFamily(source = {}) {
   if (declared) hints.push(evidence('componentType', declared, source.componentType));
   const dtxr = semanticType(source?.dtxr);
   if (dtxr) hints.push(evidence('dtxr', dtxr, source.dtxr));
+  // A RIGID with no typed source anchor cannot gain automatic family authority
+  // merely from a derived DTXR string; its custody must be explicitly attested.
+  if (hints.length === 1 && hints[0].origin === 'dtxr' &&
+      source?.dtxrFamilyAttested !== true)
+    return { status: 'UNKNOWN', ...UNKNOWN, evidence: hints };
   return reconcile(hints);
 }
 export function classifyMasterFamily(candidate = {}) {
