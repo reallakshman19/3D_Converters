@@ -184,6 +184,35 @@ try{
  assert.match(runAdvisory,/Unresolved \/ proposed/);
  assert.match(runAdvisory,/CII output remains unauthorized/);
  assert.match(runAdvisory,/The legacy Pre-run Summary/);
+ // The SAME active GC-PW session must flow into canonical Output/Run,
+ // with a separate typed intentional native-consumption HOLD, not an RPC fault.
+ await page.evaluate(async()=>{
+   const {renderStandaloneOutputRunPanel}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js');
+   const o=window.__p4Options;
+   window.__p4StateRef.current={
+     sourceText:o.xmlText,sourceKind:'xml',
+     xml229StagedSourceReceipt:o.originalStagedSourceReceipt,
+     modeASourceId:o.sourceId,supportConfigJson:'{}',
+     options:{outputMode:'both'},masterContext:{},
+   };
+   renderStandaloneOutputRunPanel(
+     document.querySelector('#run-panel'),window.__p4StateRef,()=>{});
+   const {getXml229FlowTrace}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-flow-trace-registry.mjs');
+   window.__p4TracePeek=()=>getXml229FlowTrace(window.__p4StateRef)?.snapshot();
+ });
+ await page.waitForFunction(()=>
+   window.__p4TracePeek?.()?.events?.some(e=>e.kind==='RUN_GATE_HELD')===true,
+   null,{timeout:120000});
+ const outputTrace=await page.evaluate(()=>window.__p4TracePeek());
+ const audited=outputTrace.events.map(e=>e.kind);
+ assert(audited.includes('OUTPUT_READ_REQUESTED'));
+ assert(audited.includes('OUTPUT_READ_VERIFIED'));
+ assert(audited.includes('RUN_GATE_HELD'));
+ assert(outputTrace.findings.includes('NATIVE_RELEASE_HOLD_EXPECTED'));
+ assert.equal(outputTrace.nativeCiiReleaseAuthorized,false);
+ assert(!audited.includes('OUTPUT_READ_FAILED'));
 
  const shared=await page.evaluate(async()=>{
    const {getXml229CurrentWorkerHeldReview}=await import(
