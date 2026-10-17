@@ -297,7 +297,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    if(token!==renderSequence||session!==active||
       root.isConnected===false||live()!==session)return;
    if(draftOwner!==session)clearDrafts();
-   table.innerHTML=renderXml229WeightReviewPage(page,offset,{filter:mode,query});
+   table.innerHTML=renderXml229WeightReviewPage(page,offset,{filter:mode,query,minScorePercent});
    root.__p4VisibleRows=page.rows;
    for(const tr of table.querySelectorAll('tr[data-p4-row]')){
      const row=page.rows[Number(tr.dataset.p4Row)];
