@@ -174,3 +174,17 @@ export function choiceForXml229WeightRow(row,{stage,proposalId='',value='',reaso
  if(!explanation)throw new Error('Manual Match-1 requires an engineering reason');
  return {view:row.match1View,choice:{action:'enter-manual',value:kgValue,unit:'kg',reason:explanation}};
 }
+
+/** Explain historical engineering risk without treating command evidence as approval. */
+export function formatXml229DecisionAuditSummary(report) {
+ const s=report?.summary||{},a=report?.acceptedFamilyAudit?.summary||{};
+ return 'Decision audit exported: '+(s.auditedAcceptedDecisions??'unknown')+
+   ' accepted Match-1/Final records, '+(s.bulkConfirmed??'unknown')+
+   ' same-Worker bulk-confirmed, '+(s.bulkConfirmationUnknown??'unknown')+
+   ' bulk confirmation unproven. Engineering family audit: '+
+   (a.holdOrUnknownCount??'unknown')+' held/unknown, '+
+   (a.familyCompatibleOnly??'unknown')+' family-compatible only. '+
+   'All historical kg need independent verification before Final. '+
+   (s.provenanceComplete?'Command provenance checked; no engineering approval implied.':
+     'Inspect command provenance issues before Owner approval.');
+}
