@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {auditXml229AcceptedMatch1Row,auditXml229AcceptedMatch1Population}
+import {auditXml229AcceptedMatch1Row,auditXml229AcceptedMatch1Population,
+ projectXml229AuditedDecisionProvenance}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-accepted-match1-family-audit.mjs';
 import {renderXml229WeightReviewPage}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs';
@@ -141,6 +142,34 @@ test('P0 Worker exports accepted audit through the read-only provenance endpoint
  assert.match(auditModule,/acceptedFamilyAudit/);
  assert.ok(auditModule.includes('getProposals:ids=>weightProjection.proposals(ids)'));
 });
+test('P0 aggregate audit rejects a changed decision census between ledger and review reads',async()=>{
+ const historical=record(50,{
+   type:'FLAN',source:{status:'KNOWN',family:'FLANGE',subtype:'UNSPECIFIED',evidence:[]},
+   qualified:true,
+ });
+ const review={
+   exportReviewState:async()=>({
+     schemaVersion:'gc-pw/1.0',basisId,contentSha256:'a'.repeat(64),
+     reviewStates:[],frozenSnapshots:[],
+   }),
+   getDecisionState:()=>({decisions:{
+     [historical.occurrenceId]:historical.match1Decision,
+   }}),
+ };
+ const completion={
+   basisId,sourceId,engineeringFactsVerified:true,ciiReleaseAuthorized:false,
+   verifiedPhysicalCount:1,verifiedFactCount:7,
+   counts:{source:0,match1:0,final:0,unresolved:1},
+ };
+ const weightProjection={
+   count:1,get:()=>historical,
+   proposals:ids=>new Map(ids.map(id=>[id,historical.proposals])),
+ };
+ await assert.rejects(projectXml229AuditedDecisionProvenance({
+   review,weightProjection,basisId,sourceId,completion,
+ }),/ACCEPTED_AUDIT_PROVENANCE_CENSUS_DRIFT/);
+});
+
 test('P0 new root and served modules are byte-identical',async()=>{
  for(const path of [
   'tabs/xml-cii-2019-standalone/integration/xml229-accepted-match1-family-audit.mjs',
