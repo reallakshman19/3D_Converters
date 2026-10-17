@@ -3,6 +3,8 @@
  * Classification is current evidence about a past decision, NOT revocation,
  * confirmation of a historical click, Final approval or native CII authority.
  */
+import {projectXml229WeightDecisionProvenance}
+ from './xml229-weight-decision-provenance.mjs';
 const positive = x => typeof x === 'number' && Number.isFinite(x) && x > 0;
 const own = (o,k) => Object.prototype.hasOwnProperty.call(o || {},k);
 const STOP = Object.freeze(new Set([
@@ -114,4 +116,26 @@ export function auditXml229AcceptedMatch1Population({
     rows,readOnly:true,
     caution:'Family compatibility alone is not Final engineering verification. Historical decisions are preserved. Private source occurrence names remain in this owner-local export.',
   };
+}
+
+/** Reuse the established read-only provenance export, with a second family lens. */
+export async function projectXml229AuditedDecisionProvenance({
+ review,weightProjection,basisId,sourceId,completion,confirmedBulkCommandIds=[],
+}={}) {
+ if(!review||!weightProjection||typeof review.getDecisionState!=='function'||
+    typeof review.exportReviewState!=='function')
+   throw new Error('AUDIT_SOURCE_SESSION_REQUIRED');
+ const reviewState=await review.exportReviewState({basisId});
+ const provenance=projectXml229WeightDecisionProvenance({
+   reviewState,basisId,sourceId,completion,confirmedBulkCommandIds,
+ });
+ const acceptedFamilyAudit=auditXml229AcceptedMatch1Population({
+   basisId,sourceId,physicalCount:weightProjection.count,
+   decisions:review.getDecisionState({
+     basisId,scopeId:sourceId,stage:'RigidMatch1',
+   }).decisions,
+   getRow:id=>weightProjection.get(id),
+   getProposals:ids=>weightProjection.proposals(ids),
+ });
+ return {...provenance,acceptedFamilyAudit};
 }
