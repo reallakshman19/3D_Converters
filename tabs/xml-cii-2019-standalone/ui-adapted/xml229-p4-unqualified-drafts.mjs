@@ -24,6 +24,7 @@ export function formatXml229Match1Exclusions(plan){
   'Existing Final decision: '+safeCount(x.finalDecisionPresent),
   'Conflicting qualified values: '+safeCount(x.conflictingQualifiedCandidates),
   'Source-proposal mismatch: '+safeCount(x.planProjectionMismatch),
+  'Excluded by component scope or minimum score: '+safeCount(x.excludedByScope),
   'Review decisions are unchanged until separately confirmed. Final/native CII remain independent.',
  ].join('\n');
 }
