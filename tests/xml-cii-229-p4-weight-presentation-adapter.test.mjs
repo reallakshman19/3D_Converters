@@ -416,7 +416,7 @@ test('qualified Worker plan and draft population reconcile one-for-one; drift is
    return {basisId,offset,totalCount:rows.length,complete:true,
      rows:rows.slice(offset,offset+limit)};
  },review(){writeEvents.push('write')}};
- const saved=new Map([['o-3',{value:'41',proposalId:'',reason:'Engineer edit',autoFilled:false}]]);
+ const saved=new Map([['o-3',{value:'34.25',proposalId:'master-3',reason:'Engineer reviewed',autoFilled:false}]]);
  const planned=await planXml229RigidWeightDrafts(session,{
    minScorePercent:80,qualifiedSuggestions:approved,existingDrafts:saved});
  assert.equal(planned.counts.workerQualified,51);
@@ -425,9 +425,13 @@ test('qualified Worker plan and draft population reconcile one-for-one; drift is
  assert.equal(planned.counts.prepared,50);
  assert.equal(planned.firstPreparedIndex,0);
  assert.equal(planned.drafts.get('o-25').value,'56.25');
- assert.equal(saved.get('o-3').value,'41');
+ assert.equal(saved.get('o-3').value,'34.25');
  assert.deepEqual(readOffsets,[0,25,50]);
  assert.deepEqual(writeEvents,[]);
+ const edited=new Map([['o-3',{value:'41',proposalId:'',reason:'Manual engineer edit'}]]);
+ await assert.rejects(planXml229RigidWeightDrafts(session,{
+   minScorePercent:80,qualifiedSuggestions:approved,existingDrafts:edited,
+ }),{code:'SUGGESTION_MANUAL_DRAFT_CONFLICT'});
  assert.equal(planned.finalAcceptedAutomatically,false);
  assert.equal(planned.nativeCiiReleaseAuthorized,false);
  await assert.rejects(planXml229RigidWeightDrafts(session,{
