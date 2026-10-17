@@ -248,7 +248,7 @@ test('Phase-6 and Final-review UI leave unselected weight proposals outside acce
   assert.ok(final.includes('value="${attr(issue.acceptedWeight ?? \'\')}"'));
   assert.ok(match1.includes('withXmlCiiRigidWeightMatch1(clean, { ...candidates, ...manual }, proposalMeta)'));
   assert.ok(!match1.includes('withXmlCiiRigidWeightFinal(withXmlCiiRigidWeightMatch1'));
-  assert.ok(final.includes('isXmlCiiDirectQualifiedCandidate(best)'));
+  assert.ok(final.includes('isXmlCiiDirectQualifiedCandidate(best, row)'));
   assert.ok(!final.includes('function isDirectQualifiedCandidate(candidate)'));
   assert.ok(final.includes('const nextEntries = [];'));
   assert.ok(final.includes('workingEntries.splice(0, workingEntries.length, ...nextEntries)'));
@@ -631,8 +631,11 @@ test('U1 strict Mode A and Mode B source lineage isolates duplicate negative nod
 
 test('U2 exact qualification cannot silently promote preferred special factors or inferred methods', () => {
   const exact={preferred:true,lengthQualified:true,ratingExact:true,
-    weightMethod:'master',inferredWeight:false,flangeWeightFallback:false};
-  assert.equal(isXmlCiiDirectQualifiedCandidate(exact),true);
+    weightMethod:'master',weight:15,typeDesc:'Gate Valve',
+    inferredWeight:false,flangeWeightFallback:false};
+  assert.equal(isXmlCiiDirectQualifiedCandidate(exact,
+    {componentType:'RIGID',nodeName:'VGT-1',dtxr:'GATE VALVE'}),true);
+  assert.equal(isXmlCiiDirectQualifiedCandidate(exact),false);
   for (const extension of [
     {specialFactorRule:true}, {flangeWeightFallback:true}, {fallbackSuggestion:true},
     {oddEntry:true}, {inferredWeight:true}, {zeroFallback:true},
