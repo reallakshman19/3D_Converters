@@ -88,7 +88,7 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
        <button data-p4-accept-match1 type="button" class="model-converters-run-btn">Accept Match-1</button>
        <button data-p4-accept-final type="button" class="model-converters-download-btn">Review Final</button>
       </div>
-      <small style="color:#94a3b8">Proposed value is not accepted automatically</small>
+      <small data-p4-draft-marker style="color:#94a3b8">Proposed value is not accepted automatically</small>
     </td>
     <td style="max-width:420px;min-width:190px">
       <div class="mc-wm-candidate-chips" style="display:flex;gap:4px;flex-wrap:wrap;max-height:90px;overflow:auto">
