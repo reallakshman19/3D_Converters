@@ -144,8 +144,14 @@ export function choiceForXml229WeightRow(row,{stage,proposalId='',value='',reaso
  }
  if(stage!=='match1')throw new Error('Unknown verified Weight review stage');
  if(proposalId){
-   if(!Array.isArray(row.proposals)||!row.proposals.some(p=>p.proposalId===proposalId))
+   const pinned=Array.isArray(row.proposals)
+     ?row.proposals.find(p=>p.proposalId===proposalId):null;
+   if(!pinned)
      throw new Error('Selected candidate does not belong to this verified physical occurrence');
+   // An edited candidate input is NOT the pinned master proposal's mass.
+   // Require Manual selection rather than silently accepting an unrelated kg.
+   if(txt(value).trim()!==''&&Number(value)!==pinned.value)
+     throw new Error('Draft kg differs from selected proposal. Select Manual and enter an engineering reason.');
    return {view:row.match1View,choice:{action:'accept-proposal',proposalId,reason:explanation}};
  }
  const kgValue=Number(value);
