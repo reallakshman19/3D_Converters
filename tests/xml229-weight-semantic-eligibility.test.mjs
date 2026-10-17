@@ -151,7 +151,8 @@ test('P0 historical incompatible Match-1 can be restored without promoting it to
  const id=f[0].occurrenceId;
  legacy.applyDecisions({basisId:b.basisId,scopeId:sourceId,stage:'RigidMatch1',
    commands:[{commandId:'historical-click',basisId:b.basisId,scopeId:sourceId,
-     occurrenceId:id,action:'accept-proposal',proposalId:originalCandidate.proposalId}],
+     occurrenceId:id,expectedDecisionRevision:null,action:'accept-proposal',
+     proposalId:originalCandidate.proposalId}],
  });
  const historical=await legacy.exportReviewState({basisId:b.basisId});
  const strict=createWeightReviewService({score:scorer,digestReview});
