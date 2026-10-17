@@ -469,8 +469,11 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
          ' accepted Match-1/Final records, '+
          report.summary.bulkConfirmed+' same-Worker confirmed bulk, '+
          report.summary.bulkConfirmationUnknown+' bulk commands without independently provable confirmation. '+
-         (report.summary.provenanceComplete?'All audited decisions have sufficient provenance.':
-           'Inspect audit issues before Owner approval.'));
+         'Engineering family audit: '+(report.acceptedFamilyAudit?.summary?.holdOrUnknownCount??'unknown')+
+         ' held/unknown, '+(report.acceptedFamilyAudit?.summary?.familyCompatibleOnly??'unknown')+
+         ' family-compatible only. All historical kg require independent verification before Final. '+
+         (report.summary.provenanceComplete?'Command provenance checked; no engineering approval implied.':
+           'Inspect command provenance issues before Owner approval.'));
        return;
      }
      if(scope){
