@@ -135,3 +135,31 @@ test('P0 preserve distinct source/master evidence in source-family contradiction
   assert.deepEqual(s.evidence.map(x=>x.origin),['nodeName','dtxr']);
   assert.equal(m.family,'FLANGE');
 });
+
+test('P0 historical incompatible Match-1 can be restored without promoting it to qualified or Final',async()=>{
+ const b=basis(),f=facts(b),scorer=createXmlCiiFactWeightScorer({
+   weight:{masterRows:[row('Weldneck Flange')]},
+ });
+ const originalCandidate=scorer(f,b)[0];
+ assert.equal(originalCandidate.qualified,false);
+ const digestReview=async value=>hash(JSON.stringify(value));
+ const legacy=createWeightReviewService({
+   score:(records,input)=>scorer(records,input).map(p=>({...p,qualified:true})),
+   digestReview,
+ });
+ legacy.openBasis(b,{facts:f});
+ const id=f[0].occurrenceId;
+ legacy.applyDecisions({basisId:b.basisId,scopeId:sourceId,stage:'RigidMatch1',
+   commands:[{commandId:'historical-click',basisId:b.basisId,scopeId:sourceId,
+     occurrenceId:id,action:'accept-proposal',proposalId:originalCandidate.proposalId}],
+ });
+ const historical=await legacy.exportReviewState({basisId:b.basisId});
+ const strict=createWeightReviewService({score:scorer,digestReview});
+ strict.openBasis(b,{facts:f});
+ assert.equal(strict.getProposals({basisId:b.basisId,occurrenceIds:[id]}).items[0].qualified,false);
+ await strict.restoreReviewState({basisId:b.basisId,payload:historical});
+ const accepted=strict.getDecisionState({basisId:b.basisId,scopeId:sourceId,stage:'RigidMatch1'});
+ assert.equal(accepted.decisions[id].value,13);
+ assert.equal(accepted.decisions[id].proposalId,originalCandidate.proposalId);
+ assert.deepEqual(strict.getDecisionState({basisId:b.basisId,scopeId:sourceId,stage:'Rigidmatch2'}).decisions,{});
+});
