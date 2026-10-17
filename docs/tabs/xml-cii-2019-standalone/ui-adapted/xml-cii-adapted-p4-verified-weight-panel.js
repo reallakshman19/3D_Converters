@@ -258,7 +258,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const build=root.querySelector('[data-p4-weight-build]');
  const key=stateRef?.modeABaseRef||stateRef;
  let active=getXml229CurrentWorkerHeldReview(stateRef),offset=0,busy=false;
- let mode='all',query='',pendingBulk=null,searchTimer=null,renderSequence=0;
+ let mode='rigid',query='',pendingBulk=null,searchTimer=null,renderSequence=0,minScorePercent=80;
  // Drafts are local to exactly one source-attested Worker, never the decision ledger.
  let draftOwner=active,draftValues=new Map();
  const clearDrafts=()=>{draftOwner=active;draftValues.clear();bulkDetail.hidden=true;bulkDetail.textContent='';};
@@ -333,6 +333,17 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    },260);
  });
  root.addEventListener('change',async event=>{
+   if(event.target.closest?.('[data-p4-min-score]')){
+     const value=Number(event.target.value);
+     if(!Number.isFinite(value)||value<0||value>100){
+       event.target.value=String(minScorePercent);
+       say('Suggestion score must be between 0 and 100%.',true);return;
+     }
+     minScorePercent=value;pendingBulk=null;clearDrafts();
+     await render();
+     say('Suggestion threshold set to '+minScorePercent+'%. Apply all suggestions again.');
+     return;
+   }
    if(event.target.closest?.('[data-p4-candidate]')){
      captureDraft(event.target.closest('tr[data-p4-row]'));return;
    }
@@ -480,9 +491,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      }
      if(planButton){
        const session=active;
-       const plan=await session.planQualifiedBlankFill();
+       const plan=await session.planQualifiedBlankFill({minScorePercent});
        const planned=await planXml229RigidWeightDrafts(session,{
-         existingDrafts:draftValues,
+         existingDrafts:draftValues,minScorePercent,
          isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
        });
        if(active!==session||live()!==session)
@@ -495,16 +506,16 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        bulkDetail.textContent=formatXml229Match1Exclusions(plan);
        const confirm=table.querySelector('[data-p4-bulk-confirm]');
        if(confirm){
-         confirm.hidden=!plan.qualified;
-         if(plan.qualified)confirm.textContent='Confirm '+plan.qualified+' qualified Match-1';
+         confirm.disabled=!plan.qualified;
+         confirm.textContent='Apply all Match-1 ('+plan.qualified+')';
        }
        const c=planned.counts;
-       say('Auto Fill Match-1: '+c.prepared+' blank RIGID input(s) populated ('+
+       say('Apply all suggestions ≥'+minScorePercent+'%: '+c.prepared+' blank weight input(s) populated ('+
          c.preparedQualified+' qualified drafts, '+c.preparedUnqualified+
          ' unqualified drafts). '+plan.qualified+
          ' qualified source-wide decisions await separate confirmation. '+
          c.withoutProposal+' blank RIGIDs have no proposal, '+
-         c.alreadyDrafted+' user drafts preserved; existing weights preserved. '+
+         c.alreadyDrafted+' user drafts preserved, '+c.belowThreshold+' below threshold; existing weights preserved. '+
          'Nothing accepted yet; Final and native CII remain HELD.');
        return;
      }
@@ -528,7 +539,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        if(!pendingBulk?.planId)err('BULK_PLAN_REQUIRED','First review qualified blank-only suggestions');
        const result=await active.commitQualifiedBlankFill({planId:pendingBulk.planId});
        pendingBulk=null;clearDrafts();offset=0;await render();
-       say(result.acceptedCount+' qualified blank-only Match-1 decision(s) accepted; Final review and native CII release remain independent.');
+       say('Apply all Match-1 accepted '+result.acceptedCount+' qualified source-bound decision(s). Final and native CII release remain independent.');
        return;
      }
      if(prev||next){
