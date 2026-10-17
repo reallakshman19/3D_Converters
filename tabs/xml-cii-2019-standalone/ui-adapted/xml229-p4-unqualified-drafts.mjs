@@ -36,8 +36,8 @@ export async function planXml229UnqualifiedDrafts(session,{
  const limit=25,limitPhysical=10000;
  const drafts=new Map();
  const counts={blankRigid:0,withoutProposal:0,qualifiedPresent:0,
-   unqualifiedInvalid:0,alreadyDrafted:0,prepared:0};
- let total=null,offset=0;
+   unqualifiedInvalid:0,existingReview:0,alreadyDrafted:0,prepared:0};
+ let total=null,offset=0,matchRevision=null,finalRevision=null;
  do{
    if(!isCurrent())deny('UNQUALIFIED_DRAFT_STALE_SOURCE');
    const page=await session.readPage({offset,limit,filter:'blank-rigid',query:''});
@@ -55,6 +55,15 @@ export async function planXml229UnqualifiedDrafts(session,{
         drafts.has(row.occurrenceId))
        deny('UNQUALIFIED_DRAFT_ROW_DRIFT');
      counts.blankRigid++;
+     if(row.match1View?.stageDecision||row.finalView?.stageDecision){
+       counts.existingReview++;continue;
+     }
+     if(matchRevision===null){
+       matchRevision=row.match1View?.match1Revision;
+       finalRevision=row.finalView?.finalRevision;
+     }else if(row.match1View?.match1Revision!==matchRevision||
+              row.finalView?.finalRevision!==finalRevision)
+       deny('UNQUALIFIED_DRAFT_REVIEW_DRIFT');
      if(existingDrafts.has(row.occurrenceId)){counts.alreadyDrafted++;continue;}
      const proposals=Array.isArray(row.proposals)?row.proposals:[];
      if(!proposals.length){counts.withoutProposal++;continue;}
