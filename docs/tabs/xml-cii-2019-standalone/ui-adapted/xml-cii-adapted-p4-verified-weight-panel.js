@@ -15,7 +15,7 @@ import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-
 import {digestCanonical,canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest}
  from '../xml-cii-branch-scope.js';
-import {renderXml229WeightReviewPage,choiceForXml229WeightRow}
+import {renderXml229WeightReviewPage,choiceForXml229WeightRow,formatXml229DecisionAuditSummary}
  from './xml229-p4-weight-review-presentation.mjs';
 import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs}
  from './xml229-p4-unqualified-drafts.mjs';
@@ -465,15 +465,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        downloadTextFile('xml229-weight-decision-provenance.json',
          JSON.stringify({...report,exportedAt:new Date().toISOString()},null,2),
          'application/json;charset=utf-8');
-       say('Decision audit exported: '+report.summary.auditedAcceptedDecisions+
-         ' accepted Match-1/Final records, '+
-         report.summary.bulkConfirmed+' same-Worker confirmed bulk, '+
-         report.summary.bulkConfirmationUnknown+' bulk commands without independently provable confirmation. '+
-         'Engineering family audit: '+(report.acceptedFamilyAudit?.summary?.holdOrUnknownCount??'unknown')+
-         ' held/unknown, '+(report.acceptedFamilyAudit?.summary?.familyCompatibleOnly??'unknown')+
-         ' family-compatible only. All historical kg require independent verification before Final. '+
-         (report.summary.provenanceComplete?'Command provenance checked; no engineering approval implied.':
-           'Inspect command provenance issues before Owner approval.'));
+       say(formatXml229DecisionAuditSummary(report));
        return;
      }
      if(scope){
