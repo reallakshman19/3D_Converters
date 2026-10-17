@@ -630,11 +630,9 @@ test('U1 strict Mode A and Mode B source lineage isolates duplicate negative nod
 });
 
 test('U2 exact qualification cannot silently promote preferred special factors or inferred methods', () => {
-  const exact={preferred:true,lengthQualified:true,ratingExact:true,
-    weightMethod:'master',weight:15,typeDesc:'Gate Valve',
-    inferredWeight:false,flangeWeightFallback:false};
-  assert.equal(isXmlCiiDirectQualifiedCandidate(exact,
-    {componentType:'RIGID',nodeName:'VGT-1',dtxr:'GATE VALVE'}),true);
+  const exact={preferred:true,lengthQualified:true,ratingExact:true,weightMethod:'master',
+    weight:15,typeDesc:'Gate Valve',inferredWeight:false,flangeWeightFallback:false};
+  assert.equal(isXmlCiiDirectQualifiedCandidate(exact,{nodeName:'VGT-1',dtxr:'GATE VALVE'}),true);
   assert.equal(isXmlCiiDirectQualifiedCandidate(exact),false);
   for (const extension of [
     {specialFactorRule:true}, {flangeWeightFallback:true}, {fallbackSuggestion:true},
