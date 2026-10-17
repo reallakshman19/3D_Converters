@@ -1,0 +1,22 @@
+name: XML229 G5 Native Element Lineage Challenge (nonreleasing)
+on:
+  pull_request:
+    paths:
+      - 'scripts/xml229-g5-native-element-lineage.py'
+      - 'tests/xml229-g5-native-element-lineage.test.py'
+      - 'docs/architecture/xml229-g5-native-element-lineage-challenge.md'
+      - '.github/workflows/xml229-g5-native-element-lineage.yml'
+  workflow_dispatch:
+jobs:
+  held-out-g5-element-lineage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Existing independent mass and review oracle
+        run: python3 tests/gc-pw-v1-cii-mass-oracle.test.py
+      - name: Independent actual CII ELEMENTS to RIGID and source ordinal challenge
+        run: python3 tests/xml229-g5-native-element-lineage.test.py
