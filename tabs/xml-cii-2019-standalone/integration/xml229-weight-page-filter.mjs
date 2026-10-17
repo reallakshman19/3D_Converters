@@ -14,7 +14,7 @@ export function matchesXml229WeightReviewFilter(filter,{
  if(!xml229WeightReviewFilters.includes(filter))
    throw new RangeError('Unknown verified Weight review filter');
  const rigid=xml229WeightReviewEligible({componentType,nodeName,dtxr});
- if((filter==='rigid'||filter==='blank-rigid')&&!rigid)return false;
+ if((filter==='rigid'||filter==='blank-rigid'||filter==='needs-review')&&!rigid)return false;
  const accepted=match1State==='accepted'||finalState==='accepted'||
    (typeof sourceKg==='number'&&Number.isFinite(sourceKg)&&sourceKg>0);
  if((filter==='needs-review'||filter==='blank-rigid')&&accepted)return false;
