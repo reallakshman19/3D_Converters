@@ -9,6 +9,8 @@ import {xml229UnbuiltIndependentStage}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-run-readiness-presentation.mjs';
 import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs';
+import {xml229WeightReviewEligible,xml229IsExcludedWeightFitting,xml229ProposalScorePercent,xml229WeightThreshold}
+ from '../tabs/xml-cii-2019-standalone/integration/xml229-weight-review-focus.mjs';
 import {matchesXml229WeightReviewFilter,xml229WeightReviewFilters}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-weight-page-filter.mjs';
 
@@ -39,10 +41,12 @@ test('source-bound Worker page reuses existing review styling and bounded verifi
  assert.match(html,/data-p4-bulk-plan/);
  assert.match(html,/data-p4-scope="rigid"/);
   assert.match(html,/data-p4-scope="blank-rigid"/);
-  assert.match(html,/Filter Blank/);
-  assert.match(html,/Auto Fill Match-1/);
-  assert.match(html,/data-p4-draft-unqualified/);
-  assert.match(html,/Fill unqualified drafts/);
+  assert.match(html,/Blank weights/);
+  assert.match(html,/Apply all suggestions/);
+  assert.match(html,/Apply all Match-1/);
+  assert.match(html,/data-p4-min-score/);
+  assert.match(html,/Short name \/ Valve Hint/);
+  assert.match(html,/DTXR/);
   assert.match(html,/data-p4-draft-marker/);
  assert.doesNotMatch(html,/XML mass resolved/);
  assert.equal(xml229WeightReviewPageModel(page,0).counts.unresolved,1);
@@ -101,7 +105,7 @@ test('Filter Blank shows only source-bound RIGID rows with no accepted mass',()=
  assert.equal(matchesXml229WeightReviewFilter('blank-rigid',{...unresolved,sourceKg:15}),false);
  assert.equal(matchesXml229WeightReviewFilter('blank-rigid',{...unresolved,match1State:'accepted'}),false);
  assert.equal(matchesXml229WeightReviewFilter('blank-rigid',{...unresolved,finalState:'accepted'}),false);
- assert.equal(matchesXml229WeightReviewFilter('needs-review',{...unresolved,componentType:'PIPE'}),true);
+ assert.equal(matchesXml229WeightReviewFilter('needs-review',{...unresolved,componentType:'PIPE'}),false);
  assert.equal(matchesXml229WeightReviewFilter('rigid',{...unresolved,sourceKg:15}),true);
  assert.equal(matchesXml229WeightReviewFilter('all',{...unresolved,componentType:'PIPE'}),true);
  assert.throws(()=>matchesXml229WeightReviewFilter('unverified',unresolved),/Unknown/);
@@ -297,7 +301,7 @@ test('Auto Fill actually hydrates input values and selected candidates rather th
  assert.match(file,/planXml229RigidWeightDrafts\(session,/);
  assert.match(file,/tr\.querySelector\('\[data-p4-proposal\]'\)\.value=saved\.value/);
  assert.match(file,/tr\.querySelector\('\[data-p4-candidate\]'\)\.value=saved\.proposalId/);
- assert.match(file,/confirm\.hidden=!plan\.qualified/);
+ assert.match(file,/confirm\.disabled=!plan\.qualified/);
  assert.doesNotMatch(file,/nativeCiiReleaseAuthorized:true/);
  const raw=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs',import.meta.url),'utf8');
  const served=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs',import.meta.url),'utf8');
@@ -312,4 +316,78 @@ test('pinned Match-1 candidate cannot accept manually edited different kilograms
  assert.equal(choiceForXml229WeightRow(x,{
    stage:'match1',proposalId:'attested-master-1',value:'47.488',
  }).choice.action,'accept-proposal');
+});
+
+test('focused RIGID queue excludes ordinary fittings but preserves full-source audit',()=>{
+ assert.equal(xml229WeightReviewEligible({componentType:'RIGID',nodeName:'VGT-100'}),true);
+ assert.equal(xml229WeightReviewEligible({componentType:'VALV',nodeName:'VGT-100'}),true);
+ assert.equal(xml229WeightReviewEligible({componentType:'INST',nodeName:'PCV-100'}),true);
+ for(const r of [
+  {componentType:'RIGID',nodeName:'TEE REDUCING BW'},
+  {componentType:'RIGID',dtxr:'TEE REDUCING BW SCH 80'},
+  {componentType:'RIGID',nodeName:'ELBOW-90'},
+  {componentType:'RIGID',nodeName:'PIPE-STRAIGHT'},
+  {componentType:'RIGID',dtxr:'REDUCER BW 300'},
+ ]) {
+  assert.equal(xml229WeightReviewEligible(r),false);
+  assert.equal(matchesXml229WeightReviewFilter('rigid',r),false);
+  assert.equal(matchesXml229WeightReviewFilter('blank-rigid',r),false);
+  assert.equal(matchesXml229WeightReviewFilter('all',r),true);
+ }
+ assert.equal(xml229IsExcludedWeightFitting({dtxr:'WELDING NECK FLANGE PIPE CLASS'}),false);
+});
+
+test('suggestion threshold normalizes scores and never commits draft weights',async()=>{
+ assert.equal(xml229ProposalScorePercent({score:.86}),86);
+ assert.equal(xml229ProposalScorePercent({score:91}),91);
+ assert.equal(xml229ProposalScorePercent({score:null}),null);
+ assert.equal(xml229WeightThreshold(80),80);
+ assert.throws(()=>xml229WeightThreshold(101),/0–100/);
+ const basisId='b'.repeat(64),sourceId='SOURCE';
+ const ps=[
+  {proposalId:'p0',ranking:1,value:15,unit:'kg',qualified:true,score:.91},
+  {proposalId:'p1',ranking:1,value:19,unit:'kg',qualified:false,score:79},
+  {proposalId:'p2',ranking:1,value:12,unit:'kg',qualified:false,score:.88},
+ ];
+ let writes=0;
+ const session={receipt:{basisId,sourceId},async readPage({offset}){
+  const rows=ps.map((p,i)=>({
+   sourceId,occurrenceId:'o'+i,componentType:'RIGID',nodeName:'VGT-100',
+   sourceKg:null,match1Kg:null,finalKg:null,proposals:[p],
+   match1View:{match1Revision:'m1',stageDecision:null,proposals:[p]},
+   finalView:{finalRevision:'f1',stageDecision:null},
+  }));
+  return {basisId,offset,totalCount:rows.length,complete:true,rows};
+ },review(){writes++}};
+ const plan=await planXml229RigidWeightDrafts(session,{minScorePercent:80});
+ assert.equal(plan.counts.prepared,2);
+ assert.equal(plan.counts.preparedQualified,1);
+ assert.equal(plan.counts.preparedUnqualified,1);
+ assert.equal(plan.counts.belowThreshold,1);
+ assert.equal(plan.drafts.has('o1'),false);
+ assert.equal(plan.drafts.get('o2').value,'12');
+ assert.equal(writes,0);
+ assert.equal(plan.finalAcceptedAutomatically,false);
+ assert.equal(plan.nativeCiiReleaseAuthorized,false);
+});
+
+test('two click Match-1 UI retains explicit Worker planId commitment',async()=>{
+ const panel=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',import.meta.url),'utf8');
+ const worker=await readFile(new URL('../tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs',import.meta.url),'utf8');
+ assert.match(panel,/minScorePercent=80/);
+ assert.match(panel,/session\.planQualifiedBlankFill\(\{minScorePercent\}\)/);
+ assert.match(panel,/await active\.commitQualifiedBlankFill\(\{planId:pendingBulk\.planId\}\)/);
+ assert.match(worker,/candidateEligibility:/);
+ assert.match(worker,/xml229WeightReviewEligible\(meta\)/);
+ assert.match(worker,/xml229ProposalScorePercent\(selected\)/);
+ assert.doesNotMatch(panel,/nativeCiiReleaseAuthorized:true/);
+});
+
+test('proposal confidence displays normalized percentage rather than 0 or 1 percent',()=>{
+ const x=row();
+ x.proposals[0].score=0.91;
+ const html=renderXml229WeightReviewPage({totalCount:1,rows:[x]});
+ assert.match(html,/91%/);
+ assert.doesNotMatch(html,/0\.91%/);
+ assert.doesNotMatch(html,/ · 1% · master-match/);
 });

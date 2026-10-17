@@ -157,8 +157,8 @@ try{
   assert.equal(await page.locator('tr[data-p4-row]').first().locator('td').count(),13);
   record.stages.historicalColumns=await page.locator('.mc-rigid-review-table th').allTextContents();
   assert.deepEqual(record.stages.historicalColumns.map(x=>x.trim()),[
-    'Status','Branch','Line Key','ComponentType','Bore','Rating','Node',
-    'ComponentRefNo_Endpoint','DTXR','Valve Hint','Length','Weight (kg)','Nearest Suggestions']);
+    'Status','Short name / Valve Hint','DTXR','Branch','Line Key','ComponentType','Bore','Rating','Node',
+    'ComponentRefNo_Endpoint','Length','Weight (kg)','Nearest Suggestions']);
   assert.equal(await page.locator('[data-p4-weight-build]').count(),0);
 
 
@@ -268,17 +268,19 @@ try{
   // Exact original Match-1 bulk planner: proposal is not acceptance. If the
   // public fixture has qualified blanks, require an explicit second confirm.
   await page.locator('[data-p4-bulk-plan]').click();
-  await page.waitForFunction(()=>/qualified|No qualified/i.test(
+  // The prior loaded-status also contains the word "qualified" in its
+  // help text. Wait for the *new* plan result, not a stale pre-click label.
+  await page.waitForFunction(()=>/Apply all suggestions ≥\d+%:/.test(
     document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:120000});
   record.stages.bulkPlanMessage=await page.locator('[data-p4-weight-status]').textContent();
-  assert.match(record.stages.bulkPlanMessage,/qualified|No qualified/i);
+  assert.match(record.stages.bulkPlanMessage,/Apply all suggestions ≥\d+%:/);
   const confirm=page.locator('[data-p4-bulk-confirm]');
-  if(await confirm.isVisible()){
+  if(await confirm.isEnabled()){
     await confirm.click();
-    await page.waitForFunction(()=>/Match-1 decision\(s\) accepted/i.test(
+    await page.waitForFunction(()=>/Apply all Match-1 accepted \d+ qualified source-bound decision\(s\)/i.test(
       document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:120000});
     record.stages.bulkAccepted=await page.locator('[data-p4-weight-status]').textContent();
-    assert.match(record.stages.bulkAccepted,/Match-1 decision\(s\) accepted/i);
+    assert.match(record.stages.bulkAccepted,/Apply all Match-1 accepted \d+ qualified source-bound decision\(s\)/i);
     // Final Match-2 was never bulk-applied or overwritten.
     if(reviewedOccurrence){
       const finalStill=await page.locator('tr[data-p4-row]').evaluateAll(
@@ -300,10 +302,13 @@ try{
   assert.equal(audited.basisId,firstBasis);
   assert.equal(audited.population.physicalCount,31);
   assert.equal(audited.population.factCount,217);
-  assert.equal(audited.population.counts.source,31);
+  assert.equal(audited.population.counts.source,reviewedOccurrence?30:31);
+  assert.equal(audited.population.counts.match1,0);
+  assert.equal(audited.population.counts.final,reviewedOccurrence?1:0);
+  assert.equal(Object.values(audited.population.counts).reduce((a,b)=>a+b,0),31);
   assert.equal(audited.summary.nativeCiiReleaseAuthorized,false);
   assert.equal(audited.summary.provenanceComplete,true);
-  assert.equal(audited.summary.auditedAcceptedDecisions,0);
+  assert.equal(audited.summary.auditedAcceptedDecisions,reviewedOccurrence?2:0);
   record.stages.weightProvenanceAudit={
     basisId:audited.basisId,summary:audited.summary,
     physicalCount:audited.population.physicalCount,
@@ -399,8 +404,8 @@ try{
   assert.equal(backup.schema,'XML229.SourceBoundGC-PWReviewBackup.v1');
   assert.equal(backup.basisId,firstBasis);
   assert.equal(backup.counts.match1,1);
-  assert.equal(backup.counts.final,0);
-  assert.equal(backup.counts.source,30);
+  assert.equal(backup.counts.final,reviewedOccurrence?1:0);
+  assert.equal(backup.counts.source,31-backup.counts.match1-backup.counts.final);
   assert.equal(backup.nativeCiiReleaseAuthorized,false);
 
   await page.reload({waitUntil:'domcontentloaded'});
@@ -498,8 +503,8 @@ try{
   ]);
   const afterRestore=JSON.parse(await readFile(await restoredExport.path(),'utf8'));
   assert.equal(afterRestore.counts.match1,1);
-  assert.equal(afterRestore.counts.source,30);
-  assert.equal(afterRestore.counts.final,0);
+  assert.equal(afterRestore.counts.source,31-afterRestore.counts.match1-afterRestore.counts.final);
+  assert.equal(afterRestore.counts.final,reviewedOccurrence?1:0);
   assert.deepEqual(afterRestore.reviewState,backup.reviewState,
     'restored portable command ledger differs from original saved review');
   record.stages.explicitReviewReloadRestore={

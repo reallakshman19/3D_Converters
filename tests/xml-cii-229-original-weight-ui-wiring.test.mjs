@@ -9,7 +9,7 @@ import {renderXml229WeightReviewPage}
 const basisId='b'.repeat(64),sourceId='ORIGINAL-XML';
 const phys=(ordinal,ref)=>({
  sourceId,branchOccurrenceIndex:0,nodeOrdinal:ordinal,
- componentSignature:JSON.stringify(['RIGID',ref,'2','ComponentName']),
+ componentSignature:JSON.stringify(['RIGID',ref,'2',ref==='A'?'VGT-001':'ComponentName']),
  occurrenceId:JSON.stringify([sourceId,0,ordinal,JSON.stringify(['RIGID',ref,'2','ComponentName'])]),
 });
 function fixture(){
@@ -67,6 +67,10 @@ test('old 13-column UI is fed by exact original physical census, not legacy node
  assert.equal(b.nodeNumber,'290','duplicate display NodeNumbers are legal, but identities remain separate');
  assert.notEqual(a.occurrenceId,b.occurrenceId);
  assert.equal(a.branchName,'/OWNER-L101-300');
+ assert.equal(a.nodeName,'VGT-001');
+ assert.equal(a.shortName,'Gate Valve');
+ assert.equal(a.inferredValveName,'VGT → Gate Valve');
+ assert.equal(b.shortName,'ComponentName');
  assert.equal(a.lineKey,'L101');
  assert.equal(a.boreMm,100);
  assert.equal(a.lengthMm,150);

@@ -3,6 +3,8 @@
  * This never calls the GC-PW review decision writer. No draft is a mass fact.
  * Returned entries live only in the UI's current Worker/session memory.
  */
+import {xml229WeightReviewEligible,xml229ProposalScorePercent,xml229WeightThreshold}
+ from '../integration/xml229-weight-review-focus.mjs';
 const positive=x=>typeof x==='number'&&Number.isFinite(x)&&x>0;
 const whole=x=>Number.isSafeInteger(x)&&x>=0;
 const deny=code=>{const e=new Error(code);e.code=code;throw e;};
@@ -22,6 +24,7 @@ export function formatXml229Match1Exclusions(plan){
   'Existing Final decision: '+safeCount(x.finalDecisionPresent),
   'Conflicting qualified values: '+safeCount(x.conflictingQualifiedCandidates),
   'Source-proposal mismatch: '+safeCount(x.planProjectionMismatch),
+  'Excluded by component scope or minimum score: '+safeCount(x.excludedByScope),
   'Review decisions are unchanged until separately confirmed. Final/native CII remain independent.',
  ].join('\n');
 }
@@ -32,16 +35,17 @@ export function formatXml229Match1Exclusions(plan){
  * This function NEVER writes to the review ledger, even for qualified proposals.
  */
 export async function planXml229RigidWeightDrafts(session,{
- existingDrafts=new Map(),isCurrent=()=>true,unqualifiedOnly=false,
+ existingDrafts=new Map(),isCurrent=()=>true,unqualifiedOnly=false,minScorePercent=0,
 }={}){
  if(!session?.receipt?.basisId||typeof session.readPage!=='function'||
     !(existingDrafts instanceof Map)||typeof isCurrent!=='function')
    deny('UNQUALIFIED_DRAFT_SOURCE_REQUIRED');
+ const minScore=xml229WeightThreshold(minScorePercent);
  const basisId=session.receipt.basisId,sourceId=session.receipt.sourceId;
  const limit=25,limitPhysical=10000,drafts=new Map();
  const counts={blankRigid:0,withoutProposal:0,qualifiedPresent:0,
    unqualifiedInvalid:0,existingReview:0,alreadyDrafted:0,
-   conflictingQualifiedValues:0,preparedQualified:0,preparedUnqualified:0,
+   conflictingQualifiedValues:0,belowThreshold:0,preparedQualified:0,preparedUnqualified:0,
    prepared:0};
  let total=null,offset=0,matchRevision=null,finalRevision=null;
  do{
@@ -56,7 +60,7 @@ export async function planXml229RigidWeightDrafts(session,{
    if(total===null)total=page.totalCount;
    for(const row of page.rows){
      if(!row||row.sourceId!==sourceId||typeof row.occurrenceId!=='string'||
-        !row.occurrenceId||!/^RIGID/i.test(String(row.componentType||''))||
+        !row.occurrenceId||!xml229WeightReviewEligible(row)||
         positive(row.sourceKg)||positive(row.match1Kg)||positive(row.finalKg)||
         drafts.has(row.occurrenceId))
        deny('UNQUALIFIED_DRAFT_ROW_DRIFT');
@@ -85,6 +89,9 @@ export async function planXml229RigidWeightDrafts(session,{
           pinned.unit!=='kg'))||
        (unqualifiedOnly&&top.qualified!==false)){
        counts.unqualifiedInvalid++;continue;
+     }
+     if(minScore>0&&(xml229ProposalScorePercent(top)??-1)<minScore){
+       counts.belowThreshold++;continue;
      }
      if(qualified.some(p=>p.proposalId!==top.proposalId&&p.value!==top.value))
        counts.conflictingQualifiedValues++;

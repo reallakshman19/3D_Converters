@@ -106,7 +106,7 @@ test('Worker guarded source bulk: qualified off-page blanks commit only AFTER ex
    sourceMassPresent:1,match1DecisionPresent:1,noRank1Proposal:0,
    topRankUnqualified:1,topRankInvalidMass:0,topRankInvalidUnit:0,
    lowerRankQualified:0,finalDecisionPresent:1,
-   conflictingQualifiedCandidates:1,planProjectionMismatch:0,
+   conflictingQualifiedCandidates:1,planProjectionMismatch:0,excludedByScope:0,
    readyForConfirmation:107,
  });
  assert.equal(prepared.summary.reviewStage,'RigidMatch1');
@@ -456,4 +456,21 @@ test('Owner-shaped 423 physical / 2961 facts / 125 explicitly accepted Match-1 +
  assert.equal(audit.summary.provenanceComplete,true);
  assert.equal(audit.summary.nativeCiiReleaseAuthorized,false);
  assert.equal(audit.population.factCount,2961);
+});
+
+test('Worker bulk scope predicate blocks excluded/low-score commands before Match-1 writes',()=>{
+ const h=harness(14,{reviewed:false,sourceMass:false});
+ const allowed=id(6);
+ const planned=planXml229QualifiedBlankFill(h.service,h.projection,{
+   basisId:basis.basisId,sourceId:'one',sequence:77,
+   candidateEligibility:occurrenceId=>occurrenceId===allowed,
+ });
+ assert.equal(planned.summary.qualified,1);
+ assert.equal(planned.summary.exclusions.excludedByScope,12);
+ assert.equal(Object.keys(decisions(h,'RigidMatch1')).length,0);
+ const committed=confirm(h,planned.pending);
+ assert.equal(committed.acceptedCount,1);
+ assert.equal(decisions(h,'RigidMatch1')[allowed].value,15);
+ assert.equal(Object.keys(decisions(h,'RigidMatch1')).length,1);
+ assert.equal(Object.keys(decisions(h,'Rigidmatch2')).length,0);
 });

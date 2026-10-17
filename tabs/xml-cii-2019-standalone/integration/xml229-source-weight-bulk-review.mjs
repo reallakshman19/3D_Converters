@@ -14,7 +14,7 @@ const object=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 
 /** Return a read-only summary and a Worker-private plan. */
 export function planXml229QualifiedBlankFill(review,projection,{
- basisId,sourceId,sequence,
+ basisId,sourceId,sequence,candidateEligibility=null,
 }={}){
  if(!review||!projection||typeof projection.proposals!=='function'||
     typeof basisId!=='string'||!basisId||
@@ -25,7 +25,7 @@ export function planXml229QualifiedBlankFill(review,projection,{
  const final=review.getDecisionState({basisId,scopeId:sourceId,stage:'Rigidmatch2'});
  if(!object(final)||!object(final.decisions))
    fail('FINAL_REVIEW_UNAVAILABLE','Final decision state must be available before Match-1 bulk review');
- let excludedFinal=0,ambiguousQualified=0,notQualifiedAtGuard=0;
+ let excludedFinal=0,ambiguousQualified=0,notQualifiedAtGuard=0,excludedByScope=0;
  const commands=[];
  for(let i=0;i<plan.commands.length;i+=80){
    const chunk=plan.commands.slice(i,i+80);
@@ -39,6 +39,9 @@ export function planXml229QualifiedBlankFill(review,projection,{
      const candidates=proposals.get(cmd.occurrenceId)||[];
      const selected=candidates.find(p=>p.proposalId===cmd.proposalId);
      if(!selected?.qualified){notQualifiedAtGuard++;continue;}
+     if(candidateEligibility&&!candidateEligibility(cmd.occurrenceId,selected)){
+       excludedByScope++;continue;
+     }
      if(candidates.some(p=>
          p.qualified&&p.proposalId!==cmd.proposalId&&p.value!==selected.value)){
        ambiguousQualified++;continue;
@@ -57,6 +60,7 @@ export function planXml229QualifiedBlankFill(review,projection,{
        finalDecisionPresent:excludedFinal,
        conflictingQualifiedCandidates:ambiguousQualified,
        planProjectionMismatch:notQualifiedAtGuard,
+       excludedByScope,
        readyForConfirmation:commands.length},
      preservedSourceWeights:plan.preservedSourceWeights,
      alreadyReviewed:plan.alreadyReviewed,physicalCount:plan.physicalCount,
