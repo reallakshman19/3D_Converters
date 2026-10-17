@@ -268,10 +268,12 @@ try{
   // Exact original Match-1 bulk planner: proposal is not acceptance. If the
   // public fixture has qualified blanks, require an explicit second confirm.
   await page.locator('[data-p4-bulk-plan]').click();
-  await page.waitForFunction(()=>/qualified|No qualified/i.test(
+  // The prior loaded-status also contains the word "qualified" in its
+  // help text. Wait for the *new* plan result, not a stale pre-click label.
+  await page.waitForFunction(()=>/Apply all suggestions ≥\d+%:/.test(
     document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:120000});
   record.stages.bulkPlanMessage=await page.locator('[data-p4-weight-status]').textContent();
-  assert.match(record.stages.bulkPlanMessage,/qualified|No qualified/i);
+  assert.match(record.stages.bulkPlanMessage,/Apply all suggestions ≥\d+%:/);
   const confirm=page.locator('[data-p4-bulk-confirm]');
   if(await confirm.isEnabled()){
     await confirm.click();
