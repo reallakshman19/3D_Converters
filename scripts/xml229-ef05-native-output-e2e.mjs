@@ -288,10 +288,24 @@ try{
  }
  assert(manualId,'unable to select existing-edit fixture occurrence');
  await page.locator('[data-p4-bulk-plan]').click();
- await page.waitForFunction(()=>{
-   const message=document.querySelector('[data-p4-weight-status]')?.textContent||'';
-   return /Apply all suggestions ≥80%:|Review not accepted:|Worker ended|rebuild/i.test(message);
- },null,{timeout:90000});
+ try{
+   await page.waitForFunction(()=>{
+     const message=document.querySelector('[data-p4-weight-status]')?.textContent||'';
+     return /Apply all suggestions ≥80%:|Review not accepted:|Worker ended|rebuild/i.test(message);
+   },null,{timeout:90000});
+ }catch(error){
+   const state=await page.evaluate(()=>{
+     const root=document.querySelector('[data-p4-weight-root]');
+     const message=root?.querySelector('[data-p4-weight-status]')?.textContent||'';
+     const table=root?.querySelector('.mc-rigid-review-table-wrap');
+     return {message:message.slice(0,700),rows:root?.__p4VisibleRows?.length,
+       renderedInputs:table?.querySelectorAll('[data-p4-applied-weight]')?.length,
+       filledInputs:[...table?.querySelectorAll('[data-p4-applied-weight]')||[]]
+         .filter(input=>input.value!=='').length};
+   });
+   throw new Error('Apply UI did not reach success/error in 90s: '+
+     JSON.stringify(state)+'; '+String(error?.message||error));
+ }
  const actualApplyStatus=await page.locator('[data-p4-weight-status]').textContent();
  assert.match(actualApplyStatus,/Apply all suggestions ≥80%:/,
    'Real 80% Apply failed: '+actualApplyStatus);
