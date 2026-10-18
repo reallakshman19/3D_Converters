@@ -424,9 +424,14 @@ test('qualified Worker plan and draft population reconcile one-for-one; drift is
  assert.deepEqual(readOffsets,[0,25,50]);
  assert.deepEqual(writeEvents,[]);
  const edited=new Map([['o-3',{value:'41',proposalId:'',reason:'Manual engineer edit'}]]);
- await assert.rejects(planXml229RigidWeightDrafts(session,{
+ const kept=await planXml229RigidWeightDrafts(session,{
    minScorePercent:80,qualifiedSuggestions:approved,existingDrafts:edited,
- }),{code:'SUGGESTION_MANUAL_DRAFT_CONFLICT'});
+ });
+ assert.equal(kept.counts.manualConflictsPreserved,1);
+ assert.equal(kept.counts.workerQualifiedAlreadyDrafted,1);
+ assert.equal(kept.counts.prepared,50);
+ assert.equal(kept.drafts.has('o-3'),false);
+ assert.equal(edited.get('o-3').value,'41');
  assert.equal(planned.finalAcceptedAutomatically,false);
  assert.equal(planned.nativeCiiReleaseAuthorized,false);
  await assert.rejects(planXml229RigidWeightDrafts(session,{
