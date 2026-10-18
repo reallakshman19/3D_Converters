@@ -123,7 +123,10 @@ test('production integration uses existing GC-PW bulk planner and not legacy Wei
  assert.match(guard,/commitExactSourceWeightCommands/);
  assert.match(worker,/buildXml229VerifiedWeightRowProjection/);
  assert.match(panel,/planQualifiedBlankFill/);
- assert.match(panel,/commitQualifiedBlankFill/);
+ const twoClick=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-two-click-confirmation.mjs',import.meta.url),'utf8');
+ assert.match(panel,/commitXml229TwoClickMatch1\\(\\{/);
+ assert.match(twoClick,/session\\.commitQualifiedBlankFill\\(\\{planId:plan\\.planId\\}\\)/);
+ assert.match(twoClick,/if\\(confirm\\)confirm\\.disabled=true/);
  assert.doesNotMatch(panel,/bindXmlCiiWeightMatchPhase/);
  assert.match(panel,/getXml229CurrentWorkerHeldReview/);
 });
