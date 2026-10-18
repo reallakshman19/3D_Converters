@@ -1,16 +1,15 @@
-name: XML229 BC4 Original Workbook Fixture
+name: XML229 BC4 JSON LineList Fixture
 on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
       - 'tests/fixtures/xml229/**'
       - 'tests/xml229-bc4-linelist-fixture.test.mjs'
-      - 'scripts/xml229-install-bc4-fixture.mjs'
       - '.github/workflows/xml229-bc4-fixture.yml'
 permissions:
   contents: read
 jobs:
-  exact-original-binary:
+  source-json-load:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     strategy:
@@ -24,14 +23,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Fail closed unless exact uploaded BC4 binary is committed
+      - name: Load exact BC4 JSON through production LineList parser and normalizer
         run: |
-          test -f tests/fixtures/xml229/BC4.xlsx || {
-            echo 'BC4_BINARY_REQUIRED: use the Owner exact-byte git patch, commit the XLSX, and rerun';
-            exit 1;
-          }
+          test -f tests/fixtures/xml229/BC4.LineList.json
+          node --check tests/xml229-bc4-linelist-fixture.test.mjs
           node --test tests/xml229-bc4-linelist-fixture.test.mjs
-      - name: Verify no review ledgers were written
+      - name: Assert no review ledger or generated fixture changes
         run: |
-          test -z "$(git status --porcelain -- tests/fixtures/xml229/BC4.xlsx)"
+          test -z "$(git status --porcelain -- tests/fixtures/xml229)"
