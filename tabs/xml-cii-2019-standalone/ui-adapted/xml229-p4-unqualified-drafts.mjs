@@ -141,7 +141,6 @@ export async function planXml229RigidWeightDrafts(session,{
      if(qualified.some(p=>p.proposalId!==top.proposalId&&p.value!==top.value))
        counts.conflictingQualifiedValues++;
      if(firstPreparedIndex===null)firstPreparedIndex=offset+index;
-     if(firstPreparedIndex===null)firstPreparedIndex=offset+index;
      if(required)counts.workerQualifiedPrepared++;
      drafts.set(row.occurrenceId,Object.freeze({
        proposalId:top.proposalId,value:String(top.value),reason:'',
