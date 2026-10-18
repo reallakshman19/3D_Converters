@@ -19,6 +19,8 @@ import {renderXml229WeightReviewPage,choiceForXml229WeightRow,formatXml229Decisi
  from './xml229-p4-weight-review-presentation.mjs';
 import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs}
  from './xml229-p4-unqualified-drafts.mjs';
+import {captureXml229WeightDraft,verifyXml229Match1DraftConfirmation,verifyXml229VisibleMatch1Drafts}
+ from './xml229-p4-two-click-confirmation.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {prepareXml229G3G4LocalAggregateExport}
  from './xml229-g3g4-local-aggregate-export.mjs';
@@ -264,16 +266,13 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const clearDrafts=()=>{draftOwner=active;draftValues.clear();bulkDetail.hidden=true;bulkDetail.textContent='';};
  const captureDraft=tr=>{
    if(!tr||!active||draftOwner!==active||live()!==active)return;
-   const row=root.__p4VisibleRows?.[Number(tr.dataset.p4Row)];
-   if(!row||row.occurrenceId!==tr.dataset.p4Occurrence)return;
-   draftValues.set(row.occurrenceId,{
-     value:tr.querySelector('[data-p4-proposal]')?.value??'',
-     proposalId:tr.querySelector('[data-p4-candidate]')?.value??'',
-     reason:tr.querySelector('[data-p4-reason]')?.value??'',
-     autoUnqualified:(row.proposals||[]).some(p=>
-       p.proposalId===tr.querySelector('[data-p4-candidate]')?.value&&p.qualified===false),
-     autoFilled:false,
-   });
+   if(!captureXml229WeightDraft(tr,root.__p4VisibleRows,draftValues))return;
+   if(pendingBulk){
+     pendingBulk=null;bulkDetail.hidden=true;bulkDetail.textContent='';
+     const confirm=table.querySelector('[data-p4-bulk-confirm]');
+     if(confirm)confirm.disabled=true;
+     say('Draft edited after planning. Apply all suggestions again before Match-1.',true);
+   }
  };
  const say=(message,bad=false)=>{
    status.textContent=message;status.style.color=bad?'#f87171':'#10b981';
@@ -536,10 +535,23 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      }
      if(commitButton){
        if(!pendingBulk?.planId)err('BULK_PLAN_REQUIRED','First review qualified blank-only suggestions');
-       const result=await active.commitQualifiedBlankFill({planId:pendingBulk.planId});
-       pendingBulk=null;bulkDetail.hidden=true;bulkDetail.textContent='';
-       offset=0;await render();
-       say('Apply all Match-1 accepted '+result.acceptedCount+' qualified source-bound decision(s). Final and native CII release remain independent.');
+       const session=active,plan=pendingBulk;
+       verifyXml229Match1DraftConfirmation(plan,draftValues,session.receipt);
+       verifyXml229VisibleMatch1Drafts(table,root.__p4VisibleRows||[],draftValues,plan);
+       if(live()!==session)err('MATCH1_TWO_CLICK_SESSION_STALE','Worker session replaced before confirmation');
+       const inputs=[...table.querySelectorAll('[data-p4-proposal],[data-p4-candidate],[data-p4-reason]')];
+       inputs.forEach(input=>input.disabled=true);
+       pendingBulk=null;
+       try{
+         const result=await session.commitQualifiedBlankFill({planId:plan.planId});
+         bulkDetail.hidden=true;bulkDetail.textContent='';
+         offset=0;await render();
+         say('Apply all Match-1 accepted '+result.acceptedCount+' qualified source-bound decision(s). Final and native CII release remain independent.');
+       }finally{
+         inputs.forEach(input=>input.disabled=false);
+         const confirm=table.querySelector('[data-p4-bulk-confirm]');
+         if(confirm)confirm.disabled=true;
+       }
        return;
      }
      if(prev||next){
