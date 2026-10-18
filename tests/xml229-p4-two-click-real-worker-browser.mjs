@@ -56,11 +56,13 @@ try{
    sha256:sha,sourceRevision:'o1:sha256:'+sha,
    generationId:'xml229-p1-test-generation-1',sourceRefId:'p1-worker-source',
    byteLength:blob.size,occurrenceCount:2,pageCount:1};
+  // Synthetic manual Preview rating, source-bound by the XML branch Line Key.
+  const overrides={rating:{P8810021:'300'},processData:{P8810021:{rating:'300'}}};
   const options={
    xmlText:xml,sourceId,
    masters:{weight:{datasetId:'P1-test-master',revision:'v1',
     rows:master,mapping:{weight:'RF/RTJ KG'}}},
-   config:{weight:{masterRows:master},overrides:{}},overrides:{},
+   config:{weight:{masterRows:master},overrides},overrides,
    selection:[{sourceId,selectionRef:'all'}],
    originalStagedBlob:blob,originalStagedSourceReceipt:receipt,
    requestId:'xml229-p1-two-click-chromium',isCurrent:()=>true,
