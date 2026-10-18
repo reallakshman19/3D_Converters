@@ -391,7 +391,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const traceButton=event.target.closest?.('[data-p4-export-flow-trace]');
    const candidateChip=event.target.closest?.('[data-p4-pick]');
       if(!prev&&!next&&!scope&&!planButton&&!skipButton&&!draftFillButton&&!candidateChip&&!auditButton&&!safetyButton&&!custodyButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton)return;
-   busy=true;
+   busy=true;root.dataset.p4Busy='true';
    try{
      if(restoreButton){
        root.querySelector('[data-p4-import-review]')?.click();
@@ -576,7 +576,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    }catch(error){
      say('Review not accepted: '+String(error?.message||error)+
        (error?.code?' ['+error.code+']':''),true);
-   }finally{busy=false;applyQueue.drain(active);}
+   }finally{busy=false;root.dataset.p4Busy='false';applyQueue.drain(active);}
  });
  if(existingWorkflow&&!active)
    say('Build 4 Preview using the existing Build Preview button before reviewing weights. No separate Weight Build is required.',true);
