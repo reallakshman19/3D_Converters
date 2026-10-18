@@ -1,0 +1,70 @@
+name: XML229 BC4 Full End-to-End Production Candidate
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tests/fixtures/xml229/BC4.LineList.json'
+      - 'tests/fixtures/xml229/BC4.fixture.json'
+      - 'tests/xml229-bc4-linelist-fixture.test.mjs'
+      - 'scripts/xml229-ef05-native-output-e2e.mjs'
+      - '.github/workflows/xml229-bc4-real-ef05-production-candidate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fixture-and-source-custody:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install locked source parser dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Real BC4 JSON and historic three-master exact-reconstruction controls
+        run: |
+          node --check scripts/xml229-ef05-native-output-e2e.mjs
+          node --test tests/xml229-bc4-linelist-fixture.test.mjs tests/xml229-historical-three-master-recovery.test.mjs
+      - name: Strict historical decision and governed release hold
+        run: |
+          node --test tests/xml229-weight-semantic-eligibility.test.mjs tests/xml229-accepted-match1-family-audit.test.mjs tests/xml229-two-click-match1-draft-confirmation.test.mjs
+  full-real-browser-bc4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    needs: fixture-and-source-custody
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install genuine Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve actual production entrypoint
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/xml229-bc4-e2e-http.log 2>&1 &
+      - name: EF05 real 41-branch XML plus ASIM staged JSON plus BC4 and 3 masters
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          XML229_E2E_LINELIST_VARIANT: bc4-json
+        run: node scripts/xml229-ef05-native-output-e2e.mjs
+      - name: Upload aggregate-only E2E receipts; never private custody download
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml229-bc4-full-real-ef05-e2e
+          path: |
+            ValidationRecords/xml229-ef05-native-output-e2e-bc4.json
+            ValidationRecords/xml229-ef05-browser-downloaded-cii-syntax-bc4.json
+            /tmp/xml229-bc4-e2e-http.log
+          if-no-files-found: warn
+          retention-days: 30
