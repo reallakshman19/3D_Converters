@@ -14,6 +14,7 @@ import {renderXml229WeightReviewPage,formatXml229DecisionAuditSummary} from './x
 import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs} from './xml229-p4-unqualified-drafts.mjs';
 import {disarmXml229EditedDraft} from './xml229-p4-two-click-confirmation.mjs';
 import {revealXml229PreparedWeightInput} from './xml229-p4-reveal-applied-weight.mjs';
+import {createXml229BulkApplyQueue} from './xml229-p4-busy-apply-queue.mjs';
 import {planXml229SkipWeightDrafts} from './xml229-p4-skip-weight-drafts.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {prepareXml229G3G4LocalAggregateExport} from './xml229-g3g4-local-aggregate-export.mjs';
@@ -267,7 +268,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const say=(message,bad=false)=>{
    status.textContent=message;status.style.color=bad?'#f87171':'#10b981';
  };
- const live=()=>getXml229CurrentWorkerHeldReview(stateRef);
+ const live=()=>getXml229CurrentWorkerHeldReview(stateRef),applyQueue=createXml229BulkApplyQueue(root,live,say);
  const requireRebuild=()=>{
    active=null;pendingBulk=null;clearDrafts();root.__p4VisibleRows=[];
    table.replaceChildren();
@@ -375,7 +376,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    }finally{busy=false;build.disabled=false;}
  });
  root.addEventListener('click',async event=>{
-   if(busy||!active)return;
+   if(!active||applyQueue.defer(event,active,busy))return;
    const prev=event.target.closest?.('[data-p4-prev]');
    const next=event.target.closest?.('[data-p4-next]');
    const scope=event.target.closest?.('[data-p4-scope]');
@@ -469,8 +470,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        mode=scope.getAttribute('data-p4-scope')||'all';
        offset=0;pendingBulk=null;await render();return;
      }
-     if(planButton){
-       const session=active;
+     if(planButton){say('Preparing ≥'+minScorePercent+'% drafts across verified source...');const session=active;
        const plan=await session.planQualifiedBlankFill({minScorePercent});
        if(!Number.isSafeInteger(plan?.qualified)||!Array.isArray(plan.qualifiedSuggestions)||
           plan.qualifiedSuggestions.length!==plan.qualified)
@@ -576,7 +576,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    }catch(error){
      say('Review not accepted: '+String(error?.message||error)+
        (error?.code?' ['+error.code+']':''),true);
-   }finally{busy=false;}
+   }finally{busy=false;applyQueue.drain(active);}
  });
  if(existingWorkflow&&!active)
    say('Build 4 Preview using the existing Build Preview button before reviewing weights. No separate Weight Build is required.',true);
