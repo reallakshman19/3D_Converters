@@ -23,7 +23,7 @@ on:
 permissions:
   contents: read
 jobs:
-  source-proof-and-13-column-ui:
+  source-proof-and-14-column-applied-weight:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
