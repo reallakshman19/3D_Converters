@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
-import {readFile} from 'node:fs/promises';
+import {readFile,writeFile,mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
@@ -147,7 +150,7 @@ try{
      ...inputs,requestId:'owner-p4-source-bad-blob',
      originalStagedBlob:badBlob,isCurrent:()=>true,
    }).then(()=>null,e=>e.code);
-   return {...outcome,badBlob:bad};
+   return {...outcome,badBlob:bad,controlledEngineXml:enriched};
  });
  assert.match(data.receipt.basisId,/^[0-9a-f]{64}$/);
  assert.equal(data.receipt.originalJsonSha256?.length,64);
@@ -213,6 +216,40 @@ try{
  assert.equal(data.attested.nativeCiiPhysicalSlotVerified,false);
  assert.equal(data.attested.nativeCiiReleaseAuthorized,false);
  assert.equal(data.attested.finalIntentSha256,data.completeIntent.intentSha256);
+ const acceptedXml=data.controlledEngineXml; // Synthetic, public test only.
+ assert.equal(createHash('sha256').update(acceptedXml).digest('hex'),
+   data.attested.engineInputSha256,
+   'Exact source-bound Final engine-input digest must match native CLI bytes');
+ const tmp=await mkdtemp(path.join(tmpdir(),'xml229-native-final-consumer-'));
+ let consumer;
+ try{
+   const nativeIn=path.join(tmp,'attested-engine.xml');
+   const nativeOut=path.join(tmp,'emitted-native.cii');
+   await writeFile(nativeIn,acceptedXml,'utf8');
+   execFileSync('python3',[
+     path.join(root,'converters/scripts/xml_to_cii2019_runtime_custody.py'),
+     '--input',nativeIn,'--output',nativeOut,'--weight-scale','10',
+   ],{timeout:30000,stdio:'pipe'});
+   const cii=await readFile(nativeOut,'utf8');
+   const rSection=cii.split('#$ RIGID\\n')[1]?.split('#$ ')[0]?.trim()||'';
+   const nativeWeights=rSection.split('\\n').filter(Boolean)
+     .map(line=>Number(line.trim().split(/\\s+/)[0]));
+   assert(nativeWeights.every(v=>Number.isFinite(v)&&v>=0));
+   consumer={
+     schema:'XML229.SyntheticFinalToActualNativeCiiWitness.v1',
+     exactEngineInputDigestVerified:true,
+     sourceBoundFinalCount:data.completeIntent.acceptedFinalCount,
+     engineInputPhysicalCount:data.attested.verifiedEnginePhysicalCount,
+     nativeRigidCount:nativeWeights.length,
+     nativePositiveRigidCount:nativeWeights.filter(v=>v>0).length,
+     originalFinalToRigidLineageComplete:false,
+     nativeCiiReleaseAuthorized:false,
+   };
+ }finally{await rm(tmp,{recursive:true,force:true});}
+ assert.equal(consumer.exactEngineInputDigestVerified,true);
+ assert.equal(consumer.nativeCiiReleaseAuthorized,false);
+ console.log('XML229_SYNTHETIC_FINAL_NATIVE_BOUNDARY '+JSON.stringify(consumer));
+
  assert.equal(data.badMass,'FINAL_WEIGHT_NOT_IN_ENGINE_INPUT');
  assert.equal(data.duplicate,'ENRICHED_COMPONENT_LINEAGE_AMBIGUOUS');
  assert.equal(data.extra,'EXTRA_ENRICHED_PHYSICAL_OWNER');
