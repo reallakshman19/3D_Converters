@@ -292,7 +292,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  };
  root.addEventListener('input',event=>{
    if(event.target.closest?.('[data-p4-proposal],[data-p4-reason]')){
-     captureDraft(event.target.closest('tr[data-p4-row]'));return;
+     const tr=event.target.closest('tr[data-p4-row]');
+     if(event.target.matches?.('[data-p4-proposal]'))tr.dataset.p4PickedProposal='';
+     captureDraft(tr);return;
    }
    if(!event.target.closest?.('[data-p4-filter]'))return;
    query=String(event.target.value||'').slice(0,120);
