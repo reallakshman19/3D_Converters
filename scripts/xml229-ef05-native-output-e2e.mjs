@@ -269,7 +269,13 @@ try{
    },[...applyOracle.keys()]);
    if(first){
      manualId=first;
-     await page.locator('tr[data-p4-occurrence="'+first.replaceAll('"','\\"')+'"] [data-p4-applied-weight]').fill(manualKg);
+     await page.evaluate(({id,kg})=>{
+       const tr=[...document.querySelectorAll('tr[data-p4-row]')]
+         .find(x=>x.dataset.p4Occurrence===id);
+       const input=tr?.querySelector('[data-p4-applied-weight]');
+       if(!input)throw Error('original physical draft input not found');
+       input.value=kg;input.dispatchEvent(new Event('input',{bubbles:true}));
+     },{id:first,kg:manualKg});
    }else{
      const previous=await page.locator('tr[data-p4-row]').first().getAttribute('data-p4-occurrence');
      await page.locator('[data-p4-next]').click();
