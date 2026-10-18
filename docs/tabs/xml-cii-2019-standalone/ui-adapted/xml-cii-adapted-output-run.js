@@ -108,7 +108,7 @@ function renderSummary(parent, report) {
     const bytes=report.manifest?.sourceBytes;
     note.textContent='Current XML: '+branches+
       (Number.isSafeInteger(bytes)?' · '+bytes+' source bytes':'')+
-      '. JSON-governed CII remains held because Final/output authority is not verified, NOT because a previous XML error was reused. '+
+      '. JSON-governed CII remains held because Final/output authority is not verified, and a staged JSON receipt is present. If that JSON belonged to a different XML, re-index the matching JSON for this XML, or choose XML-only testing. '+
       'For conversion testing without JSON-derived engineering weights, select XML-only below and refresh the checklist. '+
       'Applied Weight drafts and 0 kg skips are not injected into native CII.';
     panel.appendChild(note);
