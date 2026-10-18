@@ -13,12 +13,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: \${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.workflow_run.head_sha }}
       - name: Verify publisher recorded exact commit and public fixture
         shell: bash
         env:
           PUBLIC_APP: https://reallakshman19.github.io/3D_Converters
-          SOURCE_HEAD: \${{ github.event.workflow_run.head_sha }}
+          SOURCE_HEAD: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$SOURCE_HEAD"
@@ -49,7 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: \${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.workflow_run.head_sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -59,7 +59,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Public 41-branch original XML/JSON + BC4 real deployed browser and safe CII paths
         env:
-          EXACT_HEAD: \${{ github.event.workflow_run.head_sha }}
+          EXACT_HEAD: ${{ github.event.workflow_run.head_sha }}
           XML229_E2E_LINELIST_VARIANT: bc4-json
           XML229_E2E_BASE_URL: https://reallakshman19.github.io/3D_Converters/index.html
         run: node scripts/xml229-ef05-native-output-e2e.mjs
