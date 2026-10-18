@@ -40,8 +40,8 @@ import {xml229WeightReviewFilters,matchesXml229WeightReviewFilter}
  from './xml229-weight-page-filter.mjs';
 import {xml229WeightReviewEligible,xml229ProposalScorePercent,xml229WeightThreshold}
  from './xml229-weight-review-focus.mjs';
-import {projectXml229WeightDecisionProvenance}
- from './xml229-weight-decision-provenance.mjs';
+import {projectXml229AuditedDecisionProvenance}
+ from './xml229-accepted-match1-family-audit.mjs';
 import {exportXml229SourceBoundReviewBackup,restoreXml229SourceBoundReviewBackup}
  from './xml229-source-weight-review-transfer.mjs';
 
@@ -312,12 +312,9 @@ async function rpc(req){
      }};
    }
    if(req.what==='decision-provenance'){
-     // Current complete engineering proof + original service command ledger.
-     // The raw command payloads remain inside this private Worker.
-     const completion=await rpc({...req,what:'completion'});
-     const reviewState=await review.exportReviewState({basisId});
-     return projectXml229WeightDecisionProvenance({
-       reviewState,basisId,sourceId,completion,
+     return projectXml229AuditedDecisionProvenance({
+       review,weightProjection,basisId,sourceId,
+       completion:await rpc({...req,what:'completion'}),
        confirmedBulkCommandIds:[...confirmedBulkCommands],
      });
    }

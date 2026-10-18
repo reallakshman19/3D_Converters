@@ -188,7 +188,7 @@ export function openModeAConsolidatedRigidWeightReviewPopup(entries = []) {
       rows.forEach((row, index) => {
         const best = row.candidates?.[0];
         const value = Number(best?.suggestedWeight ?? best?.selectedWeight ?? best?.weight);
-        if (!isXmlCiiDirectQualifiedCandidate(best) || !Number.isFinite(value) || value <= 0) return;
+        if (!isXmlCiiDirectQualifiedCandidate(best, row) || !Number.isFinite(value) || value <= 0) return;
         const input = overlay.querySelectorAll('.mc-rigid-review-input')[index];
         if (input && !text(input.value)) { input.value = String(value); count += 1; }
       });
