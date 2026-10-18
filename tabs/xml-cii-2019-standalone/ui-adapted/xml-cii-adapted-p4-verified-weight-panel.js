@@ -23,6 +23,8 @@ import {disarmXml229EditedDraft,commitXml229TwoClickMatch1} from './xml229-p4-tw
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {prepareXml229G3G4LocalAggregateExport}
  from './xml229-g3g4-local-aggregate-export.mjs';
+import {collectXml229ReadOnlyWeightAcceptance}
+ from '../integration/xml229-full-source-weight-safety-receipt.mjs';
 import {beginXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace}
  from './xml229-flow-trace-registry.mjs';
 import {
@@ -241,6 +243,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
   <div style="margin:10px 0"><button type="button" data-p4-export-candidate-readiness
    class="model-converters-download-btn">Download candidate coverage + readiness (private)</button>
    <small style="display:block;color:#94a3b8">Same verified Worker, read-only aggregate counts; keep file private. Does not authorize native CII.</small></div>
+  <div style="margin:10px 0"><button type="button" data-p4-full-source-safety
+   class="model-converters-download-btn">Download full-source Weight safety precheck (private)</button>
+   <small style="display:block;color:#94a3b8">Only for an empty review ledger. Read-only whole-source family census; no engineering approval or original rows. Use the separate provenance audit for historical decisions.</small></div>
   <div style="margin:10px 0"><button type="button" data-p4-audit-decisions
    class="model-converters-download-btn">Download verified decision provenance JSON</button>
    <small style="display:block;color:#94a3b8">Read-only source-bound Match-1/Final audit. Bulk command IDs alone do not prove an earlier confirmation click. No native CII release.</small></div>
@@ -388,13 +393,14 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const commitButton=event.target.closest?.('[data-p4-bulk-confirm]');
    const saveButton=event.target.closest?.('[data-p4-save-review]');
    const restoreButton=event.target.closest?.('[data-p4-choose-review]');
+   const safetyButton=event.target.closest?.('[data-p4-full-source-safety]');
    const auditButton=event.target.closest?.('[data-p4-audit-decisions]');
    const coverageButton=event.target.closest?.('[data-p4-export-candidate-readiness]');
    const traceButton=event.target.closest?.('[data-p4-export-flow-trace]');
    const candidateChip=event.target.closest?.('[data-p4-pick]');
    const isMatch=event.target.closest?.('[data-p4-accept-match1]');
    const isFinal=event.target.closest?.('[data-p4-accept-final]');
-   if(!prev&&!next&&!scope&&!planButton&&!draftFillButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal&&!auditButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton)return;
+   if(!prev&&!next&&!scope&&!planButton&&!draftFillButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal&&!auditButton&&!safetyButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton)return;
    busy=true;
    try{
      if(restoreButton){
@@ -447,6 +453,20 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
          pair.coverage.physicalCount+' original physicals, '+
          pair.coverage.counts.occurrencesWithQualifiedCandidates+
          ' with qualified proposals; native CII remains HELD.');
+       return;
+     }
+     if(safetyButton){
+       const session=active;
+       if(live()!==session)err('FULL_SOURCE_SAFETY_SESSION_STALE');
+       const receipt=await collectXml229ReadOnlyWeightAcceptance(session);
+       if(live()!==session||active!==session||root.isConnected===false)
+         err('FULL_SOURCE_SAFETY_SESSION_STALE');
+       downloadTextFile('xml229-full-source-weight-safety-precheck.json',
+         JSON.stringify(receipt,null,2),'application/json;charset=utf-8');
+       say(receipt.population.physicalCount+' original physicals / '+
+         receipt.population.factCount+' facts audited read-only; '+
+         receipt.proposals.valveToFlangeRejected+' valve-to-flange proposals held. '+
+         'Zero Match-1/Final; native CII remains HELD.');
        return;
      }
      if(auditButton){
