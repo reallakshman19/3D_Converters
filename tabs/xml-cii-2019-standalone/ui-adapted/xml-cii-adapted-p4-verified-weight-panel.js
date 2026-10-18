@@ -19,8 +19,7 @@ import {renderXml229WeightReviewPage,choiceForXml229WeightRow,formatXml229Decisi
  from './xml229-p4-weight-review-presentation.mjs';
 import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs}
  from './xml229-p4-unqualified-drafts.mjs';
-import {captureXml229WeightDraft,commitXml229TwoClickMatch1}
- from './xml229-p4-two-click-confirmation.mjs';
+import {disarmXml229EditedDraft,commitXml229TwoClickMatch1} from './xml229-p4-two-click-confirmation.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {prepareXml229G3G4LocalAggregateExport}
  from './xml229-g3g4-local-aggregate-export.mjs';
@@ -266,11 +265,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const clearDrafts=()=>{draftOwner=active;draftValues.clear();bulkDetail.hidden=true;bulkDetail.textContent='';};
  const captureDraft=tr=>{
    if(!tr||!active||draftOwner!==active||live()!==active)return;
-   if(!captureXml229WeightDraft(tr,root.__p4VisibleRows,draftValues))return;
-   if(pendingBulk){
-     pendingBulk=null;bulkDetail.hidden=true;bulkDetail.textContent='';
-     const confirm=table.querySelector('[data-p4-bulk-confirm]');
-     if(confirm)confirm.disabled=true;
+   if(disarmXml229EditedDraft(tr,root.__p4VisibleRows,draftValues,
+     pendingBulk,table,bulkDetail)){
+     pendingBulk=null;
      say('Draft edited after planning. Apply all suggestions again before Match-1.',true);
    }
  };
