@@ -13,6 +13,7 @@ import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-s
 import {renderXml229WeightReviewPage,formatXml229DecisionAuditSummary} from './xml229-p4-weight-review-presentation.mjs';
 import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs} from './xml229-p4-unqualified-drafts.mjs';
 import {disarmXml229EditedDraft} from './xml229-p4-two-click-confirmation.mjs';
+import {revealXml229PreparedWeightInput} from './xml229-p4-reveal-applied-weight.mjs';
 import {planXml229SkipWeightDrafts} from './xml229-p4-skip-weight-drafts.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {prepareXml229G3G4LocalAggregateExport} from './xml229-g3g4-local-aggregate-export.mjs';
@@ -26,17 +27,6 @@ const err=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
 const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
  .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const labelKg=n=>typeof n==='number'&&Number.isFinite(n)&&n>0?n+' kg':'—';
-/** Horizontal viewport visibility is distinct from populated DOM input.value. */
-export function revealXml229PreparedWeightInput(table){
- const scroller=table?.querySelector?.('.mc-rigid-review-table-wrap');
- const input=scroller?.querySelector('tr[data-p4-draft-filled="true"] input[data-p4-applied-weight]');
- if(!scroller||!input||input.value==='')return false;
- const viewport=scroller.getBoundingClientRect(),before=input.getBoundingClientRect();
- if(before.right>viewport.right)scroller.scrollLeft+=before.right-viewport.right+12;
- if(before.left<viewport.left)scroller.scrollLeft-=viewport.left-before.left+12;
- const after=input.getBoundingClientRect();
- return after.left>=viewport.left-1&&after.right<=viewport.right+1;
-}
 /**
  * The Worker InputBasis is source bytes + committed original Blob generation +
  * effective config/master revisions + physical selection. UI-only revision
@@ -86,7 +76,6 @@ export function compareXml229P4LiveSourceSnapshot(basis,current,{
  }
  return true;
 }
-
 /** Engineering physical scope cannot silently normalize a stale selection to ALL.
  * A genuine 28/28 original-source selection passes; 28/41 and stale data HOLD.
  */
@@ -508,8 +497,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
          err('SUGGESTION_VISIBLE_INPUT_NOT_APPLIED',
            'No actual proposed kilograms were populated on the selected page');
        if(visiblePopulated>0&&!revealXml229PreparedWeightInput(table))
-         err('SUGGESTION_INPUT_OUTSIDE_VIEWPORT',
-           'Applied Weight was populated but could not be revealed horizontally');
+         err('SUGGESTION_INPUT_OUTSIDE_VIEWPORT','Applied kg could not be revealed horizontally');
        bulkDetail.hidden=true;
        bulkDetail.textContent='';
        const confirm=table.querySelector('[data-p4-bulk-confirm]');
