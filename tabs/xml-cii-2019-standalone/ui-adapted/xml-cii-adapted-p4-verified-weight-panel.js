@@ -26,6 +26,17 @@ const err=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
 const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
  .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const labelKg=n=>typeof n==='number'&&Number.isFinite(n)&&n>0?n+' kg':'—';
+/** Horizontal viewport visibility is distinct from populated DOM input.value. */
+export function revealXml229PreparedWeightInput(table){
+ const scroller=table?.querySelector?.('.mc-rigid-review-table-wrap');
+ const input=scroller?.querySelector('tr[data-p4-draft-filled="true"] input[data-p4-applied-weight]');
+ if(!scroller||!input||input.value==='')return false;
+ const viewport=scroller.getBoundingClientRect(),before=input.getBoundingClientRect();
+ if(before.right>viewport.right)scroller.scrollLeft+=before.right-viewport.right+12;
+ if(before.left<viewport.left)scroller.scrollLeft-=viewport.left-before.left+12;
+ const after=input.getBoundingClientRect();
+ return after.left>=viewport.left-1&&after.right<=viewport.right+1;
+}
 /**
  * The Worker InputBasis is source bytes + committed original Blob generation +
  * effective config/master revisions + physical selection. UI-only revision
@@ -496,6 +507,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        if(planned.counts.prepared>0&&!(visiblePopulated>0))
          err('SUGGESTION_VISIBLE_INPUT_NOT_APPLIED',
            'No actual proposed kilograms were populated on the selected page');
+       if(visiblePopulated>0&&!revealXml229PreparedWeightInput(table))
+         err('SUGGESTION_INPUT_OUTSIDE_VIEWPORT',
+           'Applied Weight was populated but could not be revealed horizontally');
        bulkDetail.hidden=true;
        bulkDetail.textContent='';
        const confirm=table.querySelector('[data-p4-bulk-confirm]');
@@ -506,10 +520,11 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        const c=planned.counts;
        say('Apply all suggestions ≥'+minScorePercent+'%: '+c.prepared+
          ' editable draft(s) prepared across the verified source. '+
-         visiblePopulated+' actual kg input(s) visible on this page. '+
+         visiblePopulated+' actual kg input(s) populated on this page; first input revealed. '+
          c.workerQualified+' source-qualified candidate(s) reconciled ('+
          c.workerQualifiedPrepared+' newly filled, '+
-         c.workerQualifiedAlreadyDrafted+' existing drafts kept); '+
+         c.workerQualifiedAlreadyDrafted+' existing drafts kept, '+
+         c.manualConflictsPreserved+' manual edit conflicts preserved); '+
          c.preparedUnqualified+' review-only drafts. '+
          c.withoutProposal+' no proposal, '+c.belowThreshold+
          ' below threshold. Applied Weight drafts are not accepted; governed CII remains HELD.');
