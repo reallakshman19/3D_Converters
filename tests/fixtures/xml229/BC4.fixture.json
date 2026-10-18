@@ -18,5 +18,12 @@
   "historicalContentDigestProven": false,
   "historicalMappingDigestProven": false,
   "historicalDecisionUpdates": 0,
-  "nativeCiiReleaseAuthorized": false
+  "nativeCiiReleaseAuthorized": false,
+  "convertedJson": {
+    "path": "tests/fixtures/xml229/BC4.LineList.json",
+    "bytes": 199182,
+    "sha256": "53b322405795dc7a74c1154043c31bf9c8b2a1763f207cabf0c7f1888fd9c1bb",
+    "gitBlobSha1": "6b84b5e350e76de05db0c4a858da39114cddbc70",
+    "recordCount": 385
+  }
 }
