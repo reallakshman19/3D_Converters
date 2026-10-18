@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/xml229-ef05-native-output-e2e.mjs'
       - 'tests/xml-cii-229-original-weight-ui-wiring.test.mjs'
+      - 'tests/xml229-e2e-pages-relative-module.test.mjs'
       - '.github/workflows/xml229-postmerge-full-regression.yml'
   push:
     branches: [main]
@@ -47,6 +48,7 @@ jobs:
             tests/xml229-historical-three-master-recovery.test.mjs \
             tests/xml229-bc4-linelist-fixture.test.mjs \
             tests/xml229-bc4-historical-attestation.test.mjs \
+            tests/xml229-e2e-pages-relative-module.test.mjs \
             tests/xml-cii-229-original-weight-ui-wiring.test.mjs \
             tests/xml-cii-229-qualified-blank-bulk-confirmation.test.mjs \
             tests/xml-cii-229-p4-weight-presentation-adapter.test.mjs \
