@@ -1,0 +1,29 @@
+name: XML229 Post-Merge Applied Weight Contract
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tests/xml-cii-229-original-weight-ui-wiring.test.mjs'
+      - '.github/workflows/xml229-postmerge-applied-weight-contract.yml'
+permissions:
+  contents: read
+jobs:
+  approved-ui-and-protected-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Exact source and 14-column presentation
+        run: |
+          node --test tests/xml-cii-229-original-weight-ui-wiring.test.mjs
+          node --test tests/xml229-simple-applied-weight.test.mjs
+          node --test tests/xml229-two-click-match1-draft-confirmation.test.mjs
