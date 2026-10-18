@@ -220,6 +220,8 @@ try{
  // Source-independent of Apply: read every current verified Worker presentation
  // page and derive the 80% kg oracle BEFORE requesting draft population.
  await page.locator('[data-p4-scope="blank-rigid"]').click();
+ await page.locator('[data-p4-scope="blank-rigid"][aria-pressed="true"]')
+   .waitFor({timeout:90000});
  const applyOracle=new Map(),scorePercent=p=>
    typeof p?.score==='number'&&Number.isFinite(p.score)
      ?(p.score<=1?p.score*100:p.score):null;
