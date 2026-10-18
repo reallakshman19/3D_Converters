@@ -106,7 +106,7 @@ try{
     proposals:r.proposals.map(p=>({kg:p.value,qualified:p.qualified,
       reasons:p.eligibilityReasons}))}))};
  });
- assert.equal(before.population,2);
+ assert.equal(before.population,1); // GASK is in original XML, not a GC-PW physical weight owner
  assert.equal(before.counts.match1,0);
  const eligible=before.rows.flatMap(r=>r.proposals).filter(p=>p.qualified===true);
  assert.equal(eligible.length,1,'Expected exact source family-qualified gate candidate: '+JSON.stringify(before));
