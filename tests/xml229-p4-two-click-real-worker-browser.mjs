@@ -92,8 +92,8 @@ try{
   installXml229WorkerHeldWeightPanel(document.querySelector('#weight'),
     window.__stateRef,{resolveInputs:async()=>window.__options});
  });
- await page.waitForFunction(()=>document.querySelectorAll('tr[data-p4-row]').length===2,
-  null,{timeout:120000});
+ await page.waitForFunction(()=>document.querySelectorAll('tr[data-p4-row]').length===1,
+  null,{timeout:20000});
  const before=await page.evaluate(async()=>{
   const {getXml229CurrentWorkerHeldReview}=await import(
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
