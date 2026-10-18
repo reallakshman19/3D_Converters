@@ -82,8 +82,8 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
     <td style="min-width:140px" title="Recorded source/accepted engineering weights; Applied Weight is an independent session draft">
       <strong>${kg(accepted)}</strong>
       <small style="display:block;color:#94a3b8">Source: ${kg(r.sourceKg)}</small>
-      <small data-p4-match1-mass style="display:block;color:#94a3b8">Match-1: ${kg(r.match1Kg)}</small>
-      <small data-p4-final-mass style="display:block;color:#94a3b8">Final: ${kg(r.finalKg)}</small>
+      <small style="display:block;color:#94a3b8">Match-1: <span data-p4-match1-mass>${kg(r.match1Kg)}</span></small>
+      <small style="display:block;color:#94a3b8">Final: <span data-p4-final-mass>${kg(r.finalKg)}</span></small>
     </td>
     <td style="max-width:420px;min-width:190px">
       <div class="mc-wm-candidate-chips" style="display:flex;gap:4px;flex-wrap:wrap;max-height:90px;overflow:auto">
@@ -135,7 +135,7 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
     <button data-p4-next type="button" ${m.end>=m.total?'disabled':''}>Next</button>
     <small>Showing ${m.rows.length?m.start+1:0}–${m.end} of ${m.total} matching original physical owners.</small>
   </div>
-  <p style="color:#fbbf24">Applied Weight and Skip Weight are session-only drafts: 0 kg means skipped for review, not verified zero mass. Governed native CII remains HELD until independent Final/output authority is verified.</p>`;
+  <p style="color:#fbbf24">Applied Weight and Skip Weight are session-only drafts: 0 kg means skipped for review, not verified zero mass. Native CII Run remains HELD until independent Final/output authority is verified.</p>`;
 }
 export function choiceForXml229WeightRow(row,{stage,proposalId='',value='',reason=''}={}){
  const explanation=txt(reason).trim();
