@@ -134,18 +134,16 @@ try{
   // all original physicals (including outside the focused Weight tab),
   // seven canonical facts per owner, all proposals and semantic family evidence.
   // No original XML, NodeName, occurrence IDs or master rows are exported.
-  record.stages.fullSourceWeight=await page.evaluate(async()=>{
-    const {getXml229CurrentWorkerHeldReview}=await import(
-      '/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
-    const {collectXml229ReadOnlyWeightAcceptance}=await import(
-      '/scripts/xml229-public41-weight-readonly-acceptance.mjs');
-    const state=(await import(
-      '/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js'))
-      .createXmlCiiAdaptedWorkflowState();
-    const session=getXml229CurrentWorkerHeldReview(state);
-    if(!session)throw Error('PUBLIC41_LIVE_WORKER_REQUIRED');
-    return collectXml229ReadOnlyWeightAcceptance(session);
-  });
+  // Production panel owns its Worker: use the existing DOM's strictly
+  // aggregate-only download instead of exporting private session handles.
+  const [safetyDownload]=await Promise.all([
+    page.waitForEvent('download',{timeout:240000}),
+    page.locator('[data-p4-full-source-safety]').click(),
+  ]);
+  assert.equal(safetyDownload.suggestedFilename(),
+    'xml229-full-source-weight-safety-precheck.json');
+  record.stages.fullSourceWeight=JSON.parse(
+    await readFile(await safetyDownload.path(),'utf8'));
   assert.equal(record.stages.fullSourceWeight.readOnly,true);
   assert.equal(record.stages.fullSourceWeight.population.sevenFactsPerPhysical,true);
   assert.equal(record.stages.fullSourceWeight.proposals.valveToFlangeQualified,0);
