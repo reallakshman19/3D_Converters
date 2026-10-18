@@ -217,6 +217,117 @@ try{
   assert.equal(record.stages.fullSourceWeight.nativeCiiReleaseAuthorized,false);
   record.passes.push('public 41-branch full physical/fact/candidate family audit read-only; zero Final/native authority');
 
+ // Source-independent of Apply: read every current verified Worker presentation
+ // page and derive the 80% kg oracle BEFORE requesting draft population.
+ await page.locator('[data-p4-scope="blank-rigid"]').click();
+ const applyOracle=new Map(),scorePercent=p=>
+   typeof p?.score==='number'&&Number.isFinite(p.score)
+     ?(p.score<=1?p.score*100:p.score):null;
+ let pageCount=0;
+ while(true){
+   const part=await page.evaluate(()=>{
+     const root=document.querySelector('[data-p4-weight-root]');
+     return (root?.__p4VisibleRows||[]).map(r=>({
+       id:r.occurrenceId,sourceKg:r.sourceKg,match1Kg:r.match1Kg,
+       finalKg:r.finalKg,stageDecision:!!(r.match1View?.stageDecision||
+         r.finalView?.stageDecision),proposals:r.proposals
+     }));
+   });
+   for(const row of part){
+     assert.equal(row.sourceKg,null);
+     assert.equal(row.match1Kg,null);
+     assert.equal(row.finalKg,null);
+     if(row.stageDecision)continue;
+     const first=row.proposals?.find(p=>p.ranking===1);
+     const pct=scorePercent(first);
+     if(first?.value>0&&first?.unit==='kg'&&pct!==null&&pct>=80){
+       assert(!applyOracle.has(row.id),'duplicated source occurrence');
+       applyOracle.set(row.id,String(first.value));
+     }
+   }
+   pageCount++;
+   assert(pageCount<=20,'public source pagination did not terminate');
+   const next=page.locator('[data-p4-next]');
+   if(await next.isDisabled())break;
+   const previous=await page.locator('tr[data-p4-row]').first().getAttribute('data-p4-occurrence');
+   await next.click();
+   await page.waitForFunction(old=>
+     document.querySelector('tr[data-p4-row]')?.dataset.p4Occurrence!==old,
+     previous,{timeout:90000});
+ }
+ assert(pageCount>1,'Apply oracle must cover actual multiple Worker pages');
+ assert(applyOracle.size>0,'public fixture has no rank-1 proposal at 80%');
+
+ // Introduce one user-entered kg before Apply: the Worker may score a
+ // different master weight but must not discard the human edit or abort.
+ await page.locator('[data-p4-scope="blank-rigid"]').click();
+ let manualId=null,manualKg='91.25';
+ for(let pageNo=0;pageNo<pageCount&&!manualId;pageNo++){
+   const first=await page.evaluate(ids=>{
+     const root=document.querySelector('[data-p4-weight-root]');
+     return (root?.__p4VisibleRows||[]).find(r=>ids.includes(r.occurrenceId))?.occurrenceId||null;
+   },[...applyOracle.keys()]);
+   if(first){
+     manualId=first;
+     await page.locator('tr[data-p4-occurrence="'+first.replaceAll('"','\\"')+'"] [data-p4-applied-weight]').fill(manualKg);
+   }else{
+     const previous=await page.locator('tr[data-p4-row]').first().getAttribute('data-p4-occurrence');
+     await page.locator('[data-p4-next]').click();
+     await page.waitForFunction(old=>
+       document.querySelector('tr[data-p4-row]')?.dataset.p4Occurrence!==old,
+       previous,{timeout:90000});
+   }
+ }
+ assert(manualId,'unable to select existing-edit fixture occurrence');
+ await page.locator('[data-p4-bulk-plan]').click();
+ await page.waitForFunction(()=>/Apply all suggestions ≥80%:/.test(
+   document.querySelector('[data-p4-weight-status]')?.textContent||''),
+   null,{timeout:240000});
+ const firstVisibility=await page.evaluate(()=>{
+   const scroller=document.querySelector('.mc-rigid-review-table-wrap');
+   const input=scroller?.querySelector('tr[data-p4-draft-filled="true"] input[data-p4-applied-weight]');
+   const a=input?.getBoundingClientRect(),b=scroller?.getBoundingClientRect();
+   return {firstFilled:!!input,valuePresent:!!input?.value,
+     inHorizontalViewport:!!(a&&b&&a.left>=b.left-1&&a.right<=b.right+1),
+     scrollLeft:scroller?.scrollLeft??null};
+ });
+ assert(firstVisibility.valuePresent);
+ assert(firstVisibility.inHorizontalViewport,
+   'production Applied Weight populated but still hidden horizontally');
+
+ await page.locator('[data-p4-scope="blank-rigid"]').click();
+ const seen=new Set(),mismatches=[];
+ for(let pageNo=0;pageNo<pageCount;pageNo++){
+   const actual=await page.evaluate(()=>[...document.querySelectorAll('tr[data-p4-row]')].map(tr=>({
+     id:tr.dataset.p4Occurrence,kg:tr.querySelector('[data-p4-applied-weight]')?.value
+   })));
+   for(const {id,kg} of actual){
+     if(!applyOracle.has(id))continue;
+     seen.add(id);
+     const expected=id===manualId?manualKg:applyOracle.get(id);
+     if(kg!==expected)mismatches.push({id,expected,kg});
+   }
+   if(pageNo+1===pageCount)break;
+   const previous=await page.locator('tr[data-p4-row]').first().getAttribute('data-p4-occurrence');
+   await page.locator('[data-p4-next]').click();
+   await page.waitForFunction(old=>
+     document.querySelector('tr[data-p4-row]')?.dataset.p4Occurrence!==old,
+     previous,{timeout:90000});
+ }
+ assert.equal(seen.size,applyOracle.size);
+ assert.deepEqual(mismatches,[],
+   'one-click production source-wide 80% Apply differed from independent Worker oracle');
+ record.stages.apply80={
+   sourceBoundFixture:true,workerBacked:true,threshold:80,
+   pageCount,eligibleRank1:applyOracle.size,
+   observed:seen.size,editPreserved:true,
+   mismatches:mismatches.length,firstVisibility,
+   acceptedMatch1Automatically:false,acceptedFinalAutomatically:false,
+   nativeCiiReleaseAuthorized:false,
+ };
+ record.passes.push('actual GC-PW Worker: 80% Apply edits preserved, kg matched across pages, first input horizontally visible');
+
+
   // Real 41-branch P3: capture exact effective four-master config from
   // the SAME verified Worker lease through the explicit OWNER PRIVATE button.
   // The downloaded JSON is inspected in browser temp storage only; never
