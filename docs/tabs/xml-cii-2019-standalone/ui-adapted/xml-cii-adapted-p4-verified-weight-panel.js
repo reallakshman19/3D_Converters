@@ -19,7 +19,7 @@ import {renderXml229WeightReviewPage,choiceForXml229WeightRow,formatXml229Decisi
  from './xml229-p4-weight-review-presentation.mjs';
 import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs}
  from './xml229-p4-unqualified-drafts.mjs';
-import {captureXml229WeightDraft,verifyXml229Match1DraftConfirmation,verifyXml229VisibleMatch1Drafts}
+import {captureXml229WeightDraft,commitXml229TwoClickMatch1}
  from './xml229-p4-two-click-confirmation.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {prepareXml229G3G4LocalAggregateExport}
@@ -536,22 +536,14 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      if(commitButton){
        if(!pendingBulk?.planId)err('BULK_PLAN_REQUIRED','First review qualified blank-only suggestions');
        const session=active,plan=pendingBulk;
-       verifyXml229Match1DraftConfirmation(plan,draftValues,session.receipt);
-       verifyXml229VisibleMatch1Drafts(table,root.__p4VisibleRows||[],draftValues,plan);
-       if(live()!==session)err('MATCH1_TWO_CLICK_SESSION_STALE','Worker session replaced before confirmation');
-       const inputs=[...table.querySelectorAll('[data-p4-proposal],[data-p4-candidate],[data-p4-reason]')];
-       inputs.forEach(input=>input.disabled=true);
        pendingBulk=null;
-       try{
-         const result=await session.commitQualifiedBlankFill({planId:plan.planId});
-         bulkDetail.hidden=true;bulkDetail.textContent='';
-         offset=0;await render();
-         say('Apply all Match-1 accepted '+result.acceptedCount+' qualified source-bound decision(s). Final and native CII release remain independent.');
-       }finally{
-         inputs.forEach(input=>input.disabled=false);
-         const confirm=table.querySelector('[data-p4-bulk-confirm]');
-         if(confirm)confirm.disabled=true;
-       }
+       const result=await commitXml229TwoClickMatch1({
+         session,plan,drafts:draftValues,table,rows:root.__p4VisibleRows||[],
+         isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
+       });
+       bulkDetail.hidden=true;bulkDetail.textContent='';
+       offset=0;await render();
+       say('Apply all Match-1 accepted '+result.acceptedCount+' qualified source-bound decision(s). Final and native CII release remain independent.');
        return;
      }
      if(prev||next){
