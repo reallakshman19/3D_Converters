@@ -169,7 +169,8 @@ test('P1 production click path and served mirror use one exact draft-confirmatio
  const panel='tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js';
  const helper='tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-two-click-confirmation.mjs';
  const p=await readFile(new URL('../'+panel,import.meta.url),'utf8');
- assert.match(p,/commitXml229TwoClickMatch1\(\{/);
+ assert.doesNotMatch(p,/commitXml229TwoClickMatch1\(\{/);
+  assert.match(p,/planXml229SkipWeightDrafts\(/);
  assert.match(p,/pendingBulk=null/);
  assert.match(p,/disarmXml229EditedDraft\(/);
  const h=await readFile(new URL('../'+helper,import.meta.url),'utf8');
