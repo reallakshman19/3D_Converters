@@ -20,6 +20,15 @@ export function captureXml229WeightDraft(tr,rows,drafts){
  });
  return row.occurrenceId;
 }
+/** Editing after click 1 disarms approval without changing a Worker decision. */
+export function disarmXml229EditedDraft(tr,rows,drafts,pending,table,detail){
+ const id=captureXml229WeightDraft(tr,rows,drafts);
+ if(!id||!pending)return false;
+ detail.hidden=true;detail.textContent='';
+ const confirm=table.querySelector('[data-p4-bulk-confirm]');
+ if(confirm)confirm.disabled=true;
+ return true;
+}
 function candidates(plan,basisId,sourceId){
  if(!plan||typeof plan.planId!=='string'||
     !Array.isArray(plan.qualifiedSuggestions)||
