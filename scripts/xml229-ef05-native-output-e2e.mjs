@@ -219,7 +219,11 @@ try{
 
  // Source-independent of Apply: read every current verified Worker presentation
  // page and derive the 80% kg oracle BEFORE requesting draft population.
+ const waitWeightIdle=()=>page.waitForFunction(()=>
+   document.querySelector('[data-p4-weight-root]')?.dataset.p4Busy==='false',
+   null,{timeout:90000});
  await page.locator('[data-p4-scope="blank-rigid"]').click();
+ await waitWeightIdle();
  await page.locator('[data-p4-scope="blank-rigid"][aria-pressed="true"]')
    .waitFor({timeout:90000});
  const applyOracle=new Map(),scorePercent=p=>
@@ -253,6 +257,7 @@ try{
    if(await next.isDisabled())break;
    const previous=await page.locator('tr[data-p4-row]').first().getAttribute('data-p4-occurrence');
    await next.click();
+   await waitWeightIdle();
    await page.waitForFunction(old=>
      document.querySelector('tr[data-p4-row]')?.dataset.p4Occurrence!==old,
      previous,{timeout:90000});
@@ -263,6 +268,7 @@ try{
  // Introduce one user-entered kg before Apply: the Worker may score a
  // different master weight but must not discard the human edit or abort.
  await page.locator('[data-p4-scope="blank-rigid"]').click();
+ await waitWeightIdle();
  let manualId=null,manualKg='91.25';
  for(let pageNo=0;pageNo<pageCount&&!manualId;pageNo++){
    const first=await page.evaluate(ids=>{
@@ -281,12 +287,14 @@ try{
    }else{
      const previous=await page.locator('tr[data-p4-row]').first().getAttribute('data-p4-occurrence');
      await page.locator('[data-p4-next]').click();
+     await waitWeightIdle();
      await page.waitForFunction(old=>
        document.querySelector('tr[data-p4-row]')?.dataset.p4Occurrence!==old,
        previous,{timeout:90000});
    }
  }
  assert(manualId,'unable to select existing-edit fixture occurrence');
+ const applyStartMs=Date.now();
  await page.locator('[data-p4-bulk-plan]').click();
  try{
    await page.waitForFunction(()=>{
@@ -310,6 +318,7 @@ try{
  assert.match(actualApplyStatus,/Apply all suggestions ≥80%:/,
    'Real 80% Apply failed: '+actualApplyStatus);
  record.stages.applyStatus=actualApplyStatus.slice(0,600);
+ const applyElapsedMs=Date.now()-applyStartMs;
  const firstVisibility=await page.evaluate(()=>{
    const scroller=document.querySelector('.mc-rigid-review-table-wrap');
    const input=scroller?.querySelector('tr[data-p4-draft-filled="true"] input[data-p4-applied-weight]');
@@ -323,6 +332,7 @@ try{
    'production Applied Weight populated but still hidden horizontally');
 
  await page.locator('[data-p4-scope="blank-rigid"]').click();
+ await waitWeightIdle();
  const seen=new Set(),mismatches=[];
  for(let pageNo=0;pageNo<pageCount;pageNo++){
    const actual=await page.evaluate(()=>[...document.querySelectorAll('tr[data-p4-row]')].map(tr=>({
@@ -337,6 +347,7 @@ try{
    if(pageNo+1===pageCount)break;
    const previous=await page.locator('tr[data-p4-row]').first().getAttribute('data-p4-occurrence');
    await page.locator('[data-p4-next]').click();
+   await waitWeightIdle();
    await page.waitForFunction(old=>
      document.querySelector('tr[data-p4-row]')?.dataset.p4Occurrence!==old,
      previous,{timeout:90000});
@@ -346,7 +357,7 @@ try{
    'one-click production source-wide 80% Apply differed from independent Worker oracle');
  record.stages.apply80={
    sourceBoundFixture:true,workerBacked:true,threshold:80,
-   pageCount,eligibleRank1:applyOracle.size,
+   pageCount,eligibleRank1:applyOracle.size,applyElapsedMs,
    observed:seen.size,editPreserved:true,
    mismatches:mismatches.length,firstVisibility,
    acceptedMatch1Automatically:false,acceptedFinalAutomatically:false,
