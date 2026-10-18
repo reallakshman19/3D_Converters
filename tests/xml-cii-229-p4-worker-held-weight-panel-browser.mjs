@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {exerciseXml229WorkerFixtureReview} from '../scripts/xml229-browser-ci-engineering-review.mjs';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
@@ -138,7 +139,7 @@ try{
      const count=hydrateXml229WeightDraftInputs(host,subset,prepared.drafts);
      const entries=[...host.querySelectorAll('tr[data-p4-row]')].map(tr=>({
        value:tr.querySelector('[data-p4-proposal]').value,
-       selected:tr.querySelector('[data-p4-candidate]').value,
+       selected:tr.dataset.p4PickedProposal,
        filled:tr.dataset.p4DraftFilled,
        accepted:tr.querySelector('[data-p4-match1-mass]').textContent,
      }));
@@ -152,7 +153,7 @@ try{
    return {prepared:prepared.counts.prepared,qualified:prepared.counts.workerQualified,
      firstPreparedIndex:prepared.firstPreparedIndex,first,second,
      offsets,writes,drift,
-     title:host.textContent.includes('Draft / Accepted kg')};
+     title:host.textContent.includes('Applied Weight')};
  });
  assert.equal(populated.prepared,27);
  assert.equal(populated.qualified,27);
@@ -203,28 +204,21 @@ try{
  assert(!JSON.stringify(evidence).includes('real-blob-in-worker'));
  assert(!JSON.stringify(evidence).includes('Engineer verified physical master'));
  const first=page.locator('tr[data-p4-row]').first();
- await first.locator('[data-p4-proposal]').fill('35');
- await first.locator('[data-p4-reason]').fill('Engineer verified physical master 35 kg');
- await first.locator('[data-p4-accept-match1]').click();
- await page.waitForFunction(()=>document.querySelector('tr[data-p4-row]')?.textContent.includes('35 kg'),
-   {timeout:120000});
- let rowText=await page.locator('tr[data-p4-row]').first().textContent();
- assert.match(rowText,/35 kg/);
- assert.match(await page.locator('[data-p4-weight-status]').textContent(),/Match-1 explicitly accepted/);
- const refreshed=page.locator('tr[data-p4-row]').first();
- await refreshed.locator('[data-p4-proposal]').fill('40');
- await refreshed.locator('[data-p4-reason]').fill('Independent Final Match-2 approval of 40kg physical mass');
- await refreshed.locator('[data-p4-accept-final]').click();
- await page.waitForFunction(()=>document.querySelector('[data-p4-weight-status]')?.textContent.includes('Final Match-2 explicitly accepted'),
-   {timeout:120000});
- const after=await page.evaluate(()=>({
-   rows:[...document.querySelectorAll('tr[data-p4-row]')].map(tr=>tr.textContent),
-   status:document.querySelector('[data-p4-weight-status]').textContent,
- }));
- assert.match(after.rows[0],/35 kg/);
- assert.match(after.rows[0],/40 kg/);
- assert.doesNotMatch(after.rows[1],/40 kg/);
- const [afterDownload]=await Promise.all([
+  const occurrenceId=await first.getAttribute('data-p4-occurrence');
+  assert.equal(await first.locator('[data-p4-accept-match1],[data-p4-accept-final],[data-p4-reason]').count(),0);
+  const reviewed=await exerciseXml229WorkerFixtureReview(page,{occurrenceId});
+  assert.equal(reviewed.counts.match1,0);
+  assert.equal(reviewed.counts.final,1);
+  assert.equal(reviewed.nativeCiiReleaseAuthorized,false);
+  await page.locator('[data-p4-scope="rigid"]').click();
+  const after=await page.evaluate(()=>({
+    rows:[...document.querySelectorAll('tr[data-p4-row]')].map(tr=>tr.textContent),
+    status:document.querySelector('[data-p4-weight-status]').textContent,
+  }));
+  assert.match(after.rows[0],/35 kg/);
+  assert.match(after.rows[0],/40 kg/);
+  assert.doesNotMatch(after.rows[1],/40 kg/);
+  const [afterDownload]=await Promise.all([
    page.waitForEvent('download'),aggregateButton.click(),
  ]);
  const afterEvidence=JSON.parse(await readFile(await afterDownload.path(),'utf8'));
