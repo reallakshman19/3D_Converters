@@ -63,9 +63,33 @@ try{
   const page=await browser.newPage({acceptDownloads:true});
   page.setDefaultTimeout(60000);
   page.on('pageerror',e=>record.pageErrors.push(String(e)));
-  const resp=await page.goto(siteUrl,{waitUntil:'domcontentloaded'});
-  assert.equal(resp.status(),200);
-  await page.locator('[data-tab="xml-cii-2019-standalone"]').click();
+  // The live GitHub Pages CDN can occasionally load the app shell before its
+  // lazy workspace code. Retry only the blank startup, before any XML/JSON,
+  // masters, Worker session or review decisions are created.
+  const maxBootstrapAttempts=siteUrl===DEPLOYED_E2E_URL?3:1;
+  record.stages.bootstrapAttempts=[];
+  for(let attempt=1;attempt<=maxBootstrapAttempts;attempt++){
+    try{
+      const resp=await page.goto(siteUrl,{waitUntil:'domcontentloaded',timeout:60000});
+      assert.equal(resp.status(),200);
+      await page.locator('[data-tab="xml-cii-2019-standalone"]').click({timeout:35000});
+      await page.locator('[data-phase="source"]').waitFor({state:'visible',timeout:35000});
+      record.stages.bootstrap={attempts:attempt,sourcePhasePresent:true,
+        liveHosted:siteUrl===DEPLOYED_E2E_URL};
+      break;
+    }catch(error){
+      const diagnostic=await page.evaluate(()=>({
+        xmlTabCount:document.querySelectorAll('[data-tab="xml-cii-2019-standalone"]').length,
+        sourcePhaseCount:document.querySelectorAll('[data-phase="source"]').length,
+        workspaceSections:document.querySelectorAll('[data-phase]').length,
+        appOverlayActive:document.querySelector('#app-loading-overlay')?.classList.contains('is-visible')??null,
+        title:document.title,
+      })).catch(()=>({domDiagnosticUnavailable:true}));
+      record.stages.bootstrapAttempts.push({attempt,
+        failure:String(error?.message||error).slice(0,240),...diagnostic});
+      if(attempt===maxBootstrapAttempts)throw error;
+    }
+  }
   await page.locator('[data-phase="source"]').click();
   await page.locator('[data-field="source-file"]').setInputFiles(xmlPath);
   // Source FileReader is async; the header can still say "Source: Not Loaded"
