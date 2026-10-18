@@ -36,10 +36,10 @@ jobs:
           assert o['rowCount']==len(o['rows'])==385
           assert not o['engineeringApproval'] and not o['nativeCiiReleaseAuthorized']
           for src,marker in [
-              ('/tmp/xml229-pages-weight-panel.js','commitXml229TwoClickMatch1'),
+              ('/tmp/xml229-pages-weight-panel.js','planXml229SkipWeightDrafts'),
               ('/tmp/xml229-pages-custody.mjs','OwnerLocalEffectiveBasisCustody'),
           ]:
-              assert marker in Path(src).read_text()
+              assert marker in Path(src).read_text(), f'Published Pages asset missing expected current marker: {marker}'
           print('PUBLIC_PAGES_ENTRY_AND_EXACT_BC4_MASTER_AND_CUSTODY_MODULES_PASS')
           PY
   published-bc4-real-browser:
