@@ -89,7 +89,7 @@ try{
   await page.locator('[data-sub-tab="weight"]').click();
   record.stages.masters=await page.evaluate(async()=>{
     const {createXmlCiiAdaptedWorkflowState}=await import(
-      '/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js');
+      new URL('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',document.baseURI).href);
     const m=createXmlCiiAdaptedWorkflowState().masterContext;
     return {lineList:m.lineRows?.length,pipingClass:m.pipingClassRows?.length,
       materialMap:m.materialMapRows?.length,weight:m.weightMasterRows?.length,
