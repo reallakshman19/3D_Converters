@@ -9,7 +9,7 @@ export function captureXml229WeightDraft(tr,rows,drafts){
  if(!tr||!Array.isArray(rows)||!(drafts instanceof Map))return null;
  const row=rows[Number(tr.dataset.p4Row)];
  if(!row||row.occurrenceId!==tr.dataset.p4Occurrence)return null;
- const choice=tr.querySelector('[data-p4-candidate]')?.value??'';
+ const choice=tr.querySelector('[data-p4-candidate]')?.value??tr.dataset.p4PickedProposal??'';
  drafts.set(row.occurrenceId,{
   value:tr.querySelector('[data-p4-proposal]')?.value??'',
   proposalId:choice,
