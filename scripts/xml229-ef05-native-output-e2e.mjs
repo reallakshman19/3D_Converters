@@ -288,9 +288,14 @@ try{
  }
  assert(manualId,'unable to select existing-edit fixture occurrence');
  await page.locator('[data-p4-bulk-plan]').click();
- await page.waitForFunction(()=>/Apply all suggestions ≥80%:/.test(
-   document.querySelector('[data-p4-weight-status]')?.textContent||''),
-   null,{timeout:240000});
+ await page.waitForFunction(()=>{
+   const message=document.querySelector('[data-p4-weight-status]')?.textContent||'';
+   return /Apply all suggestions ≥80%:|Review not accepted:|Worker ended|rebuild/i.test(message);
+ },null,{timeout:90000});
+ const actualApplyStatus=await page.locator('[data-p4-weight-status]').textContent();
+ assert.match(actualApplyStatus,/Apply all suggestions ≥80%:/,
+   'Real 80% Apply failed: '+actualApplyStatus);
+ record.stages.applyStatus=actualApplyStatus.slice(0,600);
  const firstVisibility=await page.evaluate(()=>{
    const scroller=document.querySelector('.mc-rigid-review-table-wrap');
    const input=scroller?.querySelector('tr[data-p4-draft-filled="true"] input[data-p4-applied-weight]');
