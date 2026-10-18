@@ -124,7 +124,7 @@ test('production integration uses existing GC-PW bulk planner and not legacy Wei
  assert.match(worker,/buildXml229VerifiedWeightRowProjection/);
  assert.match(panel,/planQualifiedBlankFill/);
  const twoClick=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-two-click-confirmation.mjs',import.meta.url),'utf8');
- assert.doesNotMatch(panel,/commitXml229TwoClickMatch1\\(/,
+  assert.ok(!panel.includes('commitXml229TwoClickMatch1('),
     'simplified Weight UI must not expose hidden two-click Match-1 acceptance');
   assert.ok(panel.includes('planXml229SkipWeightDrafts'));
   assert.ok(panel.includes('data-p4-skip-weight'));
