@@ -21,9 +21,8 @@ test('BC4 fixture manifest is explicitly unapproved and pinned to exact uploaded
  assert.throws(()=>validateBc4Bytes(Buffer.from('forged')),{
   code:'BC4_FIXTURE_BYTES_NOT_MATCHED'});
 });
-test('BC4 original workbook parses to 385 original LineList rows',{
-  skip:!existsSync(input)?'Owner binary not yet committed; use install script or fixture drop-in archive':false,
-},async()=>{
+test('BC4 original workbook parses to 385 original LineList rows',async()=>{
+ assert.equal(existsSync(input),true,'BC4_BINARY_REQUIRED: apply the exact-byte Git patch and commit tests/fixtures/xml229/BC4.xlsx; a missing fixture is NOT a passing test');
  const bytes=readFileSync(input);
  validateBc4Bytes(bytes);
  const wb=xlsx.read(bytes,{type:'buffer',bookSheets:true});
