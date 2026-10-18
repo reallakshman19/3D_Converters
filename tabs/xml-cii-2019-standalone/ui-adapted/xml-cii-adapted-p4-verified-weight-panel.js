@@ -4,30 +4,23 @@
  * weights. Large original staged JSON remains INSIDE its GC-PW Worker.
  */
 import {openXml229WorkerHeldOriginalWeightReview} from '../integration/xml229-original-blob-gcpw-client.mjs';
-import {resolveXml229CurrentPreviewBlob}
- from './xml-cii-adapted-lfj-o1-intake.js';
-import {xmlCiiEnrichedConfigFromState}
- from './xml-cii-adapted-state.js';
-import {materializeXmlCiiDatasetBackedConfig}
- from '../xml-cii-dataset-backed-config.js';
+import {resolveXml229CurrentPreviewBlob} from './xml-cii-adapted-lfj-o1-intake.js';
+import {xmlCiiEnrichedConfigFromState} from './xml-cii-adapted-state.js';
+import {materializeXmlCiiDatasetBackedConfig} from '../xml-cii-dataset-backed-config.js';
 import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-custody.mjs';
 import {digestCanonical,canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
-import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest}
- from '../xml-cii-branch-scope.js';
-import {renderXml229WeightReviewPage,choiceForXml229WeightRow,formatXml229DecisionAuditSummary}
- from './xml229-p4-weight-review-presentation.mjs';
-import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs}
- from './xml229-p4-unqualified-drafts.mjs';
+import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-scope.js';
+import {renderXml229WeightReviewPage,choiceForXml229WeightRow,formatXml229DecisionAuditSummary} from './xml229-p4-weight-review-presentation.mjs';
+import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs} from './xml229-p4-unqualified-drafts.mjs';
 import {disarmXml229EditedDraft,commitXml229TwoClickMatch1} from './xml229-p4-two-click-confirmation.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {prepareXml229G3G4LocalAggregateExport} from './xml229-g3g4-local-aggregate-export.mjs';
 import {downloadXml229FullSourceSafety} from './xml229-full-source-safety-download.mjs';
-import {beginXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace}
- from './xml229-flow-trace-registry.mjs';
-import {
- getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,
- publishXml229VerifiedEngineeringBuild,revokeXml229VerifiedEngineeringBasis,
-} from '../integration/xml229-engineering-basis-authority.mjs';
+import {downloadXml229OwnerBasisCustody} from './xml229-owner-basis-custody-download.mjs';
+import {beginXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace} from './xml229-flow-trace-registry.mjs';
+import {getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,
+ publishXml229VerifiedEngineeringBuild,revokeXml229VerifiedEngineeringBasis}
+ from '../integration/xml229-engineering-basis-authority.mjs';
 const err=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
 const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
  .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
@@ -114,7 +107,6 @@ export function assertXml229P4OriginalFullSelection({
    'Duplicate or missing original selected branch occurrence ID');
  return scope;
 }
-
 /** Resolve a genuine existing O1 File Blob and all four current masters.
  * One complete original Mode A branch selection only; refuse uncertain joins.
  */
@@ -241,6 +233,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    class="model-converters-download-btn">Download candidate coverage + readiness (private)</button>
    <small style="display:block;color:#94a3b8">Same verified Worker, read-only aggregate counts; keep file private. Does not authorize native CII.</small></div>
   <div style="margin:10px 0"><button type="button" data-p4-full-source-safety class="model-converters-download-btn">Download full-source Weight safety precheck (private)</button><small style="display:block;color:#94a3b8">Requires empty review ledger; no source rows, approval or native CII release.</small></div>
+  <div><button type="button" data-p4-export-effective-basis class="model-converters-download-btn">Download current effective 4-master custody (OWNER PRIVATE)</button><small>Includes private config and normalized master rows. Keep local; no source XML/JSON or approvals.</small></div>
   <div style="margin:10px 0"><button type="button" data-p4-audit-decisions
    class="model-converters-download-btn">Download verified decision provenance JSON</button>
    <small style="display:block;color:#94a3b8">Read-only source-bound Match-1/Final audit. Bulk command IDs alone do not prove an earlier confirmation click. No native CII release.</small></div>
@@ -389,12 +382,13 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const saveButton=event.target.closest?.('[data-p4-save-review]');
    const restoreButton=event.target.closest?.('[data-p4-choose-review]');
    const safetyButton=event.target.closest?.('[data-p4-full-source-safety]'),auditButton=event.target.closest?.('[data-p4-audit-decisions]');
+   const custodyButton=event.target.closest?.('[data-p4-export-effective-basis]');
    const coverageButton=event.target.closest?.('[data-p4-export-candidate-readiness]');
    const traceButton=event.target.closest?.('[data-p4-export-flow-trace]');
    const candidateChip=event.target.closest?.('[data-p4-pick]');
    const isMatch=event.target.closest?.('[data-p4-accept-match1]');
    const isFinal=event.target.closest?.('[data-p4-accept-final]');
-   if(!prev&&!next&&!scope&&!planButton&&!draftFillButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal&&!auditButton&&!safetyButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton)return;
+   if(!prev&&!next&&!scope&&!planButton&&!draftFillButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal&&!auditButton&&!safetyButton&&!custodyButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton)return;
    busy=true;
    try{
      if(restoreButton){
@@ -450,6 +444,12 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        return;
      }
      if(safetyButton){await downloadXml229FullSourceSafety({session:active,isCurrent:()=>live()===active&&root.isConnected!==false,say});return;}
+     if(custodyButton){
+       await downloadXml229OwnerBasisCustody({resolveInputs,session:active,
+         getEntry:()=>getXml229VerifiedEngineeringEntry(stateRef),
+         isCurrent:()=>getXml229CurrentWorkerHeldReview(stateRef)===active&&root.isConnected!==false});
+       say('Private effective config and exact four-master custody saved locally. No Match-1, Final or native CII authority granted.');return;
+     }
      if(auditButton){
        const live=getXml229CurrentWorkerHeldReview(stateRef);
        if(live!==active)err('PROVENANCE_SESSION_STALE',
