@@ -206,11 +206,12 @@ test('adapter uses Worker readPage/review and keeps native Run HOLD and full sou
   const worker=await readFile(new URL('../tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs',import.meta.url),'utf8');
   assert.match(worker,/matchesXml229WeightReviewFilter\(mode,/);
   assert.match(panel,/planQualifiedBlankFill/);
-  assert.match(panel,/commitXml229TwoClickMatch1/);
+  assert.doesNotMatch(panel,/commitXml229TwoClickMatch1/);
  assert.match(panel,/(?:active|session)\.readPage\(\{offset,limit:25\}\)/,
    'Worker paging must stay source-bound; captured session prevents late cancelled responses from painting');
- assert.match(panel,/await active\.review\(\{view,choice\}\)/);
- assert.match(panel,/choiceForXml229WeightRow/);
+ assert.doesNotMatch(panel,/await active\.review\(\{view,choice\}\)/);
+  assert.match(panel,/planXml229SkipWeightDrafts\(/);
+ assert.doesNotMatch(panel,/choiceForXml229WeightRow/);
  assert.match(panel,/getXml229CurrentWorkerHeldReview/);
  assert.match(run,/projectOriginalReviewIntoRunChecklist/);
  assert.match(run,/verifiedEngineering:/);
