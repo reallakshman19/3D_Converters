@@ -82,3 +82,32 @@ export function verifyXml229VisibleMatch1Drafts(table,rows,drafts,plan){
  if(expected.size>0&&visible===0)deny('MATCH1_VISIBLE_CONFIRMATION_REQUIRED');
  return visible;
 }
+
+/**
+ * Only this boundary invokes the existing Worker commit RPC.
+ * Lock the editable DOM while the CAS/planId transaction runs.
+ * Always disarm the visible confirm button, including on RPC failure.
+ */
+export async function commitXml229TwoClickMatch1({
+ session,plan,drafts,table,rows,isCurrent=()=>true,
+}={}){
+ if(typeof session?.commitQualifiedBlankFill!=='function'||typeof isCurrent!=='function')
+  deny('MATCH1_TWO_CLICK_SESSION_REQUIRED');
+ verifyXml229Match1DraftConfirmation(plan,drafts,session.receipt);
+ verifyXml229VisibleMatch1Drafts(table,rows,drafts,plan);
+ if(!isCurrent())deny('MATCH1_TWO_CLICK_SESSION_STALE');
+ const inputs=[...table.querySelectorAll('[data-p4-proposal],[data-p4-candidate],[data-p4-reason]')];
+ inputs.forEach(input=>{input.disabled=true;});
+ try{
+  const result=await session.commitQualifiedBlankFill({planId:plan.planId});
+  if(!isCurrent())deny('MATCH1_TWO_CLICK_SESSION_STALE');
+  if(!Number.isSafeInteger(result?.acceptedCount)||
+     result.acceptedCount!==plan.qualified)
+   deny('MATCH1_TWO_CLICK_COMMIT_RESULT_DRIFT');
+  return result;
+ }finally{
+  inputs.forEach(input=>{input.disabled=false;});
+  const confirm=table.querySelector('[data-p4-bulk-confirm]');
+  if(confirm)confirm.disabled=true;
+ }
+}
