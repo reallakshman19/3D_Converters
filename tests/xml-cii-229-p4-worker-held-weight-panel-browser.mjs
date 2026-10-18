@@ -103,6 +103,37 @@ try{
   label:tr.textContent,weight:tr.querySelector('[data-p4-proposal]').value,
  })));
  assert.equal(original.length,2);
+ // Real native Worker + production panel: independently read pinned source
+ // candidate rows, apply once at 80%, and inspect actual kg + viewport.
+ const genuineBefore=await page.evaluate(async()=>{
+   const {getXml229CurrentWorkerHeldReview}=await import(
+    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   const session=getXml229CurrentWorkerHeldReview(window.__p4StateRef);
+   const rows=(await session.readPage({filter:'blank-rigid',offset:0,limit:25})).rows;
+   const expected=rows.filter(r=>{
+     const p=r.proposals?.[0],score=p?.score;
+     return p&&Number.isFinite(p.value)&&p.value>0&&
+       (score<=1?score*100:score)>=80;
+   }).map(r=>({id:r.occurrenceId,kg:String(r.proposals[0].value)}));
+   return {basisId:session.receipt.basisId,expected};
+ });
+ await page.locator('[data-p4-bulk-plan]').click();
+ await page.waitForFunction(()=>/Apply all suggestions ≥80%:/.test(
+   document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:120000});
+ const genuineAfter=await page.evaluate(expected=>{
+   const scroller=document.querySelector('.mc-rigid-review-table-wrap');
+   const inputs=[...document.querySelectorAll('tr[data-p4-row]')].map(tr=>({
+     id:tr.dataset.p4Occurrence,kg:tr.querySelector('[data-p4-applied-weight]')?.value
+   }));
+   const first=scroller?.querySelector('tr[data-p4-draft-filled="true"] input[data-p4-applied-weight]');
+   const a=first?.getBoundingClientRect(),v=scroller?.getBoundingClientRect();
+   return {inputs,scrollLeft:scroller?.scrollLeft??null,
+     horizontalVisible:!!(a&&v&&a.left>=v.left-1&&a.right<=v.right+1),
+     matched:expected.every(r=>inputs.some(i=>i.id===r.id&&i.kg===r.kg))};
+ },genuineBefore.expected);
+ assert.equal(genuineAfter.matched,true,'actual GC-PW source proposal kg not visible in editable inputs');
+ if(genuineBefore.expected.length)assert.equal(genuineAfter.horizontalVisible,true,
+   'real Worker-backed Applied Weight must be horizontally in viewport after Apply');
  // Owner regression: real numeric DOM input values on two 25-row pages,
  // source-pinned proposal selection, independent acceptance unchanged.
  const populated=await page.evaluate(async()=>{
