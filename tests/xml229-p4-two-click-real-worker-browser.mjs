@@ -35,14 +35,14 @@ try{
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-preview-bridge.js');
   const {installXml229WorkerHeldWeightPanel}=await import(
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
-  const original='{"synthetic":"two-click-source-bound","components":[1]}';
+  const original='{"synthetic":"two-click-source-bound","components":[1,2]}';
   const blob=new Blob([original],{type:'application/json'});
   const sha=Array.from(new Uint8Array(await crypto.subtle.digest(
     'SHA-256',await blob.arrayBuffer())),
     x=>x.toString(16).padStart(2,'0')).join('');
   const sourceId='P1-CHROMIUM-TWO-CLICK';
   const xml='<PipeStressExport><Pipe><Branch>'+
-   '<Branchname>/SYNTHETIC-P1-300-VALVE/B1</Branchname>'+
+   '<Branchname>/ASIM-1836-8"-P8810021-31441C4-PP/B4</Branchname>'+
    '<Node><NodeNumber>100</NodeNumber><ComponentType>GASK</ComponentType>'+
    '<ElementLengthMm>2</ElementLengthMm><Position>0 0 0</Position></Node>'+
    '<Node><NodeNumber>200</NodeNumber><ComponentType>RIGID</ComponentType>'+
@@ -73,9 +73,19 @@ try{
    {resolveInputs:async()=>options});
  });
  await page.locator('[data-p4-preview-build]').click();
- await page.waitForFunction(()=>
-  document.querySelector('[data-p4-preview-status]')?.textContent.includes(
-   'Preview engineering facts VERIFIED')===true,null,{timeout:120000});
+ try{
+  await page.waitForFunction(()=>
+   document.querySelector('[data-p4-preview-status]')?.textContent.includes(
+    'Preview engineering facts VERIFIED')===true,null,{timeout:45000});
+ }catch(error){
+  const snapshot=await page.evaluate(()=>({
+   status:document.querySelector('[data-p4-preview-status]')?.textContent,
+   buildDisabled:document.querySelector('[data-p4-preview-build]')?.disabled,
+   weightStatus:document.querySelector('[data-p4-weight-status]')?.textContent,
+  }));
+  throw new Error('Synthetic Preview authority was not verified: '+
+   JSON.stringify(snapshot)+' | '+String(error?.message||error));
+ }
  await page.evaluate(async()=>{
   const {installXml229WorkerHeldWeightPanel}=await import(
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
