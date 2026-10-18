@@ -168,7 +168,7 @@ try{
   assert.equal(privateCustody.schema,'XML229.OwnerLocalEffectiveBasisCustody.v1');
   assert.equal(privateCustody.originalJsonSha256,record.source.jsonSha256);
   assert.equal(privateCustody.sourceTextSha256,
-    sha(Buffer.from(x.toString('utf8').replace(/^\\uFEFF/,''))));
+    sha(Buffer.from(x.toString('utf8').replace(String.fromCodePoint(0xfeff),'')));
   assert.equal(privateCustody.configSha256,canonicalHash(privateCustody.contents.config));
   assert.equal(privateCustody.overridesSha256,canonicalHash(privateCustody.contents.overrides));
   assert.equal(privateCustody.historicalDecisionUpdates,0);
