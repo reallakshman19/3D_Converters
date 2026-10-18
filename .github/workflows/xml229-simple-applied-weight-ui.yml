@@ -1,0 +1,54 @@
+name: XML229 Simple Applied Weight UI and Safe Skip
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-skip-weight-drafts.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/**'
+      - 'tests/xml229-simple-applied-weight.test.mjs'
+      - 'tests/xml229-p4-two-click-real-worker-browser.mjs'
+      - '.github/workflows/xml229-simple-applied-weight-ui.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Compile all edited scripts and served twins
+        run: |
+          for f in tabs/xml-cii-2019-standalone/ui-adapted/{xml229-p4-weight-review-presentation.mjs,xml229-p4-unqualified-drafts.mjs,xml229-p4-skip-weight-drafts.mjs,xml-cii-adapted-p4-verified-weight-panel.js,xml-cii-adapted-output-run.js}; do node --check "$f"; done
+      - name: Safe zero kg, viewport, source master integrity, and UI validations
+        run: node --test tests/xml229-simple-applied-weight.test.mjs tests/xml-cii-229-p4-weight-presentation-adapter.test.mjs tests/xml229-weight-semantic-eligibility.test.mjs tests/xml229-two-click-match1-draft-confirmation.test.mjs
+  real-original-worker-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    needs: source-regression
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Original Blob + source-bound Worker + editable zero draft browser
+        run: node tests/xml229-p4-two-click-real-worker-browser.mjs
