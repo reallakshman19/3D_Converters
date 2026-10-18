@@ -55,7 +55,7 @@ try{
    phase:'INDEX_COMMITTED',rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false,
    sha256:sha,sourceRevision:'o1:sha256:'+sha,
    generationId:'xml229-p1-test-generation-1',sourceRefId:'p1-worker-source',
-   byteLength:blob.size,occurrenceCount:1,pageCount:1};
+   byteLength:blob.size,occurrenceCount:2,pageCount:1};
   const options={
    xmlText:xml,sourceId,
    masters:{weight:{datasetId:'P1-test-master',revision:'v1',
