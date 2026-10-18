@@ -175,6 +175,12 @@ try{
     await readFile(await safetyDownload.path(),'utf8'));
   assert.equal(record.stages.fullSourceWeight.readOnly,true);
   assert.equal(record.stages.fullSourceWeight.population.sevenFactsPerPhysical,true);
+  assert.equal(record.stages.fullSourceWeight.population.physicalCount,423);
+  assert.equal(record.stages.fullSourceWeight.population.factCount,2961);
+  assert.equal(record.stages.fullSourceWeight.review.unresolved,423);
+  assert.equal(record.stages.fullSourceWeight.review.unchanged,true);
+  assert.equal(record.stages.fullSourceWeight.proposals.valveToFlangeRejected,92);
+  assert.equal(record.stages.fullSourceWeight.proposals.sourceFamilyConflict,0);
   assert.equal(record.stages.fullSourceWeight.proposals.valveToFlangeQualified,0);
   assert.equal(record.stages.fullSourceWeight.review.acceptedMatch1,0);
   assert.equal(record.stages.fullSourceWeight.review.acceptedFinal,0);
@@ -249,7 +255,7 @@ try{
   assert.equal(record.stages.route.xmlOnly,true);
   assert.equal(record.stages.route.blockingCount,0);
   assert.equal(record.stages.route.governedHold,undefined);
-  record.passes.push('Owner-approved current-source XML-only conversion explicitly enabled');
+  record.passes.push('test explicitly selected current-source XML-only conversion; not an Owner engineering or governed native CII approval');
 
   await page.locator('[data-action="run"]').click();
   await page.waitForFunction(()=>{
