@@ -1,0 +1,36 @@
+name: XML229 BC4 Historical LineList Integrity Gate
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'scripts/xml229-bc4-historical-attestation.mjs'
+      - 'tests/xml229-bc4-historical-attestation.test.mjs'
+      - 'tests/fixtures/xml229/BC4.LineList.json'
+      - '.github/workflows/xml229-bc4-historical-linelist-attestation.yml'
+permissions:
+  contents: read
+jobs:
+  pinned-historical-hold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Validate source-bound read-only verifier syntax
+        run: node --check scripts/xml229-bc4-historical-attestation.mjs
+      - name: Pinned BC4 normalized-row, mapping, tampering and approval-hold tests
+        run: node --test tests/xml229-bc4-historical-attestation.test.mjs
+      - name: No historic owner backups or review ledgers committed
+        run: |
+          if git diff-tree --no-commit-id --name-only -r HEAD | grep -E 'source-bound-gcpw-review|owner-private|match1_engineering_audit|PRIVATE'; then
+            echo 'Never commit owner private evidence to GitHub'
+            exit 1
+          fi
