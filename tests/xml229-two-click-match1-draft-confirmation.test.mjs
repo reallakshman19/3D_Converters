@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {captureXml229WeightDraft,verifyXml229Match1DraftConfirmation,
+import {captureXml229WeightDraft,disarmXml229EditedDraft,verifyXml229Match1DraftConfirmation,
  verifyXml229VisibleMatch1Drafts,commitXml229TwoClickMatch1}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-two-click-confirmation.mjs';
 import {planXml229RigidWeightDrafts}
@@ -154,13 +154,26 @@ test('P1 captured manual draft is separated from Worker plan and invalidates bul
  assert.throws(()=>verifyXml229Match1DraftConfirmation(plan,saved,{basisId,sourceId}),
   {code:'MATCH1_TWO_CLICK_DRAFT_DRIFT'});
 });
+test('P1 editing an already prepared input disarms second-click confirmation',()=>{
+ const plan=makePlan(1),saved=drafts(plan),d=dom(plan,saved);
+ const detail={hidden:false,textContent:'Prior qualified plan'};
+ d.controls['[data-p4-proposal]'].value='500';
+ assert.equal(disarmXml229EditedDraft(
+  d.table.querySelectorAll('tr[data-p4-row]')[0],d.rows,saved,plan,d.table,detail),true);
+ assert.equal(d.confirm.disabled,true);
+ assert.equal(detail.hidden,true);
+ assert.equal(detail.textContent,'');
+ assert.equal(saved.get('owner-0').value,'500');
+});
 test('P1 production click path and served mirror use one exact draft-confirmation module',async()=>{
  const panel='tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js';
  const helper='tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-two-click-confirmation.mjs';
  const p=await readFile(new URL('../'+panel,import.meta.url),'utf8');
  assert.match(p,/commitXml229TwoClickMatch1\(\{/);
  assert.match(p,/pendingBulk=null/);
- assert.match(p,/if\(confirm\)confirm\.disabled=true/);
+ assert.match(p,/disarmXml229EditedDraft\(/);
+ const h=await readFile(new URL('../'+helper,import.meta.url),'utf8');
+ assert.match(h,/if\(confirm\)confirm\.disabled=true/);
  assert.equal(p.split('\n').length<=620,true,'oversized legacy panel must not grow');
  for(const name of [panel,helper]){
   const root=await readFile(new URL('../'+name,import.meta.url),'utf8');
