@@ -104,7 +104,6 @@ try{
  await page.waitForFunction(()=>/editable draft\(s\) prepared/.test(
   document.querySelector('[data-p4-weight-status]')?.textContent||''),
   null,{timeout:120000});
- const first=page.locator('tr[data-p4-row]').filter({has:page.locator('[data-p4-draft-filled]')});
  const inputs=page.locator('tr[data-p4-row] [data-p4-proposal]');
  assert.equal(await inputs.first().inputValue(),'35');
  assert.equal(await page.locator('[data-p4-bulk-confirm]').isEnabled(),true);
@@ -122,7 +121,7 @@ try{
   /Apply all suggestions again/);
  await inputs.first().fill('35');
  await page.locator('[data-p4-bulk-plan]').click();
- await page.waitForFunction(()=>page!==null&&document.querySelector(
+ await page.waitForFunction(()=>document.querySelector(
   '[data-p4-bulk-confirm]')?.disabled===false,null,{timeout:120000});
  assert.equal(await inputs.first().inputValue(),'35');
  await page.locator('[data-p4-bulk-confirm]').click();
