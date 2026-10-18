@@ -231,9 +231,9 @@ try{
      '--input',nativeIn,'--output',nativeOut,'--weight-scale','10',
    ],{timeout:30000,stdio:'pipe'});
    const cii=await readFile(nativeOut,'utf8');
-   const rSection=cii.split('#$ RIGID\\n')[1]?.split('#$ ')[0]?.trim()||'';
-   const nativeWeights=rSection.split('\\n').filter(Boolean)
-     .map(line=>Number(line.trim().split(/\\s+/)[0]));
+   const rSection=cii.split('#$ RIGID\n')[1]?.split('#$ ')[0]?.trim()||'';
+   const nativeWeights=rSection.split('\n').filter(Boolean)
+     .map(line=>Number(line.trim().split(/\s+/)[0]));
    assert(nativeWeights.every(v=>Number.isFinite(v)&&v>=0));
    consumer={
      schema:'XML229.SyntheticFinalToActualNativeCiiWitness.v1',
