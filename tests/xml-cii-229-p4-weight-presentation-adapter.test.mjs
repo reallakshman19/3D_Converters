@@ -21,38 +21,33 @@ const row=()=>({
   proposals:[{proposalId:'attested-master-1',ranking:1,value:47.488,qualified:false,method:'master-match'}],
 });
 
-test('source-bound Worker page reuses existing review styling and bounded verified rows',()=>{
- const x=row();
- const page={totalCount:423,rows:[x]};
- const html=renderXml229WeightReviewPage(page,0);
- assert.match(html,/mc-rigid-review-table-wrap/);
- assert.match(html,/mc-rigid-review-candidate/);
- assert.match(html,/data-p4-row="0"/);
- assert.match(html,/data-p4-occurrence="exact-source::occ-01"/);
- assert.match(html,/data-p4-proposal/);
- assert.match(html,/data-p4-candidate/);
- assert.match(html,/data-p4-accept-match1/);
- assert.match(html,/data-p4-accept-final/);
- assert.match(html,/data-p4-filter-unresolved/);
- assert.match(html,/423 components/);
- assert.match(html,/showing 1–1/);
- assert.match(html,/Candidate chips are draft evidence/);
- assert.equal((html.match(/<th style=/g)||[]).length,13);
- assert.match(html,/data-p4-bulk-plan/);
- assert.match(html,/data-p4-scope="rigid"/);
-  assert.match(html,/data-p4-scope="blank-rigid"/);
-  assert.match(html,/Blank weights/);
+test('simple source-bound Weight UI shows Applied Weight, three adjacent filters and no approval clutter',()=>{
+  const page={totalCount:423,rows:[row()]};
+  const html=renderXml229WeightReviewPage(page,0);
+  assert.match(html,/mc-rigid-review-table-wrap/);
+  assert.match(html,/mc-rigid-review-candidate/);
+  assert.match(html,/data-p4-occurrence="exact-source::occ-01"/);
+  assert.match(html,/data-p4-proposal/);
+  assert.match(html,/data-p4-applied-weight/);
+  assert.match(html,/Nearest Suggestions/);
+  assert.match(html,/Applied Weight/);
+  assert.match(html,/Recorded Weight/);
+  assert.match(html,/Filter Blank Weight/);
+  assert.match(html,/All XML physicals/);
+  assert.match(html,/Weight items/);
+  assert.match(html,/data-p4-skip-weight/);
   assert.match(html,/Apply all suggestions/);
-  assert.match(html,/Apply all Match-1/);
+  assert.doesNotMatch(html,/data-p4-candidate|data-p4-reason|data-p4-accept-match1|data-p4-accept-final|data-p4-bulk-confirm|data-p4-filter-unresolved/);
+  assert.doesNotMatch(html,/Apply all Match-1|Engineering reason|Review Final|<option value="">Manual/);
+  assert.equal((html.match(/<th style=/g)||[]).length,14);
+  assert.match(html,/data-p4-scope="rigid"/);
+  assert.match(html,/data-p4-scope="blank-rigid"/);
+  assert.match(html,/data-p4-scope="all"/);
   assert.match(html,/data-p4-min-score/);
-  assert.match(html,/Short name \/ Valve Hint/);
-  assert.match(html,/DTXR/);
-  assert.match(html,/data-p4-draft-marker/);
- assert.match(html,/Draft \/ Accepted kg/);
- assert.match(html,/Suggested draft \(kg\)/);
- assert.match(html,/Accepted kg:/);
- assert.doesNotMatch(html,/XML mass resolved/);
- assert.equal(xml229WeightReviewPageModel(page,0).counts.unresolved,1);
+  assert.match(html,/423 components/);
+  assert.match(html,/showing 1–1/);
+  assert.match(html,/Editable draft · not approved/);
+  assert.equal(xml229WeightReviewPageModel(page,0).counts.unresolved,1);
 });
 
 test('rendered original occurrence and master candidate are escaped and can never inject HTML',()=>{
@@ -211,11 +206,12 @@ test('adapter uses Worker readPage/review and keeps native Run HOLD and full sou
   const worker=await readFile(new URL('../tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs',import.meta.url),'utf8');
   assert.match(worker,/matchesXml229WeightReviewFilter\(mode,/);
   assert.match(panel,/planQualifiedBlankFill/);
-  assert.match(panel,/commitXml229TwoClickMatch1/);
+  assert.doesNotMatch(panel,/commitXml229TwoClickMatch1/);
  assert.match(panel,/(?:active|session)\.readPage\(\{offset,limit:25\}\)/,
    'Worker paging must stay source-bound; captured session prevents late cancelled responses from painting');
- assert.match(panel,/await active\.review\(\{view,choice\}\)/);
- assert.match(panel,/choiceForXml229WeightRow/);
+ assert.doesNotMatch(panel,/await active\.review\(\{view,choice\}\)/);
+  assert.match(panel,/planXml229SkipWeightDrafts\(/);
+ assert.doesNotMatch(panel,/choiceForXml229WeightRow/);
  assert.match(panel,/getXml229CurrentWorkerHeldReview/);
  assert.match(run,/projectOriginalReviewIntoRunChecklist/);
  assert.match(run,/verifiedEngineering:/);

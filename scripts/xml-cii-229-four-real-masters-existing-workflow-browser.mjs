@@ -154,11 +154,11 @@ try{
   // New source-bound presentation retains the existing 7-column review
   // contract and styling, while every review still RPCs into the GC-PW Worker.
   assert.equal(await page.locator('.mc-rigid-review-table-wrap').count(),1);
-  assert.equal(await page.locator('tr[data-p4-row]').first().locator('td').count(),13);
+  assert.equal(await page.locator('tr[data-p4-row]').first().locator('td').count(),14);
   record.stages.historicalColumns=await page.locator('.mc-rigid-review-table th').allTextContents();
   assert.deepEqual(record.stages.historicalColumns.map(x=>x.trim()),[
     'Status','Short name / Valve Hint','DTXR','Branch','Line Key','ComponentType','Bore','Rating','Node',
-    'ComponentRefNo_Endpoint','Length','Draft / Accepted kg','Nearest Suggestions']);
+    'ComponentRefNo_Endpoint','Length','Recorded Weight','Nearest Suggestions','Applied Weight']);
   assert.equal(await page.locator('[data-p4-weight-build]').count(),0);
 
 
@@ -185,34 +185,14 @@ try{
   assert.match(afterNavigation,/Existing verified Preview facts/);
   assert.doesNotMatch(afterNavigation,/stale/i);
 
-  // Explicit engineer Match-1 and distinct Final decisions through the
-  // EXISTING Weight Match stage; never promote a default or blank draft.
-  const reviewIndex=await page.evaluate(()=>{
-    const rows=[...document.querySelectorAll('tr[data-p4-row]')];
-    return rows.findIndex(tr=>tr.querySelectorAll('td')[2]?.textContent.trim()==='—');
-  });
-  let reviewedOccurrence=null;
-  if(reviewIndex>=0){
-  let selected=page.locator('tr[data-p4-row]').nth(reviewIndex);
-  reviewedOccurrence=await selected.getAttribute('data-p4-occurrence');
-  await selected.locator('[data-p4-proposal]').fill('35');
-  await selected.locator('[data-p4-reason]').fill('Explicit original physical engineering Match-1 review');
-  await selected.locator('[data-p4-accept-match1]').click();
-  await page.waitForFunction(()=>(
-    document.querySelector('[data-p4-weight-status]')?.textContent||''
-  ).includes('Match-1 explicitly accepted'),null,{timeout:30000});
-  selected=page.locator('tr[data-p4-row]').nth(reviewIndex);
-  await selected.locator('[data-p4-proposal]').fill('40');
-  await selected.locator('[data-p4-reason]').fill('Independent original physical Final Match-2 review');
-  await selected.locator('[data-p4-accept-final]').click();
-  await page.waitForFunction(()=>(
-    document.querySelector('[data-p4-weight-status]')?.textContent||''
-  ).includes('Final Match-2 explicitly accepted'),null,{timeout:30000});
-  record.stages.reviewedOccurrence=reviewedOccurrence;
-
-  }else{
-    record.stages.reviewDecisionsSkipped='Firstpass has no unresolved physical Weight row on this page; P4 isolated Chromium qualifies CAS decisions.';
-  }
+  // Production table exposes no Match-1/Final accept buttons. A manually
+  // edited Applied Weight is a draft only and cannot grant governed CII.
+  assert.equal(await page.locator('[data-p4-accept-match1],[data-p4-accept-final],[data-p4-reason],[data-p4-candidate]').count(),0);
+  const editable=page.locator('tr[data-p4-row] [data-p4-applied-weight]').first();
+  await editable.fill('35');
+  assert.equal(await editable.inputValue(),'35');
+  const reviewedOccurrence=null;
+  record.stages.appliedWeightDraftOnly=true;
   // The existing Preview Build must reuse the same canonical GC-PW basis,
   // not silently open a different weight/final decision population.
   const firstBasis=actual.basisId;
@@ -274,21 +254,9 @@ try{
     document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:120000});
   record.stages.bulkPlanMessage=await page.locator('[data-p4-weight-status]').textContent();
   assert.match(record.stages.bulkPlanMessage,/Apply all suggestions ≥\d+%:/);
-  const confirm=page.locator('[data-p4-bulk-confirm]');
-  if(await confirm.isEnabled()){
-    await confirm.click();
-    await page.waitForFunction(()=>/Apply all Match-1 accepted \d+ qualified source-bound decision\(s\)/i.test(
-      document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:120000});
-    record.stages.bulkAccepted=await page.locator('[data-p4-weight-status]').textContent();
-    assert.match(record.stages.bulkAccepted,/Apply all Match-1 accepted \d+ qualified source-bound decision\(s\)/i);
-    // Final Match-2 was never bulk-applied or overwritten.
-    if(reviewedOccurrence){
-      const finalStill=await page.locator('tr[data-p4-row]').evaluateAll(
-        (rows,id)=>rows.find(row=>row.dataset.p4Occurrence===id)
-          ?.querySelector('[data-p4-final-mass]')?.textContent.trim()||'',reviewedOccurrence);
-      assert.equal(finalStill,'40 kg','bulk Match-1 overwrote independently reviewed Final');
-    }
-  }
+  assert.equal(await page.locator('[data-p4-bulk-confirm]').count(),0);
+  // "Apply all suggestions" never commits any engineering review decision.
+  record.stages.bulkAccepted=0;
   // Source-basis-pinned GC-PW provenance audit is inspectable even with
   // native Run HELD. The Firstpass public fixture has original source masses.
   const auditButton=page.locator('[data-p4-audit-decisions]');
@@ -302,13 +270,13 @@ try{
   assert.equal(audited.basisId,firstBasis);
   assert.equal(audited.population.physicalCount,31);
   assert.equal(audited.population.factCount,217);
-  assert.equal(audited.population.counts.source,reviewedOccurrence?30:31);
+  assert.equal(audited.population.counts.source,31);
   assert.equal(audited.population.counts.match1,0);
-  assert.equal(audited.population.counts.final,reviewedOccurrence?1:0);
+  assert.equal(audited.population.counts.final,0);
   assert.equal(Object.values(audited.population.counts).reduce((a,b)=>a+b,0),31);
   assert.equal(audited.summary.nativeCiiReleaseAuthorized,false);
   assert.equal(audited.summary.provenanceComplete,true);
-  assert.equal(audited.summary.auditedAcceptedDecisions,reviewedOccurrence?2:0);
+  assert.equal(audited.summary.auditedAcceptedDecisions,0);
   record.stages.weightProvenanceAudit={
     basisId:audited.basisId,summary:audited.summary,
     physicalCount:audited.population.physicalCount,
@@ -388,13 +356,8 @@ try{
   await page.locator('tr[data-p4-row]').first().waitFor({timeout:30000});
   const sourceRow=page.locator('tr[data-p4-row]').first();
   const saveOccurrence=await sourceRow.getAttribute('data-p4-occurrence');
-  await sourceRow.locator('[data-p4-proposal]').fill('35');
-  await sourceRow.locator('[data-p4-reason]').fill(
-    'Disposable browser test: explicit source override for Match-1 only');
-  await sourceRow.locator('[data-p4-accept-match1]').click();
-  await page.waitForFunction(()=>/Match-1 explicitly accepted/.test(
-    document.querySelector('[data-p4-weight-status]')?.textContent||''
-  ),null,{timeout:30000});
+  await sourceRow.locator('[data-p4-applied-weight]').fill('35');
+  // No Match-1/Final review created; backup records the unchanged ledger.
   const [backupFile]=await Promise.all([
     page.waitForEvent('download'),page.locator('[data-p4-save-review]').click(),
   ]);
@@ -403,8 +366,8 @@ try{
   const backup=JSON.parse(await readFile(backupPath,'utf8'));
   assert.equal(backup.schema,'XML229.SourceBoundGC-PWReviewBackup.v1');
   assert.equal(backup.basisId,firstBasis);
-  assert.equal(backup.counts.match1,1);
-  assert.equal(backup.counts.final,reviewedOccurrence?1:0);
+  assert.equal(backup.counts.match1,0);
+  assert.equal(backup.counts.final,0);
   assert.equal(backup.counts.source,31-backup.counts.match1-backup.counts.final);
   assert.equal(backup.nativeCiiReleaseAuthorized,false);
 
@@ -493,18 +456,14 @@ try{
   record.stages.reviewImportStatus=restoredStatus;
   assert.match(restoredStatus,/Restored same-InputBasis GC-PW review/,
     'restored same-basis GC-PW review was refused: '+restoredStatus);
-  const restored=await page.locator('tr[data-p4-row]').evaluateAll(
-    (rows,id)=>rows.find(row=>row.dataset.p4Occurrence===id)
-      ?.querySelector('[data-p4-match1-mass]')?.textContent.trim()||'',
-    saveOccurrence);
-  assert.equal(restored,'35 kg','accepted manual Match-1 lost after file restore');
+  assert.equal(await page.locator('[data-p4-accept-match1],[data-p4-accept-final]').count(),0);
   const [restoredExport]=await Promise.all([
     page.waitForEvent('download'),page.locator('[data-p4-save-review]').click(),
   ]);
   const afterRestore=JSON.parse(await readFile(await restoredExport.path(),'utf8'));
-  assert.equal(afterRestore.counts.match1,1);
+  assert.equal(afterRestore.counts.match1,0);
   assert.equal(afterRestore.counts.source,31-afterRestore.counts.match1-afterRestore.counts.final);
-  assert.equal(afterRestore.counts.final,reviewedOccurrence?1:0);
+  assert.equal(afterRestore.counts.final,0);
   assert.deepEqual(afterRestore.reviewState,backup.reviewState,
     'restored portable command ledger differs from original saved review');
   record.stages.explicitReviewReloadRestore={
@@ -516,7 +475,7 @@ try{
   await page.waitForFunction(()=>[
     ...document.querySelectorAll('[data-active-phase="run"] tbody tr'),
   ].some(tr=>tr.children[0]?.textContent==='weight-match'&&
-    /1 Match-1 only/.test(tr.textContent)),null,{timeout:30000});
+    /0 Match-1 only/.test(tr.textContent)),null,{timeout:30000});
   assert.equal(await page.locator('[data-action="run"]').isDisabled(),true,
     'reload and restored review must never enable native CII Run');
   // XML229: explicitly allow ordinary XML native preflight while excluding

@@ -98,6 +98,21 @@ function renderSummary(parent, report) {
     { Source: 'artifacts', Status: report.summary.artifactCount,
       Message: 'available artifacts (not proof of a current CII output)' },
   ], 'No readiness summary yet.'));
+  const hold=report.checklistRows?.find(row=>
+    row.id==='xml229-original-json-engineering-authority'&&row.blocking===true);
+  if(hold){
+    const note=createElement('div','', 'model-converters-workflow-detail-note');
+    note.dataset.xml229CurrentSourceHold='true';
+    const branchRow=report.checklistRows?.find(row=>row.id==='branch-format-authority');
+    const branches=String(branchRow?.message||'').match(/\d+ selected branch occurrences/)?.[0]||'current selection';
+    const bytes=report.manifest?.sourceBytes;
+    note.textContent='Current XML: '+branches+
+      (Number.isSafeInteger(bytes)?' · '+bytes+' source bytes':'')+
+      '. JSON-governed CII remains held because Final/output authority is not verified, and a staged JSON receipt is present. If that JSON belonged to a different XML, re-index the matching JSON for this XML, or choose XML-only testing. '+
+      'For conversion testing without JSON-derived engineering weights, select XML-only below and refresh the checklist. '+
+      'Applied Weight drafts and 0 kg skips are not injected into native CII.';
+    panel.appendChild(note);
+  }
   return panel;
 }
 
@@ -340,13 +355,13 @@ function optionCheckbox(optionKey, labelText, checked, stateRef, render, disable
 function renderRunControls(parent, stateRef, state, report, render) {
   const ctrlCard = section(parent, 'Run Conversion');
   const routeLabel=createElement('label','','model-converters-workflow-regex-field');
-  routeLabel.appendChild(createElement('span','Native output input authority'));
+  routeLabel.appendChild(createElement('span','Conversion source / CII route'));
   const routeSelect=createElement('select');
   routeSelect.dataset.action='xml229-output-participation';
   const approved=isXml229XmlOnlyApproved(state);
   routeSelect.append(
-    createOption('governed','JSON-governed: native CII HELD until independent Final/output authorization',!approved),
-    createOption('xml-only','XML-only: ignore optional JSON and unverified engineering facts',approved),
+    createOption('governed','JSON + governed engineering weights (HELD pending Final)',!approved),
+    createOption('xml-only','XML-only test conversion (no draft weights)',approved),
   );
   routeSelect.disabled=actualSourceKind(state)!=='xml'||!!state.running;
   routeSelect.addEventListener('change',event=>{
@@ -372,7 +387,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
   ctrlCard.append(routeLabel,createElement('div',
     approved
       ?'XML-only selected for this exact XML, branch selection, config and master basis. Staged JSON, Preview, GC-PW and accepted Weight/Final decisions are excluded from native conversion; source or master changes require new explicit selection.'
-      :'Default: original JSON engineering output remains governed and HELD. Explicit XML-only selection uses independent native XML preflight and excludes optional JSON-derived facts.',
+      :'This hold applies to the CURRENT loaded XML when staged JSON is attached: indexing is not Final approval. XML-only testing is an explicit, independent route and will not apply editable/zero weight drafts.',
     'model-converters-workflow-detail-note'));
   const actionDiv = createElement('div');
   if (actionDiv.style) Object.assign(actionDiv.style, { marginTop: '12px', display: 'flex', gap: '8px', flexDirection: 'column' });
@@ -380,7 +395,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
   if (runReviewBtn.style) Object.assign(runReviewBtn.style, { width: '100%', padding: '12px' });
   runReviewBtn.addEventListener('click', () => { stateRef.current = updateWorkflowState(stateRef.current, { activePhaseId: 'weight-match' }); if (typeof render === 'function') render(); });
   const noteDiv = createElement('div', '', 'model-converters-workflow-detail-note');
-  noteDiv.innerHTML = approved ? 'XML-only mode excludes JSON-derived Weight/Final from native output; independent XML preflight remains mandatory.' : 'Opens <strong>4A Weight Match</strong> to review approximate weights, then Finalize and Run.';
+  noteDiv.innerHTML = approved ? 'XML-only mode excludes JSON-derived Weight/Final from native output; independent XML preflight remains mandatory.' : 'Opens <strong>4A Weight Match</strong> to edit Applied Weight drafts. Drafts do not unlock governed native CII; use XML-only for independent conversion testing.';
   const refreshBtn = button('refresh-output-run', 'Refresh readiness / checklist');
   refreshBtn.style.cssText = 'cursor:pointer;padding:12px;border-radius:6px;background:#1e293b;color:#cbd5e1;border:1px solid #334155;font-size:12px;width:100%;text-align:center;font-weight:700;';
   refreshBtn.addEventListener('click', () => { stateRef.current = applyStandaloneOutputRunReadiness(stateRef.current, buildStandaloneOutputRunReadiness(stateRef.current)); if (typeof render === 'function') render(); });

@@ -112,34 +112,31 @@ try{
  assert.equal(before.counts.match1,0);
  const eligible=before.rows.flatMap(r=>r.proposals).filter(p=>p.qualified===true);
  assert.equal(eligible.length,1,'Expected exact source family-qualified gate candidate: '+JSON.stringify(before));
- await page.locator('[data-p4-bulk-plan]').click();
- await page.waitForFunction(()=>/editable draft\(s\) prepared/.test(
-  document.querySelector('[data-p4-weight-status]')?.textContent||''),
-  null,{timeout:120000});
- const inputs=page.locator('tr[data-p4-row] [data-p4-proposal]');
- assert.equal(await inputs.first().inputValue(),'35');
- assert.equal(await page.locator('[data-p4-bulk-confirm]').isEnabled(),true);
- const still=await page.evaluate(async()=>{
+ assert.equal(await page.locator('[data-p4-applied-weight]').count(),1);
+ assert.equal(await page.locator('[data-p4-skip-weight]').count(),1);
+ assert.equal(await page.locator('[data-p4-bulk-confirm],[data-p4-candidate],[data-p4-reason],[data-p4-accept-match1],[data-p4-accept-final]').count(),0);
+ await page.locator('[data-p4-skip-weight]').click();
+ await page.waitForFunction(()=>/Skip Weight: 1 blank eligible/.test(
+   document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:30000});
+ const input=page.locator('tr[data-p4-row] [data-p4-applied-weight]').first();
+ assert.equal(await input.inputValue(),'0');
+ assert.match(await page.locator('tr[data-p4-row] [data-p4-draft-marker]').first().textContent(),
+  /Skipped: 0 kg draft/);
+ const afterZero=await page.evaluate(async()=>{
   const {getXml229CurrentWorkerHeldReview}=await import(
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
-  const s=getXml229CurrentWorkerHeldReview(window.__stateRef);
-  return (await s.readCompletion()).counts;
+  return (await getXml229CurrentWorkerHeldReview(window.__stateRef).readCompletion()).counts;
  });
- assert.equal(still.match1,0,'first click must never accept engineering weights');
- await inputs.first().fill('350');
- assert.equal(await page.locator('[data-p4-bulk-confirm]').isEnabled(),false,
-  'changing the visible kg disarms the stale Worker plan');
- assert.match(await page.locator('[data-p4-weight-status]').textContent(),
-  /Apply all suggestions again/);
- await inputs.first().fill('35');
- await page.locator('[data-p4-bulk-plan]').click();
+ assert.equal(afterZero.match1,0);
+ assert.equal(afterZero.final,0);
+ await page.locator('tr[data-p4-row] [data-p4-pick]').first().click();
+ assert.equal(await input.inputValue(),'35');
+ await input.fill('35.5');
+ await page.locator('[data-p4-scope="all"]').click();
  await page.waitForFunction(()=>document.querySelector(
-  '[data-p4-bulk-confirm]')?.disabled===false,null,{timeout:120000});
- assert.equal(await inputs.first().inputValue(),'35');
- await page.locator('[data-p4-bulk-confirm]').click();
- await page.waitForFunction(()=>/Apply all Match-1 accepted 1/.test(
-  document.querySelector('[data-p4-weight-status]')?.textContent||''),
-  null,{timeout:120000});
+   'tr[data-p4-row] [data-p4-applied-weight]')?.value==='35.5',null,{timeout:30000});
+ await page.locator('[data-p4-scope="rigid"]').click();
+ assert.equal(await page.locator('tr[data-p4-row] [data-p4-applied-weight]').first().inputValue(),'35.5');
  const after=await page.evaluate(async()=>{
   const {getXml229CurrentWorkerHeldReview}=await import(
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
@@ -147,13 +144,13 @@ try{
   const p=await s.readCompletion();
   return {counts:p.counts,nativeRelease:p.ciiReleaseAuthorized};
  });
- assert.equal(after.counts.match1,1);
+ assert.equal(after.counts.match1,0);
  assert.equal(after.counts.final,0);
  assert.equal(after.nativeRelease,false);
  assert.deepEqual(pageErrors,[]);
- console.log(JSON.stringify({schema:'XML229.P1.TwoClickChromium.v1',
-  before,after,firstDraftKg:'35',manualEditInvalidatedPlan:true,
-  passed:true,nativeCiiReleaseAuthorized:false}));
+ console.log(JSON.stringify({schema:'XML229.SimpleAppliedWeightChromium.v1',
+  before,after,skippedZeroDraft:true,editableDraftPersisted:true,
+  removedApprovalControls:true,nativeCiiReleaseAuthorized:false}));
  await page.evaluate(async()=>{
   const {getXml229CurrentWorkerHeldReview}=await import(
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');

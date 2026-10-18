@@ -109,7 +109,8 @@ export async function planXml229RigidWeightDrafts(session,{
        const saved=existingDrafts.get(row.occurrenceId);
        // A human-edited kg value or Manual selection must NEVER be
        // silently bulk-approved as a different Worker-ranked proposal.
-       if(required&&(String(saved?.value)!==String(required.value)||
+       if(required&&!saved?.skippedWeight&&
+          (String(saved?.value)!==String(required.value)||
           saved?.proposalId!==required.proposalId))
          deny('SUGGESTION_MANUAL_DRAFT_CONFLICT');
        counts.alreadyDrafted++;
@@ -188,18 +189,21 @@ export function hydrateXml229WeightDraftInputs(table,rows,draftValues){
    const input=tr.querySelector('[data-p4-proposal]');
    const selection=tr.querySelector('[data-p4-candidate]');
    const reason=tr.querySelector('[data-p4-reason]');
-   if(!input||!selection||!reason)
-     deny('SUGGESTION_VISIBLE_INPUT_MISSING');
+   if(!input)deny('SUGGESTION_VISIBLE_INPUT_MISSING');
    input.value=saved.value;
-   selection.value=saved.proposalId;
-   reason.value=saved.reason;
-   if(input.value!==String(saved.value)||selection.value!==saved.proposalId)
+   if(selection)selection.value=saved.proposalId;
+   else tr.dataset.p4PickedProposal=saved.proposalId||'';
+   if(reason)reason.value=saved.reason||'';
+   if(input.value!==String(saved.value)||
+      (selection&&selection.value!==saved.proposalId))
      deny('SUGGESTION_VISIBLE_INPUT_NOT_APPLIED');
    tr.dataset.p4DraftFilled='true';
    const flag=tr.querySelector('[data-p4-draft-marker]');
-   if(flag)flag.textContent=saved.autoUnqualified
-     ?'Suggested draft only — engineering reason required for acceptance'
-     :'Qualified draft populated — use Apply all Match-1 for explicit confirmation';
+   if(flag)flag.textContent=saved.skippedWeight
+     ?'Skipped: 0 kg draft (NOT an accepted zero mass)'
+     :saved.autoUnqualified
+       ?'Suggestion needs engineering review — draft only'
+       :'Applied Weight is an editable draft — no approval';
    visiblePopulated++;
  }
  return visiblePopulated;

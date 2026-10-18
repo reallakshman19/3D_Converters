@@ -136,34 +136,14 @@ try{
   assert.ok(record.stages.weightRows>0);
   record.stages.weightText=await page.locator('[data-p4-weight-status]').textContent();
   assert.match(record.stages.weightText,/Existing verified Preview facts/);
-  // Explicit engineer Match-1 and distinct Final decisions through the
-  // EXISTING Weight Match stage; never promote a default or blank draft.
-  const reviewIndex=await page.evaluate(()=>{
-    const rows=[...document.querySelectorAll('tr[data-p4-row]')];
-    return rows.findIndex(tr=>tr.dataset.p4Stage==='unresolved');
-  });
-  let reviewedOccurrence=null;
-  if(reviewIndex>=0){
-  let selected=page.locator('tr[data-p4-row]').nth(reviewIndex);
-  reviewedOccurrence=await selected.getAttribute('data-p4-occurrence');
-  await selected.locator('[data-p4-proposal]').fill('35');
-  await selected.locator('[data-p4-reason]').fill('Explicit original physical engineering Match-1 review');
-  await selected.locator('[data-p4-accept-match1]').click();
-  await page.waitForFunction(()=>(
-    document.querySelector('[data-p4-weight-status]')?.textContent||''
-  ).includes('Match-1 explicitly accepted'),null,{timeout:30000});
-  selected=page.locator('tr[data-p4-row]').nth(reviewIndex);
-  await selected.locator('[data-p4-proposal]').fill('40');
-  await selected.locator('[data-p4-reason]').fill('Independent original physical Final Match-2 review');
-  await selected.locator('[data-p4-accept-final]').click();
-  await page.waitForFunction(()=>(
-    document.querySelector('[data-p4-weight-status]')?.textContent||''
-  ).includes('Final Match-2 explicitly accepted'),null,{timeout:30000});
-  record.stages.reviewedOccurrence=reviewedOccurrence;
-
-  }else{
-    record.stages.reviewDecisionsSkipped='Firstpass has no unresolved physical Weight row on this page; P4 isolated Chromium qualifies CAS decisions.';
-  }
+  // The simplified production UI deliberately does not expose engineering
+  // acceptance controls. Applied Weight remains a testable session draft.
+  assert.equal(await page.locator('[data-p4-accept-match1],[data-p4-accept-final],[data-p4-reason],[data-p4-candidate]').count(),0);
+  const applied=page.locator('tr[data-p4-row] [data-p4-applied-weight]').first();
+  await applied.fill('35');
+  assert.equal(await applied.inputValue(),'35');
+  const reviewedOccurrence=null; // No Match-1/Final approvals by UI navigation.
+  record.stages.appliedWeightDraftOnly=true;
   // The existing Preview Build must reuse the same canonical GC-PW basis,
   // not silently open a different weight/final decision population.
   const firstBasis=actual.basisId;
