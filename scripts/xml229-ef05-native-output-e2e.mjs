@@ -13,8 +13,17 @@ import {createHash} from 'node:crypto';
 const sha=x=>createHash('sha256').update(x).digest('hex');
 const xmlPath='Benchmarks/EF-05-PRO.TEST.xml';
 const zipPath='Benchmarks/ASIM-1836_managed_stage-2.zip';
+const lineListVariant=process.env.XML229_E2E_LINELIST_VARIANT||'legacy';
+assert(['legacy','bc4-json'].includes(lineListVariant),
+  'Only exact legacy/BC4 public fixture E2E variants are allowed');
+const lineListPath=lineListVariant==='bc4-json'
+  ?'tests/fixtures/xml229/BC4.LineList.json'
+  :'docs/Masters/ImportedRawLineListLL.xlsx';
+const artifactSuffix=lineListVariant==='bc4-json'?'-bc4':'';
+
 const tmp=await mkdtemp(join(tmpdir(),'xml229-ef05-'));
 const record={schema:'XML229.EF05.NativeOutputE2E.v1',
+ lineListVariant,
  head:process.env.EXACT_HEAD||null,source:'EF-05 public benchmark',
  passes:[],stages:{},failures:[],pageErrors:[],ok:false};
 execFileSync('python3',['-m','zipfile','-e',zipPath,tmp]);
@@ -26,6 +35,22 @@ record.source={xmlSha256:sha(x),jsonSha256:sha(j),
  xmlNodes:(x.toString('utf8').match(/<Node>/g)||[]).length};
 assert.equal(record.source.branches,41);
 assert.equal(record.source.xmlNodes,1654);
+if(lineListVariant==='bc4-json'){
+  const bc4Bytes=await readFile(lineListPath);
+  assert.equal(sha(bc4Bytes),
+    '53b322405795dc7a74c1154043c31bf9c8b2a1763f207cabf0c7f1888fd9c1bb');
+  const bc4=JSON.parse(bc4Bytes.toString('utf8'));
+  assert.equal(bc4.schema,'XML229.BC4.LineListRawJsonFixture.v1');
+  assert.equal(bc4.sourceWorkbookSha256,
+    '3e3b8494f9e70bffd92f5c13492c8c0421739c29a086d41f41306f0d386f240a');
+  assert.equal(bc4.worksheet,'LineList');
+  assert.equal(bc4.rowCount,385);
+  assert.equal(bc4.rows.length,385);
+  assert.equal(bc4.engineeringApproval,false);
+  assert.equal(bc4.nativeCiiReleaseAuthorized,false);
+  record.stages.lineListFixture={file:'BC4.LineList.json',rows:385,
+    sha256:sha(bc4Bytes),historicalConfigProven:false,originalXlsxPreservedInRepository:false};
+}
 let browser;
 try{
   browser=await chromium.launch({headless:true});
@@ -46,7 +71,7 @@ try{
   assert.match(actualBranches,/Branches:\s*41\/41/);
   record.passes.push('real 41/41 loaded');
   for(const [kind,file] of [
-    ['lineList','docs/Masters/ImportedRawLineListLL.xlsx'],
+    ['lineList',lineListPath],
     ['pipingClass','docs/Masters/Piping_class_master.json'],
     ['materialMap','docs/Masters/PCF_MAT_MAP.TXT'],
   ]){
@@ -95,6 +120,10 @@ try{
     ['weight',/Valve Weights:\s*(\d+) row\(s\)/],
   ].map(([k,re])=>[k,Number(masterInventory.match(re)?.[1]||0)]));
   assert(record.stages.activeMasterInventory.lineList>0);
+  if(lineListVariant==='bc4-json'){
+    assert.equal(record.stages.activeMasterInventory.lineList,385);
+    record.passes.push('BC4 original 385-row LineList JSON loaded into current live Preview');
+  }
   assert.equal(record.stages.activeMasterInventory.pipingClass,10699);
   assert.equal(record.stages.activeMasterInventory.materialMap,383);
   assert.equal(record.stages.activeMasterInventory.weight,1595);
@@ -146,6 +175,12 @@ try{
     await readFile(await safetyDownload.path(),'utf8'));
   assert.equal(record.stages.fullSourceWeight.readOnly,true);
   assert.equal(record.stages.fullSourceWeight.population.sevenFactsPerPhysical,true);
+  assert.equal(record.stages.fullSourceWeight.population.physicalCount,423);
+  assert.equal(record.stages.fullSourceWeight.population.factCount,2961);
+  assert.equal(record.stages.fullSourceWeight.review.unresolved,423);
+  assert.equal(record.stages.fullSourceWeight.review.unchanged,true);
+  assert.equal(record.stages.fullSourceWeight.proposals.valveToFlangeRejected,92);
+  assert.equal(record.stages.fullSourceWeight.proposals.sourceFamilyConflict,0);
   assert.equal(record.stages.fullSourceWeight.proposals.valveToFlangeQualified,0);
   assert.equal(record.stages.fullSourceWeight.review.acceptedMatch1,0);
   assert.equal(record.stages.fullSourceWeight.review.acceptedFinal,0);
@@ -220,7 +255,7 @@ try{
   assert.equal(record.stages.route.xmlOnly,true);
   assert.equal(record.stages.route.blockingCount,0);
   assert.equal(record.stages.route.governedHold,undefined);
-  record.passes.push('Owner-approved current-source XML-only conversion explicitly enabled');
+  record.passes.push('test explicitly selected current-source XML-only conversion; not an Owner engineering or governed native CII approval');
 
   await page.locator('[data-action="run"]').click();
   await page.waitForFunction(()=>{
@@ -255,7 +290,7 @@ try{
   // Validate the *downloaded browser artifact*, not an in-memory string
   // or a standalone native-engine fixture.
   await mkdir('ValidationRecords',{recursive:true});
-  const ciiSyntaxPath='ValidationRecords/xml229-ef05-browser-downloaded-cii-syntax.json';
+  const ciiSyntaxPath='ValidationRecords/xml229-ef05-browser-downloaded-cii-syntax'+artifactSuffix+'.json';
   execFileSync('python3',[
     'converters/scripts/cii_syntax_check_2019.py',
     '--input',await download.path(),'--output',ciiSyntaxPath,
@@ -279,7 +314,7 @@ try{
   record.failures.push(String(error?.stack||error).slice(0,2800));
 }finally{
   await mkdir('ValidationRecords',{recursive:true});
-  await writeFile('ValidationRecords/xml229-ef05-native-output-e2e.json',JSON.stringify(record,null,2)+'\n');
+  await writeFile('ValidationRecords/xml229-ef05-native-output-e2e'+artifactSuffix+'.json',JSON.stringify(record,null,2)+'\n');
   console.log('XML229_EF05_NATIVE_E2E '+JSON.stringify(record));
   await browser?.close();
   await rm(tmp,{recursive:true,force:true});
