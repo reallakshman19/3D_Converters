@@ -1,0 +1,97 @@
+name: XML229 Post-Merge Full Regression
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'scripts/xml229-ef05-native-output-e2e.mjs'
+      - 'tests/xml-cii-229-original-weight-ui-wiring.test.mjs'
+      - '.github/workflows/xml229-postmerge-full-regression.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tabs/xml-cii-2019-standalone/**'
+      - 'docs/tabs/xml-cii-2019-standalone/**'
+      - 'converters/xml-cii2019-core/**'
+      - 'docs/Masters/**'
+      - 'tests/fixtures/xml229/**'
+      - 'scripts/xml229-ef05-native-output-e2e.mjs'
+      - 'tests/xml-cii-229-original-weight-ui-wiring.test.mjs'
+      - '.github/workflows/xml229-postmerge-full-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  engineering-source-and-review-hold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install locked historical SheetJS dependency
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: All P0-P7 public-source regression gates
+        run: |
+          node --test \
+            tests/xml229-weight-semantic-eligibility.test.mjs \
+            tests/xml229-two-click-match1-draft-confirmation.test.mjs \
+            tests/xml229-public41-weight-readonly-acceptance.test.mjs \
+            tests/xml229-owner-basis-custody-export.test.mjs \
+            tests/xml229-historical-three-master-recovery.test.mjs \
+            tests/xml229-bc4-linelist-fixture.test.mjs \
+            tests/xml229-bc4-historical-attestation.test.mjs \
+            tests/xml-cii-229-original-weight-ui-wiring.test.mjs \
+            tests/xml-cii-229-qualified-blank-bulk-confirmation.test.mjs \
+            tests/xml-cii-229-p4-weight-presentation-adapter.test.mjs \
+            tests/xml-cii-229-engineering-basis-authority.test.mjs \
+            tests/xml-cii-229-canonical-output-run-readiness.test.mjs
+      - name: Exact source/served parity for protected Weight custody controls
+        run: |
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-two-click-confirmation.mjs docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-two-click-confirmation.mjs
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml229-owner-basis-custody-export.mjs docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-owner-basis-custody-export.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs
+  original-browser-41-branch-native-output:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: engineering-source-and-review-hold
+    strategy:
+      fail-fast: false
+      matrix:
+        line_list_variant: ['legacy','bc4-json']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install actual Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve production root with real original public benchmark
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/xml229-main-e2e-http.log 2>&1 &
+      - name: Run real 41-branch XML, staged JSON, 4-master Preview, read-only Weight and CII
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          XML229_E2E_LINELIST_VARIANT: ${{ matrix.line_list_variant }}
+        run: node scripts/xml229-ef05-native-output-e2e.mjs
+      - name: Upload aggregate source-safe receipts only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml229-main-${{ matrix.line_list_variant }}-e2e
+          path: |
+            ValidationRecords/xml229-ef05-native-output-e2e*.json
+            ValidationRecords/xml229-ef05-browser-downloaded-cii-syntax*.json
+            /tmp/xml229-main-e2e-http.log
+          if-no-files-found: warn
+          retention-days: 21

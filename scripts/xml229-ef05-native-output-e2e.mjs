@@ -20,9 +20,15 @@ const lineListPath=lineListVariant==='bc4-json'
   ?'tests/fixtures/xml229/BC4.LineList.json'
   :'docs/Masters/ImportedRawLineListLL.xlsx';
 const artifactSuffix=lineListVariant==='bc4-json'?'-bc4':'';
+const LOCAL_E2E_URL='http://127.0.0.1:4173/index.html';
+const DEPLOYED_E2E_URL='https://reallakshman19.github.io/3D_Converters/index.html';
+const siteUrl=process.env.XML229_E2E_BASE_URL||LOCAL_E2E_URL;
+assert([LOCAL_E2E_URL,DEPLOYED_E2E_URL].includes(siteUrl),
+  'E2E must target only the local isolated server or official published GitHub Pages');
 
 const tmp=await mkdtemp(join(tmpdir(),'xml229-ef05-'));
 const record={schema:'XML229.EF05.NativeOutputE2E.v1',
+ siteOrigin:siteUrl===DEPLOYED_E2E_URL?'PUBLISHED_GITHUB_PAGES':'ISOLATED_LOCAL_SERVER',
  lineListVariant,
  head:process.env.EXACT_HEAD||null,source:'EF-05 public benchmark',
  passes:[],stages:{},failures:[],pageErrors:[],ok:false};
@@ -57,7 +63,7 @@ try{
   const page=await browser.newPage({acceptDownloads:true});
   page.setDefaultTimeout(60000);
   page.on('pageerror',e=>record.pageErrors.push(String(e)));
-  const resp=await page.goto('http://127.0.0.1:4173/index.html',{waitUntil:'domcontentloaded'});
+  const resp=await page.goto(siteUrl,{waitUntil:'domcontentloaded'});
   assert.equal(resp.status(),200);
   await page.locator('[data-tab="xml-cii-2019-standalone"]').click();
   await page.locator('[data-phase="source"]').click();
