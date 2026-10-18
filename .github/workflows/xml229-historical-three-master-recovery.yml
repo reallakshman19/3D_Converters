@@ -1,0 +1,42 @@
+name: XML229 Historical Three-Master Source Recovery
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'scripts/xml229-historical-three-master-recovery.mjs'
+      - 'tests/xml229-historical-three-master-recovery.test.mjs'
+      - '.github/workflows/xml229-historical-three-master-recovery.yml'
+      - 'docs/Masters/Piping class master.xlsx'
+      - 'docs/Masters/Piping_class_master.json'
+      - 'docs/Masters/PCF_MAT_MAP.TXT'
+      - 'docs/Masters/wtValveweights.json'
+permissions:
+  contents: read
+jobs:
+  replay-and-fail-closed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: Use locked production SheetJS parser dependency
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Exact original parsers, historical hashes and negative controls
+        run: node --test tests/xml229-historical-three-master-recovery.test.mjs
+      - name: Verify 3-of-4 reconstruction exits with intentional HOLD
+        run: |
+          set +e
+          node scripts/xml229-historical-three-master-recovery.mjs > "$RUNNER_TEMP/master-recovery.json"
+          status=$?
+          set -e
+          test "$status" -eq 2
+          node --input-type=module -e "import fs from 'node:fs';const p=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/master-recovery.json','utf8'));if(p.recoveredMasterCount!==3||p.lineList.status!=='UNRECOVERED'||p.fullHistoricalInputBasisVerified!==false||p.nativeCiiReleaseAuthorized!==false)process.exit(1);console.log('HISTORICAL_3_OF_4_HASHES_VERIFIED_FINAL_AND_CII_HELD');"
