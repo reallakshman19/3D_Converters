@@ -22,3 +22,19 @@ git add tests/fixtures/xml229/BC4.xlsx
 The installer checks the original SHA-256 and Git blob identity before copying and rechecks after copying. A separate Owner-downloadable drop-in archive contains this `.xlsx` file at its exact intended repository path. Do not mark fixture acceptance complete until the original binary is present and the sheet-parser test is no longer skipped.
 
 **Independent engineering / governed native CII remains HELD.**
+
+## Fail-closed hosted regression and Git binary patch
+
+The exact-source binary patch delivered alongside this fixture must be applied at the repository root **from the PR #299 branch**:
+
+```bash
+git apply --check /path/to/xml229_BC4_exact_binary_git.patch
+git apply /path/to/xml229_BC4_exact_binary_git.patch
+sha256sum tests/fixtures/xml229/BC4.xlsx
+node --test tests/xml229-bc4-linelist-fixture.test.mjs
+git add tests/fixtures/xml229/BC4.xlsx
+git commit -m "test(xml229): install original BC4 Excel fixture exact bytes"
+git push origin test/xml229-bc4-linelist-fixture-20261018
+```
+
+Expected original workbook SHA-256 is `3e3b8494f9e70bffd92f5c13492c8c0421739c29a086d41f41306f0d386f240a` (Git blob `eea68736e57bb3a25de7a4cdd094916c61b6e665`). The CI job `XML229 BC4 Original Workbook Fixture` **fails RED, rather than skipping**, if the actual XLSX is absent; pass only with the exact file committed. Uploaded file content will be visible to anyone who can view the repository. Historical kg acceptance and governed native CII stay HELD.
