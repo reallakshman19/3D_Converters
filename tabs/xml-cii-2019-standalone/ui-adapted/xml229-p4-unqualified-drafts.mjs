@@ -109,7 +109,8 @@ export async function planXml229RigidWeightDrafts(session,{
        const saved=existingDrafts.get(row.occurrenceId);
        // A human-edited kg value or Manual selection must NEVER be
        // silently bulk-approved as a different Worker-ranked proposal.
-       if(required&&(String(saved?.value)!==String(required.value)||
+       if(required&&!saved?.skippedWeight&&
+          (String(saved?.value)!==String(required.value)||
           saved?.proposalId!==required.proposalId))
          deny('SUGGESTION_MANUAL_DRAFT_CONFLICT');
        counts.alreadyDrafted++;
