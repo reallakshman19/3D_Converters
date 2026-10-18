@@ -135,6 +135,6 @@ jobs:
       - name: Real native Worker original Blob + engineering preview + GC-PW, explicit Match-1/Final, Run HOLD
         run: |
           git rev-parse HEAD
+          node tests/xml229-p4-two-click-real-worker-browser.mjs
           node tests/xml-cii-229-p4-worker-held-blob-review-browser.mjs
           node tests/xml-cii-229-p4-worker-held-weight-panel-browser.mjs
-          node tests/xml229-p4-two-click-real-worker-browser.mjs
