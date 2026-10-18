@@ -104,6 +104,7 @@ export async function planXml229RigidWeightDrafts(session,{
      }else if(row.match1View?.match1Revision!==matchRevision||
               row.finalView?.finalRevision!==finalRevision)
        deny('UNQUALIFIED_DRAFT_REVIEW_DRIFT');
+     if(required&&firstPreparedIndex===null)firstPreparedIndex=offset+index;
      if(existingDrafts.has(row.occurrenceId)){
        const saved=existingDrafts.get(row.occurrenceId);
        // A human-edited kg value or Manual selection must NEVER be

@@ -211,11 +211,9 @@ test('adapter uses Worker readPage/review and keeps native Run HOLD and full sou
   const worker=await readFile(new URL('../tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs',import.meta.url),'utf8');
   assert.match(worker,/matchesXml229WeightReviewFilter\(mode,/);
   assert.match(panel,/planQualifiedBlankFill/);
-  assert.match(panel,/commitQualifiedBlankFill/);
+  assert.match(panel,/commitXml229TwoClickMatch1/);
  assert.match(panel,/(?:active|session)\.readPage\(\{offset,limit:25\}\)/,
    'Worker paging must stay source-bound; captured session prevents late cancelled responses from painting');
- assert.match(panel,/planQualifiedBlankFill/);
- assert.match(panel,/commitQualifiedBlankFill/);
  assert.match(panel,/await active\.review\(\{view,choice\}\)/);
  assert.match(panel,/choiceForXml229WeightRow/);
  assert.match(panel,/getXml229CurrentWorkerHeldReview/);
@@ -381,7 +379,8 @@ test('two click Match-1 UI retains explicit Worker planId commitment',async()=>{
  const worker=await readFile(new URL('../tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs',import.meta.url),'utf8');
  assert.match(panel,/minScorePercent=80/);
  assert.match(panel,/session\.planQualifiedBlankFill\(\{minScorePercent\}\)/);
- assert.match(panel,/await active\.commitQualifiedBlankFill\(\{planId:pendingBulk\.planId\}\)/);
+ const guard=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-two-click-confirmation.mjs',import.meta.url),'utf8');
+ assert.match(guard,/session\.commitQualifiedBlankFill\(\{planId:plan\.planId\}\)/);
  assert.match(worker,/candidateEligibility:/);
  assert.match(worker,/xml229WeightReviewEligible\(meta\)/);
  assert.match(worker,/xml229ProposalScorePercent\(selected\)/);

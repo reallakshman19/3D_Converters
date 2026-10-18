@@ -19,6 +19,7 @@ import {renderXml229WeightReviewPage,choiceForXml229WeightRow,formatXml229Decisi
  from './xml229-p4-weight-review-presentation.mjs';
 import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs}
  from './xml229-p4-unqualified-drafts.mjs';
+import {disarmXml229EditedDraft,commitXml229TwoClickMatch1} from './xml229-p4-two-click-confirmation.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {prepareXml229G3G4LocalAggregateExport}
  from './xml229-g3g4-local-aggregate-export.mjs';
@@ -259,21 +260,15 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const key=stateRef?.modeABaseRef||stateRef;
  let active=getXml229CurrentWorkerHeldReview(stateRef),offset=0,busy=false;
  let mode='rigid',query='',pendingBulk=null,searchTimer=null,renderSequence=0,minScorePercent=80;
- // Drafts are local to exactly one source-attested Worker, never the decision ledger.
  let draftOwner=active,draftValues=new Map();
  const clearDrafts=()=>{draftOwner=active;draftValues.clear();bulkDetail.hidden=true;bulkDetail.textContent='';};
  const captureDraft=tr=>{
    if(!tr||!active||draftOwner!==active||live()!==active)return;
-   const row=root.__p4VisibleRows?.[Number(tr.dataset.p4Row)];
-   if(!row||row.occurrenceId!==tr.dataset.p4Occurrence)return;
-   draftValues.set(row.occurrenceId,{
-     value:tr.querySelector('[data-p4-proposal]')?.value??'',
-     proposalId:tr.querySelector('[data-p4-candidate]')?.value??'',
-     reason:tr.querySelector('[data-p4-reason]')?.value??'',
-     autoUnqualified:(row.proposals||[]).some(p=>
-       p.proposalId===tr.querySelector('[data-p4-candidate]')?.value&&p.qualified===false),
-     autoFilled:false,
-   });
+   if(disarmXml229EditedDraft(tr,root.__p4VisibleRows,draftValues,
+     pendingBulk,table,bulkDetail)){
+     pendingBulk=null;
+     say('Draft edited after planning. Apply all suggestions again before Match-1.',true);
+   }
  };
  const say=(message,bad=false)=>{
    status.textContent=message;status.style.color=bad?'#f87171':'#10b981';
@@ -536,8 +531,13 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      }
      if(commitButton){
        if(!pendingBulk?.planId)err('BULK_PLAN_REQUIRED','First review qualified blank-only suggestions');
-       const result=await active.commitQualifiedBlankFill({planId:pendingBulk.planId});
-       pendingBulk=null;bulkDetail.hidden=true;bulkDetail.textContent='';
+       const session=active,plan=pendingBulk;
+       pendingBulk=null;
+       const result=await commitXml229TwoClickMatch1({
+         session,plan,drafts:draftValues,table,rows:root.__p4VisibleRows||[],
+         isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
+       });
+       bulkDetail.hidden=true;bulkDetail.textContent='';
        offset=0;await render();
        say('Apply all Match-1 accepted '+result.acceptedCount+' qualified source-bound decision(s). Final and native CII release remain independent.');
        return;

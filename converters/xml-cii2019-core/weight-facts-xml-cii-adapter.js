@@ -2,6 +2,7 @@
 // this adapter without changing the portable ledger or the existing ranking algorithm.
 import { rankXmlCiiWeightCandidates } from './weight-valve-hints.js';
 import { evaluateCandidateEligibility } from './weight-family-eligibility.js';
+import {decodePhysicalOccurrenceId} from '../../contracts/gc-pw-v1/occurrence-bridge.mjs';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from './flange-weight-fallback.js';
 import { WEIGHT_SCHEMA } from './weight-facts-review-service.js';
 const ID = 'xml-cii/2019';
@@ -56,6 +57,27 @@ function fromFacts(records) {
   }
   return out;
 }
+/**
+ * Canonical P4 facts deliberately contain only seven fields. The independently
+ * attested original component signature carries NodeName within occurrenceId.
+ * Do NOT infer a source family from the candidate or derived master DTXR.
+ */
+function sourceFamilyContext(records){
+ const source=fromFacts(records),id=records[0]?.occurrenceId;
+ if(typeof id!=='string'||!id.startsWith('['))return source; // Legacy read-only facts
+ const original=decodePhysicalOccurrenceId(id);
+ let signature;
+ try{signature=JSON.parse(original.componentSignature);}catch{throw new Error('SOURCE_FAMILY_SIGNATURE_INVALID');}
+ if(!Array.isArray(signature)||signature.length!==4||
+    signature.some(x=>typeof x!=='string'))
+   throw new Error('SOURCE_FAMILY_SIGNATURE_INVALID');
+ const [componentType,componentRefNo,,nodeName]=signature;
+ if(source.componentType&&source.componentType!==componentType||
+    source.componentRefNo&&source.componentRefNo!==componentRefNo||
+    source.nodeName&&source.nodeName!==nodeName)
+   throw new Error('SOURCE_FAMILY_SIGNATURE_FACT_DRIFT');
+ return {...source,componentType,nodeName};
+}
 function candidateSummary(c, masterRowIndex = -1) {
   return {
     type: toText(c.type || c.valveType), typeDesc: toText(c.typeDesc),
@@ -109,7 +131,7 @@ export function createXmlCiiFactWeightScorer(config, scoringRevision = 'xml-cii-
     const identity = records[0];
     if (!identity || basis.domainId !== ID || identity.domainId !== ID) throw new Error('XML-CII scorer requires matching FactRecord domain');
     const ranking = rankedFromFacts(records, pinnedConfig);
-    const source = fromFacts(records);
+    const source = sourceFamilyContext(records);
     return ranking.candidates.slice(0, 5).flatMap((candidate, index) => {
       const value = num(candidate.selectedWeight ?? candidate.suggestedWeight ?? candidate.weight);
       if (value === null || value <= 0 || candidate.zeroFallback) return [];

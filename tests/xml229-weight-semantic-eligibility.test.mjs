@@ -136,6 +136,31 @@ test('P0 preserve distinct source/master evidence in source-family contradiction
   assert.equal(m.family,'FLANGE');
 });
 
+test('P0/P1 canonical seven-field physical facts recover original NodeName without new facts',()=>{
+ const b=basis(),ref='test-ref',signature=JSON.stringify(['RIGID',ref,'2','88-VGT-25202']);
+ const occurrenceId=JSON.stringify([sourceId,0,0,signature]);
+ const base=legacyXmlCiiWeightFacts([{key:'B::-1',branchOccurrenceIndex:0,nodeOrdinal:0,
+   boreMm:100,rating:'300',lengthMm:86,nodeName:'88-VGT-25202',
+   componentType:'RIGID',componentRefNo:ref,originalWeight:null}],b,sourceId);
+ const wanted=new Set(['bore.mm','rating','length.mm','mass.kg','component.type','component.ref']);
+ const seven=base.filter(f=>wanted.has(f.fieldId)).map(f=>({
+   ...f,occurrenceId,fieldId:f.fieldId,
+ }));
+ seven.push({...seven[0],fieldId:'source.occurrence',value:true,unit:null,authority:'source'});
+ assert.equal(seven.length,7);
+ assert.equal(seven.some(f=>f.fieldId==='node.name'),false);
+ const scorer=createXmlCiiFactWeightScorer({weight:{masterRows:[
+   row('Gate Valve'),row('Weldneck Flange',{weight:50}),
+ ]}});
+ const proposals=scorer(seven,b);
+ assert.equal(proposals[0].qualified,true,
+   'verified canonical original VGT must be available to family rule');
+ assert.equal(proposals[0].extensions.familyEligibility.source.subtype,'GATE');
+ assert.equal(proposals[1].qualified,false);
+ assert(proposals[1].eligibilityReasons.includes('FAMILY_MISMATCH'));
+ const drift=seven.map(f=>f.fieldId==='component.type'?{...f,value:'FLAN'}:f);
+ assert.throws(()=>scorer(drift,b),/SOURCE_FAMILY_SIGNATURE_FACT_DRIFT/);
+});
 test('P0 historical incompatible Match-1 can be restored without promoting it to qualified or Final',async()=>{
  const b=basis(),f=facts(b),scorer=createXmlCiiFactWeightScorer({
    weight:{masterRows:[row('Weldneck Flange')]},
