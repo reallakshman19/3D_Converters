@@ -130,6 +130,28 @@ try{
   assert(record.stages.weight.visibleRows>0);
   record.passes.push('actual Worker-backed Weight Match opened; no accepts added');
 
+  // Full public 41-branch source / staged JSON / four-master GC-PW precheck:
+  // all original physicals (including outside the focused Weight tab),
+  // seven canonical facts per owner, all proposals and semantic family evidence.
+  // No original XML, NodeName, occurrence IDs or master rows are exported.
+  // Production panel owns its Worker: use the existing DOM's strictly
+  // aggregate-only download instead of exporting private session handles.
+  const [safetyDownload]=await Promise.all([
+    page.waitForEvent('download',{timeout:240000}),
+    page.locator('[data-p4-full-source-safety]').click(),
+  ]);
+  assert.equal(safetyDownload.suggestedFilename(),
+    'xml229-full-source-weight-safety-precheck.json');
+  record.stages.fullSourceWeight=JSON.parse(
+    await readFile(await safetyDownload.path(),'utf8'));
+  assert.equal(record.stages.fullSourceWeight.readOnly,true);
+  assert.equal(record.stages.fullSourceWeight.population.sevenFactsPerPhysical,true);
+  assert.equal(record.stages.fullSourceWeight.proposals.valveToFlangeQualified,0);
+  assert.equal(record.stages.fullSourceWeight.review.acceptedMatch1,0);
+  assert.equal(record.stages.fullSourceWeight.review.acceptedFinal,0);
+  assert.equal(record.stages.fullSourceWeight.nativeCiiReleaseAuthorized,false);
+  record.passes.push('public 41-branch full physical/fact/candidate family audit read-only; zero Final/native authority');
+
   await page.locator('[data-phase="run"]').click();
   const chooser=page.locator('[data-action="xml229-output-participation"]');
   await chooser.waitFor({timeout:60000});

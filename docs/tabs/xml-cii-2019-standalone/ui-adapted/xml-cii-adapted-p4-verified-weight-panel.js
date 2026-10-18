@@ -3,8 +3,7 @@
  * Does not replace legacy Weight(kg), native CII Run, or persist issue.key
  * weights. Large original staged JSON remains INSIDE its GC-PW Worker.
  */
-import {openXml229WorkerHeldOriginalWeightReview}
- from '../integration/xml229-original-blob-gcpw-client.mjs';
+import {openXml229WorkerHeldOriginalWeightReview} from '../integration/xml229-original-blob-gcpw-client.mjs';
 import {resolveXml229CurrentPreviewBlob}
  from './xml-cii-adapted-lfj-o1-intake.js';
 import {xmlCiiEnrichedConfigFromState}
@@ -21,8 +20,8 @@ import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Matc
  from './xml229-p4-unqualified-drafts.mjs';
 import {disarmXml229EditedDraft,commitXml229TwoClickMatch1} from './xml229-p4-two-click-confirmation.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
-import {prepareXml229G3G4LocalAggregateExport}
- from './xml229-g3g4-local-aggregate-export.mjs';
+import {prepareXml229G3G4LocalAggregateExport} from './xml229-g3g4-local-aggregate-export.mjs';
+import {downloadXml229FullSourceSafety} from './xml229-full-source-safety-download.mjs';
 import {beginXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace}
  from './xml229-flow-trace-registry.mjs';
 import {
@@ -241,6 +240,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
   <div style="margin:10px 0"><button type="button" data-p4-export-candidate-readiness
    class="model-converters-download-btn">Download candidate coverage + readiness (private)</button>
    <small style="display:block;color:#94a3b8">Same verified Worker, read-only aggregate counts; keep file private. Does not authorize native CII.</small></div>
+  <div style="margin:10px 0"><button type="button" data-p4-full-source-safety class="model-converters-download-btn">Download full-source Weight safety precheck (private)</button><small style="display:block;color:#94a3b8">Requires empty review ledger; no source rows, approval or native CII release.</small></div>
   <div style="margin:10px 0"><button type="button" data-p4-audit-decisions
    class="model-converters-download-btn">Download verified decision provenance JSON</button>
    <small style="display:block;color:#94a3b8">Read-only source-bound Match-1/Final audit. Bulk command IDs alone do not prove an earlier confirmation click. No native CII release.</small></div>
@@ -388,13 +388,13 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const commitButton=event.target.closest?.('[data-p4-bulk-confirm]');
    const saveButton=event.target.closest?.('[data-p4-save-review]');
    const restoreButton=event.target.closest?.('[data-p4-choose-review]');
-   const auditButton=event.target.closest?.('[data-p4-audit-decisions]');
+   const safetyButton=event.target.closest?.('[data-p4-full-source-safety]'),auditButton=event.target.closest?.('[data-p4-audit-decisions]');
    const coverageButton=event.target.closest?.('[data-p4-export-candidate-readiness]');
    const traceButton=event.target.closest?.('[data-p4-export-flow-trace]');
    const candidateChip=event.target.closest?.('[data-p4-pick]');
    const isMatch=event.target.closest?.('[data-p4-accept-match1]');
    const isFinal=event.target.closest?.('[data-p4-accept-final]');
-   if(!prev&&!next&&!scope&&!planButton&&!draftFillButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal&&!auditButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton)return;
+   if(!prev&&!next&&!scope&&!planButton&&!draftFillButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal&&!auditButton&&!safetyButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton)return;
    busy=true;
    try{
      if(restoreButton){
@@ -449,6 +449,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
          ' with qualified proposals; native CII remains HELD.');
        return;
      }
+     if(safetyButton){await downloadXml229FullSourceSafety({session:active,isCurrent:()=>live()===active&&root.isConnected!==false,say});return;}
      if(auditButton){
        const live=getXml229CurrentWorkerHeldReview(stateRef);
        if(live!==active)err('PROVENANCE_SESSION_STALE',
@@ -612,8 +613,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        String(error?.code||'VERIFICATION_UNAVAILABLE')+']',true);
    });
  }
- // Removing the rendered panel is not authority to destroy its Worker.
- // Explicit cancellation/rebuild remains a deliberate ownership transition.
+ // Removing the panel is not Worker disposal; explicit revocation is separate.
  return {dispose:()=>{if(searchTimer!==null)clearTimeout(searchTimer);},
    cancel:()=>revokeXml229VerifiedEngineeringBasis(key,{expectedSession:active})};
 }
