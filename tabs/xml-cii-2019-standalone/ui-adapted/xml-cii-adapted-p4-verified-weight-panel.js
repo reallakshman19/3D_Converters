@@ -3,8 +3,7 @@
  * Does not replace legacy Weight(kg), native CII Run, or persist issue.key
  * weights. Large original staged JSON remains INSIDE its GC-PW Worker.
  */
-import {openXml229WorkerHeldOriginalWeightReview}
- from '../integration/xml229-original-blob-gcpw-client.mjs';
+import {openXml229WorkerHeldOriginalWeightReview} from '../integration/xml229-original-blob-gcpw-client.mjs';
 import {resolveXml229CurrentPreviewBlob}
  from './xml-cii-adapted-lfj-o1-intake.js';
 import {xmlCiiEnrichedConfigFromState}
@@ -21,8 +20,7 @@ import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Matc
  from './xml229-p4-unqualified-drafts.mjs';
 import {disarmXml229EditedDraft,commitXml229TwoClickMatch1} from './xml229-p4-two-click-confirmation.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
-import {prepareXml229G3G4LocalAggregateExport}
- from './xml229-g3g4-local-aggregate-export.mjs';
+import {prepareXml229G3G4LocalAggregateExport} from './xml229-g3g4-local-aggregate-export.mjs';
 import {downloadXml229FullSourceSafety} from './xml229-full-source-safety-download.mjs';
 import {beginXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace}
  from './xml229-flow-trace-registry.mjs';
@@ -390,8 +388,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const commitButton=event.target.closest?.('[data-p4-bulk-confirm]');
    const saveButton=event.target.closest?.('[data-p4-save-review]');
    const restoreButton=event.target.closest?.('[data-p4-choose-review]');
-   const safetyButton=event.target.closest?.('[data-p4-full-source-safety]');
-   const auditButton=event.target.closest?.('[data-p4-audit-decisions]');
+   const safetyButton=event.target.closest?.('[data-p4-full-source-safety]'),auditButton=event.target.closest?.('[data-p4-audit-decisions]');
    const coverageButton=event.target.closest?.('[data-p4-export-candidate-readiness]');
    const traceButton=event.target.closest?.('[data-p4-export-flow-trace]');
    const candidateChip=event.target.closest?.('[data-p4-pick]');
@@ -452,10 +449,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
          ' with qualified proposals; native CII remains HELD.');
        return;
      }
-     if(safetyButton){
-       await downloadXml229FullSourceSafety({session:active,
-         isCurrent:()=>live()===active&&root.isConnected!==false,say});return;
-     }
+     if(safetyButton){await downloadXml229FullSourceSafety({session:active,isCurrent:()=>live()===active&&root.isConnected!==false,say});return;}
      if(auditButton){
        const live=getXml229CurrentWorkerHeldReview(stateRef);
        if(live!==active)err('PROVENANCE_SESSION_STALE',
@@ -619,8 +613,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        String(error?.code||'VERIFICATION_UNAVAILABLE')+']',true);
    });
  }
- // Removing the rendered panel is not authority to destroy its Worker.
- // Explicit cancellation/rebuild remains a deliberate ownership transition.
+ // Removing the panel is not Worker disposal; explicit revocation is separate.
  return {dispose:()=>{if(searchTimer!==null)clearTimeout(searchTimer);},
    cancel:()=>revokeXml229VerifiedEngineeringBasis(key,{expectedSession:active})};
 }
