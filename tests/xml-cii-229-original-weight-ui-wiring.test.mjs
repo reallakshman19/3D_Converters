@@ -57,7 +57,7 @@ function fixture(){
   session:{basis:{basisId},review},sourceId};
 }
 
-test('old 13-column UI is fed by exact original physical census, not legacy node keys',()=>{
+test('current 14-column UI is fed by exact original physical census, not legacy node keys',()=>{
  const args=fixture();
  const projection=buildXml229VerifiedWeightRowProjection(args);
  assert.equal(projection.count,2);
@@ -84,7 +84,10 @@ test('old 13-column UI is fed by exact original physical census, not legacy node
  assert.deepEqual(ps.get(b.occurrenceId),[]);
  const html=renderXml229WeightReviewPage({totalCount:2,populationCount:2,
   rows:[{...a,sourceKg:null,match1Kg:null,finalKg:null,proposals:ps.get(a.occurrenceId)}]},0);
- assert.equal((html.match(/<th style=/g)||[]).length,13);
+ assert.equal((html.match(/<th style=/g)||[]).length,14);
+  assert.match(html,/Nearest Suggestions.*Applied Weight/s);
+  assert.match(html,/data-p4-applied-weight/);
+  assert.doesNotMatch(html,/data-p4-bulk-confirm|data-p4-accept-final|data-p4-accept-match1/);
  for(const field of ['Line Key','ComponentRefNo_Endpoint','DTXR','Valve Hint','Nearest Suggestions'])assert.match(html,new RegExp(field));
  assert.match(html,/CONTROL VALVE/);
  assert.match(html,/96%/);
@@ -124,7 +127,9 @@ test('production integration uses existing GC-PW bulk planner and not legacy Wei
  assert.match(worker,/buildXml229VerifiedWeightRowProjection/);
  assert.match(panel,/planQualifiedBlankFill/);
  const twoClick=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-two-click-confirmation.mjs',import.meta.url),'utf8');
- assert.ok(panel.includes('commitXml229TwoClickMatch1({'));
+ assert.ok(!panel.includes('commitXml229TwoClickMatch1({'),
+   'UI removed hidden approval-click handlers; protected Worker API still exists');
+  assert.match(panel,/planXml229SkipWeightDrafts\(/);
  assert.ok(twoClick.includes('session.commitQualifiedBlankFill({planId:plan.planId})'));
  assert.ok(twoClick.includes('if(confirm)confirm.disabled=true'));
  assert.doesNotMatch(panel,/bindXmlCiiWeightMatchPhase/);
