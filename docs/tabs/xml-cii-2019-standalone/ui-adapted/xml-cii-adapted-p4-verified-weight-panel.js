@@ -10,9 +10,9 @@ import {materializeXmlCiiDatasetBackedConfig} from '../xml-cii-dataset-backed-co
 import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-custody.mjs';
 import {digestCanonical,canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-scope.js';
-import {renderXml229WeightReviewPage,choiceForXml229WeightRow,formatXml229DecisionAuditSummary} from './xml229-p4-weight-review-presentation.mjs';
+import {renderXml229WeightReviewPage,formatXml229DecisionAuditSummary} from './xml229-p4-weight-review-presentation.mjs';
 import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs} from './xml229-p4-unqualified-drafts.mjs';
-import {disarmXml229EditedDraft,commitXml229TwoClickMatch1} from './xml229-p4-two-click-confirmation.mjs';
+import {disarmXml229EditedDraft} from './xml229-p4-two-click-confirmation.mjs';
 import {planXml229SkipWeightDrafts} from './xml229-p4-skip-weight-drafts.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {prepareXml229G3G4LocalAggregateExport} from './xml229-g3g4-local-aggregate-export.mjs';
@@ -380,17 +380,14 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const planButton=event.target.closest?.('[data-p4-bulk-plan]');
    const draftFillButton=event.target.closest?.('[data-p4-draft-unqualified]');
    const skipButton=event.target.closest?.('[data-p4-skip-weight]');
-   const commitButton=event.target.closest?.('[data-p4-bulk-confirm]');
-   const saveButton=event.target.closest?.('[data-p4-save-review]');
+      const saveButton=event.target.closest?.('[data-p4-save-review]');
    const restoreButton=event.target.closest?.('[data-p4-choose-review]');
    const safetyButton=event.target.closest?.('[data-p4-full-source-safety]'),auditButton=event.target.closest?.('[data-p4-audit-decisions]');
    const custodyButton=event.target.closest?.('[data-p4-export-effective-basis]');
    const coverageButton=event.target.closest?.('[data-p4-export-candidate-readiness]');
    const traceButton=event.target.closest?.('[data-p4-export-flow-trace]');
    const candidateChip=event.target.closest?.('[data-p4-pick]');
-   const isMatch=event.target.closest?.('[data-p4-accept-match1]');
-   const isFinal=event.target.closest?.('[data-p4-accept-final]');
-   if(!prev&&!next&&!scope&&!planButton&&!skipButton&&!draftFillButton&&!commitButton&&!candidateChip&&!isMatch&&!isFinal&&!auditButton&&!safetyButton&&!custodyButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton)return;
+      if(!prev&&!next&&!scope&&!planButton&&!skipButton&&!draftFillButton&&!candidateChip&&!auditButton&&!safetyButton&&!custodyButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton)return;
    busy=true;
    try{
      if(restoreButton){
@@ -551,19 +548,6 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
          ' already had local drafts. Zero decisions accepted. Drafts are session-local.');
        return;
      }
-     if(commitButton){
-       if(!pendingBulk?.planId)err('BULK_PLAN_REQUIRED','First review qualified blank-only suggestions');
-       const session=active,plan=pendingBulk;
-       pendingBulk=null;
-       const result=await commitXml229TwoClickMatch1({
-         session,plan,drafts:draftValues,table,rows:root.__p4VisibleRows||[],
-         isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
-       });
-       bulkDetail.hidden=true;bulkDetail.textContent='';
-       offset=0;await render();
-       say('Apply all Match-1 accepted '+result.acceptedCount+' qualified source-bound decision(s). Final and native CII release remain independent.');
-       return;
-     }
      if(prev||next){
        offset+=next?25:-25;pendingBulk=null;await render();return;
      }
@@ -584,17 +568,6 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        say('Source candidate selected as DRAFT only; explicit engineering acceptance is required.');
        return;
      }
-     const reason=String(tr.querySelector('[data-p4-reason]')?.value||'').trim();
-     const {view,choice}=choiceForXml229WeightRow(row,{
-       stage:isFinal?'final':'match1',proposalId:selection.value,
-       value:draft.value,reason,
-     });
-     await active.review({view,choice});
-     draftValues.delete(row.occurrenceId);bulkDetail.hidden=true;
-     pendingBulk=null;
-     await render();
-     say(isFinal?'Final Match-2 explicitly accepted for original physical source':
-       'Match-1 explicitly accepted; Final remains a separate review.');
    }catch(error){
      say('Review not accepted: '+String(error?.message||error)+
        (error?.code?' ['+error.code+']':''),true);
