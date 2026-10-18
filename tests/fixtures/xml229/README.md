@@ -1,40 +1,47 @@
-# BC4.xlsx source-bound Line List fixture
+# BC4 — Original Excel LineList as a JSON fixture
 
-The Owner-supplied workbook was inspected privately and its original file bytes have been pinned by [BC4.fixture.json](./BC4.fixture.json).
+The Owner provided `BC4.xlsx` (241,036 bytes, original SHA-256
+`3e3b8494f9e70bffd92f5c13492c8c0421739c29a086d41f41306f0d386f240a`).
 
-- Original uploaded file: `BC4.xlsx`, 241,036 bytes, SHA-256 `3e3b8494f9e70bffd92f5c13492c8c0421739c29a086d41f41306f0d386f240a`
-- Worksheet: `LineList`, with 385 nonempty rows after its first-row header (3 inner header-band rows and 382 line entries)
-- Original historic normalized Line List SHA-256 **NOT proven**; source row count alone is insufficient
-- Original historic mapping SHA-256 **NOT proven**; automatic field map is not necessarily the applied Owner map
-- No historical reviews, Match-1/Final approvals or native CII authority are modified by this fixture
+Its `LineList` sheet was converted read-only into
+[`BC4.LineList.json`](./BC4.LineList.json) and **committed as UTF-8 JSON**.
+The conversion preserves every one of the 385 nonempty rows following the
+workbook's first numerical header row, including 3 nested header rows and
+382 engineering line entries. All 41 source columns are retained per row as
+strings, including original blank values.
 
-## Install actual binary
+## Load using the production application
 
-The GitHub code connector does not accept raw XLSX attachment bytes in a file-edit action. The matching original workbook must be copied byte-for-byte to this directory, or installed from a local file using:
+The application's `master-dataset-parser.parseTextSource` imports JSON
+objects with a `rows` array. Select `BC4.LineList.json` when importing
+the **Line List** master in Source & Master; use your intended mapping and
+explicitly apply it. This file is a source fixture, **not** a saved applied
+master configuration, and it does not reconstruct the historic dataset ID.
 
-```bash
-node scripts/xml229-install-bc4-fixture.mjs /path/to/BC4.xlsx
-npm ci --ignore-scripts
-node --test tests/xml229-bc4-linelist-fixture.test.mjs
-git add tests/fixtures/xml229/BC4.xlsx
-```
-
-The installer checks the original SHA-256 and Git blob identity before copying and rechecks after copying. A separate Owner-downloadable drop-in archive contains this `.xlsx` file at its exact intended repository path. Do not mark fixture acceptance complete until the original binary is present and the sheet-parser test is no longer skipped.
-
-**Independent engineering / governed native CII remains HELD.**
-
-## Fail-closed hosted regression and Git binary patch
-
-The exact-source binary patch delivered alongside this fixture must be applied at the repository root **from the PR #299 branch**:
+Run a source-contract regression without any Excel binary:
 
 ```bash
-git apply --check /path/to/xml229_BC4_exact_binary_git.patch
-git apply /path/to/xml229_BC4_exact_binary_git.patch
-sha256sum tests/fixtures/xml229/BC4.xlsx
 node --test tests/xml229-bc4-linelist-fixture.test.mjs
-git add tests/fixtures/xml229/BC4.xlsx
-git commit -m "test(xml229): install original BC4 Excel fixture exact bytes"
-git push origin test/xml229-bc4-linelist-fixture-20261018
 ```
 
-Expected original workbook SHA-256 is `3e3b8494f9e70bffd92f5c13492c8c0421739c29a086d41f41306f0d386f240a` (Git blob `eea68736e57bb3a25de7a4cdd094916c61b6e665`). The CI job `XML229 BC4 Original Workbook Fixture` **fails RED, rather than skipping**, if the actual XLSX is absent; pass only with the exact file committed. Uploaded file content will be visible to anyone who can view the repository. Historical kg acceptance and governed native CII stay HELD.
+GitHub Actions tests Node.js 22 and 24 against this exact committed JSON,
+using the real `parseTextSource` and `prepareNormalizedDataset` functions.
+The source bytes are pinned by `BC4.fixture.json`.
+
+### Conversion custody
+
+- Original workbook SHA-256: `3e3b8494f9e70bffd92f5c13492c8c0421739c29a086d41f41306f0d386f240a`
+- JSON size: **199,182 bytes**
+- JSON SHA-256: `53b322405795dc7a74c1154043c31bf9c8b2a1763f207cabf0c7f1888fd9c1bb`
+- JSON Git blob SHA-1: `6b84b5e350e76de05db0c4a858da39114cddbc70`
+- Production auto-mapped 385-row digest: `65548a7e176534c457b7be41b50b64b22a54f869a5606ffc2ddff856d67c7f53`
+- Production auto-map digest: `d85c6c7fa1e59f649451f01141b79e39ce693646b429846922ee3e6e49701717`
+
+**Historical master acceptance remains blocked:** the saved Owner session has
+different applied normalized-row and field-map SHA-256 values. Matching a row
+count does not authorize substitution or approvals. The original workbook is
+not required to execute this committed JSON fixture. Optional byte-preserving
+XLSX installer remains available for archival comparisons only.
+
+**Do not alter historical Match-1, approve Final or release governed native CII
+based on this fixture.**
