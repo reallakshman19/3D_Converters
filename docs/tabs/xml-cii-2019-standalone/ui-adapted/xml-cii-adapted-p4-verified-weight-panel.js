@@ -260,7 +260,6 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const key=stateRef?.modeABaseRef||stateRef;
  let active=getXml229CurrentWorkerHeldReview(stateRef),offset=0,busy=false;
  let mode='rigid',query='',pendingBulk=null,searchTimer=null,renderSequence=0,minScorePercent=80;
- // Drafts are local to exactly one source-attested Worker, never the decision ledger.
  let draftOwner=active,draftValues=new Map();
  const clearDrafts=()=>{draftOwner=active;draftValues.clear();bulkDetail.hidden=true;bulkDetail.textContent='';};
  const captureDraft=tr=>{
