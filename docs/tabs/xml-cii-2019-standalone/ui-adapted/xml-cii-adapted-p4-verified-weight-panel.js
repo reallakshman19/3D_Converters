@@ -18,10 +18,9 @@ import {prepareXml229G3G4LocalAggregateExport} from './xml229-g3g4-local-aggrega
 import {downloadXml229FullSourceSafety} from './xml229-full-source-safety-download.mjs';
 import {downloadXml229OwnerBasisCustody} from './xml229-owner-basis-custody-download.mjs';
 import {beginXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace} from './xml229-flow-trace-registry.mjs';
-import {
- getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,
- publishXml229VerifiedEngineeringBuild,revokeXml229VerifiedEngineeringBasis,
-} from '../integration/xml229-engineering-basis-authority.mjs';
+import {getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,
+ publishXml229VerifiedEngineeringBuild,revokeXml229VerifiedEngineeringBasis}
+ from '../integration/xml229-engineering-basis-authority.mjs';
 const err=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
 const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
  .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
