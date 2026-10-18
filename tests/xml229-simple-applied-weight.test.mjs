@@ -72,7 +72,7 @@ test('served Weight/Run assets are byte-identical, and current-source hold is ex
  }
  const run=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',import.meta.url),'utf8');
  assert.match(run,/note\.dataset\.xml229CurrentSourceHold='true'/);
- assert.match(run,/NOT because a previous XML error was reused/);
+ assert.match(run,/If that JSON belonged to a different XML/);
  assert.match(run,/XML-only test conversion/);
  assert.match(run,/sourceBytes/);
 });
