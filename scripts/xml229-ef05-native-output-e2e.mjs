@@ -130,6 +130,30 @@ try{
   assert(record.stages.weight.visibleRows>0);
   record.passes.push('actual Worker-backed Weight Match opened; no accepts added');
 
+  // Full public 41-branch source / staged JSON / four-master GC-PW precheck:
+  // all original physicals (including outside the focused Weight tab),
+  // seven canonical facts per owner, all proposals and semantic family evidence.
+  // No original XML, NodeName, occurrence IDs or master rows are exported.
+  record.stages.fullSourceWeight=await page.evaluate(async()=>{
+    const {getXml229CurrentWorkerHeldReview}=await import(
+      '/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+    const {collectXml229ReadOnlyWeightAcceptance}=await import(
+      '/scripts/xml229-public41-weight-readonly-acceptance.mjs');
+    const state=(await import(
+      '/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js'))
+      .createXmlCiiAdaptedWorkflowState();
+    const session=getXml229CurrentWorkerHeldReview(state);
+    if(!session)throw Error('PUBLIC41_LIVE_WORKER_REQUIRED');
+    return collectXml229ReadOnlyWeightAcceptance(session);
+  });
+  assert.equal(record.stages.fullSourceWeight.readOnly,true);
+  assert.equal(record.stages.fullSourceWeight.population.sevenFactsPerPhysical,true);
+  assert.equal(record.stages.fullSourceWeight.proposals.valveToFlangeQualified,0);
+  assert.equal(record.stages.fullSourceWeight.review.acceptedMatch1,0);
+  assert.equal(record.stages.fullSourceWeight.review.acceptedFinal,0);
+  assert.equal(record.stages.fullSourceWeight.nativeCiiReleaseAuthorized,false);
+  record.passes.push('public 41-branch full physical/fact/candidate family audit read-only; zero Final/native authority');
+
   await page.locator('[data-phase="run"]').click();
   const chooser=page.locator('[data-action="xml229-output-participation"]');
   await chooser.waitFor({timeout:60000});
