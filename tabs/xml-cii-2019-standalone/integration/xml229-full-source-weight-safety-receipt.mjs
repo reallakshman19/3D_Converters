@@ -29,8 +29,8 @@ function attestRead(readiness,coverage,receipt){
     !safeInt(coverage.proposalCount))
    error('PUBLIC41_WORKER_CUSTODY_OR_FACT_DRIFT');
  if(!reviewCounts(readiness.counts)||readiness.counts.match1!==0||
-    readiness.counts.final!==0||readiness.counts.source!==0||
-    readiness.counts.unresolved!==readiness.verifiedPhysicalCount||
+    readiness.counts.final!==0||
+    readiness.counts.source+readiness.counts.unresolved!==readiness.verifiedPhysicalCount||
     coverage.counts?.acceptedMatch1Count!==0||
     coverage.counts?.acceptedFinalCount!==0||
     coverage.reviewDecisionsAuthorized!==false||
@@ -138,8 +138,8 @@ export async function collectXml229ReadOnlyWeightAcceptance(session,{
     sourceFamilyConflict:counts.familyConflictProposals,
     valveToFlangeRejected:counts.valveToFlangeRejected,
     valveToFlangeQualified:0},
-  review:{source:0,acceptedMatch1:0,acceptedFinal:0,
-    unresolved:counts.physical,unchanged:true},
+  review:{source:before.counts.source,acceptedMatch1:0,acceptedFinal:0,
+    unresolved:before.counts.unresolved,unchanged:true},
   ownerEngineeringAcceptance:false,
   historical125DecisionVerification:false,
   nativeCiiReleaseAuthorized:false,readOnly:true,
