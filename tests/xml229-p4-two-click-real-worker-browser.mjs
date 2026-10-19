@@ -114,7 +114,12 @@ try{
  assert.equal(eligible.length,1,'Expected exact source family-qualified gate candidate: '+JSON.stringify(before));
  assert.equal(await page.locator('[data-p4-applied-weight]').count(),1);
  assert.equal(await page.locator('[data-p4-skip-weight]').count(),1);
- assert.equal(await page.locator('[data-p4-bulk-confirm],[data-p4-candidate],[data-p4-reason],[data-p4-accept-match1],[data-p4-accept-final]').count(),0);
+ assert.equal(await page.locator('[data-p4-bulk-confirm],[data-p4-candidate],[data-p4-accept-match1],[data-p4-accept-final]').count(),0);
+ assert.equal(await page.locator('[data-p4-reason]').count(),1);
+ assert.equal(await page.locator('[data-p4-review-match1]').count(),1);
+ assert.equal(await page.locator('[data-p4-review-final]').count(),1);
+ assert.equal(await page.locator('[data-p4-confirm-single]').isHidden(),true,
+   'no review is prepared before an explicit first click');
  await page.locator('[data-p4-skip-weight]').click();
  await page.waitForFunction(()=>/Skip Weight: 1 blank eligible/.test(
    document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:30000});
@@ -150,7 +155,7 @@ try{
  assert.deepEqual(pageErrors,[]);
  console.log(JSON.stringify({schema:'XML229.SimpleAppliedWeightChromium.v1',
   before,after,skippedZeroDraft:true,editableDraftPersisted:true,
-  removedApprovalControls:true,nativeCiiReleaseAuthorized:false}));
+  reviewControlsVisibleWithoutAutomaticAcceptance:true,nativeCiiReleaseAuthorized:false}));
  await page.evaluate(async()=>{
   const {getXml229CurrentWorkerHeldReview}=await import(
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
