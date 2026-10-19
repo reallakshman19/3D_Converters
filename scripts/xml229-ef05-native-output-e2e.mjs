@@ -4,6 +4,7 @@
  * No private Owner attachments, historical fixed digest, or manual Weight accept.
  */
 import assert from 'node:assert/strict';
+import {installXml229WorkspaceRegistryWitness,verifyXml229SameBasisJourney,verifyXml229ChangedBasisJourney} from './xml229-ef05-workspace-journeys.mjs';
 import {chromium} from 'playwright';
 import {readFile,mkdir,writeFile,mkdtemp,rm} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
@@ -25,7 +26,6 @@ const DEPLOYED_E2E_URL='https://reallakshman19.github.io/3D_Converters/index.htm
 const siteUrl=process.env.XML229_E2E_BASE_URL||LOCAL_E2E_URL;
 assert([LOCAL_E2E_URL,DEPLOYED_E2E_URL].includes(siteUrl),
   'E2E must target only the local isolated server or official published GitHub Pages');
-
 const tmp=await mkdtemp(join(tmpdir(),'xml229-ef05-'));
 const record={schema:'XML229.EF05.NativeOutputE2E.v1',
  siteOrigin:siteUrl===DEPLOYED_E2E_URL?'PUBLISHED_GITHUB_PAGES':'ISOLATED_LOCAL_SERVER',
@@ -61,18 +61,7 @@ let browser;
 try{
   browser=await chromium.launch({headless:true});
   const page=await browser.newPage({acceptDownloads:true});
-  // Test-only capture of the actual source-bound Worker registry publication.
-  await page.addInitScript(()=>{
-    const nativeSet=WeakMap.prototype.set;
-    WeakMap.prototype.set=function(key,value){
-      try{
-        if(value?.lease&&value.session?.receipt?.basisId&&
-           value.session?.receipt?.sourceGenerationId)
-          window.__xml229WorkspaceLiveReview={session:value.session,lease:value.lease};
-      }catch{}
-      return nativeSet.call(this,key,value);
-    };
-  });
+  await installXml229WorkspaceRegistryWitness(page);
   page.setDefaultTimeout(60000);
   page.on('pageerror',e=>record.pageErrors.push(String(e)));
   // The live GitHub Pages CDN can occasionally load the app shell before its
@@ -135,7 +124,6 @@ try{
   assert.equal(record.stages.masters.weight,1595);
   assert.equal(record.stages.masters.weightSourceType,'default');
   record.passes.push('real three-master applied import controls and default Valve autoload');
-
   await page.locator('[data-phase="json-trace"]').click();
   await page.locator('[data-field="staged-json-file"]').setInputFiles(jsonPath);
   await page.waitForFunction(()=>{
@@ -147,7 +135,6 @@ try{
   assert.match(record.stages.jsonIndex,/LFJ source index COMMITTED/,
     'real EF05 original JSON index did not commit');
   record.passes.push('real original JSON O1 index committed');
-
   await page.locator('[data-phase="preview"]').click();
   // createXmlCiiAdaptedWorkflowState() is a *new* state and intentionally
   // does not include already imported browser-memory class/map/line rows.
@@ -170,7 +157,6 @@ try{
   assert.equal(record.stages.activeMasterInventory.materialMap,383);
   assert.equal(record.stages.activeMasterInventory.weight,1595);
   record.passes.push('verified four-master active Preview inventory');
-
   // Original indexed JSON is *optional for XML-only*. Load it to prove that
   // the new explicit selector is effective despite an active O1 receipt.
   const previewBuild=page.locator('#mc-preview-table-host [data-mc-preview-build]').first();
@@ -200,7 +186,6 @@ try{
     status:(await page.locator('[data-p4-weight-status]').textContent()).slice(0,1000)};
   assert(record.stages.weight.visibleRows>0);
   record.passes.push('actual Worker-backed Weight Match opened; no accepts added');
-
   // Full public 41-branch source / staged JSON / four-master GC-PW precheck:
   // all original physicals (including outside the focused Weight tab),
   // seven canonical facts per owner, all proposals and semantic family evidence.
@@ -377,97 +362,7 @@ try{
  };
  record.passes.push('actual GC-PW Worker: 80% Apply edits preserved, kg matched across pages, first input horizontally visible');
 
- // T-WORKSPACE-01: real Worker and ordinary UI, not a mock.
- // Capture every canonical occurrence's actual editable input after Apply,
- // Skip and a manual conflict. This fixture is public; no IDs are logged.
- await page.locator('[data-p4-skip-weight]').click();
- await waitWeightIdle();
- assert.match(await page.locator('[data-p4-weight-status]').textContent(),/Skip Weight:/);
- const collectEditable=async()=>{
-   await page.locator('[data-p4-scope="blank-rigid"]').click();
-   await waitWeightIdle();
-   const result=new Map();
-   for(let index=0;index<pageCount;index++){
-     const actual=await page.evaluate(()=>[...document.querySelectorAll('tr[data-p4-row]')]
-       .map(tr=>({id:tr.dataset.p4Occurrence,
-         value:tr.querySelector('[data-p4-applied-weight]')?.value??null})));
-     for(const r of actual){assert(!result.has(r.id));result.set(r.id,r.value);}
-     if(index+1===pageCount)break;
-     const previous=await page.locator('tr[data-p4-row]').first().getAttribute('data-p4-occurrence');
-     await page.locator('[data-p4-next]').click();await waitWeightIdle();
-     await page.waitForFunction(old=>document.querySelector('tr[data-p4-row]')?.dataset.p4Occurrence!==old,
-       previous,{timeout:90000});
-   }
-   return result;
- };
- const beforeNav=await collectEditable();
- assert.equal(beforeNav.get(manualId),manualKg);
- const skipIds=[...beforeNav].filter(([,kg])=>kg==='0').map(([id])=>id);
- assert(skipIds.length>0,'public fixture did not exercise Skip');
- const proposedIds=[...beforeNav].filter(([id,kg])=>
-   kg!==''&&kg!==null&&kg!=='0'&&id!==manualId).map(([id])=>id);
- assert(proposedIds.length>0,'public fixture did not exercise suggestions');
- await page.locator('[data-p4-scope="all"]').click();await waitWeightIdle();
- const samePanel=await collectEditable();
- assert.deepEqual([...samePanel],[...beforeNav],
-   'Same-panel scope filter/pagination changed canonical editable kg');
- const beforeWorker=await page.evaluate(async()=>{
-   const witness=window.__xml229WorkspaceLiveReview;
-   if(!witness?.session)throw Error('Current verified Worker registry witness missing');
-   window.__xml229WorkspaceFirstSession=witness.session;
-   const proof=await witness.session.readCompletion();
-   return {basisId:witness.session.receipt.basisId,
-     sourceGenerationId:witness.session.receipt.sourceGenerationId,
-     lease:witness.lease,stageRevisions:proof.stageRevisions,counts:proof.counts};
- });
- assert.equal(beforeWorker.basisId,record.stages.preview.basisId);
- const beforeRevisions=await page.evaluate(()=>{
-   const row=document.querySelector('[data-p4-weight-root]')?.__p4VisibleRows?.[0];
-   return {match1:row?.match1View?.match1Revision??null,
-     final:row?.finalView?.finalRevision??null};
- });
- await page.locator('[data-phase="preview"]').click();
- await page.locator('[data-phase="run"]').click();
- await page.locator('[data-action="xml229-output-participation"]').waitFor();
- assert.equal(await page.locator('[data-action="xml229-output-participation"]').inputValue(),'governed');
- assert.equal(await page.locator('[data-action="run"]').isDisabled(),true);
- await page.locator('[data-phase="weight-match"]').click();
- await page.locator('[data-p4-weight-status]').waitFor();
- const afterNav=await collectEditable();
- const afterWorker=await page.evaluate(async()=>{
-   const witness=window.__xml229WorkspaceLiveReview;
-   if(!witness?.session)throw Error('Returned verified Worker registry witness missing');
-   const proof=await witness.session.readCompletion();
-   return {basisId:witness.session.receipt.basisId,
-     sourceGenerationId:witness.session.receipt.sourceGenerationId,
-     lease:witness.lease,stageRevisions:proof.stageRevisions,counts:proof.counts,
-     sameSession:witness.session===window.__xml229WorkspaceFirstSession};
- });
- assert.equal(afterWorker.sameSession,true,'ordinary navigation replaced the Worker');
- assert.equal(afterWorker.basisId,beforeWorker.basisId,'InputBasis changed during navigation');
- assert.equal(afterWorker.sourceGenerationId,beforeWorker.sourceGenerationId,
-   'source generation changed during navigation');
- assert.equal(afterWorker.lease,beforeWorker.lease,'Input lease changed during navigation');
- assert.deepEqual(afterWorker.stageRevisions,beforeWorker.stageRevisions,'review stage CAS changed');
- assert.deepEqual(afterWorker.counts,beforeWorker.counts,'accepted review category counts changed');
- const afterRevisions=await page.evaluate(()=>{
-   const row=document.querySelector('[data-p4-weight-root]')?.__p4VisibleRows?.[0];
-   return {match1:row?.match1View?.match1Revision??null,
-     final:row?.finalView?.finalRevision??null};
- });
- assert.deepEqual(afterRevisions,beforeRevisions,'review CAS revisions changed on navigation');
- const lost=[...beforeNav].filter(([id,kg])=>afterNav.get(id)!==kg);
- record.stages.workspaceNavigation={eligibleOccurrences:beforeNav.size,
-   filledBefore:[...beforeNav.values()].filter(x=>x!=='').length,
-   skippedBefore:skipIds.length,suggestionsBefore:proposedIds.length,
-   manualBefore:manualKg,samePanelPreserved:true,changedAfterRemount:lost.length,
-   appliedAfter:afterNav.get(manualId)||'',reviewRevisionsUnchanged:true,
-   basisUnchanged:true,generationUnchanged:true,leaseUnchanged:true,
-   workerSessionSame:true,reviewCountsUnchanged:true,governedStillHeld:true};
- assert.equal(lost.length,0,'Applied Weight drafts lost across phase navigation: '+lost.length+' canonical occurrences');
- record.passes.push('same-basis Weight->Preview->Run->Weight retains editable manual/suggestion/Skip values');
-
-
+ const {beforeWorker,beforeNav,collectEditable}=await verifyXml229SameBasisJourney({page,waitWeightIdle,pageCount,manualId,manualKg,record});
   // Real 41-branch P3: capture exact effective four-master config from
   // the SAME verified Worker lease through the explicit OWNER PRIVATE button.
   // The downloaded JSON is inspected in browser temp storage only; never
@@ -591,68 +486,7 @@ try{
   record.passes.push('switch to governed restores native O1 HOLD');
   assert.deepEqual(record.pageErrors,[]);
 
-  // Real changed-input contrast AFTER normal output readback. Only supported
-  // source/master UI actions; never synthesize or inject Worker decisions.
-  // Preserve the 419 prior canonical-ID edits as an in-process oracle.
-  const alternateLineList=lineListVariant==='bc4-json'
-    ?'docs/Masters/ImportedRawLineListLL.xlsx'
-    :'tests/fixtures/xml229/BC4.LineList.json';
-  await page.locator('[data-phase="source"]').click();
-  await page.locator('[data-sub-tab="linelist"]').click();
-  await page.locator('input[data-master-file="lineList"]').setInputFiles(alternateLineList);
-  await page.locator('[data-master-mapping-status="lineList"]')
-    .filter({hasText:'Mapping status: APPLIED'}).waitFor({timeout:120000});
-  await page.locator('[data-phase="preview"]').click();
-  const expectedAlternateRows=lineListVariant==='bc4-json'?801:385;
-  await page.waitForFunction(expected=>{
-    const inventory=document.querySelector('#mc-preview-table-host')?.parentElement?.textContent||'';
-    return inventory.includes('Line List: '+expected+' row(s)');
-  },expectedAlternateRows,{timeout:120000});
-  await page.locator('#mc-preview-table-host [data-mc-preview-build]').first().click();
-  await page.waitForFunction(oldBasis=>{
-    const host=document.querySelector('#mc-preview-table-host');
-    return host?.dataset.mcPreviewJsonSource==='P4_ENGINEERING_VERIFIED'&&
-      host.dataset.mcPreviewBasisId&&host.dataset.mcPreviewBasisId!==oldBasis&&
-      host.querySelector('[data-mc-preview-build]')?.disabled===false;
-  },beforeWorker.basisId,{timeout:420000});
-  await page.locator('[data-phase="weight-match"]').click();
-  await page.waitForFunction(oldBasis=>{
-    const root=document.querySelector('[data-p4-weight-root]');
-    const witness=window.__xml229WorkspaceLiveReview;
-    return root?.dataset.p4Busy==='false'&&
-      root?.__p4VisibleRows?.length>0&&
-      witness?.session?.receipt?.basisId!==oldBasis;
-  },beforeWorker.basisId,{timeout:120000});
-  const changedWorker=await page.evaluate(async()=>{
-    const witness=window.__xml229WorkspaceLiveReview;
-    const proof=await witness.session.readCompletion();
-    return {sameSession:witness.session===window.__xml229WorkspaceFirstSession,
-      basisId:witness.session.receipt.basisId,
-      lease:witness.lease,sourceGenerationId:witness.session.receipt.sourceGenerationId,
-      counts:proof.counts,stageRevisions:proof.stageRevisions};
-  });
-  assert.equal(changedWorker.sameSession,false,'changed master retained old Worker');
-  assert.notEqual(changedWorker.basisId,beforeWorker.basisId,'changed master reused stale InputBasis');
-  assert.notEqual(changedWorker.lease,beforeWorker.lease,'changed master reused stale input lease');
-  assert.deepEqual(changedWorker.counts,beforeWorker.counts,
-    'changed Line List import unexpectedly committed engineering decisions');
-  const onChangedBasis=await collectEditable();
-  const overlapping=[...beforeNav].filter(([id])=>onChangedBasis.has(id));
-  assert(overlapping.length>0,'changed-basis fixture has no comparable canonical occurrences');
-  const leaked=overlapping.filter(([id])=>onChangedBasis.get(id)!=='');
-  record.stages.workspaceChangedBasis={
-    inputChange:'opposite public Line List variant imported through Source & Master',
-    beforeFocused:beforeNav.size,afterFocused:onChangedBasis.size,
-    overlapping:overlapping.length,staleDraftsVisible:leaked.length,
-    workerReplaced:true,basisChanged:true,leaseChanged:true,
-    acceptedReviewCountsUnchanged:true,nativeCiiReleaseAuthorized:false};
-  assert.equal(leaked.length,0,
-    'Stale Applied Weight drafts activated in replacement Worker basis: '+leaked.length);
-  await page.locator('[data-phase="run"]').click();
-  await page.locator('[data-action="xml229-output-participation"]').waitFor();
-  assert.equal(await page.locator('[data-action="xml229-output-participation"]').inputValue(),'governed');
-  assert.equal(await page.locator('[data-action="run"]').isDisabled(),true);
-  record.passes.push('real alternate public Line List rebuild replaces Worker/basis and never reactivates old drafts');
+  await verifyXml229ChangedBasisJourney({page,lineListVariant,record,beforeWorker,beforeNav,collectEditable});
   record.ok=true;
 }catch(error){
   record.failures.push(String(error?.stack||error).slice(0,2800));
