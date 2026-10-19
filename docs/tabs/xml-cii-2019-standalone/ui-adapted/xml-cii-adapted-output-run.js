@@ -5,7 +5,9 @@ import { updateWorkflowOptions, applyStandaloneOutputRunReadiness, updateWorkflo
 import { deriveLineKeyFromBranchName } from '../../../converters/xml-cii2019-core/regex-line-key.js';
 import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
 import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
-import {recordXml229FlowTrace} from './xml229-flow-trace-registry.mjs';
+import {ensureXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace,getXml229CandidateAttempt} from './xml229-flow-trace-registry.mjs';
+import {buildXml229RunHoldAudit} from '../integration/xml229-run-hold-audit.mjs';
+import {inspectXml229EngineeringLease} from '../integration/xml229-engineering-basis-authority.mjs';
 import {syncXml229CanonicalOutputHeaderBadges} from './xml229-canonical-output-header-badges.mjs';
 import {captureXml229XmlOnlyApproval,isXml229XmlOnlyApproved}
   from '../integration/xml229-output-participation.mjs';
@@ -81,12 +83,15 @@ function valueFor(item, header) {
   return item?.[key] ?? item?.[header];
 }
 
-function reportFromState(state) {
+function reportFromState(state,stateRef) {
+  const session=getXml229CurrentWorkerHeldReview(stateRef);
+  const sessionState=session?(session.closed?'CLOSED':'LIVE'):'MISSING';
+  const leaseDiagnosis=inspectXml229EngineeringLease(stateRef);
   // Never trust an old stored legacy report for a selected governed O1 source.
   // This conservative baseline is replaced only after a live verified Worker
   // read; its native CII release HOLD is preserved throughout.
   return hasOriginalJsonSourceOnlyRunHold(state)
-    ? buildStandaloneOutputRunReadiness(state)
+    ? buildStandaloneOutputRunReadiness(state,{sessionState,leaseDiagnosis})
     : state.outputRunReadinessReport || buildStandaloneOutputRunReadiness(state);
 }
 
@@ -352,6 +357,63 @@ function optionCheckbox(optionKey, labelText, checked, stateRef, render, disable
   return label;
 }
 
+/**
+ * Owner-invoked audit. Read current live Worker completion AND Final intent
+ * afresh. Never export original JSON/XML, source IDs, physical occurrence
+ * IDs, SHA values, full Worker receipts or private native candidate bytes.
+ */
+async function collectXml229RunHoldAudit(stateRef,report){
+ ensureXml229FlowTrace(stateRef);
+ recordXml229FlowTrace(stateRef,{kind:'RUN_AUDIT_REQUESTED',actor:'output-ui'});
+ const session=getXml229CurrentWorkerHeldReview(stateRef);
+ let completion=null,finalIntent=null,readError=null;
+ let sessionState=session?(session.closed?'CLOSED':'LIVE'):'MISSING';
+ if(session&&!session.closed){
+   try{
+     completion=await session.readCompletion();
+     if(getXml229CurrentWorkerHeldReview(stateRef)!==session||session.closed)
+       throw Object.assign(new Error('STALE_WORKER_LEASE'),{code:'STALE_WORKER_LEASE'});
+     finalIntent=await session.readNativeFinalIntent();
+     if(getXml229CurrentWorkerHeldReview(stateRef)!==session||session.closed)
+       throw Object.assign(new Error('STALE_WORKER_LEASE'),{code:'STALE_WORKER_LEASE'});
+     recordXml229FlowTrace(stateRef,{kind:'RUN_AUDIT_COMPLETED',actor:'output-ui',
+       counts:{physical:completion?.verifiedPhysicalCount,
+         facts:completion?.verifiedFactCount,
+         sourceMass:completion?.counts?.source,match1:completion?.counts?.match1,
+         final:completion?.counts?.final,unresolved:completion?.counts?.unresolved}});
+   }catch(error){
+     completion=null;finalIntent=null;
+     readError={code:error?.code||'WORKER_READ_UNAVAILABLE'};
+     sessionState=session.closed?'CLOSED':'LIVE';
+     recordXml229FlowTrace(stateRef,{kind:'RUN_AUDIT_FAILED',actor:'output-ui',
+       code:readError.code});
+   }
+ }
+ // Read the latest immutable UI state AFTER the two asynchronous calls.
+ // The attestor itself demands matching source, generation, basis and census.
+ const input=stateRef.current;
+ const freshReport=buildStandaloneOutputRunReadiness(input,{
+   verifiedEngineering:completion
+     ?{sessionReceipt:session.receipt,proof:completion}
+     :readError?{readError}:null,
+ });
+ const params={
+   input,report:freshReport,sessionState,
+   leaseDiagnosis:inspectXml229EngineeringLease(stateRef),
+   sessionReceipt:session?.closed?null:session?.receipt||null,
+   completion,finalIntent,readError,
+   candidate:getXml229CandidateAttempt(stateRef,session),
+ };
+ const provisional=buildXml229RunHoldAudit({
+   ...params,flowTrace:getXml229FlowTrace(stateRef)?.snapshot()||null,
+ });
+ recordXml229FlowTrace(stateRef,{kind:'RUN_GATE_DIAGNOSED',actor:'native-gate',
+   code:provisional.diagnosisCode});
+ return buildXml229RunHoldAudit({
+   ...params,flowTrace:getXml229FlowTrace(stateRef)?.snapshot()||null,
+ });
+}
+
 function renderRunControls(parent, stateRef, state, report, render) {
   const ctrlCard = section(parent, 'Run Conversion');
   const routeLabel=createElement('label','','model-converters-workflow-regex-field');
@@ -410,6 +472,52 @@ function renderRunControls(parent, stateRef, state, report, render) {
     downloadTextFile('xml-cii-output-run-readiness.json',
       JSON.stringify(evidence,null,2),'application/json;charset=utf-8');
   });
+  // The canonical row remains HELD by design. Show WHY, including the
+  // first unsupported boundary, even when Preview/Weight are already ready.
+  if(report.runHoldAudit?.gateStatus==='HELD'){
+    ensureXml229FlowTrace(stateRef);
+    const snapshot=report.runHoldAudit;
+    recordXml229FlowTrace(stateRef,{kind:'RUN_GATE_DIAGNOSED',
+      actor:'native-gate',code:snapshot.diagnosisCode});
+    const auditPanel=createElement('details','','xml-cii-weight-panel');
+    auditPanel.appendChild(createElement('summary',
+      'Why is native Run HELD? — source/Worker audit trail'));
+    auditPanel.appendChild(createElement('div',
+      'Current diagnosis: '+snapshot.diagnosisCode+
+      '. First missing/held boundary: '+(snapshot.firstUnverifiedBoundary||'unknown')+
+      '. The native release HOLD cannot be cleared by a diagnostic.',
+      'model-converters-workflow-detail-note'));
+    auditPanel.appendChild(table(
+      ['Stage','Status','Evidence / reason'],
+      snapshot.evidence.map(e=>({Stage:e.name,Status:e.status,
+        'Evidence / reason':e.reason})),
+      'No evidence boundaries available.'));
+    const auditBtn=button('xml229-download-run-hold-audit',
+      'Download fresh Run HOLD audit trail JSON');
+    auditBtn.addEventListener('click',async()=>{
+      if(auditBtn.disabled)return;
+      auditBtn.disabled=true;
+      try{
+        const evidence=await collectXml229RunHoldAudit(stateRef,report);
+        downloadTextFile('xml229-run-hold-audit.json',
+          JSON.stringify(evidence,null,2),'application/json;charset=utf-8');
+      }catch{
+        // Even unexpected collector bugs remain a typed fail-closed diagnostic.
+        recordXml229FlowTrace(stateRef,{kind:'RUN_AUDIT_FAILED',
+          actor:'output-ui',code:'RUN_AUDIT_UNEXPECTED_FAILURE'});
+        const failed=buildXml229RunHoldAudit({
+          input:stateRef.current,report,
+          sessionState:'UNKNOWN',
+          readError:{code:'RUN_AUDIT_UNEXPECTED_FAILURE'},
+          flowTrace:getXml229FlowTrace(stateRef)?.snapshot()||null,
+        });
+        downloadTextFile('xml229-run-hold-audit.json',
+          JSON.stringify(failed,null,2),'application/json;charset=utf-8');
+      }finally{auditBtn.disabled=false;}
+    });
+    auditPanel.appendChild(auditBtn);
+    actionDiv.appendChild(auditPanel);
+  }
   const finalizeBtn = createElement('button', state.running ? 'Running...' : 'Finalise and Run Conversion', 'model-converters-download-btn');
   if (finalizeBtn.style) Object.assign(finalizeBtn.style, { width: '100%', padding: '12px', background: (state.running || report.summary.blockingCount > 0) ? '#334155' : '#1e4ed8', color: '#fff', border: 'none', fontWeight: '700' });
   finalizeBtn.disabled = !!(state.running || report.summary.blockingCount > 0);
@@ -509,6 +617,6 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
       });
     }
   };
-  paint(reportFromState(state));
+  paint(reportFromState(state,stateRef));
   projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint);
 }
