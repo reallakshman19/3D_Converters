@@ -5,7 +5,7 @@ import {installWeightBasisXmlDom}
  from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
 import {canonicalJson} from '../contracts/gc-pw-v1/contract.mjs';
 import {physicalOccurrenceId} from '../contracts/gc-pw-v1/occurrence-bridge.mjs';
-import {attestXml229OriginalPhysicalEngineInput}
+import {attestXml229OriginalPhysicalEngineInput,materializeXml229ReviewedEngineMassInput}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-r2-physical-transfer-manifest.mjs';
 
 if(!globalThis.crypto)globalThis.crypto=webcrypto;
@@ -82,4 +82,42 @@ test('altered original source identity or incomplete physical census refuses',as
  await assert.rejects(attestXml229OriginalPhysicalEngineInput({
    ...inputs(),independentlyEnumeratedOriginalPhysical:[],
  }),e=>e.code==='ORIGINAL_PHYSICAL_CENSUS_REQUIRED');
+});
+
+test('reviewed mass writer replaces wrong parity Weight and then independently attests exact XML',async()=>{
+ const result=await materializeXml229ReviewedEngineMassInput({
+   ...inputs(),engineInputXmlText:xml(99),
+ });
+ assert.equal(result.schema,'XML229.ReviewedEngineMassCandidate.v1');
+ assert.match(result.engineInputXmlText,/<Weight>35<\/Weight>/);
+ assert.doesNotMatch(result.engineInputXmlText,/<Weight>99<\/Weight>/);
+ assert.equal(result.transfer.verifiedEnginePhysicalCount,1);
+ assert.equal(result.transfer.matches[0].originalOccurrenceId,occurrenceId);
+ assert.equal(result.transfer.matches[0].engineWeightKg,35);
+ assert.equal(result.nativeCiiReleaseAuthorized,false);
+ assert.equal(result.nativeCiiPhysicalSlotVerified,false);
+});
+test('reviewed mass writer refuses duplicate physical owner target',async()=>{
+ const extra='<Node><NodeNumber>-1</NodeNumber><ComponentType>RIGID</ComponentType>'+
+ '<ComponentRefNo>ref-A</ComponentRefNo><Endpoint>2</Endpoint>'+
+ '<NodeName></NodeName><Position>112 0 0</Position><Rigid>2</Rigid>'+
+ '<Weight>0</Weight></Node>';
+ await assert.rejects(materializeXml229ReviewedEngineMassInput({
+   ...inputs(),engineInputXmlText:xml(0,extra),
+ }),e=>e.code==='ENGINE_MASS_WRITER_AMBIGUOUS_TARGET');
+});
+test('reviewed mass writer refuses Match-1-only unapproved mass',async()=>{
+ const data=inputs();
+ const session=data.session;
+ session.review.getDecisionState=({stage})=>({
+   decisionRevision:1,decisions:stage==='RigidMatch1'?
+    {[occurrenceId]:{state:'accepted',value:35}}:{},
+ });
+ session.review.getFacts=()=>({
+   complete:true,totalCount:1,nextCursor:null,
+   items:[{...facts[0],authority:'inferred',value:null}],
+ });
+ await assert.rejects(materializeXml229ReviewedEngineMassInput({
+   ...data,engineInputXmlText:xml(0),
+ }),e=>e.code==='ENGINE_MASS_WRITER_FINAL_UNQUALIFIED');
 });
