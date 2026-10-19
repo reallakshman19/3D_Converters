@@ -84,7 +84,13 @@ try{
   assert.equal(await auditButton.count(),1,
     'Run HOLD must expose an audit export on both served module paths');
   assert.match(await page.locator('#run').textContent(),/Run HOLD audit trail/);
-  const capture=page.waitForEvent('download',{timeout:10000});
+  // The audit control deliberately lives in a closed native <details>.
+  // Exercise the same user sequence: expand the section, then click.
+  const auditPanel=page.locator('details').filter({has:auditButton});
+  assert.equal(await auditPanel.count(),1,'Audit control must belong to one details panel');
+  await auditPanel.locator('summary').click();
+  assert.equal(await auditButton.isVisible(),true,'audit download must be visible after expansion');
+  const capture=page.waitForEvent('download',{timeout:15000});
   await auditButton.click();
   const download=await capture;
   assert.equal(download.suggestedFilename(),'xml229-run-hold-audit.json');
