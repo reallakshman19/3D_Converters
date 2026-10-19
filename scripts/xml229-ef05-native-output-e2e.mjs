@@ -61,6 +61,18 @@ let browser;
 try{
   browser=await chromium.launch({headless:true});
   const page=await browser.newPage({acceptDownloads:true});
+  // Test-only capture of the actual source-bound Worker registry publication.
+  await page.addInitScript(()=>{
+    const nativeSet=WeakMap.prototype.set;
+    WeakMap.prototype.set=function(key,value){
+      try{
+        if(value?.lease&&value.session?.receipt?.basisId&&
+           value.session?.receipt?.sourceGenerationId)
+          window.__xml229WorkspaceLiveReview={session:value.session,lease:value.lease};
+      }catch{}
+      return nativeSet.call(this,key,value);
+    };
+  });
   page.setDefaultTimeout(60000);
   page.on('pageerror',e=>record.pageErrors.push(String(e)));
   // The live GitHub Pages CDN can occasionally load the app shell before its
@@ -399,6 +411,16 @@ try{
  const samePanel=await collectEditable();
  assert.deepEqual([...samePanel],[...beforeNav],
    'Same-panel scope filter/pagination changed canonical editable kg');
+ const beforeWorker=await page.evaluate(async()=>{
+   const witness=window.__xml229WorkspaceLiveReview;
+   if(!witness?.session)throw Error('Current verified Worker registry witness missing');
+   window.__xml229WorkspaceFirstSession=witness.session;
+   const proof=await witness.session.readCompletion();
+   return {basisId:witness.session.receipt.basisId,
+     sourceGenerationId:witness.session.receipt.sourceGenerationId,
+     lease:witness.lease,stageRevisions:proof.stageRevisions,counts:proof.counts};
+ });
+ assert.equal(beforeWorker.basisId,record.stages.preview.basisId);
  const beforeRevisions=await page.evaluate(()=>{
    const row=document.querySelector('[data-p4-weight-root]')?.__p4VisibleRows?.[0];
    return {match1:row?.match1View?.match1Revision??null,
@@ -412,6 +434,22 @@ try{
  await page.locator('[data-phase="weight-match"]').click();
  await page.locator('[data-p4-weight-status]').waitFor();
  const afterNav=await collectEditable();
+ const afterWorker=await page.evaluate(async()=>{
+   const witness=window.__xml229WorkspaceLiveReview;
+   if(!witness?.session)throw Error('Returned verified Worker registry witness missing');
+   const proof=await witness.session.readCompletion();
+   return {basisId:witness.session.receipt.basisId,
+     sourceGenerationId:witness.session.receipt.sourceGenerationId,
+     lease:witness.lease,stageRevisions:proof.stageRevisions,counts:proof.counts,
+     sameSession:witness.session===window.__xml229WorkspaceFirstSession};
+ });
+ assert.equal(afterWorker.sameSession,true,'ordinary navigation replaced the Worker');
+ assert.equal(afterWorker.basisId,beforeWorker.basisId,'InputBasis changed during navigation');
+ assert.equal(afterWorker.sourceGenerationId,beforeWorker.sourceGenerationId,
+   'source generation changed during navigation');
+ assert.equal(afterWorker.lease,beforeWorker.lease,'Input lease changed during navigation');
+ assert.deepEqual(afterWorker.stageRevisions,beforeWorker.stageRevisions,'review stage CAS changed');
+ assert.deepEqual(afterWorker.counts,beforeWorker.counts,'accepted review category counts changed');
  const afterRevisions=await page.evaluate(()=>{
    const row=document.querySelector('[data-p4-weight-root]')?.__p4VisibleRows?.[0];
    return {match1:row?.match1View?.match1Revision??null,
@@ -424,8 +462,9 @@ try{
    skippedBefore:skipIds.length,suggestionsBefore:proposedIds.length,
    manualBefore:manualKg,samePanelPreserved:true,changedAfterRemount:lost.length,
    appliedAfter:afterNav.get(manualId)||'',reviewRevisionsUnchanged:true,
-   governedStillHeld:true};
- assert.deepEqual(lost,[],'Applied Weight drafts lost across phase navigation: '+lost.length+' canonical occurrences');
+   basisUnchanged:true,generationUnchanged:true,leaseUnchanged:true,
+   workerSessionSame:true,reviewCountsUnchanged:true,governedStillHeld:true};
+ assert.equal(lost.length,0,'Applied Weight drafts lost across phase navigation: '+lost.length+' canonical occurrences');
  record.passes.push('same-basis Weight->Preview->Run->Weight retains editable manual/suggestion/Skip values');
 
 

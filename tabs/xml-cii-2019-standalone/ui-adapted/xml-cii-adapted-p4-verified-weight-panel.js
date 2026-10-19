@@ -15,6 +15,7 @@ import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Matc
 import {disarmXml229EditedDraft} from './xml229-p4-two-click-confirmation.mjs';
 import {revealXml229PreparedWeightInput} from './xml229-p4-reveal-applied-weight.mjs';
 import {createXml229BulkApplyQueue} from './xml229-p4-busy-apply-queue.mjs';
+import {openXml229SessionWeightDrafts} from './xml229-session-weight-drafts.mjs';
 import {planXml229SkipWeightDrafts} from './xml229-p4-skip-weight-drafts.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {prepareXml229G3G4LocalAggregateExport} from './xml229-g3g4-local-aggregate-export.mjs';
@@ -255,10 +256,10 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const key=stateRef?.modeABaseRef||stateRef;
  let active=getXml229CurrentWorkerHeldReview(stateRef),offset=0,busy=false;
  let mode='rigid',query='',pendingBulk=null,searchTimer=null,renderSequence=0,minScorePercent=80;
- let draftOwner=active,draftValues=new Map();
- const clearDrafts=()=>{draftOwner=active;draftValues.clear();bulkDetail.hidden=true;bulkDetail.textContent='';};
+ let draftOwner=active,draftValues=active?openXml229SessionWeightDrafts(key,getXml229VerifiedEngineeringEntry(key)).drafts:new Map();
+ const clearDrafts=()=>{draftOwner=active;draftValues=active?openXml229SessionWeightDrafts(key,getXml229VerifiedEngineeringEntry(key)).drafts:new Map();bulkDetail.hidden=true;bulkDetail.textContent='';};
  const captureDraft=tr=>{
-   if(!tr||!active||draftOwner!==active||live()!==active)return;
+   if(!tr||root.isConnected===false||!active||draftOwner!==active||live()!==active)return;
    if(disarmXml229EditedDraft(tr,root.__p4VisibleRows,draftValues,
      pendingBulk,table,bulkDetail)){
      pendingBulk=null;
@@ -341,7 +342,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        if(getXml229CurrentWorkerHeldReview(stateRef)!==active)
          err('STALE_REVIEW_BACKUP_SOURCE','Original source changed during local review file read');
        const result=await active.restoreReviewBackup({backup});
-       offset=0;pendingBulk=null;clearDrafts();await render();
+       draftValues.clear();offset=0;pendingBulk=null;clearDrafts();await render();
        say('Restored same-InputBasis GC-PW review: '+
          result.counts.match1+' Match-1 only, '+result.counts.final+' independent Final, '+
          result.counts.unresolved+' unresolved. Old bulk-confirmation clicks are not reattested. Native CII Run remains HELD.');
@@ -613,7 +614,6 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        String(error?.code||'VERIFICATION_UNAVAILABLE')+']',true);
    });
  }
- // Removing the panel is not Worker disposal; explicit revocation is separate.
  return {dispose:()=>{if(searchTimer!==null)clearTimeout(searchTimer);},
    cancel:()=>revokeXml229VerifiedEngineeringBasis(key,{expectedSession:active})};
 }
