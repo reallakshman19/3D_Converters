@@ -266,7 +266,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  let draftOwner=null,draftValues=new Map(),draftWorkspace=null;
  // A verified Worker receipt, never the panel instance, owns draft identity.
  const bindDrafts=session=>{
-   draftWorkspace=openXml229WeightDraftWorkspace(session.receipt);
+   draftWorkspace=openXml229WeightDraftWorkspace(session.receipt,{
+     occurrenceIds:session.originalPhysicalOccurrences.map(x=>x.occurrenceId),
+   });
    draftOwner=session;draftValues=draftWorkspace.drafts;
  };
  const persistDrafts=()=>{
