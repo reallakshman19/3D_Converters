@@ -113,5 +113,58 @@ native/negative tests. Follow-up documentation commits have no
 production runtime change. C05 restricted-scope workflows remain
 separately failing; no CI guards edited.
 
+## 2026-10-19 04:32Z retained native model / original source challenge
+
+The inventory previously required caller-proposed per-original CII pointers
+and checked the resulting CII bytes, but could not independently observe
+the runtime's retained edge identity. Added new **Owner-local first-party
+native observer** `scripts/xml229-native-retained-edge-observer.py`.
+It executes the unchanged `xml_to_cii2019_runtime_custody.py`,
+intercepts the final `ConversionModel` just before actual CII
+serialization and records native element-to-rigid indexes and
+pre/post-cleanup source/runtime node identities/positions in a
+private `0600` exclusive file. It fails if the actual CII bytes,
+native pointers, per-slot mass or total model element census drift.
+The private witness cannot be overwritten; no Owner XML or identifying
+mass rows are sent to GitHub/CI.
+
+`challenge_retained_native_edges` rebinds each positive native
+arrival owner to **unique full R2 original physical identity** and
+its positive kg, and independently locates the retained upstream
+owner in the ORIGINAL engine XML branch, requiring exact source
+number, type, reference, endpoint and coordinates. It verifies
+original upstream-to-arrival Rigid2 or same-reference RIGID→FLAN
+classification and actual output CII ELEMENTS pointer, endpoints,
+native RIGID kg×scale. Ambiguous original identity, dropped/synthetic
+upstream provenance, duplicated original owner, unaccounted native
+positive mass or forged class fail closed; it does not infer 1:many
+allocations. Even a successful witness is authored by the same
+native runtime and is not external G5 authorship or owner approval.
+
+Actual public native CLI synthetic tests:
+- RIGID35 + same-reference FLAN70 → 2 native slots bound
+  to correct R2 source arrivals/upstream and actual CII RIGID,
+  total 105kg; VALV45 and INST50 remain 95kg unrepresented
+  by native RIGID in this fixture.
+- Wrong-reference FLAN → only RIGID35 represented;
+  165kg remain without a native RIGID representation.
+- Native model mismatch tests: forged CII hash/pointer,
+  individual kg, source number/ref/XYZ, upstream source node,
+  source class/rigid marker, missing edges and privacy.
+- PRIVATE witness mode 0600, O_EXCL refusal to overwrite,
+  output contains only aggregate data.
+
+Held-out exact code/test head
+`c09dc9e4dcd2f5e79bab0c1fba737838d0613aaa`
+G5 GitHub Actions job `117893236832` PASS:
+**12** I03 independent mass oracles, **24** G5/native
+challenges PASS. Documentation commits do not change this
+executed code. Broad C05 restricted-path CI failures persist;
+do not waive or call the full PR green.
+
+Protected: source masters, historic decisions, native Python
+production writer, GC-PW acceptance/authority, Output/Run HOLD,
+workflow guards and release flags all unchanged.
+
 ## EXACT_NEXT_ACTION
-Obtain independently authorized physical class/split ownership and authentic per-original Final decisions; then challenge the Owner-private production model with a separately authored G5 native retained-edge lineage, independently authored mass allocations, actual CII bytes and the new provisional-pointer falsifier. Refuse release if any author, original mass, split allocation, native unit conversion, or native element/rigid owner remains unmatched. Do not put Owner-private rows in public CI, revive obsolete PRs, or merge without independent Appendix A and bound v3.6 qualification plus explicit Owner acceptance.
+Obtain explicit independently approved VALV/INST and other physical class representations, any 1:many split allocations and genuinely accepted Owner-private Final mass decisions. Then run the passive native observer and inventory on a private, exact R2 engine/actual CII witness. A separate independent G5 oracle must authenticate every original→post-cleanup/split native edge before considering governed Run release. Do not publish the private witness, change the writer or waive C05 scoped CI; require Appendix A/v3.6/Owner acceptance before merge.
