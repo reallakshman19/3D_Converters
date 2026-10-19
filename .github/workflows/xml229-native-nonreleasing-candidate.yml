@@ -10,6 +10,7 @@ on:
       - 'tests/xml-cii-229-r2-physical-transfer.test.mjs'
       - 'tests/xml229-native-cii-output-reconcile.test.mjs'
       - 'tests/xml229-native-candidate-witness.test.py'
+      - 'tests/xml229-native-candidate-run-panel-browser.mjs'
       - 'converters/scripts/xml229_native_candidate_witness.py'
       - 'converters/scripts/xml_to_cii2019_runtime_custody.py'
       - 'converters/scripts/xml_to_cii2019_patched.py'
@@ -36,3 +37,20 @@ jobs:
           node-version: 24
       - run: node --test tests/xml229-nonreleasing-native-candidate.test.mjs tests/xml-cii-229-r2-physical-transfer.test.mjs tests/xml229-native-cii-output-reconcile.test.mjs
       - run: python3 tests/xml229-native-candidate-witness.test.py
+  served-chromium-hold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    needs: [node22, node24]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install genuine Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Real served root/docs Run panel with governed native HOLD
+        run: node tests/xml229-native-candidate-run-panel-browser.mjs
