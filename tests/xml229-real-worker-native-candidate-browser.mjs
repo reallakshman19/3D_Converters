@@ -55,12 +55,14 @@ try{
   const sourceId='P1-CHROMIUM-TWO-CLICK';
   const xml='<PipeStressExport><Pipe><Branch>'+
    '<Branchname>/ASIM-1836-8"-P8810021-31441C4-PP/B4</Branchname>'+
-   '<Node><NodeNumber>100</NodeNumber><ComponentType>GASK</ComponentType>'+
-   '<ElementLengthMm>2</ElementLengthMm><Position>0 0 0</Position></Node>'+
+   '<Node><NodeNumber>100</NodeNumber><ComponentType>BRAN</ComponentType>'+
+   '<ElementLengthMm>200</ElementLengthMm><Position>0 0 0</Position>'+ 
+   '<OutsideDiameter>610</OutsideDiameter></Node>'+
    '<Node><NodeNumber>200</NodeNumber><ComponentType>RIGID</ComponentType>'+
    '<NodeName>88-VGT-25202</NodeName><BoreMm>200</BoreMm>'+
    '<ComponentRefNo>1006649732/119364</ComponentRefNo><Endpoint>2</Endpoint>'+
-   '<ElementLengthMm>112</ElementLengthMm><Position>112 0 0</Position>'+
+   '<ElementLengthMm>112</ElementLengthMm><Position>112 0 0</Position>'+ 
+   '<OutsideDiameter>610</OutsideDiameter>'+
    '<Rigid>2</Rigid><Weight>35</Weight></Node></Branch></Pipe></PipeStressExport>';
   const master=[{Rating:'300',Bore:200,Length:112,'RF/RTJ KG':35,TypeDesc:'Gate Valve'}];
   const receipt={schema:'XML229.OriginalStagedSourceReceipt.v1',
