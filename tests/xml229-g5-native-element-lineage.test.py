@@ -293,6 +293,34 @@ class NativeMassOwnerInventoryTests(unittest.TestCase):
                 INV.inventory(transfer,xml,cii,weight_scale="NaN",
                     expected_cii_sha256=sha(cii)))
 
+    def test_owner_private_inventory_cli_emits_aggregate_not_owner_rows(self):
+        import subprocess
+        import sys
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii=self.case(td)
+            root=Path(td)
+            (root/"r2.json").write_text(json.dumps(transfer),encoding="utf-8")
+            (root/"engine.xml").write_bytes(xml)
+            (root/"native.cii").write_bytes(cii)
+            output=root/"owner-local-PRIVATE-inventory.json"
+            result=subprocess.run([
+                sys.executable,str(ROOT/"scripts/xml229-native-mass-owner-inventory.py"),
+                "--r2-transfer",str(root/"r2.json"),
+                "--engine-xml",str(root/"engine.xml"),
+                "--cii",str(root/"native.cii"),
+                "--weight-scale","10","--expected-cii-sha256",sha(cii),
+                "--output",str(output),
+            ],capture_output=True,text=True,timeout=30)
+            self.assertEqual(result.returncode,0,result.stderr[-1000:])
+            summary=json.loads(output.read_text())
+            self.assertEqual(summary["nativeOwnerRuleRequiredCount"],3)
+            self.assertEqual(summary["sourcePhysicalCount"],4)
+            self.assertFalse(summary["nativeCiiReleaseAuthorized"])
+            self.assertIn("output private",result.stdout)
+            self.assertNotIn("PUBLIC/1",output.read_text())
+            self.assertNotIn("originalOccurrenceId",output.read_text())
+            self.assertNotIn("PUBLIC-NATIVE-OWNERS",result.stdout)
+
     def test_native_cii_units_and_slot_count_witness_are_fail_closed(self):
         with tempfile.TemporaryDirectory() as td:
             transfer,xml,cii=self.case(td)
