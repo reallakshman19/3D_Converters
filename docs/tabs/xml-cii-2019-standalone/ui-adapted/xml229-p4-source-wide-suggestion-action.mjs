@@ -1,5 +1,6 @@
 /** Source-wide suggestion scan; drafts only, no GC-PW review writer. */
-import {planXml229RigidWeightDrafts} from './xml229-p4-unqualified-drafts.mjs';
+import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts} from './xml229-p4-unqualified-drafts.mjs';
+import {planXml229SkipWeightDrafts} from './xml229-p4-skip-weight-drafts.mjs';
 import {revealXml229PreparedWeightInput} from './xml229-p4-reveal-applied-weight.mjs';
 const deny=(code,message)=>{const e=new Error(message||code);e.code=code;throw e;};
 export async function applyXml229SourceWideSuggestionDrafts({
@@ -47,4 +48,36 @@ export async function applyXml229SourceWideSuggestionDrafts({
    c.withoutProposal+' no proposal, '+c.belowThreshold+
    ' below threshold. Applied Weight drafts are not accepted; governed CII remains HELD.');
  return {planned,visiblePopulated,reviewDecisionsAuthorized:false,nativeCiiReleaseAuthorized:false};
+}
+
+/** Zero drafts and unqualified candidates are dispositions-in-progress,
+ * never accepted zero masses, Final decisions or native CII payloads. */
+export async function applyXml229BlankWeightDrafts({
+ kind,session,drafts,isCurrent,saveDrafts,resetView,render,detail,
+}={}){
+ if(!['skip','unqualified'].includes(kind)||!(drafts instanceof Map)||
+    typeof isCurrent!=='function'||typeof saveDrafts!=='function'||
+    typeof resetView!=='function'||typeof render!=='function')
+   deny('BLANK_WEIGHT_DRAFT_ACTION_REQUIRED');
+ const planned=kind==='skip'
+  ?await planXml229SkipWeightDrafts(session,{existingDrafts:drafts,isCurrent})
+  :await planXml229UnqualifiedDrafts(session,{existingDrafts:drafts,isCurrent});
+ if(!isCurrent())deny('BLANK_WEIGHT_DRAFT_SOURCE_STALE');
+ for(const [id,draft] of planned.drafts)
+   if(!drafts.has(id))drafts.set(id,draft);
+ saveDrafts();
+ if(kind==='skip'){detail.hidden=true;detail.textContent='';}
+ resetView(kind);
+ await render();
+ if(kind==='skip')
+  return 'Skip Weight: '+planned.counts.skipped+
+    ' blank eligible weight row(s) filled with 0 kg DRAFT. '+
+    planned.counts.alreadyEdited+' existing drafts kept; '+
+    planned.counts.existingReview+' reviewed rows untouched. '+
+    '0 kg is not verified engineering mass and does not enter CII/Final automatically.';
+ const c=planned.counts;
+ return c.prepared+' new unqualified editable draft(s) across '+c.blankRigid+
+   ' blank RIGIDs; '+c.withoutProposal+' have no proposal, '+
+   c.qualifiedPresent+' have qualified candidates and '+c.alreadyDrafted+
+   ' already had local drafts. Zero decisions accepted. Drafts are InputBasis-bound.';
 }
