@@ -78,6 +78,21 @@ test('reject corrupt saved values, duplicate occurrences and forged skip zeros',
  assert.equal(w.drafts.size,0);
 });
 
+test('unverified occurrence identifiers are rejected before any draft is recovered',()=>{
+ const store=storage();
+ const r=receipt('3');
+ const w=openXml229WeightDraftWorkspace(r,{storage:store,occurrenceIds:['one','two']});
+ w.drafts.set('one',{value:'14.5'});
+ w.save();
+ assert.throws(()=>w.restoreBackup({...w.exportBackup(),
+  entries:[['ghost',{value:'999'}]]}),
+  {code:'WEIGHT_DRAFT_UNKNOWN_ORIGINAL_OCCURRENCE'});
+ assert.equal(w.drafts.has('ghost'),false);
+ assert.throws(()=>openXml229WeightDraftWorkspace(r,{
+  storage:store,occurrenceIds:['one','one']}),
+  {code:'WEIGHT_DRAFT_PHYSICAL_CENSUS_INVALID'});
+});
+
 test('storage failure does not turn unsaved drafts into reviewed masses and restore rolls back',()=>{
  const base=storage();
  const w=openXml229WeightDraftWorkspace(receipt('1'),{storage:base});
@@ -107,7 +122,8 @@ test('Weight panel and workspace are identically served under docs and leave nat
  const panel=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',import.meta.url),'utf8');
  assert.match(panel,/data-p4-save-drafts/);
  assert.match(panel,/data-p4-import-drafts/);
- assert.match(panel,/openXml229WeightDraftWorkspace\(session.receipt\)/);
+ assert.match(panel,/openXml229WeightDraftWorkspace/);
+ assert.match(panel,/occurrenceIds:session.originalPhysicalOccurrences/);
  assert.match(panel,/persistDrafts\(\)/);
  assert.doesNotMatch(panel,/commitXml229TwoClickMatch1\(/);
  const gate=await readFile(new URL('../tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js',import.meta.url),'utf8');
