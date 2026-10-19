@@ -19,8 +19,15 @@ const server=createServer(async(req,res)=>{
   const file=path.resolve(root,'.'+decodeURIComponent(pathname));
   if(!file.startsWith(root+path.sep))throw Error('Invalid file path');
   const bytes=await readFile(file);
-  res.writeHead(200,{'content-type':['.js','.mjs'].includes(path.extname(file))
-   ?'text/javascript':'application/json'});res.end(bytes);
+  // The real Pyodide loader requests WebAssembly and binary package data.
+  // The earlier two-click Worker-only fixture mislabeled WASM as JSON.
+  const ext=path.extname(file);
+  const mime=['.js','.mjs'].includes(ext)?'text/javascript':
+    ext==='.wasm'?'application/wasm':
+    ext==='.data'||ext==='.whl'?'application/octet-stream':
+    ext==='.py'?'text/plain':ext==='.json'?'application/json':
+    'application/octet-stream';
+  res.writeHead(200,{'content-type':mime});res.end(bytes);
  }catch(e){res.writeHead(404);res.end(String(e));}
 });
 await new Promise(ok=>server.listen(0,'127.0.0.1',ok));
