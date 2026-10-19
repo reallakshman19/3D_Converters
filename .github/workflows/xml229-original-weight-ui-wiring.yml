@@ -18,6 +18,9 @@ on:
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js'
       - 'tests/xml-cii-229-original-weight-ui-wiring.test.mjs'
+      - 'tests/xml229-weight-draft-workspace.test.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-draft-workspace.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-draft-workspace.mjs'
       - '.github/workflows/xml229-original-weight-ui-wiring.yml'
   workflow_dispatch:
 permissions:
@@ -42,6 +45,7 @@ jobs:
           node --check tabs/xml-cii-2019-standalone/integration/xml229-source-weight-review-transfer.mjs
           node --test tests/xml-cii-229-qualified-blank-bulk-confirmation.test.mjs
           node --test tests/xml-cii-229-original-weight-ui-wiring.test.mjs
+          node --test tests/xml229-weight-draft-workspace.test.mjs
           node --test tests/xml-cii-229-p4-weight-presentation-adapter.test.mjs
           node --test tests/xml-cii-229-engineering-basis-authority.test.mjs
           node --test tests/gc-pw-v1-occurrence-bridge.test.mjs
@@ -54,4 +58,5 @@ jobs:
           diff -qr tabs/xml-cii-2019-standalone/integration/xml229-source-weight-review-transfer.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-source-weight-review-transfer.mjs
           diff -qr tabs/xml-cii-2019-standalone/integration/gc-pw-preview-weight-session.js docs/tabs/xml-cii-2019-standalone/integration/gc-pw-preview-weight-session.js
           diff -qr tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js
+          diff -qr tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-draft-workspace.mjs docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-draft-workspace.mjs
           diff -qr tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs
