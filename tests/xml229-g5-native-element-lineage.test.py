@@ -290,6 +290,14 @@ class NativeMassOwnerInventoryTests(unittest.TestCase):
             self.assertEqual(report["nativeRigidCount"],2)
             self.assertEqual(report["nativeRigidPointerCount"],2)
             self.assertEqual(float(report["nativeRigidOutputForce"]),1050)
+            slots=G5.sections_from_output(cii.decode("utf-8"))["RIGID"]
+            self.assertEqual([float(r.split()[0]) for r in slots],[350,700],
+                "native RIGID slot 2 must use FLAN's 70kg, not RIGID's 35kg")
+            elements,by_slot=G5.parse_elements(cii.decode("utf-8"))
+            self.assertEqual({elements[edge_index][1]:slot
+                              for slot,edge_index in by_slot.items()},
+                             {20:0,30:1},
+                "independent output ELEMENTS pointers must land at exact native node owners")
             self.assertEqual(report["sameRefRigidToFlanCandidateKg"],"70")
             self.assertEqual(report["preConversionRigidEdgeCandidateKg"],"105")
             self.assertEqual(report["unresolvedPositiveNativeOwnerKg"],"95")
