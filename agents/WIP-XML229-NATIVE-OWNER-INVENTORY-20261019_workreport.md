@@ -23,5 +23,25 @@ The PR is ENGINEERING_CRITICAL evidence only. **No** Python runtime writer chang
 ## Validation ledger
 Source contract/data-type inspection completed. Held-out G5 GitHub Actions PASS, latest changed-test head 302341b288d4ad26cc0dc705ab7534d740762376, job 117847456397: 12 independent mass oracle tests + 12 G5/native-inventory tests PASS. Native actual Python CLI and owner-local report refusal/identifier confidentiality exercised. Latest PR CI check head 2735de81b55a92ab1c98378e53e37836cdc1192f: 39/39 checks completed, 37 PASS, 2 FAIL (`c05-5-4-final`, `c05-1-baseline`). These C05 workflow jobs enforce their own restricted diff baseline and rejected *all* of this PR's evidence-only script/test/docs/claim paths as out of scope. This is a scoped-workflow mismatch, not a failure of the held-out native mass oracle; do NOT change their guards merely to turn green. G5 itself PASS. Independent Appendix A scoring remains NOT_OBSERVED. No private Owner fixture loaded. Formal independent Appendix A score NOT_OBSERVED; v3.6 bound writer plan NOT_PRESENT, so this remains an unmerged evidence-only draft.
 
+## 2026-10-19 next-stage verification
+
+New fail-closed private diagnostic `--deny-unresolved-mass` distinguishes positive
+original physicals without explicit native `Rigid=2` ownership hints.
+No native slot, engineering weight, status or author is created. The ordinary
+inventory records per-type unresolved kg and aggregate-versus-CII difference.
+`aggregateBalanceIsNotLineageProof=true` is an invariant, even if one forged
+RIGID slot numerically equals every original source kg.
+
+Held-out exact G5 code-head `af1bdb8bc6a5f7c65f96311183cc5922f31575ce`
+GitHub Actions job `117853850138`: PASS; 12 independent I03 mass
+oracle tests plus 14 G5/inventory tests, including corrupt source hashes,
+stale/bad synthetic R2, forged aggregate equality, CLI strict rejection before
+private output, source-unit drift and orphan pointers. A prior job failed only
+two decimal string-format assertions; numerical tests were corrected and rerun.
+No production native converter logic changed. Remaining unrelated C05
+restricted-diff jobs must not be waved or characterized as this tool's failure.
+Independent Appendix A and v3.6 work-specific bound approval are NOT_OBSERVED.
+All release flags remain false.
+
 ## EXACT_NEXT_ACTION
 Run the held-out G5 Python negative/control suite in CI from the exact PR head; correct any test/runtime errors without expanding the writer surface. Produce a local Owner/private native inventory for a separately reviewed Final basis and actual CII bytes, then have engineering explicitly specify class-specific VALV/INST/FLAN ownership and 1-to-many allocation before implementing a governed native release path. Do not release based on inventory summaries.
