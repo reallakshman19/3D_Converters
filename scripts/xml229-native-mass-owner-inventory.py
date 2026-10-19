@@ -79,6 +79,31 @@ def sha256_field(value):
             and all(c in "0123456789abcdef" for c in value))
 
 
+def normalized_ref(value):
+    # Match the current native Python _normalized_component_ref semantics.
+    return str(value).lstrip("=").replace(" ", "").upper()
+
+
+def incoming_rigid_candidate(nodes, ordinal):
+    """Pre-conversion hint, NOT post-cleanup/native-slot lineage.
+
+    The native edge predicate accepts a Rigid=2 *arrival* or, for a FLAN
+    arrival, a Rigid=2 predecessor sharing a nonblank component reference.
+    Its rigid weight is the arrival node's own Weight, never the predecessor's.
+    """
+    node = nodes[ordinal]
+    if field(node, "Rigid") == "2":
+        return "DIRECT_RIGID2"
+    if ordinal == 0 or field(node, "ComponentType").upper() != "FLAN":
+        return "NO_KNOWN_NATIVE_RIGID_EDGE"
+    before = nodes[ordinal - 1]
+    ref = normalized_ref(field(node, "ComponentRefNo"))
+    if (field(before, "Rigid") == "2" and ref and
+            ref == normalized_ref(field(before, "ComponentRefNo"))):
+        return "SAME_REF_RIGID_TO_FLAN"
+    return "NO_KNOWN_NATIVE_RIGID_EDGE"
+
+
 def inventory(transfer, engine_xml_bytes, cii_bytes, *, weight_scale,
               expected_cii_sha256):
     """Build local diagnostics; never claim Final authorship or CII release."""
@@ -109,6 +134,7 @@ def inventory(transfer, engine_xml_bytes, cii_bytes, *, weight_scale,
     all_kg = Decimal(0)
     unresolved_kg = Decimal(0)
     explicitly_rigid2_kg = Decimal(0)
+    same_ref_flange_kg = Decimal(0)
     for row in matches:
         require(isinstance(row, dict), "R2_MATCH_INVALID")
         try:
@@ -144,20 +170,31 @@ def inventory(transfer, engine_xml_bytes, cii_bytes, *, weight_scale,
         require(weight == decimal(row.get("engineWeightKg"), positive=True),
                 "R2_ENGINE_MASS_DRIFT")
         kind = field(node, "ComponentType").upper()
-        explicit = field(node, "Rigid") == "2"
+        predicate = incoming_rigid_candidate(nodes, ordinal)
+        explicit = predicate == "DIRECT_RIGID2"
+        same_ref_flange = predicate == "SAME_REF_RIGID_TO_FLAN"
         entry = by_type.setdefault(kind, {
             "positivePhysicals": 0, "engineKg": Decimal(0),
-            "explicitRigid2": 0, "ruleRequired": 0,
-            "explicitRigid2Kg": Decimal(0), "requiresRuleKg": Decimal(0)
+            "explicitRigid2": 0, "sameRefRigidToFlan": 0, "ruleRequired": 0,
+            "explicitRigid2Kg": Decimal(0), "sameRefFlangeKg": Decimal(0),
+            "requiresRuleKg": Decimal(0)
         })
         entry["positivePhysicals"] += 1
         entry["engineKg"] += weight
-        entry["explicitRigid2" if explicit else "ruleRequired"] += 1
-        entry["explicitRigid2Kg" if explicit else "requiresRuleKg"] += weight
         if explicit:
+            entry["explicitRigid2"] += 1
+            entry["explicitRigid2Kg"] += weight
             explicitly_rigid2_kg += weight
+        elif same_ref_flange:
+            entry["sameRefRigidToFlan"] += 1
+            entry["sameRefFlangeKg"] += weight
+            same_ref_flange_kg += weight
         else:
+            entry["ruleRequired"] += 1
+            entry["requiresRuleKg"] += weight
             unresolved_kg += weight
+        # A pre-cleanup native predicate match is not a proven RIGID slot.
+        # Do not infer output ownership merely from this eligibility.
         all_kg += weight
     try:
         cii_text = cii_bytes.decode("utf-8")
@@ -179,8 +216,12 @@ def inventory(transfer, engine_xml_bytes, cii_bytes, *, weight_scale,
             "positivePhysicals": entry["positivePhysicals"],
             "engineKg": str(entry["engineKg"]),
             "explicitRigid2": entry["explicitRigid2"],
+            "sameRefRigidToFlanCandidates": entry["sameRefRigidToFlan"],
+            "preConversionRigidEdgeCandidates":
+                entry["explicitRigid2"] + entry["sameRefRigidToFlan"],
             "needsNativeOwnerRule": entry["ruleRequired"],
             "explicitRigid2Kg": str(entry["explicitRigid2Kg"]),
+            "sameRefRigidToFlanCandidateKg": str(entry["sameRefFlangeKg"]),
             "needsNativeOwnerRuleKg": str(entry["requiresRuleKg"]),
         }
         for kind, entry in sorted(by_type.items())
@@ -204,6 +245,9 @@ def inventory(transfer, engine_xml_bytes, cii_bytes, *, weight_scale,
         "nativeAggregateDifferenceKgUnderClaimedScale":
             str(all_kg - native_units / factor),
         "explicitRigid2SourceKg": str(explicitly_rigid2_kg),
+        "sameRefRigidToFlanCandidateKg": str(same_ref_flange_kg),
+        "preConversionRigidEdgeCandidateKg":
+            str(explicitly_rigid2_kg + same_ref_flange_kg),
         "unresolvedPositiveNativeOwnerKg": str(unresolved_kg),
         "aggregateBalanceIsNotLineageProof": True,
         "byComponentType": components,
@@ -227,7 +271,7 @@ def main(argv=None):
     parser.add_argument("--cii", type=Path, required=True)
     parser.add_argument("--weight-scale", required=True)
     parser.add_argument("--deny-unresolved-mass", action="store_true",
-                        help="Fail closed before writing a report if positive physicals lack explicit Rigid=2 ownership. Never authorizes native release.")
+                        help="Fail closed if positive physicals match neither known native incoming-edge predicate. Pre-conversion matches are not output lineage or release.")
     parser.add_argument("--expected-cii-sha256", required=True)
     parser.add_argument("--output", type=Path, required=True,
                         help="OWNER-LOCAL PRIVATE output; never upload original rows")
