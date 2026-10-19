@@ -55,7 +55,7 @@ try{
      supportConfigJson:'{}',options:{outputMode:'both'},
      xml229StagedSourceReceipt:{
        schema:'XML229.OriginalStagedSourceReceipt.v1',
-       phase:'INDEX_COMMITTED',sha256:'a'.repeat(64),
+       phase:'INDEX_COMMITTED',sha256:'a'.repeat(64),generationId:'DIAG-001',
      },
    }};
    mod.renderStandaloneOutputRunPanel(el,stateRef,()=>{});
