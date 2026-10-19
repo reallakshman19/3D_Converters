@@ -13,6 +13,8 @@ import {xml229WeightReviewEligible,xml229IsExcludedWeightFitting,xml229ProposalS
  from '../tabs/xml-cii-2019-standalone/integration/xml229-weight-review-focus.mjs';
 import {matchesXml229WeightReviewFilter,xml229WeightReviewFilters}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-weight-page-filter.mjs';
+import {createXml229BulkApplyQueue}
+ from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-busy-apply-queue.mjs';
 
 const row=()=>({
   sourceId:'SRC-TEST',occurrenceId:'exact-source::occ-01',
@@ -424,12 +426,47 @@ test('qualified Worker plan and draft population reconcile one-for-one; drift is
  assert.deepEqual(readOffsets,[0,25,50]);
  assert.deepEqual(writeEvents,[]);
  const edited=new Map([['o-3',{value:'41',proposalId:'',reason:'Manual engineer edit'}]]);
- await assert.rejects(planXml229RigidWeightDrafts(session,{
+ const kept=await planXml229RigidWeightDrafts(session,{
    minScorePercent:80,qualifiedSuggestions:approved,existingDrafts:edited,
- }),{code:'SUGGESTION_MANUAL_DRAFT_CONFLICT'});
+ });
+ assert.equal(kept.counts.manualConflictsPreserved,1);
+ assert.equal(kept.counts.workerQualifiedAlreadyDrafted,1);
+ assert.equal(kept.counts.prepared,50);
+ assert.equal(kept.drafts.has('o-3'),false);
+ assert.equal(edited.get('o-3').value,'41');
  assert.equal(planned.finalAcceptedAutomatically,false);
  assert.equal(planned.nativeCiiReleaseAuthorized,false);
  await assert.rejects(planXml229RigidWeightDrafts(session,{
    minScorePercent:80,qualifiedSuggestions:[{...approved[0],value:999}],
  }),{code:'SUGGESTION_WORKER_PLAN_PROPOSAL_DRIFT'});
+});
+
+test('Apply click while rendering queues exactly once for the same current verified session',()=>{
+ const session={receipt:{basisId:'a'.repeat(64)}},messages=[],clicks=[];
+ let current=session;
+ const root={isConnected:true,querySelector(){
+   return {click(){clicks.push('deferred-apply')}};
+ }};
+ const queue=createXml229BulkApplyQueue(root,()=>current,text=>messages.push(text));
+ const apply={target:{closest:selector=>selector==='[data-p4-bulk-plan]'?{}:null}};
+ const other={target:{closest:()=>null}};
+ assert.equal(queue.defer(other,session,true),true);
+ queue.drain(session);
+ assert.deepEqual(clicks,[]);
+ assert.equal(queue.defer(apply,session,true),true);
+ assert.equal(queue.defer(apply,session,true),true);
+ assert.match(messages[0],/queued/);
+ queue.drain(session);
+ assert.deepEqual(clicks,['deferred-apply']);
+ queue.drain(session);
+ assert.deepEqual(clicks,['deferred-apply']);
+ assert.equal(queue.defer(apply,session,false),false);
+ current={receipt:{basisId:'b'.repeat(64)}};
+ queue.defer(apply,session,true);
+ queue.drain(session);
+ assert.deepEqual(clicks,['deferred-apply'],'superseded InputBasis cannot be replayed');
+ current=session;root.isConnected=false;
+ queue.defer(apply,session,true);
+ queue.drain(session);
+ assert.deepEqual(clicks,['deferred-apply'],'detached Weight panel cannot replay queued click');
 });

@@ -61,6 +61,7 @@ export async function planXml229RigidWeightDrafts(session,{
    unqualifiedInvalid:0,existingReview:0,alreadyDrafted:0,
    conflictingQualifiedValues:0,belowThreshold:0,preparedQualified:0,preparedUnqualified:0,
    workerQualified:qualifiedById.size,workerQualifiedPrepared:0,workerQualifiedAlreadyDrafted:0,
+   manualConflictsPreserved:0,
    prepared:0};
  let total=null,offset=0,matchRevision=null,finalRevision=null;
  do{
@@ -107,12 +108,12 @@ export async function planXml229RigidWeightDrafts(session,{
      if(required&&firstPreparedIndex===null)firstPreparedIndex=offset+index;
      if(existingDrafts.has(row.occurrenceId)){
        const saved=existingDrafts.get(row.occurrenceId);
-       // A human-edited kg value or Manual selection must NEVER be
-       // silently bulk-approved as a different Worker-ranked proposal.
+       // Keep an explicit manual kg draft, even when the qualified Worker
+       // proposal differs. Never let that conflict abort unrelated rows.
        if(required&&!saved?.skippedWeight&&
           (String(saved?.value)!==String(required.value)||
           saved?.proposalId!==required.proposalId))
-         deny('SUGGESTION_MANUAL_DRAFT_CONFLICT');
+         counts.manualConflictsPreserved++;
        counts.alreadyDrafted++;
        if(required)counts.workerQualifiedAlreadyDrafted++;
        continue;

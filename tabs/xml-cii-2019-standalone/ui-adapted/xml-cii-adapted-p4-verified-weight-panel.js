@@ -13,6 +13,8 @@ import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-s
 import {renderXml229WeightReviewPage,formatXml229DecisionAuditSummary} from './xml229-p4-weight-review-presentation.mjs';
 import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs} from './xml229-p4-unqualified-drafts.mjs';
 import {disarmXml229EditedDraft} from './xml229-p4-two-click-confirmation.mjs';
+import {revealXml229PreparedWeightInput} from './xml229-p4-reveal-applied-weight.mjs';
+import {createXml229BulkApplyQueue} from './xml229-p4-busy-apply-queue.mjs';
 import {planXml229SkipWeightDrafts} from './xml229-p4-skip-weight-drafts.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {prepareXml229G3G4LocalAggregateExport} from './xml229-g3g4-local-aggregate-export.mjs';
@@ -75,7 +77,6 @@ export function compareXml229P4LiveSourceSnapshot(basis,current,{
  }
  return true;
 }
-
 /** Engineering physical scope cannot silently normalize a stale selection to ALL.
  * A genuine 28/28 original-source selection passes; 28/41 and stale data HOLD.
  */
@@ -267,7 +268,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const say=(message,bad=false)=>{
    status.textContent=message;status.style.color=bad?'#f87171':'#10b981';
  };
- const live=()=>getXml229CurrentWorkerHeldReview(stateRef);
+ const live=()=>getXml229CurrentWorkerHeldReview(stateRef),applyQueue=createXml229BulkApplyQueue(root,live,say);
  const requireRebuild=()=>{
    active=null;pendingBulk=null;clearDrafts();root.__p4VisibleRows=[];
    table.replaceChildren();
@@ -375,7 +376,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    }finally{busy=false;build.disabled=false;}
  });
  root.addEventListener('click',async event=>{
-   if(busy||!active)return;
+   if(!active||applyQueue.defer(event,active,busy))return;
    const prev=event.target.closest?.('[data-p4-prev]');
    const next=event.target.closest?.('[data-p4-next]');
    const scope=event.target.closest?.('[data-p4-scope]');
@@ -390,7 +391,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const traceButton=event.target.closest?.('[data-p4-export-flow-trace]');
    const candidateChip=event.target.closest?.('[data-p4-pick]');
       if(!prev&&!next&&!scope&&!planButton&&!skipButton&&!draftFillButton&&!candidateChip&&!auditButton&&!safetyButton&&!custodyButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton)return;
-   busy=true;
+   busy=true;root.dataset.p4Busy='true';
    try{
      if(restoreButton){
        root.querySelector('[data-p4-import-review]')?.click();
@@ -469,8 +470,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        mode=scope.getAttribute('data-p4-scope')||'all';
        offset=0;pendingBulk=null;await render();return;
      }
-     if(planButton){
-       const session=active;
+     if(planButton){say('Preparing ≥'+minScorePercent+'% drafts across verified source...');const session=active;
        const plan=await session.planQualifiedBlankFill({minScorePercent});
        if(!Number.isSafeInteger(plan?.qualified)||!Array.isArray(plan.qualifiedSuggestions)||
           plan.qualifiedSuggestions.length!==plan.qualified)
@@ -496,6 +496,8 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        if(planned.counts.prepared>0&&!(visiblePopulated>0))
          err('SUGGESTION_VISIBLE_INPUT_NOT_APPLIED',
            'No actual proposed kilograms were populated on the selected page');
+       if(visiblePopulated>0&&!revealXml229PreparedWeightInput(table))
+         err('SUGGESTION_INPUT_OUTSIDE_VIEWPORT','Applied kg could not be revealed horizontally');
        bulkDetail.hidden=true;
        bulkDetail.textContent='';
        const confirm=table.querySelector('[data-p4-bulk-confirm]');
@@ -506,10 +508,11 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        const c=planned.counts;
        say('Apply all suggestions ≥'+minScorePercent+'%: '+c.prepared+
          ' editable draft(s) prepared across the verified source. '+
-         visiblePopulated+' actual kg input(s) visible on this page. '+
+         visiblePopulated+' actual kg input(s) populated on this page; first input revealed. '+
          c.workerQualified+' source-qualified candidate(s) reconciled ('+
          c.workerQualifiedPrepared+' newly filled, '+
-         c.workerQualifiedAlreadyDrafted+' existing drafts kept); '+
+         c.workerQualifiedAlreadyDrafted+' existing drafts kept, '+
+         c.manualConflictsPreserved+' manual edit conflicts preserved); '+
          c.preparedUnqualified+' review-only drafts. '+
          c.withoutProposal+' no proposal, '+c.belowThreshold+
          ' below threshold. Applied Weight drafts are not accepted; governed CII remains HELD.');
@@ -573,7 +576,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    }catch(error){
      say('Review not accepted: '+String(error?.message||error)+
        (error?.code?' ['+error.code+']':''),true);
-   }finally{busy=false;}
+   }finally{busy=false;root.dataset.p4Busy='false';applyQueue.drain(active);}
  });
  if(existingWorkflow&&!active)
    say('Build 4 Preview using the existing Build Preview button before reviewing weights. No separate Weight Build is required.',true);

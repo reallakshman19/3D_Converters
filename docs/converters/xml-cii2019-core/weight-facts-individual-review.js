@@ -20,27 +20,43 @@ function ready(session,scopeId,occurrenceId,stage) {
     fail('SOURCE_SCOPE_CONFLICT','A physical occurrence cannot be accepted in a different source');
   return {basis:b,service:r};
 }
-function sourceFacts(service,basisId,sourceId,occurrenceId) {
-  // Walk all source pages; never use a visible/list-limited UI subset.
-  let cursor=null,total=null;const cursors=new Set(),all=[];
-  do{
-    const page=service.getFacts({basisId,sourceId,subjectType:'physical-component',cursor,limit:500});
-    if(!page||page.complete!==true||!Array.isArray(page.items)||
-       !Number.isSafeInteger(page.totalCount)||page.totalCount<1||
-       (total!==null&&total!==page.totalCount)||
-       page.items.some(x=>x.sourceId!==sourceId||x.subjectType!=='physical-component'))
-      fail('INCOMPLETE_SOURCE_FACTS','Selected physical source facts must be complete');
-    total=page.totalCount;all.push(...page.items);
-    cursor=page.nextCursor;
-    if(cursor!==null&&(typeof cursor!=='string'||cursors.has(cursor)))
-      fail('STALE_SOURCE_CURSOR','Unstable physical source page cursor');
-    if(cursor!==null)cursors.add(cursor);
-  }while(cursor!==null);
-  if(all.length!==total)fail('INCOMPLETE_SOURCE_FACTS','Physical source fact population truncated');
-  const facts=all.filter(x=>x.occurrenceId===occurrenceId);
-  if(!facts.length||!facts.some(x=>x.fieldId==='mass.kg'))
-    fail('UNKNOWN_PHYSICAL_OCCURRENCE','Requested identity is not a selected original physical component');
-  return facts;
+// Each immutable GC-PW source census is read once per verified session.
+// Decision revisions and proposal records deliberately remain live.
+const sourceFactIndexes=new WeakMap();
+function sourceFacts(session,service,basisId,sourceId,occurrenceId) {
+ let state=sourceFactIndexes.get(session);
+ if(!state){state={basisId,service,bySource:new Map()};sourceFactIndexes.set(session,state);}
+ else if(state.basisId!==basisId||state.service!==service)
+   fail('STALE_SOURCE_FACT_INDEX','Verified review session changed its source authority');
+ let index=state.bySource.get(sourceId);
+ if(!index){
+   let cursor=null,total=null,count=0;
+   const cursors=new Set(),byOccurrence=new Map();
+   do{
+     const page=service.getFacts({basisId,sourceId,subjectType:'physical-component',cursor,limit:500});
+     if(!page||page.complete!==true||!Array.isArray(page.items)||
+        !Number.isSafeInteger(page.totalCount)||page.totalCount<1||
+        (total!==null&&total!==page.totalCount)||
+        page.items.some(x=>x.sourceId!==sourceId||x.subjectType!=='physical-component'))
+       fail('INCOMPLETE_SOURCE_FACTS','Selected physical source facts must be complete');
+     total=page.totalCount;count+=page.items.length;
+     for(const fact of page.items){
+       const list=byOccurrence.get(fact.occurrenceId)||[];
+       list.push(fact);byOccurrence.set(fact.occurrenceId,list);
+     }
+     cursor=page.nextCursor;
+     if(cursor!==null&&(typeof cursor!=='string'||cursors.has(cursor)))
+       fail('STALE_SOURCE_CURSOR','Unstable physical source page cursor');
+     if(cursor!==null)cursors.add(cursor);
+   }while(cursor!==null);
+   if(count!==total)fail('INCOMPLETE_SOURCE_FACTS','Physical source fact population truncated');
+   // No partial index is published after an invalid page.
+   index=byOccurrence;state.bySource.set(sourceId,index);
+ }
+ const facts=index.get(occurrenceId)||[];
+ if(!facts.length||!facts.some(x=>x.fieldId==='mass.kg'))
+   fail('UNKNOWN_PHYSICAL_OCCURRENCE','Requested identity is not a selected original physical component');
+ return facts;
 }
 function sourceWeight(facts){
   const row=facts.find(f=>f.fieldId==='mass.kg'&&f.authority==='source'&&MASS(f.value));
@@ -48,7 +64,7 @@ function sourceWeight(facts){
 }
 export function readVerifiedIndividualWeightReview(session,{sourceId,occurrenceId,stage='RigidMatch1'}={}) {
   const {basis,service}=ready(session,sourceId,occurrenceId,stage);
-  const facts=sourceFacts(service,basis.basisId,sourceId,occurrenceId);
+  const facts=sourceFacts(session,service,basis.basisId,sourceId,occurrenceId);
   const match1=service.getDecisionState({basisId:basis.basisId,scopeId:sourceId,stage:'RigidMatch1'});
   const final=service.getDecisionState({basisId:basis.basisId,scopeId:sourceId,stage:'Rigidmatch2'});
   const selected=stage==='RigidMatch1'?match1:final;

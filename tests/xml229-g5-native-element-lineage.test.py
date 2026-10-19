@@ -156,5 +156,96 @@ class NativeElementLineageTests(unittest.TestCase):
             self.assertEqual(result["physicalGroups"],1)
             self.assertFalse(result["nativeCiiReleaseAuthorized"])
 
+    def test_actual_native_python_rigid_writer_consumer_with_independent_kg_oracle(self):
+        """Production Python writer, synthetic positive kg witness, NOT Final release."""
+        import sys
+        scripts=ROOT/"converters"/"scripts"
+        if str(scripts) not in sys.path:
+            sys.path.insert(0,str(scripts))
+        import xml_to_cii2019 as native
+        import xml_to_cii2019_patched as patched
+        from xml_cii_weight_output_custody import require_rigid_weight_owners
+
+        def source(kg):
+            return (
+                "<PipeStressExport xmlns='http://aveva.com/pipeStress116.xsd'>"
+                "<Pipe><Branch><Branchname>/PUBLIC-RIGID-OWNER/B1</Branchname>"
+                "<Node><NodeNumber>10</NodeNumber><Position>0 0 0</Position>"
+                "<Endpoint>1</Endpoint><ComponentType>BRAN</ComponentType>"
+                "<ComponentRefNo>PUBLIC/1</ComponentRefNo><OutsideDiameter>610</OutsideDiameter>"
+                "<Weight>0</Weight></Node>"
+                "<Node><NodeNumber>20</NodeNumber><Position>200 0 0</Position>"
+                "<Endpoint>2</Endpoint><ComponentType>RIGID</ComponentType>"
+                "<ComponentRefNo>PUBLIC/2</ComponentRefNo><Rigid>2</Rigid>"
+                f"<Weight>{kg}</Weight><OutsideDiameter>610</OutsideDiameter></Node>"
+                "</Branch></Pipe></PipeStressExport>"
+            )
+
+        for entered_kg,expected_cii_weight in ((35,350),(19.5,195),(0,0)):
+            with self.subTest(entered_kg=entered_kg):
+                with tempfile.TemporaryDirectory() as td:
+                    path=Path(td)/"original.xml"
+                    path.write_text(source(entered_kg),encoding="utf-8")
+                    document=native._parse_xml_document(
+                        path,preserve_rigid_weight_owners=True)
+                    model=patched._build_conversion_model(document,{},{},{})
+                    # Native custody must prove one arrival-owned rigid slot.
+                    require_rigid_weight_owners(path,model)
+                    rows=native._build_rigid_payload(model,weight_scale=10)
+                    self.assertEqual(len(rows),1,"one original physical owner")
+                    emitted=float(rows[0].split()[0])
+                    self.assertEqual(emitted,expected_cii_weight)
+                    native_kg=native._build_rigid_payload(model,weight_scale=1)
+                    self.assertEqual(float(native_kg[0].split()[0]),entered_kg)
+                    self.assertFalse(any(float(line.split()[0])<0 for line in rows))
+        # This test never fabricates an accepted Match-1/Final decision or
+        # marks native CII release authorized. Independent G5 oracle is separate.
+
+    def test_actual_runtime_cli_written_cii_rigid_pointer_and_mass(self):
+        """Invoke the exact native standalone Python runtime CLI, never release."""
+        import sys
+        import subprocess
+
+        native=ROOT/"converters"/"scripts"/"xml_to_cii2019_runtime_custody.py"
+        def xml(kg):
+            return (
+                "<PipeStressExport xmlns='http://aveva.com/pipeStress116.xsd'>"
+                "<Pipe><Branch><Branchname>/PUBLIC-RIGID-OWNER/B1</Branchname>"
+                "<Node><NodeNumber>10</NodeNumber><Position>0 0 0</Position>"
+                "<Endpoint>1</Endpoint><ComponentType>BRAN</ComponentType>"
+                "<ComponentRefNo>PUBLIC/1</ComponentRefNo><OutsideDiameter>610</OutsideDiameter>"
+                "<Weight>0</Weight></Node>"
+                "<Node><NodeNumber>20</NodeNumber><Position>200 0 0</Position>"
+                "<Endpoint>2</Endpoint><ComponentType>RIGID</ComponentType>"
+                "<ComponentRefNo>PUBLIC/2</ComponentRefNo><Rigid>2</Rigid>"
+                f"<Weight>{kg}</Weight><OutsideDiameter>610</OutsideDiameter></Node>"
+                "</Branch></Pipe></PipeStressExport>"
+            )
+        for source_kg in (35,19.5,0):
+            with self.subTest(source_kg=source_kg):
+                with tempfile.TemporaryDirectory() as td:
+                    orig=Path(td)/"source.xml"
+                    out=Path(td)/"native.cii"
+                    orig.write_text(xml(source_kg),encoding="utf-8")
+                    run=subprocess.run([
+                        sys.executable,str(native),"--input",str(orig),
+                        "--output",str(out),"--weight-scale","10",
+                    ],capture_output=True,text=True,timeout=30)
+                    self.assertEqual(run.returncode,0,
+                        "Production native CLI held: "+run.stderr[-1500:])
+                    emitted=out.read_text(encoding="utf-8")
+                    nodes,rigid_to_element=G5.parse_elements(emitted)
+                    self.assertEqual(len(nodes),1)
+                    self.assertEqual(rigid_to_element,{0:0},
+                        "Exactly one native CII ELEMENT must point to rigid slot 1")
+                    slots=G5.sections_from_output(emitted)["RIGID"]
+                    self.assertEqual(len(slots),1)
+                    cii_weight=float(slots[0].split()[0])
+                    self.assertEqual(cii_weight,source_kg*10,
+                        "Independent source kg x one configured scale = emitted CII weight")
+                    self.assertEqual(len(slots[0].split()),2)
+                    # Not an original owner Final review or release attestation;
+                    # merely a differential executable native consumer witness.
+
 if __name__=="__main__":
     unittest.main()
