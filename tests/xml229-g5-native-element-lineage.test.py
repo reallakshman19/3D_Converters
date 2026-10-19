@@ -254,6 +254,15 @@ class NativeMassOwnerInventoryTests(unittest.TestCase):
                 self.assertEqual(report["byComponentType"][kind]["positivePhysicals"],1)
             self.assertEqual(report["byComponentType"]["RIGID"]["explicitRigid2"],1)
             self.assertEqual(report["nativeOwnerRuleRequiredCount"],3)
+            self.assertEqual(report["unresolvedPositiveNativeOwnerKg"],"165")
+            self.assertEqual(report["explicitRigid2SourceKg"],"35")
+            self.assertEqual(report["nativeAggregateDifferenceKgUnderClaimedScale"],"165")
+            self.assertEqual(report["unresolvedOwnerRuleStatus"],
+                             "BLOCKED_MISSING_NATIVE_OWNER_RULE")
+            self.assertTrue(report["aggregateBalanceIsNotLineageProof"])
+            for kind,expected in (("RIGID",0),("VALV",45),("INST",50),("FLAN",70)):
+                self.assertEqual(float(
+                  report["byComponentType"][kind]["needsNativeOwnerRuleKg"]),expected)
             self.assertFalse(report["nativeCiiPhysicalSlotVerified"])
             self.assertFalse(report["physicalMatch2ConsumptionVerified"])
             self.assertFalse(report["nativeCiiReleaseAuthorized"])
@@ -320,6 +329,46 @@ class NativeMassOwnerInventoryTests(unittest.TestCase):
             self.assertNotIn("PUBLIC/1",output.read_text())
             self.assertNotIn("originalOccurrenceId",output.read_text())
             self.assertNotIn("PUBLIC-NATIVE-OWNERS",result.stdout)
+
+    def test_balanced_output_aggregate_cannot_launder_owner_mismatch(self):
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii=self.case(td)
+            # A single forged 2000-unit RIGID would numerically match all
+            # 200 kg in original XML under scale 10, but VALV/INST/FLAN
+            # still have no reviewed native mapping to that rigid pointer.
+            self.assertIn(b"350.000",cii)
+            forged=cii.replace(b"350.000",b"2000.000")
+            report=self.evaluate(transfer,xml,forged)
+            self.assertEqual(report["nativeAggregateDifferenceKgUnderClaimedScale"],"0")
+            self.assertEqual(report["unresolvedPositiveNativeOwnerKg"],"165")
+            self.assertTrue(report["aggregateBalanceIsNotLineageProof"])
+            self.assertEqual(report["coverageStatus"],
+                             "NATIVE_ORIGINAL_OCCURRENCE_TO_OUTPUT_UNVERIFIED")
+            self.assertFalse(report["physicalMatch2ConsumptionVerified"])
+            self.assertFalse(report["nativeCiiReleaseAuthorized"])
+
+    def test_strict_owner_guard_denies_without_emitting_private_output(self):
+        import subprocess
+        import sys
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii=self.case(td)
+            root=Path(td)
+            (root/"r2.json").write_text(json.dumps(transfer))
+            (root/"engine.xml").write_bytes(xml)
+            (root/"native.cii").write_bytes(cii)
+            report=root/"strict-inventory.json"
+            result=subprocess.run([
+                sys.executable,str(ROOT/"scripts/xml229-native-mass-owner-inventory.py"),
+                "--r2-transfer",str(root/"r2.json"),"--engine-xml",str(root/"engine.xml"),
+                "--cii",str(root/"native.cii"),"--weight-scale","10",
+                "--expected-cii-sha256",sha(cii),"--deny-unresolved-mass",
+                "--output",str(report)
+            ],capture_output=True,text=True,timeout=30)
+            self.assertNotEqual(result.returncode,0)
+            self.assertIn("NATIVE_OWNER_RULE_UNRESOLVED",result.stderr)
+            self.assertFalse(report.exists())
+            self.assertNotIn("PUBLIC/1",result.stdout)
+            self.assertNotIn("PUBLIC-NATIVE-OWNERS",result.stderr)
 
     def test_native_cii_units_and_slot_count_witness_are_fail_closed(self):
         with tempfile.TemporaryDirectory() as td:
