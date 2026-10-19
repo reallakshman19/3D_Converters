@@ -67,3 +67,63 @@ test('stale drafts are not silently evicted during repeated input-basis changes'
  assert.equal(inspectXml229SessionWeightDrafts(ref).activeCount,1);
  assert.deepEqual(inspectXml229SessionWeightDrafts(ref).archivedCounts,[1,1,1,1,1,1]);
 });
+
+
+test('each identity field independently fences a stale draft while Worker stays fixed',async t=>{
+ const modifications=[
+   ['workerObject',(entry)=>({...entry,session:{...entry.session}})],
+   ['lease',(entry)=>({...entry,lease:'another-verified-lease'})],
+   ['basisId',(entry)=>({...entry,session:{...entry.session,receipt:{...entry.session.receipt,basisId:'b'.repeat(64)}}})],
+   ['sourceId',(entry)=>({...entry,session:{...entry.session,receipt:{...entry.session.receipt,sourceId:'ANOTHER_PUBLIC_SOURCE'}}})],
+   ['sourceGenerationId',(entry)=>({...entry,session:{...entry.session,receipt:{...entry.session.receipt,sourceGenerationId:'generation-2'}}})],
+   ['originalJsonSha256',(entry)=>({...entry,session:{...entry.session,receipt:{...entry.session.receipt,originalJsonSha256:'c'.repeat(64)}}})],
+ ];
+ for(const [field,change] of modifications){
+   await t.test(field,()=>{
+     const ref={},entry={session:mk(),lease:'public-lease'};
+     const old=openXml229SessionWeightDrafts(ref,entry);
+     old.drafts.set('same-canonical-occurrence',{value:'91.25',skippedWeight:false});
+     const variant=change(entry);
+     if(field!=='workerObject'){
+       // Test each receipt/lease guard while keeping the original Worker
+       // object fixed: replacement of the object itself can mask omissions.
+       if(field!=='lease'){
+         entry.session.receipt=variant.session.receipt;
+         variant.session=entry.session;
+       }
+       assert.strictEqual(variant.session,entry.session);
+     }
+     const current=openXml229SessionWeightDrafts(ref,variant);
+     assert.notStrictEqual(current,old,field+' failed to create a new active workspace');
+     assert.deepEqual([...current.drafts],[]);
+     assert.deepEqual(inspectXml229SessionWeightDrafts(ref).archivedCounts,[1]);
+     old.drafts.set('late-reply',{value:'33'});
+     assert.equal(current.drafts.has('late-reply'),false);
+     assert.deepEqual(inspectXml229SessionWeightDrafts(ref).archivedCounts,[1]);
+   });
+ }
+});
+
+test('Mode A wrappers reuse the same stable base stateRef and exact session',()=>{
+ const baseRef={},first={modeABaseRef:baseRef,current:{activePhaseId:'weight-match'}};
+ const second={modeABaseRef:baseRef,current:{activePhaseId:'preview'}};
+ const entry={session:mk(),lease:'one-verified-lease'};
+ const original=openXml229SessionWeightDrafts(first,entry);
+ original.drafts.set('canonical',{value:'17',proposalId:'p',autoFilled:true});
+ const next=openXml229SessionWeightDrafts(second,entry);
+ assert.strictEqual(next,original);
+ assert.equal(next.drafts.get('canonical').value,'17');
+ assert.deepEqual(inspectXml229SessionWeightDrafts(second).archivedCounts,[]);
+});
+
+test('different application base refs never share draft workspace, even with identical Worker',()=>{
+ const session=mk(),entry={session,lease:'shared-test-lease'};
+ const left={modeABaseRef:{}},right={modeABaseRef:{}};
+ const first=openXml229SessionWeightDrafts(left,entry);
+ first.drafts.set('same-id',{value:'19',skippedWeight:true});
+ const other=openXml229SessionWeightDrafts(right,entry);
+ assert.notStrictEqual(other,first);
+ assert.equal(other.drafts.has('same-id'),false);
+ assert.equal(inspectXml229SessionWeightDrafts(right).activeCount,0);
+ assert.equal(inspectXml229SessionWeightDrafts(left).activeCount,1);
+});

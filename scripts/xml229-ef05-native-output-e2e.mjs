@@ -590,6 +590,69 @@ try{
     null,{timeout:60000});
   record.passes.push('switch to governed restores native O1 HOLD');
   assert.deepEqual(record.pageErrors,[]);
+
+  // Real changed-input contrast AFTER normal output readback. Only supported
+  // source/master UI actions; never synthesize or inject Worker decisions.
+  // Preserve the 419 prior canonical-ID edits as an in-process oracle.
+  const alternateLineList=lineListVariant==='bc4-json'
+    ?'docs/Masters/ImportedRawLineListLL.xlsx'
+    :'tests/fixtures/xml229/BC4.LineList.json';
+  await page.locator('[data-phase="source"]').click();
+  await page.locator('[data-sub-tab="linelist"]').click();
+  await page.locator('input[data-master-file="lineList"]').setInputFiles(alternateLineList);
+  await page.locator('[data-master-mapping-status="lineList"]')
+    .filter({hasText:'Mapping status: APPLIED'}).waitFor({timeout:120000});
+  await page.locator('[data-phase="preview"]').click();
+  const expectedAlternateRows=lineListVariant==='bc4-json'?801:385;
+  await page.waitForFunction(expected=>{
+    const inventory=document.querySelector('#mc-preview-table-host')?.parentElement?.textContent||'';
+    return inventory.includes('Line List: '+expected+' row(s)');
+  },expectedAlternateRows,{timeout:120000});
+  await page.locator('#mc-preview-table-host [data-mc-preview-build]').first().click();
+  await page.waitForFunction(oldBasis=>{
+    const host=document.querySelector('#mc-preview-table-host');
+    return host?.dataset.mcPreviewJsonSource==='P4_ENGINEERING_VERIFIED'&&
+      host.dataset.mcPreviewBasisId&&host.dataset.mcPreviewBasisId!==oldBasis&&
+      host.querySelector('[data-mc-preview-build]')?.disabled===false;
+  },beforeWorker.basisId,{timeout:420000});
+  await page.locator('[data-phase="weight-match"]').click();
+  await page.waitForFunction(oldBasis=>{
+    const root=document.querySelector('[data-p4-weight-root]');
+    const witness=window.__xml229WorkspaceLiveReview;
+    return root?.dataset.p4Busy==='false'&&
+      root?.__p4VisibleRows?.length>0&&
+      witness?.session?.receipt?.basisId!==oldBasis;
+  },beforeWorker.basisId,{timeout:120000});
+  const changedWorker=await page.evaluate(async()=>{
+    const witness=window.__xml229WorkspaceLiveReview;
+    const proof=await witness.session.readCompletion();
+    return {sameSession:witness.session===window.__xml229WorkspaceFirstSession,
+      basisId:witness.session.receipt.basisId,
+      lease:witness.lease,sourceGenerationId:witness.session.receipt.sourceGenerationId,
+      counts:proof.counts,stageRevisions:proof.stageRevisions};
+  });
+  assert.equal(changedWorker.sameSession,false,'changed master retained old Worker');
+  assert.notEqual(changedWorker.basisId,beforeWorker.basisId,'changed master reused stale InputBasis');
+  assert.notEqual(changedWorker.lease,beforeWorker.lease,'changed master reused stale input lease');
+  assert.deepEqual(changedWorker.counts,beforeWorker.counts,
+    'changed Line List import unexpectedly committed engineering decisions');
+  const onChangedBasis=await collectEditable();
+  const overlapping=[...beforeNav].filter(([id])=>onChangedBasis.has(id));
+  assert(overlapping.length>0,'changed-basis fixture has no comparable canonical occurrences');
+  const leaked=overlapping.filter(([id])=>onChangedBasis.get(id)!=='');
+  record.stages.workspaceChangedBasis={
+    inputChange:'opposite public Line List variant imported through Source & Master',
+    beforeFocused:beforeNav.size,afterFocused:onChangedBasis.size,
+    overlapping:overlapping.length,staleDraftsVisible:leaked.length,
+    workerReplaced:true,basisChanged:true,leaseChanged:true,
+    acceptedReviewCountsUnchanged:true,nativeCiiReleaseAuthorized:false};
+  assert.equal(leaked.length,0,
+    'Stale Applied Weight drafts activated in replacement Worker basis: '+leaked.length);
+  await page.locator('[data-phase="run"]').click();
+  await page.locator('[data-action="xml229-output-participation"]').waitFor();
+  assert.equal(await page.locator('[data-action="xml229-output-participation"]').inputValue(),'governed');
+  assert.equal(await page.locator('[data-action="run"]').isDisabled(),true);
+  record.passes.push('real alternate public Line List rebuild replaces Worker/basis and never reactivates old drafts');
   record.ok=true;
 }catch(error){
   record.failures.push(String(error?.stack||error).slice(0,2800));
