@@ -578,6 +578,114 @@ class NativeMassOwnerInventoryTests(unittest.TestCase):
             self.assertNotIn("PUBLIC/1",private.read_text())
             self.assertNotIn("PUBLIC-NATIVE-OWNERS",run.stdout)
 
+    def observed_case(self, td, *, flange_case="matched"):
+        import subprocess
+        import sys
+        transfer,xml,cii=self.case(td,flange_case=flange_case)
+        root=Path(td)
+        witness=root/"private-retained-edges.json"
+        native_output=root/"model-emitted.cii"
+        result=subprocess.run([
+            sys.executable,str(ROOT/"scripts/xml229-native-retained-edge-observer.py"),
+            "--engine-xml",str(root/"engine.xml"),
+            "--cii-out",str(native_output),
+            "--private-witness-out",str(witness),
+            "--weight-scale","10",
+        ],capture_output=True,text=True,timeout=40)
+        self.assertEqual(result.returncode,0,result.stderr[-1800:])
+        self.assertEqual(native_output.read_bytes(),cii,
+            "Passive observer must call exactly the unchanged production runtime")
+        captured=json.loads(witness.read_text())
+        self.assertEqual(captured["ciiSha256"],sha(cii))
+        self.assertEqual(captured["engineInputSha256"],sha(xml))
+        self.assertNotIn("PUBLIC/1",result.stdout)
+        self.assertNotIn("PUBLIC/1",result.stderr)
+        return transfer,xml,cii,captured
+
+    def verify_observed(self,transfer,xml,cii,witness):
+        return INV.challenge_retained_native_edges(
+            transfer,xml,cii,witness,weight_scale="10",
+            expected_cii_sha256=sha(cii))
+
+    def test_real_native_runtime_retained_edges_bind_to_actual_rigid_slots(self):
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii,witness=self.observed_case(td,flange_case="matched")
+            result=self.verify_observed(transfer,xml,cii,witness)
+            self.assertEqual(result["sourcePhysicalCount"],4)
+            self.assertEqual(result["sourcePhysicalsWithUniqueRetainedArrival"],4)
+            self.assertEqual(result["nativePositiveRigidOwnersBoundToR2"],2)
+            self.assertEqual(float(result["nativePositiveRigidKgBoundToR2"]),105)
+            self.assertEqual(float(result["unrepresentedOriginalKg"]),95)
+            self.assertEqual(result["nativeRigidCount"],2)
+            self.assertFalse(result["independentRuntimeAuthorVerified"])
+            self.assertFalse(result["nativeCiiPhysicalSlotVerified"])
+            self.assertFalse(result["physicalMatch2ConsumptionVerified"])
+            self.assertFalse(result["nativeCiiReleaseAuthorized"])
+            self.assertNotIn("originalOccurrenceId",json.dumps(result))
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii,witness=self.observed_case(td,flange_case="mismatched")
+            result=self.verify_observed(transfer,xml,cii,witness)
+            self.assertEqual(result["nativePositiveRigidOwnersBoundToR2"],1)
+            self.assertEqual(float(result["nativePositiveRigidKgBoundToR2"]),35)
+            self.assertEqual(float(result["unrepresentedOriginalKg"]),165)
+
+    def test_model_observation_rejects_source_swaps_and_output_drift(self):
+        import copy
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii,witness=self.observed_case(td,flange_case="matched")
+            def deny(code,w):
+                self.rejected(code,lambda:self.verify_observed(transfer,xml,cii,w))
+            changed=copy.deepcopy(witness)
+            changed["ciiSha256"]="f"*64
+            deny("RETAINED_OBSERVATION_CUSTODY_DRIFT",changed)
+            changed=copy.deepcopy(witness)
+            changed["edges"][0]["ciiToNode"]=999
+            deny("RETAINED_EDGE_TO_OUTPUT_DRIFT",changed)
+            changed=copy.deepcopy(witness)
+            changed["edges"][0]["rigidRecordIndex"]=1
+            deny("RETAINED_EDGE_TO_OUTPUT_DRIFT",changed)
+            changed=copy.deepcopy(witness)
+            changed["edges"][0]["to"]["weightKg"]="36"
+            deny("RETAINED_EDGE_MASS_DRIFT",changed)
+            changed=copy.deepcopy(witness)
+            changed["edges"][0]["to"]["sourceNodeNumber"]=999
+            deny("RETAINED_POSITIVE_RIGID_WITHOUT_R2_OWNER",changed)
+            changed=copy.deepcopy(witness)
+            changed["edges"][0]["to"]["componentRefNo"]="PUBLIC/FOREIGN"
+            deny("RETAINED_POSITIVE_RIGID_WITHOUT_R2_OWNER",changed)
+            changed=copy.deepcopy(witness)
+            changed["edges"][0]["to"]["position"]=["201","0","0"]
+            deny("RETAINED_POSITIVE_RIGID_WITHOUT_R2_OWNER",changed)
+            changed=copy.deepcopy(witness)
+            changed["edges"].pop()
+            deny("RETAINED_EDGE_POPULATION_DRIFT",changed)
+
+    def test_retained_observation_owner_local_cli_uses_only_aggregates(self):
+        import subprocess
+        import sys
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii,witness=self.observed_case(td,flange_case="matched")
+            root=Path(td)
+            (root/"r2.json").write_text(json.dumps(transfer))
+            private=root/"inventory-with-retained.json"
+            cli=subprocess.run([
+              sys.executable,str(ROOT/"scripts/xml229-native-mass-owner-inventory.py"),
+              "--r2-transfer",str(root/"r2.json"),
+              "--engine-xml",str(root/"engine.xml"),
+              "--cii",str(root/"model-emitted.cii"),
+              "--weight-scale","10","--expected-cii-sha256",sha(cii),
+              "--private-retained-edge-observation",str(root/"private-retained-edges.json"),
+              "--output",str(private),
+            ],capture_output=True,text=True,timeout=30)
+            self.assertEqual(cli.returncode,0,cli.stderr[-1800:])
+            output=private.read_text()
+            report=json.loads(output)["retainedEdgeChallenge"]
+            self.assertEqual(report["nativePositiveRigidOwnersBoundToR2"],2)
+            self.assertFalse(report["nativeCiiReleaseAuthorized"])
+            self.assertNotIn("originalOccurrenceId",output)
+            self.assertNotIn("PUBLIC/1",output)
+            self.assertNotIn("PUBLIC-NATIVE-OWNERS",cli.stdout)
+
     def test_native_cii_units_and_slot_count_witness_are_fail_closed(self):
         with tempfile.TemporaryDirectory() as td:
             transfer,xml,cii=self.case(td)
