@@ -121,6 +121,7 @@ export async function runXml229NonreleasingNativeCandidate({
       const nativeResult=await runEngine({
         ...engineJob,sourceText:prepared.engineInputXmlText,
         stagedJsonText:'',xml229NativeCandidateWitness:true,
+        xml229CandidateStageHook:stage,
         options:{...engineJob.options,outputMode:'cii-only'},
       });
       stage('NATIVE_PYODIDE_RETURNED');
