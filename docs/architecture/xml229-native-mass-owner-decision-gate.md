@@ -171,6 +171,70 @@ wrong endpoints, altered individual emitted mass, and a positive output
 slot omitted from the claims. Those exercises do **not** create reviewed
 Final rows or a signoff.
 
+## Production retained-edge observation (non-releasing, Owner-local)
+
+The native Python runtime's retained `ConversionModel` is an additional
+custody boundary. A synthetic source node can be pruned or renumbered before
+`ELEMENTS` and `RIGID` are emitted; a pre-conversion `Rigid=2` or
+same-reference `RIGID→FLAN` predicate is not proof of a retained edge.
+
+The separate diagnostic
+`scripts/xml229-native-retained-edge-observer.py` invokes the **unchanged**
+`xml_to_cii2019_runtime_custody.py` with *only* exact enriched engine XML,
+output CII path and declared weight scale. It intercepts the final model
+just before CII serialization and writes an Owner-local witness containing
+the retained edges' native element indexes, rigid indexes, endpoints,
+post-cleanup runtime/source node numbers, owner component types and masses.
+It requires actual output bytes and the full emitted CII pointer/mass records
+to match the captured model. The original model witness contains sensitive
+physical identifiers: it is created **exclusively** with mode `0600` on
+POSIX; an existing witness is never overwritten. Do not upload this witness,
+Owner source XML, or R2 original occurrence mappings to public CI or GitHub.
+
+For a controlled input, run:
+
+```bash
+python3 scripts/xml229-native-retained-edge-observer.py \
+  --engine-xml /PRIVATE/R2-enriched-engine.xml \
+  --cii-out /PRIVATE/native-output.cii \
+  --private-witness-out /PRIVATE/retained-edges.json \
+  --weight-scale 10
+```
+
+The ordinary inventory then accepts the optional
+`--private-retained-edge-observation /PRIVATE/retained-edges.json` with
+the matching R2 transfer, engine XML, CII bytes and expected CII SHA.
+It independently checks the runtime observation hashes, every emitted
+CII ELEMENTS endpoint and RIGID pointer, and every positive native
+RIGID mass. For each retained positive owner it also requires a
+**unique original R2 node match** (source node number, branch,
+component type/reference/endpoint and XYZ position), exact original
+engine mass, and an independently located original *upstream*
+node within the same branch whose type/reference/position matches the
+retained upstream node. The original source Rigid or same-reference
+RIGID→FLAN predicate must justify a positive rigid slot. If a native
+split, cleanup, overlapping component signature, or ambiguous source
+node prevents a unique original-edge link, the checker **fails closed**.
+This intentionally conservative 1:1 witness cannot infer split allocations.
+
+The returned aggregate `retainedEdgeChallenge` may report matched and
+unrepresented kilograms, but never original physical IDs. It always sets
+`independentRuntimeAuthorVerified:false`,
+`independentOriginalToNativeGeometryVerified:false`,
+`physicalMatch2ConsumptionVerified:false`,
+`nativeCiiPhysicalSlotVerified:false`, and
+`nativeCiiReleaseAuthorized:false`.
+The observation is first-party native-runtime data—not independent
+engineering approval or a separately authored G5 source oracle.
+Only an independent original-Final→retained-edge/split lineage and
+separate Owner release review can advance governed Output/Run.
+
+Controlled exact-runtime tests cover direct RIGID35 and same-reference
+FLAN70 mapping to two distinct emitted CII slots, separately unmatched
+VALV45 and INST50, wrong-reference FLAN, forged upstream source identity,
+type, reference, position, emitted pointer, individual mass, and private
+witness file protection. None modifies native converter logic.
+
 **EXACT_NEXT_ACTION:** Owner/engineering supplies approved per-class physical
 mass-owner geometry and representation. Implement a separate, tightly scoped
 native release candidate with an independently produced complete lineage and
