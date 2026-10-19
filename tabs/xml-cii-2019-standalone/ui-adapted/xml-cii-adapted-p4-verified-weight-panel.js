@@ -682,6 +682,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
          err('MATCH1_ALREADY_HAS_DECISION','Existing Match-1 decision cannot be overwritten from simple table');
        if(wanted==='final'&&row.finalView?.stageDecision)
          err('FINAL_ALREADY_HAS_DECISION','Existing Final decision cannot be overwritten from simple table');
+       if(wanted==='final'&&!(Number(row.match1Kg)>0||Number(row.sourceKg)>0))
+         err('FINAL_PRECURSOR_REQUIRED',
+           'Review a positive source or Match-1 mass before independent Final acceptance');
        const family=auditXml229AcceptedMatch1Row(row);
        if(wanted==='final'&&family&&family.code!=='FAMILY_COMPATIBLE_ONLY')
          err('FAMILY_ENGINEERING_HOLD',
