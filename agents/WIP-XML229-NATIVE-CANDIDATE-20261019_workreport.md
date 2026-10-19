@@ -25,3 +25,16 @@ Owner instruction: start fixing production wiring after PR #311 source-level rev
 - Missing, forged, stale, incomplete or changed source/review evidence denies engine execution.
 - Normal Run continues held and no candidate CII bytes escape.
 - Hosted CI, independent reviewer and real Chromium qualification needed before merge.
+
+## WP3 — actual retained-model / native CII integration (2026-10-19)
+
+Extended the SAME draft on top of source-correct R2 Final-to-engine XML transfer:
+
+- Candidate-only Python CLI switch writes a private JSON witness of the actual retained native edges and each emitted ELEMENTS-to-RIGID pointer. It reads real CII sections, verifies pointer uniqueness, no unreferenced RIGID records, native endpoints and scale consistency.
+- Ordinary Python converter output does not change without the optional witness switch. Controlled real Python CLI regression compares candidate and ordinary CII bytes for RIGID/VALV/INST.
+- Pyodide engine loads/reads the candidate sidecar only when requested. The ordinary normalized workflow drops the private witness; original identities and native CII bytes do not enter UI state.
+- Independent JS challenge parses actual CII CONTROL, ELEMENTS, RIGID and UNITS; checks the first-party retained model witness against emitted CII bytes, SHA and the full R2 source physical census. Matches by branch, original/native node source number, component type/ref, endpoint and position.
+- Physical owners without native mass are classified as RETAINED_OWNER_NOT_FOUND, AMBIGUOUS_RETAINED_EDGE or NATIVE_MASS_RULE_REQUIRED. Unclaimed positive native slots are separately counted. UI shows observed/unresolved aggregates; all native release flags remain false.
+- No automatic RIGID fabrication for VALV, INST or unmatched FLAN. No native mass-writing/geometry policy changed.
+
+Evidence limit: a first-party runtime witness + independent second-path CII structural readback is real application integration, but is NOT an independently authored G5/I03 source-to-retained child lineage or Owner's complete private basis acceptance. Draft, nonreleasing.
