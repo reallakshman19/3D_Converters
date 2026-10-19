@@ -185,12 +185,20 @@ try{
   assert.match(afterNavigation,/Existing verified Preview facts/);
   assert.doesNotMatch(afterNavigation,/stale/i);
 
-  // Production table exposes no Match-1/Final accept buttons. A manually
-  // edited Applied Weight is a draft only and cannot grant governed CII.
-  assert.equal(await page.locator('[data-p4-accept-match1],[data-p4-accept-final],[data-p4-reason],[data-p4-candidate]').count(),0);
+  // Current Weight review controls must be present, but an Applied Weight
+  // change is still just a source-bound draft. Only a separately prepared
+  // confirmation may authorize a Worker-held Match-1 or Final decision.
+  assert.equal(await page.locator('[data-p4-accept-match1],[data-p4-accept-final],[data-p4-candidate]').count(),0);
+  assert.ok(await page.locator('[data-p4-reason]').count()>0);
+  assert.ok(await page.locator('[data-p4-review-match1]').count()>0);
+  assert.ok(await page.locator('[data-p4-review-final]').count()>0);
+  assert.equal(await page.locator('[data-p4-confirm-single]').isHidden(),true);
   const editable=page.locator('tr[data-p4-row] [data-p4-applied-weight]').first();
+  const draftOccurrence=await page.locator('tr[data-p4-row]').first().getAttribute('data-p4-occurrence');
   await editable.fill('35');
   assert.equal(await editable.inputValue(),'35');
+  assert.equal(await page.locator('[data-p4-confirm-single]').isHidden(),true,
+    'entering a draft cannot prepare or accept a review');
   const reviewedOccurrence=null;
   record.stages.appliedWeightDraftOnly=true;
   // The existing Preview Build must reuse the same canonical GC-PW basis,
@@ -232,6 +240,10 @@ try{
   assert.equal(record.stages.repeatBasis,firstBasis,'same source/master Build replaced the reviewed InputBasis');
   await page.locator('[data-phase="weight-match"]').click();
   await page.locator('tr[data-p4-row]').first().waitFor({timeout:120000});
+  assert.equal(await page.locator('tr[data-p4-row]').first().getAttribute('data-p4-occurrence'),draftOccurrence);
+  assert.equal(await page.locator('tr[data-p4-row] [data-p4-applied-weight]').first().inputValue(),'35',
+    'same source/master verified InputBasis must preserve unapproved draft weight');
+  assert.equal(await page.locator('[data-p4-confirm-single]').isHidden(),true);
   if(reviewedOccurrence){
     const retained=await page.evaluate(occurrence=>{
       const row=[...document.querySelectorAll('tr[data-p4-row]')]
