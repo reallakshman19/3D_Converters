@@ -89,12 +89,13 @@ function valueFor(item, header) {
   return item?.[key] ?? item?.[header];
 }
 
-function reportFromState(state) {
-  // Never trust an old stored legacy report for a selected governed O1 source.
-  // This conservative baseline is replaced only after a live verified Worker
-  // read; its native CII release HOLD is preserved throughout.
+function reportFromState(state,stateRef) {
+  // Derive a conservative baseline from the SAME stable live stateRef used
+  // by Preview and Weight; cached reports never supply engineering proof.
+  const session=getXml229CurrentWorkerHeldReview(stateRef);
+  const sessionState=session?(session.closed?'CLOSED':'LIVE'):'MISSING';
   return hasOriginalJsonSourceOnlyRunHold(state)
-    ? buildStandaloneOutputRunReadiness(state)
+    ? buildStandaloneOutputRunReadiness(state,{sessionState})
     : state.outputRunReadinessReport || buildStandaloneOutputRunReadiness(state);
 }
 
@@ -679,6 +680,6 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
       });
     }
   };
-  paint(reportFromState(state));
+  paint(reportFromState(state,stateRef));
   projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint);
 }
