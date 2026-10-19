@@ -10,6 +10,7 @@ import {auditXml229CrossWorkerFlowTrace}
 
 export const XML229_RUN_HOLD_AUDIT_SCHEMA='XML229.RunHoldAudit.v1';
 const whole=n=>Number.isSafeInteger(n)&&n>=0;
+const SHA=/^[0-9a-f]{64}$/i;
 const safeCode=v=>typeof v==='string'&&/^[A-Z][A-Z0-9_]{2,79}$/.test(v)
   ?v:'UNCLASSIFIED_READ_FAILURE';
 const count=v=>whole(v)?v:null;
@@ -31,7 +32,10 @@ function sourceSnapshot(input){
     (!digestMatch(own.sha256,receipts[0].sha256)||
      !digestMatch(own.generationId,receipts[0].generationId)))
     issue='SOURCE_RECEIPT_DRIFT';
-  else if(candidate?.schema!=='XML229.OriginalStagedSourceReceipt.v1')
+  else if(candidate?.schema!=='XML229.OriginalStagedSourceReceipt.v1'||
+    !SHA.test(candidate.sha256||'')||
+    typeof candidate.generationId!=='string'||!candidate.generationId||
+    candidate.phase!=='INDEX_COMMITTED')
     issue='SOURCE_RECEIPT_UNVERIFIED';
   const expectedSourceId=enabled[0]?.sourceId||
     input?.modeASourceId||input?.sourceBatch?.activeSourceId||'';
