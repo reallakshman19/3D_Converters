@@ -229,6 +229,12 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    async attestEngineInput({engineInputXmlText}={}){
      return rpc({kind:'read',what:'attest-engine-input',sourceId,engineInputXmlText});
    },
+   async prepareEngineInputMasses({engineInputXmlText}={}){
+     // Worker-local approved mass writer and exact post-write R2 attestation;
+     // never mutates GC-PW decisions or grants CII release.
+     return rpc({kind:'read',what:'materialize-native-engine-input',
+       sourceId,engineInputXmlText});
+   },
    async readPage({offset=0,limit=25,filter='all',query=''}={}){
      return rpc({kind:'read',what:'page',sourceId,offset,limit,filter,query});
    },
