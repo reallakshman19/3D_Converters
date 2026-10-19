@@ -256,7 +256,7 @@ class NativeMassOwnerInventoryTests(unittest.TestCase):
             self.assertEqual(report["nativeOwnerRuleRequiredCount"],3)
             self.assertEqual(report["unresolvedPositiveNativeOwnerKg"],"165")
             self.assertEqual(report["explicitRigid2SourceKg"],"35")
-            self.assertEqual(report["nativeAggregateDifferenceKgUnderClaimedScale"],"165")
+            self.assertEqual(float(report["nativeAggregateDifferenceKgUnderClaimedScale"]),165)
             self.assertEqual(report["unresolvedOwnerRuleStatus"],
                              "BLOCKED_MISSING_NATIVE_OWNER_RULE")
             self.assertTrue(report["aggregateBalanceIsNotLineageProof"])
@@ -339,7 +339,7 @@ class NativeMassOwnerInventoryTests(unittest.TestCase):
             self.assertIn(b"350.000",cii)
             forged=cii.replace(b"350.000",b"2000.000")
             report=self.evaluate(transfer,xml,forged)
-            self.assertEqual(report["nativeAggregateDifferenceKgUnderClaimedScale"],"0")
+            self.assertEqual(float(report["nativeAggregateDifferenceKgUnderClaimedScale"]),0)
             self.assertEqual(report["unresolvedPositiveNativeOwnerKg"],"165")
             self.assertTrue(report["aggregateBalanceIsNotLineageProof"])
             self.assertEqual(report["coverageStatus"],
