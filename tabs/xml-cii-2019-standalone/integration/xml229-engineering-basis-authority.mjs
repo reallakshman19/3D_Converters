@@ -29,7 +29,7 @@ export function getXml229VerifiedEngineeringEntry(ref){
  // Bump generation to fence any late build; never re-attest or restore
  // Match-1/Final decisions without the explicit source-bound rebuild.
  if(entry.session.closed===true){
-  entries.set(key,{generation:entry.generation+1,session:null,lease:null,closedReview:true});
+  entries.set(key,{generation:entry.generation+1,session:null,lease:null,closedReview:true,reason:'WORKER_CLOSED'});
   return null;
  }
  return entry;
@@ -42,7 +42,7 @@ export function beginXml229VerifiedEngineeringBuild(ref){
  const key=requireKey(ref),previous=entries.get(key);
  safelyCancel(previous?.session);
  const generation=(previous?.generation||0)+1;
- entries.set(key,{generation,session:null,lease:null,
+ entries.set(key,{generation,session:null,lease:null,reason:previous?.session?'WORKER_REPLACED':'BUILD_STARTED',
   closedReview:previous?.closedReview===true||Boolean(previous?.session)});
  return Object.freeze({key,generation});
 }
@@ -55,14 +55,14 @@ export function publishXml229VerifiedEngineeringBuild(ticket,{lease,session}={})
   safelyCancel(session);
   return false;
  }
- entries.set(ticket.key,Object.freeze({generation:ticket.generation,lease,session}));
+ entries.set(ticket.key,Object.freeze({generation:ticket.generation,lease,session,reason:'WORKER_PUBLISHED'}));
  return true;
 }
 export function revokeXml229VerifiedEngineeringBasis(ref,{expectedSession}={}){
  const key=keyOf(ref),entry=key&&entries.get(key);
  if(!entry||expectedSession&&entry.session!==expectedSession)return false;
  safelyCancel(entry.session);
- entries.set(key,{generation:entry.generation+1,session:null,lease:null});
+ entries.set(key,{generation:entry.generation+1,session:null,lease:null,reason:'WORKER_REVOKED'});
  return true;
 }
 /**
@@ -86,4 +86,21 @@ export function routeXml229AutomaticEngineeringProposal(ref,{proposal,commit,sta
  }
  commit(proposal);
  return 'COMMITTED';
+}
+
+/** Diagnostic only: no session, lease value, identity, source or master data. */
+export function inspectXml229EngineeringLease(ref){
+ const key=keyOf(ref),entry=key&&entries.get(key);
+ const reason=!entry?'NEVER_BUILT':
+   entry.session?.closed===true?'WORKER_CLOSED':
+   entry.session?'WORKER_PUBLISHED':
+   entry.reason||'NO_BOUND_WORKER';
+ return Object.freeze({
+  schema:'XML229.EngineeringLeaseDiagnosis.v1',
+  reason,sessionBound:!!entry?.session&&entry.session.closed!==true,
+  generation:Number.isSafeInteger(entry?.generation)?entry.generation:0,
+  leasePresent:typeof entry?.lease==='string'&&entry.lease.length>0,
+  // Never releases a review or native CII; cannot restore missing authority.
+  nativeCiiReleaseAuthorized:false,
+ });
 }

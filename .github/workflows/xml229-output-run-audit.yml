@@ -1,0 +1,50 @@
+name: XML229 Run HOLD audit
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/**'
+      - 'docs/tabs/xml-cii-2019-standalone/**'
+      - 'contracts/xml229-flow-trace-v1/**'
+      - 'docs/contracts/xml229-flow-trace-v1/**'
+      - 'tests/xml229-run-hold-audit.test.mjs'
+      - 'tests/xml229-output-run-audit-browser.mjs'
+      - '.github/workflows/xml229-output-run-audit.yml'
+  push:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/**'
+      - 'docs/tabs/xml-cii-2019-standalone/**'
+      - 'contracts/xml229-flow-trace-v1/**'
+      - 'docs/contracts/xml229-flow-trace-v1/**'
+      - 'tests/xml229-run-hold-audit.test.mjs'
+      - 'tests/xml229-output-run-audit-browser.mjs'
+      - '.github/workflows/xml229-output-run-audit.yml'
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Audit and canonical Worker regression contracts
+        run: node --test tests/xml229-run-hold-audit.test.mjs tests/xml-cii-229-canonical-readiness-worker.test.mjs tests/xml-cii-229-engineering-basis-authority.test.mjs tests/xml229-cross-worker-flow-audit.test.mjs
+  chromium:
+    needs: node
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Root and docs audit JSON download
+        run: node tests/xml229-output-run-audit-browser.mjs

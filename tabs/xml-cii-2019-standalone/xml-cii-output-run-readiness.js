@@ -2,6 +2,7 @@ import { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect
 import { xmlCiiBranchScopeFromState } from './xml-cii-branch-scope.js';
 import { auditConfiguredBranchFormats } from './xml-cii-branch-format-release.js';
 import { projectXml229RunChecklist } from './integration/xml229-verified-output-readiness.mjs';
+import {buildXml229RunHoldAudit} from './integration/xml229-run-hold-audit.mjs';
 import { hasXml229GovernedNativeHold, isXml229XmlOnlyApproved } from './integration/xml229-output-participation.mjs';
 
 function text(value) { return String(value ?? '').trim(); }
@@ -240,12 +241,27 @@ function readinessDiagnostics(checklistRows) {
   return checklistRows.filter((item) => item.blocking || item.severity === 'warning').map((item) => ({ level: item.blocking ? 'error' : 'warning', source: 'output-run', type: item.id, message: item.message }));
 }
 
-export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineering = null} = {}) {
+export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineering = null,sessionState = 'UNKNOWN',leaseDiagnosis = null} = {}) {
   // Recompose one report from one checklist. No DOM-only patches: logs, counts,
   // diagnostics and the Run button all see identical source-bound status.
   const projection = projectXml229RunChecklist(
     input,buildOutputRunChecklist(input),verifiedEngineering);
-  const checklistRows = projection.rows;
+  // The native-release HOLD is a policy boundary, not a diagnosis that
+  // Weight is missing. Attach a separately derived first-unverified boundary
+  // to the exact same canonical report, never to a DOM-only replacement row.
+  const holdAudit = buildXml229RunHoldAudit({
+    input,report:{checklistRows:projection.rows},sessionState,leaseDiagnosis,
+    sessionReceipt:verifiedEngineering?.sessionReceipt,
+    completion:verifiedEngineering?.proof,
+    readError:verifiedEngineering?.readError,
+  });
+  const checklistRows = projection.rows.map(item=>
+    item.id==='xml229-original-json-engineering-authority'&&item.blocking
+      ?{...item,message:item.message+' Audit diagnosis: '+
+          holdAudit.diagnosisCode+'. See Run HOLD audit trail below.',
+        detail:JSON.stringify({schema:holdAudit.schema,diagnosisCode:holdAudit.diagnosisCode,
+          firstUnverifiedBoundary:holdAudit.firstUnverifiedBoundary})}
+      :item);
   const manifest = buildRunManifest(input);
   const artifactRows = buildOutputArtifactRows(input, manifest);
   const blockingCount = checklistRows.filter((item) => item.blocking).length;
@@ -262,6 +278,7 @@ export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineeri
     logRows: logRows(input, checklistRows),
     manifest,
     diagnostics: readinessDiagnostics(checklistRows),
+    runHoldAudit:holdAudit,
     raw: { resultOk: input.result?.ok === true, sourceKind: input.sourceKind || 'auto',
       xml229VerifiedEngineering: projection.verified,
       xml229XmlOnlyOutput: isXml229XmlOnlyApproved(input) },
