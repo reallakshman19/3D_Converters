@@ -5,6 +5,10 @@ import { updateWorkflowOptions, applyStandaloneOutputRunReadiness, updateWorkflo
 import { deriveLineKeyFromBranchName } from '../../../converters/xml-cii2019-core/regex-line-key.js';
 import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
 import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
+import {buildXml229NonreleasingCandidateJobFromUiState}
+  from '../xml-cii-workflow-ui-adapter.js';
+import {runXml229NonreleasingNativeCandidate}
+  from '../integration/xml229-nonreleasing-native-candidate.mjs';
 import {recordXml229FlowTrace} from './xml229-flow-trace-registry.mjs';
 import {syncXml229CanonicalOutputHeaderBadges} from './xml229-canonical-output-header-badges.mjs';
 import {captureXml229XmlOnlyApproval,isXml229XmlOnlyApproved}
@@ -410,6 +414,43 @@ function renderRunControls(parent, stateRef, state, report, render) {
     downloadTextFile('xml-cii-output-run-readiness.json',
       JSON.stringify(evidence,null,2),'application/json;charset=utf-8');
   });
+  // Execute the real converter only as an Owner-local diagnostic candidate.
+  // Never write its CII text to state, downloads, Run manifest or readiness.
+  if(hasOriginalJsonSourceOnlyRunHold(state)&&actualSourceKind(state)==='xml'){
+    const verifyBtn=button('xml229-native-candidate',
+      'Verify Final → native candidate (nonreleasing)');
+    const verifyStatus=createElement('div',
+      'Requires the current accepted Worker Final snapshot; no CII download or release.',
+      'model-converters-workflow-detail-note');
+    verifyBtn.disabled=!getXml229CurrentWorkerHeldReview(stateRef)||!!state.running;
+    verifyBtn.addEventListener('click',async()=>{
+      if(verifyBtn.disabled)return;
+      const session=getXml229CurrentWorkerHeldReview(stateRef);
+      verifyBtn.disabled=true;
+      verifyStatus.textContent='Verifying actual converter input against Worker Final evidence…';
+      try{
+        if(!session)throw Object.assign(new Error('WORKER_SESSION_MISSING'),
+          {code:'WORKER_SESSION_MISSING'});
+        const job=await buildXml229NonreleasingCandidateJobFromUiState(stateRef.current);
+        const result=await runXml229NonreleasingNativeCandidate({
+          job,session,assertCurrent:()=>{
+            if(getXml229CurrentWorkerHeldReview(stateRef)!==session||session.closed)
+              throw Object.assign(new Error('STALE_REVIEW_SESSION'),{code:'STALE_REVIEW_SESSION'});
+          },
+        });
+        verifyStatus.textContent='Actual native converter candidate executed; '+
+          result.verifiedEnginePhysicalCount+' original physical masses in verified engine XML. '+
+          'CII digest '+result.ciiSha256.slice(0,12)+
+          '… (local only). Native slot lineage and release remain HELD; no CII saved.';
+      }catch(error){
+        const code=/^[A-Z0-9_]{3,80}$/.test(error?.code||'')
+          ?error.code:'XML229_CANDIDATE_FAILED';
+        verifyStatus.textContent='Nonreleasing candidate HELD ['+code+
+          ']. No CII released; reverify current source and Final review.';
+      }finally{verifyBtn.disabled=false;}
+    });
+    actionDiv.append(verifyBtn,verifyStatus);
+  }
   const finalizeBtn = createElement('button', state.running ? 'Running...' : 'Finalise and Run Conversion', 'model-converters-download-btn');
   if (finalizeBtn.style) Object.assign(finalizeBtn.style, { width: '100%', padding: '12px', background: (state.running || report.summary.blockingCount > 0) ? '#334155' : '#1e4ed8', color: '#fff', border: 'none', fontWeight: '700' });
   finalizeBtn.disabled = !!(state.running || report.summary.blockingCount > 0);
