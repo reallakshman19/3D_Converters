@@ -28,6 +28,16 @@ function fixture(){
         originalPhysicalCount:2,verifiedEnginePhysicalCount:2,
         matches:[{originalOccurrenceId:'A'},{originalOccurrenceId:'B'}]};
     },
+    async prepareEngineInputMasses({engineInputXmlText}){
+      assert.equal(engineInputXmlText,'<parity-engine-input/>');
+      const enriched='<final-weight-bound-engine-input/>';
+      return {
+        schema:'XML229.ReviewedEngineMassCandidate.v1',
+        engineInputXmlText:enriched,
+        transfer:await this.attestEngineInput({engineInputXmlText:enriched}),
+        nativeCiiPhysicalSlotVerified:false,nativeCiiReleaseAuthorized:false,
+      };
+    },
   };
   const job={sourceKind:'xml',sourceText:'<original/>',
     stagedJsonText:'{"source":"original"}',options:{outputMode:'both'}};
@@ -37,7 +47,7 @@ function fixture(){
   });
   const runEngine=async j=>{
     engineCalls++;
-    assert.equal(j.sourceText,'<parity-engine-input/>');
+    assert.equal(j.sourceText,'<final-weight-bound-engine-input/>');
     assert.equal(j.stagedJsonText,'');
     assert.equal(j.options.outputMode,'cii-only');
     return {ok:true,ciiText:'native CII bytes',ciiName:'candidate.cii'};
@@ -73,6 +83,14 @@ test('a forged SHA or incomplete original physical transfer blocks Python invoca
     await assert.rejects(x.run(),{code:'XML229_CANDIDATE_ENGINE_TRANSFER_REJECTED'});
     assert.equal(x.engineCalls(),0);
   }
+});
+test('a forged applied-mass output cannot enter converter',async()=>{
+  const x=fixture(),old=x.session.prepareEngineInputMasses;
+  x.session.prepareEngineInputMasses=async a=>({
+    ...await old.call(x.session,a),engineInputXmlText:'<forged/>',
+  });
+  await assert.rejects(x.run(),{code:'XML229_CANDIDATE_ENGINE_TRANSFER_REJECTED'});
+  assert.equal(x.engineCalls(),0);
 });
 test('original staged JSON hash drift blocks Python',async()=>{
   const x=fixture(),old=x.session.attestEngineInput;
