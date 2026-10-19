@@ -436,6 +436,148 @@ class NativeMassOwnerInventoryTests(unittest.TestCase):
             self.assertNotIn("PUBLIC/1",result.stdout)
             self.assertNotIn("PUBLIC-NATIVE-OWNERS",result.stderr)
 
+    def fixture_claims(self,transfer,cii,*,flange=False):
+        # Independent synthetic expected endpoints: not copied from emitted
+        # CII ELEMENTS or the inventory's suggested candidate classifications.
+        rows=[]
+        for i,source in enumerate(transfer["matches"]):
+            claimed=(
+                (i==0) or (flange and i==1))
+            if claimed:
+                rows.append({
+                  "originalOccurrenceId":source["originalOccurrenceId"],
+                  "status":"CII_RIGID_CANDIDATE",
+                  "rigidRecordIndex":i,"nativeElementIndex":i,
+                  "ciiFromNode":10 if i==0 else 20,
+                  "ciiToNode":20 if i==0 else 30,
+                })
+            else:
+                rows.append({
+                  "originalOccurrenceId":source["originalOccurrenceId"],
+                  "status":"UNRESOLVED",
+                  "reason":"Class-specific owner policy and retained edge not independently approved",
+                })
+        return {
+          "schema":"XML229.NativeMassOwnerProvisionalClaims.v1",
+          "nativeCiiReleaseAuthorized":False,
+          "basisId":transfer["basisId"],
+          "finalIntentSha256":transfer["finalIntentSha256"],
+          "engineInputSha256":transfer["engineInputSha256"],
+          "ciiSha256":sha(cii),
+          "rows":rows,
+        }
+
+    def test_provisional_claims_challenge_exact_actual_cii_slots_but_never_release(self):
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii=self.case(td,flange_case="matched")
+            claims=self.fixture_claims(transfer,cii,flange=True)
+            result=INV.challenge_provisional_native_slots(
+                transfer,xml,cii,claims,weight_scale="10",
+                expected_cii_sha256=sha(cii))
+            self.assertEqual(result["oneToOneNativeCandidateCount"],2)
+            self.assertEqual(float(result["oneToOneNativeCandidateKg"]),105)
+            self.assertEqual(result["unresolvedPhysicalCount"],2)
+            self.assertEqual(float(result["unresolvedPhysicalKg"]),95)
+            self.assertEqual(result["unassignedZeroNativeRigidSlots"],0)
+            self.assertFalse(result["verifiedClaimAuthor"])
+            self.assertFalse(result["independentSourceLineageVerified"])
+            self.assertFalse(result["physicalMatch2ConsumptionVerified"])
+            self.assertFalse(result["nativeCiiPhysicalSlotVerified"])
+            self.assertFalse(result["nativeCiiReleaseAuthorized"])
+            self.assertNotIn("originalOccurrenceId",json.dumps(result))
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii=self.case(td,flange_case="mismatched")
+            claims=self.fixture_claims(transfer,cii)
+            result=INV.challenge_provisional_native_slots(
+                transfer,xml,cii,claims,weight_scale="10",
+                expected_cii_sha256=sha(cii))
+            self.assertEqual(result["oneToOneNativeCandidateCount"],1)
+            self.assertEqual(float(result["unresolvedPhysicalKg"]),165)
+            self.assertFalse(result["nativeCiiReleaseAuthorized"])
+
+    def test_provisional_slot_claims_reject_unreviewed_laundered_owners(self):
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii=self.case(td,flange_case="matched")
+            base=self.fixture_claims(transfer,cii,flange=True)
+            import copy
+            def deny(code,claims,output=cii):
+                self.rejected(code,lambda:INV.challenge_provisional_native_slots(
+                    transfer,xml,output,claims,weight_scale="10",
+                    expected_cii_sha256=sha(output)))
+            claim=copy.deepcopy(base)
+            claim["nativeCiiReleaseAuthorized"]=True
+            deny("PROVISIONAL_LINEAGE_BASIS_OR_AUTHORITY_DRIFT",claim)
+            claim=copy.deepcopy(base)
+            claim["basisId"]="f"*64
+            deny("PROVISIONAL_LINEAGE_BASIS_OR_AUTHORITY_DRIFT",claim)
+            claim=copy.deepcopy(base)
+            claim["rows"].pop()
+            deny("PROVISIONAL_LINEAGE_POPULATION_DRIFT",claim)
+            claim=copy.deepcopy(base)
+            claim["rows"][2]["originalOccurrenceId"]=claim["rows"][1]["originalOccurrenceId"]
+            deny("PROVISIONAL_LINEAGE_ORIGINAL_DRIFT",claim)
+            claim=copy.deepcopy(base)
+            claim["rows"][2]={
+              "originalOccurrenceId":transfer["matches"][2]["originalOccurrenceId"],
+              "status":"CII_RIGID_CANDIDATE",
+              "rigidRecordIndex":0,"nativeElementIndex":0,
+              "ciiFromNode":10,"ciiToNode":20,
+            }
+            deny("PROVISIONAL_NATIVE_CLASS_RULE_UNVERIFIED",claim)
+            claim=copy.deepcopy(base)
+            claim["rows"][1]["rigidRecordIndex"]=0
+            deny("PROVISIONAL_NATIVE_SLOT_DUPLICATE_OR_RANGE",claim)
+            claim=copy.deepcopy(base)
+            claim["rows"][1]["nativeElementIndex"]=0
+            deny("PROVISIONAL_NATIVE_SLOT_DUPLICATE_OR_RANGE",claim)
+            claim=copy.deepcopy(base)
+            claim["rows"][1]["nativeElementIndex"]=2
+            deny("PROVISIONAL_NATIVE_RIGID_POINTER_DRIFT",claim)
+            claim=copy.deepcopy(base)
+            claim["rows"][1]["ciiToNode"]=99
+            deny("PROVISIONAL_NATIVE_ELEMENT_ENDPOINT_DRIFT",claim)
+            claim=copy.deepcopy(base)
+            claim["rows"][2]["nativeElementIndex"]=2
+            deny("PROVISIONAL_UNRESOLVED_WITH_SLOT",claim)
+            claim=copy.deepcopy(base)
+            claim["rows"][1]={"originalOccurrenceId":transfer["matches"][1]["originalOccurrenceId"],
+                              "status":"UNRESOLVED","reason":"Not independently verified"}
+            deny("PROVISIONAL_UNACCOUNTED_POSITIVE_RIGID",claim)
+            self.assertIn(b"700.000",cii)
+            forged=cii.replace(b"700.000",b"750.000")
+            claim=copy.deepcopy(base)
+            claim["ciiSha256"]=sha(forged)
+            deny("PROVISIONAL_NATIVE_RIGID_MASS_DRIFT",claim,forged)
+
+    def test_provisional_claim_cli_writes_aggregate_only_and_stays_held(self):
+        import subprocess
+        import sys
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii=self.case(td,flange_case="matched")
+            claims=self.fixture_claims(transfer,cii,flange=True)
+            root=Path(td)
+            (root/"r2.json").write_text(json.dumps(transfer))
+            (root/"engine.xml").write_bytes(xml)
+            (root/"out.cii").write_bytes(cii)
+            (root/"claims-private.json").write_text(json.dumps(claims))
+            private=root/"result-private.json"
+            run=subprocess.run([
+              sys.executable,str(ROOT/"scripts/xml229-native-mass-owner-inventory.py"),
+              "--r2-transfer",str(root/"r2.json"),
+              "--engine-xml",str(root/"engine.xml"),"--cii",str(root/"out.cii"),
+              "--weight-scale","10","--expected-cii-sha256",sha(cii),
+              "--provisional-lineage-claims",str(root/"claims-private.json"),
+              "--output",str(private)
+            ],capture_output=True,text=True,timeout=30)
+            self.assertEqual(run.returncode,0,run.stderr[-1000:])
+            report=json.loads(private.read_text())
+            self.assertEqual(report["provisionalNativeChallenge"]["oneToOneNativeCandidateCount"],2)
+            self.assertFalse(report["nativeCiiReleaseAuthorized"])
+            self.assertFalse(report["provisionalNativeChallenge"]["nativeCiiReleaseAuthorized"])
+            self.assertNotIn("originalOccurrenceId",private.read_text())
+            self.assertNotIn("PUBLIC/1",private.read_text())
+            self.assertNotIn("PUBLIC-NATIVE-OWNERS",run.stdout)
+
     def test_native_cii_units_and_slot_count_witness_are_fail_closed(self):
         with tempfile.TemporaryDirectory() as td:
             transfer,xml,cii=self.case(td)
