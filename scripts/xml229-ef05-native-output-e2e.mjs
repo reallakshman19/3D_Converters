@@ -4,6 +4,7 @@
  * No private Owner attachments, historical fixed digest, or manual Weight accept.
  */
 import assert from 'node:assert/strict';
+import {installXml229WorkspaceRegistryWitness,verifyXml229SameBasisJourney,verifyXml229ChangedBasisJourney} from './xml229-ef05-workspace-journeys.mjs';
 import {chromium} from 'playwright';
 import {readFile,mkdir,writeFile,mkdtemp,rm} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
@@ -25,7 +26,6 @@ const DEPLOYED_E2E_URL='https://reallakshman19.github.io/3D_Converters/index.htm
 const siteUrl=process.env.XML229_E2E_BASE_URL||LOCAL_E2E_URL;
 assert([LOCAL_E2E_URL,DEPLOYED_E2E_URL].includes(siteUrl),
   'E2E must target only the local isolated server or official published GitHub Pages');
-
 const tmp=await mkdtemp(join(tmpdir(),'xml229-ef05-'));
 const record={schema:'XML229.EF05.NativeOutputE2E.v1',
  siteOrigin:siteUrl===DEPLOYED_E2E_URL?'PUBLISHED_GITHUB_PAGES':'ISOLATED_LOCAL_SERVER',
@@ -61,6 +61,7 @@ let browser;
 try{
   browser=await chromium.launch({headless:true});
   const page=await browser.newPage({acceptDownloads:true});
+  await installXml229WorkspaceRegistryWitness(page);
   page.setDefaultTimeout(60000);
   page.on('pageerror',e=>record.pageErrors.push(String(e)));
   // The live GitHub Pages CDN can occasionally load the app shell before its
@@ -123,7 +124,6 @@ try{
   assert.equal(record.stages.masters.weight,1595);
   assert.equal(record.stages.masters.weightSourceType,'default');
   record.passes.push('real three-master applied import controls and default Valve autoload');
-
   await page.locator('[data-phase="json-trace"]').click();
   await page.locator('[data-field="staged-json-file"]').setInputFiles(jsonPath);
   await page.waitForFunction(()=>{
@@ -135,7 +135,6 @@ try{
   assert.match(record.stages.jsonIndex,/LFJ source index COMMITTED/,
     'real EF05 original JSON index did not commit');
   record.passes.push('real original JSON O1 index committed');
-
   await page.locator('[data-phase="preview"]').click();
   // createXmlCiiAdaptedWorkflowState() is a *new* state and intentionally
   // does not include already imported browser-memory class/map/line rows.
@@ -158,7 +157,6 @@ try{
   assert.equal(record.stages.activeMasterInventory.materialMap,383);
   assert.equal(record.stages.activeMasterInventory.weight,1595);
   record.passes.push('verified four-master active Preview inventory');
-
   // Original indexed JSON is *optional for XML-only*. Load it to prove that
   // the new explicit selector is effective despite an active O1 receipt.
   const previewBuild=page.locator('#mc-preview-table-host [data-mc-preview-build]').first();
@@ -188,7 +186,6 @@ try{
     status:(await page.locator('[data-p4-weight-status]').textContent()).slice(0,1000)};
   assert(record.stages.weight.visibleRows>0);
   record.passes.push('actual Worker-backed Weight Match opened; no accepts added');
-
   // Full public 41-branch source / staged JSON / four-master GC-PW precheck:
   // all original physicals (including outside the focused Weight tab),
   // seven canonical facts per owner, all proposals and semantic family evidence.
@@ -365,7 +362,7 @@ try{
  };
  record.passes.push('actual GC-PW Worker: 80% Apply edits preserved, kg matched across pages, first input horizontally visible');
 
-
+ const {beforeWorker,beforeNav,collectEditable}=await verifyXml229SameBasisJourney({page,waitWeightIdle,pageCount,manualId,manualKg,record});
   // Real 41-branch P3: capture exact effective four-master config from
   // the SAME verified Worker lease through the explicit OWNER PRIVATE button.
   // The downloaded JSON is inspected in browser temp storage only; never
@@ -488,6 +485,8 @@ try{
     null,{timeout:60000});
   record.passes.push('switch to governed restores native O1 HOLD');
   assert.deepEqual(record.pageErrors,[]);
+
+  await verifyXml229ChangedBasisJourney({page,lineListVariant,record,beforeWorker,beforeNav,collectEditable});
   record.ok=true;
 }catch(error){
   record.failures.push(String(error?.stack||error).slice(0,2800));
