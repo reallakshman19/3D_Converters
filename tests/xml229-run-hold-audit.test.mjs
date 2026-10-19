@@ -7,6 +7,9 @@ import {buildXml229RunHoldAudit}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-run-hold-audit.mjs';
 import {createXml229CrossWorkerFlowTrace}
  from '../contracts/xml229-flow-trace-v1/trace.mjs';
+import {beginXml229VerifiedEngineeringBuild,publishXml229VerifiedEngineeringBuild,
+  revokeXml229VerifiedEngineeringBasis,inspectXml229EngineeringLease}
+ from '../tabs/xml-cii-2019-standalone/integration/xml229-engineering-basis-authority.mjs';
 
 const hash='a'.repeat(64),basis='b'.repeat(64),sourceId='O1';
 const input=()=>({
@@ -148,6 +151,28 @@ test('audit refuses reordered event chronology and missing counted events',()=>{
  assert(gaps.chronology.integrity.issues.includes('TRACE_WINDOW_COUNT_MISMATCH'));
  assert.equal(gaps.nativeCiiReleaseAuthorized,false);
 });
+test('engineering-basis lease audit tells never-built, building, published, replaced and revoked apart',()=>{
+ const stateRef={current:input()};
+ assert.equal(inspectXml229EngineeringLease(stateRef).reason,'NEVER_BUILT');
+ const first=beginXml229VerifiedEngineeringBuild(stateRef);
+ assert.equal(inspectXml229EngineeringLease(stateRef).reason,'BUILD_STARTED');
+ const worker1={closed:false,cancel(){this.closed=true;}};
+ assert.equal(publishXml229VerifiedEngineeringBuild(first,{lease:'private-lease-1',session:worker1}),true);
+ assert.equal(inspectXml229EngineeringLease(stateRef).reason,'WORKER_PUBLISHED');
+ const second=beginXml229VerifiedEngineeringBuild(stateRef);
+ assert.equal(inspectXml229EngineeringLease(stateRef).reason,'WORKER_REPLACED');
+ const held=buildXml229RunHoldAudit({input:stateRef.current,
+  report:buildStandaloneOutputRunReadiness(stateRef.current),
+  sessionState:'MISSING',leaseDiagnosis:inspectXml229EngineeringLease(stateRef)});
+ assert.equal(held.evidence[1].reason,'WORKER_REPLACED');
+ assert.equal(held.worker.leasePresent,false);
+ assert.equal(JSON.stringify(held).includes('private-lease-1'),false);
+ const worker2={closed:false,cancel(){this.closed=true;}};
+ assert.equal(publishXml229VerifiedEngineeringBuild(second,{lease:'private-lease-2',session:worker2}),true);
+ assert.equal(revokeXml229VerifiedEngineeringBasis(stateRef,{expectedSession:worker2}),true);
+ assert.equal(inspectXml229EngineeringLease(stateRef).reason,'WORKER_REVOKED');
+ assert.equal(inspectXml229EngineeringLease(stateRef).nativeCiiReleaseAuthorized,false);
+});
 test('standalone XML-only route remains unaffected by extra diagnostics',()=>{
  const state=input();delete state.xml229StagedSourceReceipt;
  const a=audit({state});
@@ -158,6 +183,7 @@ test('standalone XML-only route remains unaffected by extra diagnostics',()=>{
 test('source and served docs audit/Run/registry contract mirrors are byte identical',async()=>{
  for(const path of [
   'tabs/xml-cii-2019-standalone/integration/xml229-run-hold-audit.mjs',
+  'tabs/xml-cii-2019-standalone/integration/xml229-engineering-basis-authority.mjs',
   'tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js',
   'tabs/xml-cii-2019-standalone/ui-adapted/xml229-flow-trace-registry.mjs',
   'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',
