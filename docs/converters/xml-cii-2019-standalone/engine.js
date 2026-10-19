@@ -12,6 +12,7 @@ const SCRIPT_FILE_NAMES = Object.freeze([
   'xml_to_cii2019_runtime_custody.py',
   'xml_cii_weight_output_custody.py',
   'xml_cii_weighted_geometry.py',
+  'xml229_native_candidate_witness.py',
   'xml_to_cii2019_master_addon.py',
   'master_customization.py',
   'cii2019_section_rules.py',
@@ -141,8 +142,25 @@ async function runEnrichedXml(pyodide, job, paths, jobDir, stdout) {
 
 async function runCii(pyodide, job, paths, jobDir, stdout, stderr) {
   const invocation = buildStandaloneCiiInvocation(job, paths, jobDir);
+  const checkpoint = typeof job.xml229CandidateStageHook === 'function'
+    ? job.xml229CandidateStageHook : () => {};
+  checkpoint('NATIVE_PYTHON_SCRIPT_START');
   await runPythonScript(pyodide, invocation.scriptPath, invocation.argv, stdout, stderr);
-  return { ciiText: pyodide.FS.readFile(invocation.outputPath, { encoding: 'utf8' }), ciiName: invocation.outputName, argv: invocation.argv.slice(1) };
+  checkpoint('NATIVE_PYTHON_SCRIPT_RETURNED');
+  let candidateWitness = null;
+  if (invocation.candidateWitnessPath) {
+    // The witness contains source node/reference identities. Retain it only
+    // in this call's closure, not in Pyodide's persistent virtual filesystem.
+    try {
+      candidateWitness = JSON.parse(pyodide.FS.readFile(
+        invocation.candidateWitnessPath, { encoding: 'utf8' }));
+    } finally {
+      pyodide.FS.unlink(invocation.candidateWitnessPath);
+    }
+  }
+  return { ciiText: pyodide.FS.readFile(invocation.outputPath, { encoding: 'utf8' }),
+    ciiName: invocation.outputName, argv: invocation.argv.slice(1),
+    nativeCandidateWitness: candidateWitness };
 }
 
 export async function runXmlCii2019StandaloneEngine(job) {
@@ -152,9 +170,14 @@ export async function runXmlCii2019StandaloneEngine(job) {
   const stdout = [];
   const stderr = [];
   const partial = { enrichedText: '', enrichedName: '', ...emptyTopologyResult() };
+  const checkpoint = typeof job.xml229CandidateStageHook === 'function'
+    ? job.xml229CandidateStageHook : () => {};
   try {
+    checkpoint('NATIVE_PYODIDE_LOAD_START');
     const pyodide = await getPyodide();
+    checkpoint('NATIVE_PYODIDE_LOAD_RETURNED');
     await ensureScripts(pyodide);
+    checkpoint('NATIVE_SCRIPTS_LOADED');
     pyodide.setStdout({ batched: (line) => stdout.push(line) });
     pyodide.setStderr({ batched: (line) => stderr.push(line) });
     const jobDir = `/work/xml_cii_standalone_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
@@ -166,6 +189,7 @@ export async function runXmlCii2019StandaloneEngine(job) {
     let enrichedName = '';
     let ciiText = null;
     let ciiName = null;
+    let nativeCandidateWitness = null;
     const postprocess = [];
 
     let topology = emptyTopologyResult();
@@ -195,9 +219,12 @@ export async function runXmlCii2019StandaloneEngine(job) {
     }
     if (outputMode === 'cii-only' || outputMode === 'both') {
       const ciiPaths = { ...paths, inputPath: topology.ciiInputPath || paths.inputPath };
+      checkpoint('NATIVE_CII_CONVERSION_START');
       const cii = await runCii(pyodide, normalizedJob, ciiPaths, jobDir, stdout, stderr);
+      checkpoint('NATIVE_CII_CONVERSION_RETURNED');
       ciiText = cii.ciiText;
       ciiName = cii.ciiName;
+      nativeCandidateWitness = cii.nativeCandidateWitness;
       postprocess.push({ branch: `${sourceKind}-cii`, outputName: ciiName, argv: cii.argv, inputSource: topology.ciiInputSource || 'original' });
     }
     const warnings = [];
@@ -209,12 +236,17 @@ export async function runXmlCii2019StandaloneEngine(job) {
       enrichedName,
       ciiText,
       ciiName,
+      // First-party model observation remains inside the candidate caller;
+      // the ordinary Run/job never requests this sensitive sidecar.
+      ...(normalizedJob.xml229NativeCandidateWitness === true
+        ? { nativeCandidateWitness } : {}),
       ...topology,
       diagnostics: diagnostics(normalizedJob, { postprocess, warnings, topology: topology.topologySummary }),
       logs: [...logs(stdout), ...logs(stderr).map((line) => `stderr: ${line}`)],
       error: null,
     };
   } catch (error) {
+    checkpoint('NATIVE_PYODIDE_OR_SCRIPT_FAILED');
     return errorResult(normalizedJob, error, [...logs(stdout), ...logs(stderr)], partial);
   }
 }

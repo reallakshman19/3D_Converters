@@ -19,11 +19,16 @@ export function buildStandaloneCiiInvocation(job, paths, jobDir) {
   const mode = ['all', 'none'].includes(text(options.coordsMode).toLowerCase()) ? text(options.coordsMode).toLowerCase() : 'first';
   const argv = ['/scripts/xml_to_cii2019_runtime_custody.py', '--input', paths.inputPath, '--output', outputPath, '--coords-mode', mode];
   if (options.kgToNewton !== false) argv.push('--weight-scale', '10');
+  // Private, opt-in native observation only; ordinary Run never sets it.
+  const candidateWitnessPath = job.xml229NativeCandidateWitness === true
+    ? `${jobDir}/xml229-native-candidate-witness.json` : null;
+  if (candidateWitnessPath)
+    argv.push('--xml229-native-candidate-witness-out', candidateWitnessPath);
   pushText(argv, '--support-config-json', job.supportConfigJson);
   if (split === true) argv.push('--split-condensed-valve-flange');
   else if (split === false) argv.push('--no-split-condensed-valve-flange');
   if (paths.stagedJsonPath) argv.push('--staged-json', paths.stagedJsonPath);
   if (options.useRestraintTypeBasedOnJson === false) argv.push('--no-use-restraint-type-based-on-json');
   else argv.push('--use-restraint-type-based-on-json');
-  return { scriptPath: '/scripts/xml_to_cii2019_runtime_custody.py', outputPath, outputName, argv };
+  return { scriptPath: '/scripts/xml_to_cii2019_runtime_custody.py', outputPath, outputName, argv, candidateWitnessPath };
 }

@@ -137,7 +137,12 @@ export async function runXmlCii2019WorkflowService(job, runtime = {}) {
   });
 
   const engineJob = { ...factedJob, sourceText: parity.xmlText };
-  const result = await runXmlCii2019StandaloneEngineJob(engineJob, runtime);
+  // Nonreleasing GC-PW native candidate supplies an exact-input custody port.
+  // Ordinary workflows, including normal governed Run, keep the original
+  // native engine. The caller cannot use this port to alter Run readiness.
+  const engineRunner = typeof runtime.engineRunner === 'function'
+    ? runtime.engineRunner : runXmlCii2019StandaloneEngineJob;
+  const result = await engineRunner(engineJob, runtime);
   if (Array.isArray(result?.logs) && parity.logs.length) result.logs = [...parity.logs, ...result.logs];
   const normalized = normalizeXmlEngineResult(result);
   if (normalized.diagnostics) {

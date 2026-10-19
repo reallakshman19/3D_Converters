@@ -107,10 +107,8 @@ function branchScopeFromState(state, sourceText, stagedJsonText) {
   });
 }
 
-export async function buildXmlCiiWorkflowJobFromUiState(state) {
-  // Second, executable boundary; UI-only readiness can never bypass an O1 hold.
-  if(hasXml229GovernedNativeHold(state))
-    throw new Error('XML229_GOVERNED_NATIVE_CII_HELD');
+// Restricted internal job composition, not a production Run release.
+async function buildWorkflowJobUnchecked(state) {
   const xmlOnly=isXml229XmlOnlyApproved(state);
   if(!xmlOnly&&state.xml229XmlOnlyApproval)
     throw new Error('XML229_XML_ONLY_BASIS_STALE');
@@ -139,6 +137,24 @@ export async function buildXmlCiiWorkflowJobFromUiState(state) {
     branchSelection: branchScope.manifest,
   };
   return xmlOnly?sanitizeXml229XmlOnlyJob(job):job;
+}
+
+export async function buildXmlCiiWorkflowJobFromUiState(state) {
+  // The existing executable Run HOLD is not relaxed by candidate verification.
+  if(hasXml229GovernedNativeHold(state))
+    throw new Error('XML229_GOVERNED_NATIVE_CII_HELD');
+  return buildWorkflowJobUnchecked(state);
+}
+
+/** Inputs for private non-releasing candidate only, never normal Run/ZIP. */
+export async function buildXml229NonreleasingCandidateJobFromUiState(state) {
+  const enabled=state?.sourceBatch?.sources?.filter(x=>x.enabled!==false);
+  if(!hasXml229GovernedNativeHold(state)||
+     isXml229XmlOnlyApproved(state)||
+     state?.sourceKind==='inputxml'||
+     (enabled&&enabled.length!==1))
+    throw new Error('XML229_CANDIDATE_REQUIRES_ONE_GOVERNED_SOURCE');
+  return buildWorkflowJobUnchecked(state);
 }
 
 export function sourceNameFromState(state) {

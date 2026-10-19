@@ -763,6 +763,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--support-config-json", required=False, default="")
     parser.add_argument("--staged-json", required=False, type=Path, default=None)
     parser.add_argument("--diagnostics-out", required=False, type=Path, default=None)
+    parser.add_argument("--xml229-native-candidate-witness-out", required=False, type=Path, default=None)
     parser.add_argument("--use-restraint-type-based-on-json", dest="use_restraint_type_based_on_json", action="store_true", default=True)
     parser.add_argument("--no-use-restraint-type-based-on-json", dest="use_restraint_type_based_on_json", action="store_false")
     parser.add_argument("--split-condensed-valve-flange", dest="split_condensed_valve_flange", action="store_true", default=None)

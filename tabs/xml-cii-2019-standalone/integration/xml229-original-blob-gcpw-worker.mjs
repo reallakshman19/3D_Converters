@@ -28,7 +28,7 @@ import {readVerifiedModeAFinalRows}
  from '../../../converters/xml-cii2019-core/weight-facts-mode-a-final-read.js';
 import {commitXml229NativeFinalIntent}
  from '../../../converters/xml-cii2019-core/weight-facts-native-consumption-intent.js';
-import {attestXml229OriginalPhysicalEngineInput}
+import {attestXml229OriginalPhysicalEngineInput,materializeXml229ReviewedEngineMassInput}
  from './xml229-r2-physical-transfer-manifest.mjs';
 import {digestUtf8,canonicalJson}
  from '../../../contracts/gc-pw-v1/contract.mjs';
@@ -278,6 +278,20 @@ async function rpc(req){
        req.engineInputXmlText.length>24*1024*1024)
        fail('ENGINE_INPUT_ATTESTATION_BOUNDED','Native XML input must be provided as a bounded exact string; no UI fallback');
      return attestXml229OriginalPhysicalEngineInput({
+       session:ready,sourceId:ready.basis.scope[0]?.sourceId,
+       originalXmlText:originalXmlCustody,
+       engineInputXmlText:req.engineInputXmlText,
+       originalJsonSha256:sourceReceipt.sha256,
+       sourceGenerationId:sourceReceipt.generationId,
+       independentlyEnumeratedOriginalPhysical:physicalIdentityList,
+     });
+   }
+   if(req.what==='materialize-native-engine-input'){
+     if(typeof req.engineInputXmlText!=='string'||!req.engineInputXmlText.trim()||
+        req.engineInputXmlText.length>24*1024*1024)
+       fail('ENGINE_MASS_WRITER_INPUT_BOUNDED',
+         'Actual engine parity XML is absent or exceeds bounded private Worker input');
+     return materializeXml229ReviewedEngineMassInput({
        session:ready,sourceId:ready.basis.scope[0]?.sourceId,
        originalXmlText:originalXmlCustody,
        engineInputXmlText:req.engineInputXmlText,
