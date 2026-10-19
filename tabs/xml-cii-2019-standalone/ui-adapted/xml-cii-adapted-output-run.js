@@ -14,6 +14,8 @@ import {ensureXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace,
   from './xml229-flow-trace-registry.mjs';
 import {buildXml229RunHoldAudit}
   from '../integration/xml229-run-hold-audit.mjs';
+import {inspectXml229EngineeringLease}
+  from '../integration/xml229-engineering-basis-authority.mjs';
 import {syncXml229CanonicalOutputHeaderBadges} from './xml229-canonical-output-header-badges.mjs';
 import {captureXml229XmlOnlyApproval,isXml229XmlOnlyApproved}
   from '../integration/xml229-output-participation.mjs';
@@ -95,7 +97,8 @@ function reportFromState(state,stateRef) {
   const session=getXml229CurrentWorkerHeldReview(stateRef);
   const sessionState=session?(session.closed?'CLOSED':'LIVE'):'MISSING';
   return hasOriginalJsonSourceOnlyRunHold(state)
-    ? buildStandaloneOutputRunReadiness(state,{sessionState})
+    ? buildStandaloneOutputRunReadiness(state,{sessionState,
+        leaseDiagnosis:inspectXml229EngineeringLease(stateRef)})
     : state.outputRunReadinessReport || buildStandaloneOutputRunReadiness(state);
 }
 
@@ -403,6 +406,7 @@ async function collectXml229RunHoldAudit(stateRef,report){
  });
  const params={
    input,report:freshReport,sessionState,
+   leaseDiagnosis:inspectXml229EngineeringLease(stateRef),
    sessionReceipt:session?.closed?null:session?.receipt||null,
    completion,finalIntent,readError,
    candidate:getXml229CandidateAttempt(stateRef,session),
