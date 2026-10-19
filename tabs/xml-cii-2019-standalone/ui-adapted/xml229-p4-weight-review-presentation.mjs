@@ -95,6 +95,12 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
         aria-label="Applied Weight in kg, editable draft only"
         style="width:130px;padding:6px;background:#243b5d;color:#fff;border:1px solid #818cf8;font-weight:700">
       <small data-p4-draft-marker style="display:block;color:#94a3b8">Editable draft · not approved</small>
+      <input data-p4-reason type="text" maxlength="500" placeholder="Independent engineering reason"
+        aria-label="Engineering review reason (required)" style="display:block;width:235px;padding:4px;margin-top:5px;background:#0b1320;color:#e5eefc;border:1px solid #405a78">
+      <div style="display:flex;gap:4px;margin-top:5px">
+       <button type="button" data-p4-review-match1 aria-label="Prepare explicit Match-1 review">Review Match-1</button>
+       <button type="button" data-p4-review-final aria-label="Prepare independent Final review">Review Final</button>
+      </div>
     </td>
    </tr>`;
  }).join('');
@@ -107,7 +113,7 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
    <strong>Verified original physical facts</strong> · ${m.total} components${page?.populationCount!==undefined?' filtered from '+e(page.populationCount):''}
    · showing ${m.rows.length?m.start+1:0}–${m.end}.
    <small style="display:block;color:#94a3b8">Page only: ${m.counts.match1} Match-1, ${m.counts.final} Final, ${m.counts.unresolved} unresolved.
-    Source-bound Worker is the sole scorer and reviewer. Click a suggestion to fill Applied Weight, or edit it directly. Drafts are not accepted masses.</small>
+    Source-bound Worker is the sole scorer and reviewer. Click a suggestion to fill Applied Weight, or edit it directly. To accept a positive mass, supply an independent engineering reason, prepare the intended stage, then separately confirm. Drafts are not decisions.</small>
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0">
     ${tabs}
