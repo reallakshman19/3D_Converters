@@ -131,7 +131,7 @@ def build_witness(model, cii_text, *, weight_scale, engine_input_bytes):
         "evidenceKind": "FIRST_PARTY_RUNTIME_NOT_INDEPENDENT_AUTHORITY",
         "engineInputSha256": hashlib.sha256(engine_input_bytes).hexdigest(),
         "ciiSha256": hashlib.sha256(cii_text.encode("utf-8")).hexdigest(),
-        "weightScale": str(factor.normalize()),
+        "weightScale": format(factor.normalize(), "f"),
         "modelElementCount": len(model.edges),
         "modelRigidCount": len(rigid),
         "edges": edges,
