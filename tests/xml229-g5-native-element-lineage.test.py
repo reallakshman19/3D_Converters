@@ -648,6 +648,15 @@ class NativeMassOwnerInventoryTests(unittest.TestCase):
             changed["edges"][0]["to"]["weightKg"]="36"
             deny("RETAINED_EDGE_MASS_DRIFT",changed)
             changed=copy.deepcopy(witness)
+            changed["edges"][0]["from"]["componentRefNo"]="PUBLIC/FOREIGN"
+            deny("RETAINED_FROM_SOURCE_UNMATCHED",changed)
+            changed=copy.deepcopy(witness)
+            changed["edges"][0]["from"]["sourceNodeNumber"]=999
+            deny("RETAINED_FROM_SOURCE_UNMATCHED",changed)
+            changed=copy.deepcopy(witness)
+            changed["edges"][1]["to"]["rigid"]=2
+            deny("RETAINED_SOURCE_CLASSIFICATION_DRIFT",changed)
+            changed=copy.deepcopy(witness)
             changed["edges"][0]["to"]["sourceNodeNumber"]=999
             deny("RETAINED_POSITIVE_RIGID_WITHOUT_R2_OWNER",changed)
             changed=copy.deepcopy(witness)
