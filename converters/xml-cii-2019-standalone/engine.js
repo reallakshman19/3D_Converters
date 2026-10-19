@@ -12,6 +12,7 @@ const SCRIPT_FILE_NAMES = Object.freeze([
   'xml_to_cii2019_runtime_custody.py',
   'xml_cii_weight_output_custody.py',
   'xml_cii_weighted_geometry.py',
+  'xml229_native_candidate_witness.py',
   'xml_to_cii2019_master_addon.py',
   'master_customization.py',
   'cii2019_section_rules.py',
@@ -142,7 +143,11 @@ async function runEnrichedXml(pyodide, job, paths, jobDir, stdout) {
 async function runCii(pyodide, job, paths, jobDir, stdout, stderr) {
   const invocation = buildStandaloneCiiInvocation(job, paths, jobDir);
   await runPythonScript(pyodide, invocation.scriptPath, invocation.argv, stdout, stderr);
-  return { ciiText: pyodide.FS.readFile(invocation.outputPath, { encoding: 'utf8' }), ciiName: invocation.outputName, argv: invocation.argv.slice(1) };
+  const candidateWitness = invocation.candidateWitnessPath
+    ? JSON.parse(pyodide.FS.readFile(invocation.candidateWitnessPath, { encoding: 'utf8' })) : null;
+  return { ciiText: pyodide.FS.readFile(invocation.outputPath, { encoding: 'utf8' }),
+    ciiName: invocation.outputName, argv: invocation.argv.slice(1),
+    nativeCandidateWitness: candidateWitness };
 }
 
 export async function runXmlCii2019StandaloneEngine(job) {
@@ -166,6 +171,7 @@ export async function runXmlCii2019StandaloneEngine(job) {
     let enrichedName = '';
     let ciiText = null;
     let ciiName = null;
+    let nativeCandidateWitness = null;
     const postprocess = [];
 
     let topology = emptyTopologyResult();
@@ -198,6 +204,7 @@ export async function runXmlCii2019StandaloneEngine(job) {
       const cii = await runCii(pyodide, normalizedJob, ciiPaths, jobDir, stdout, stderr);
       ciiText = cii.ciiText;
       ciiName = cii.ciiName;
+      nativeCandidateWitness = cii.nativeCandidateWitness;
       postprocess.push({ branch: `${sourceKind}-cii`, outputName: ciiName, argv: cii.argv, inputSource: topology.ciiInputSource || 'original' });
     }
     const warnings = [];
@@ -209,6 +216,10 @@ export async function runXmlCii2019StandaloneEngine(job) {
       enrichedName,
       ciiText,
       ciiName,
+      // First-party model observation remains inside the candidate caller;
+      // the ordinary Run/job never requests this sensitive sidecar.
+      ...(normalizedJob.xml229NativeCandidateWitness === true
+        ? { nativeCandidateWitness } : {}),
       ...topology,
       diagnostics: diagnostics(normalizedJob, { postprocess, warnings, topology: topology.topologySummary }),
       logs: [...logs(stdout), ...logs(stderr).map((line) => `stderr: ${line}`)],
