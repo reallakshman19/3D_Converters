@@ -118,6 +118,59 @@ Additional controlled actual Python CLI cases explicitly exercise:
 independent output mapping; do not silently mark a VALV, INST or unrelated
 FLAN mass represented by another node's native RIGID slot.
 
+## Optional owner-local provisional native slot challenge
+
+The evidence-only inventory supports
+`--provisional-lineage-claims path/to/OWNER_PRIVATE_claims.json`.
+This is deliberately **not** Final approval, an allocation policy, or native
+release; the claims and the R2 transfer stay on the Owner's machine and are
+not printed or committed.
+
+The JSON record must have schema
+`XML229.NativeMassOwnerProvisionalClaims.v1`, exact
+`basisId`, `finalIntentSha256`, `engineInputSha256`, `ciiSha256`,
+`nativeCiiReleaseAuthorized:false`, and a `rows` array spanning **every**
+positive original physical occurrence exactly once.
+
+For an occurrence with a known pre-conversion native RIGID edge predicate,
+`CII_RIGID_CANDIDATE` requires its `originalOccurrenceId`,
+zero-based `nativeElementIndex`, zero-based `rigidRecordIndex`, and
+exact integer `ciiFromNode` and `ciiToNode`. The checker verifies:
+- The R2 original physical identity and exact engine XML node mass
+- The independently supplied candidate belongs to a known direct-Rigid2
+  or same-reference RIGID→FLAN predicate (no invented VALV/INST mapping)
+- The actual emitted CII ELEMENTS record points at the claimed RIGID record
+- The actual endpoint numbers match the claim and the emitted RIGID weight
+  matches *that physical's* engine kg multiplied once by the claimed scale
+- No positive RIGID record is unclaimed and no claimed slot is duplicated
+
+`UNRESOLVED` requires an explicit reason and **no** native indices or
+endpoints. An original physical may remain unresolved even when its
+pre-conversion predicate is eligible: an edge can be cleaned, split or
+renumbered. A positive emitted native slot cannot be silently marked
+unclaimed. The output adds only aggregate challenged/unresolved counts
+and kg; it does not return raw original IDs.
+
+**Critical evidentiary limit:** a claimant-supplied endpoint and pointer that
+match CII bytes do not independently prove that this original physical owns
+the native edge. Sources with identical kilograms can be swapped by a
+dishonest or mistaken claimant. Therefore even a completely passing
+provisional challenge sets `verifiedClaimAuthor:false`,
+`independentSourceLineageVerified:false`,
+`physicalMatch2ConsumptionVerified:false` and
+`nativeCiiReleaseAuthorized:false`. For native engineering authority,
+a separately authored G5 complete source/Final/retained-edge lineage
+must prove the original-to-native geometry and allocations without
+depending on this proposed claim as its own oracle.
+
+The held-out public cases cover same-reference 35kg RIGID / 70kg FLAN
+with exact CII pointers, plus 45kg VALV / 50kg INST declared unresolved.
+Negative cases challenge forged authority, missing or duplicated owners,
+illegal valve-to-RIGID claims, duplicated/mispointed native slots,
+wrong endpoints, altered individual emitted mass, and a positive output
+slot omitted from the claims. Those exercises do **not** create reviewed
+Final rows or a signoff.
+
 **EXACT_NEXT_ACTION:** Owner/engineering supplies approved per-class physical
 mass-owner geometry and representation. Implement a separate, tightly scoped
 native release candidate with an independently produced complete lineage and
