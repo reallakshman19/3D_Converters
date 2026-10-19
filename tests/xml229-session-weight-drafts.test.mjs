@@ -56,3 +56,14 @@ test('invalid/closed session is rejected without overwriting active drafts',()=>
   /XML229_SESSION_DRAFT_BASIS_REQUIRED/);
  assert.equal(openXml229SessionWeightDrafts(ref,entry).drafts.get('id').value,'6');
 });
+test('stale drafts are not silently evicted during repeated input-basis changes',()=>{
+ const ref={};
+ for(let i=0;i<7;i++){
+   const slot=openXml229SessionWeightDrafts(ref,{
+     session:mk(String.fromCharCode(97+i),'generation-'+i),lease:'L-'+i,
+   });
+   slot.drafts.set('source-bound-'+i,{value:String(i+1),autoFilled:false});
+ }
+ assert.equal(inspectXml229SessionWeightDrafts(ref).activeCount,1);
+ assert.deepEqual(inspectXml229SessionWeightDrafts(ref).archivedCounts,[1,1,1,1,1,1]);
+});

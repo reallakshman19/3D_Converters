@@ -38,7 +38,7 @@ export function openXml229SessionWeightDrafts(ref,entry){
      drafts:new Map(previous.drafts)});
  }
  const current={...nextIdentity,drafts:new Map()};
- workspaces.set(key,{current,archived:archived.slice(-4)});
+ workspaces.set(key,{current,archived});
  return current;
 }
 
