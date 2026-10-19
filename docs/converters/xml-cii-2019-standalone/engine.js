@@ -143,8 +143,17 @@ async function runEnrichedXml(pyodide, job, paths, jobDir, stdout) {
 async function runCii(pyodide, job, paths, jobDir, stdout, stderr) {
   const invocation = buildStandaloneCiiInvocation(job, paths, jobDir);
   await runPythonScript(pyodide, invocation.scriptPath, invocation.argv, stdout, stderr);
-  const candidateWitness = invocation.candidateWitnessPath
-    ? JSON.parse(pyodide.FS.readFile(invocation.candidateWitnessPath, { encoding: 'utf8' })) : null;
+  let candidateWitness = null;
+  if (invocation.candidateWitnessPath) {
+    // The witness contains source node/reference identities. Retain it only
+    // in this call's closure, not in Pyodide's persistent virtual filesystem.
+    try {
+      candidateWitness = JSON.parse(pyodide.FS.readFile(
+        invocation.candidateWitnessPath, { encoding: 'utf8' }));
+    } finally {
+      pyodide.FS.unlink(invocation.candidateWitnessPath);
+    }
+  }
   return { ciiText: pyodide.FS.readFile(invocation.outputPath, { encoding: 'utf8' }),
     ciiName: invocation.outputName, argv: invocation.argv.slice(1),
     nativeCandidateWitness: candidateWitness };
