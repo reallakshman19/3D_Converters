@@ -131,6 +131,23 @@ test('chronology includes bounded causal steps and losses, no private payload',(
  }
  assert.equal(obj.nativeCiiReleaseAuthorized,false);
 });
+test('audit refuses reordered event chronology and missing counted events',()=>{
+ const trace=createXml229CrossWorkerFlowTrace({id:'ORDER-CHALLENGE'});
+ trace.record({kind:'RUN_AUDIT_REQUESTED',actor:'output-ui'});
+ trace.record({kind:'RUN_AUDIT_COMPLETED',actor:'output-ui'});
+ trace.record({kind:'RUN_GATE_DIAGNOSED',actor:'native-gate',
+   code:'INDEPENDENT_NATIVE_RELEASE_AUTHORITY_ABSENT'});
+ const good=trace.snapshot();
+ const reordered={...good,events:[good.events[1],good.events[0],good.events[2]]};
+ const order=audit({trace:reordered}).diagnostic;
+ assert.equal(order.chronology.integrity.status,'BROKEN_FLOW');
+ assert(order.chronology.integrity.issues.includes('NON_MONOTONIC_EVENT_ORDER'));
+ const missing={...good,events:[good.events[0],good.events[2]]};
+ const gaps=audit({trace:missing}).diagnostic;
+ assert.equal(gaps.chronology.integrity.status,'INVALID');
+ assert(gaps.chronology.integrity.issues.includes('TRACE_WINDOW_COUNT_MISMATCH'));
+ assert.equal(gaps.nativeCiiReleaseAuthorized,false);
+});
 test('standalone XML-only route remains unaffected by extra diagnostics',()=>{
  const state=input();delete state.xml229StagedSourceReceipt;
  const a=audit({state});
