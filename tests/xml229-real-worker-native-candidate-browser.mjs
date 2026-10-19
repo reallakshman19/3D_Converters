@@ -94,8 +94,13 @@ try{
   installXml229WorkerHeldWeightPanel(document.querySelector('#weight'),
     window.__stateRef,{resolveInputs:async()=>window.__options});
  });
- await page.waitForFunction(()=>document.querySelectorAll('tr[data-p4-row]').length===1,
-  null,{timeout:20000});
+ // A source-positive mass need not be displayed in the UI's default
+ // blank-weight filter; wait on the actual current source-bound Worker.
+ await page.waitForFunction(async()=>{
+   const {getXml229CurrentWorkerHeldReview}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   return !!getXml229CurrentWorkerHeldReview(window.__stateRef);
+ },null,{timeout:30000});
 
  // Independent Node-host deadline: even if Pyodide blocks the browser's
  // own event loop, the CI harness must terminate with a usable failure.
