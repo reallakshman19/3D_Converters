@@ -496,7 +496,12 @@ function renderRunControls(parent, stateRef, state, report, render) {
           {code:'WORKER_SESSION_MISSING'});
         const job=await buildXml229NonreleasingCandidateJobFromUiState(stateRef.current);
         const result=await runXml229NonreleasingNativeCandidate({
-          job,session,assertCurrent:()=>{
+          job,session,
+          onStage:step=>recordXml229FlowTrace(stateRef,{
+            kind:'CANDIDATE_STAGE',actor:'native-gate',
+            step:String(step).toLowerCase().replace(/_/g,'-'),
+          }),
+          assertCurrent:()=>{
             if(getXml229CurrentWorkerHeldReview(stateRef)!==session||session.closed)
               throw Object.assign(new Error('STALE_REVIEW_SESSION'),{code:'STALE_REVIEW_SESSION'});
           },
@@ -534,6 +539,8 @@ function renderRunControls(parent, stateRef, state, report, render) {
   if(report.runHoldAudit?.gateStatus==='HELD'){
     ensureXml229FlowTrace(stateRef);
     const snapshot=report.runHoldAudit;
+    recordXml229FlowTrace(stateRef,{kind:'RUN_GATE_DIAGNOSED',
+      actor:'native-gate',code:snapshot.diagnosisCode});
     const auditPanel=createElement('details','','xml-cii-weight-panel');
     auditPanel.appendChild(createElement('summary',
       'Why is native Run HELD? — source/Worker audit trail'));
