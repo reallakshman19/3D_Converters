@@ -15,6 +15,15 @@ export function beginXml229FlowTrace(ref){
  live.set(k,trace);
  return trace;
 }
+export function ensureXml229FlowTrace(ref){
+ const k=key(ref);
+ if(!k||typeof k!=='object')return null;
+ const existing=live.get(k);
+ if(existing)return existing;
+ const trace=createXml229CrossWorkerFlowTrace();
+ live.set(k,trace);
+ return trace;
+}
 export function getXml229FlowTrace(ref){
  const k=key(ref);
  return k&&typeof k==='object'?live.get(k)||null:null;
