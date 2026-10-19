@@ -10,8 +10,9 @@ import {materializeXmlCiiDatasetBackedConfig} from '../xml-cii-dataset-backed-co
 import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-custody.mjs';
 import {digestCanonical,canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-scope.js';
-import {renderXml229WeightReviewPage,formatXml229DecisionAuditSummary,choiceForXml229WeightRow} from './xml229-p4-weight-review-presentation.mjs';
-import {auditXml229AcceptedMatch1Row} from '../integration/xml229-accepted-match1-family-audit.mjs';
+import {renderXml229WeightReviewPage,formatXml229DecisionAuditSummary} from './xml229-p4-weight-review-presentation.mjs';
+import {prepareXml229ExplicitMassReview,commitXml229ExplicitMassReview,xml229VisibleSingleReviewSnapshot}
+ from './xml229-p4-explicit-mass-review.mjs';
 import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs} from './xml229-p4-unqualified-drafts.mjs';
 import {disarmXml229EditedDraft} from './xml229-p4-two-click-confirmation.mjs';
 import {revealXml229PreparedWeightInput} from './xml229-p4-reveal-applied-weight.mjs';
@@ -463,24 +464,20 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    busy=true;root.dataset.p4Busy='true';
    try{
      if(confirmReview){
-       const prepared=pendingReview;
-       disarmReview(); // Second click must not be replayable.
-       if(!prepared||active!==prepared.session||live()!==prepared.session)
-         err('WEIGHT_REVIEW_PREPARE_STALE');
-       const currentDraft=draftValues.get(prepared.occurrenceId);
-       if(JSON.stringify(currentDraft||null)!==prepared.draftJson)
-         err('WEIGHT_REVIEW_DRAFT_CHANGED');
-       const reviewed=await prepared.session.review({
-         view:prepared.view,choice:prepared.choice,
+       const prepared=pendingReview;disarmReview();
+       const tr=[...table.querySelectorAll('tr[data-p4-row]')].find(
+         x=>x.dataset.p4Occurrence===prepared?.occurrenceId);
+       if(!tr)err('WEIGHT_REVIEW_VISIBLE_ROW_STALE');
+       await commitXml229ExplicitMassReview({
+         prepared,session:active,draft:draftValues.get(prepared.occurrenceId),
+         readVisible:()=>xml229VisibleSingleReviewSnapshot(tr),
+         isCurrent:()=>active===prepared.session&&live()===active&&
+           tr.isConnected!==false&&table.contains(tr),
        });
-       if(active!==prepared.session||live()!==prepared.session)
-         err('WEIGHT_REVIEW_SOURCE_STALE');
-       if(!reviewed?.decisionRevision)err('WEIGHT_REVIEW_DECISION_UNATTESTED');
-       draftValues.delete(prepared.occurrenceId);
-       persistDrafts();
+       draftValues.delete(prepared.occurrenceId);persistDrafts();
        pendingBulk=null;await render();
        say(prepared.stageLabel+' explicitly committed through verified Worker CAS for original occurrence '+
-         prepared.occurrenceId+'. The separate engineering and native CII release gates remain HELD.');
+         prepared.occurrenceId+'. Engineering and native CII release remain HELD.');
        return;
      }
      if(restoreDraftButton){
@@ -669,51 +666,30 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      const draft=tr.querySelector('[data-p4-proposal]');
      const selection=tr.querySelector('[data-p4-candidate]');
      if(reviewMatch1||reviewFinal){
-       // Click 1 is read-only. The Worker sends a fresh CAS view; the separate
-       // confirmation click is the only possible decision write.
+       // First click is read-only. A separately verified confirmation owns
+       // the only Worker review write, with actual DOM/edit drift checks.
        captureDraft(tr);
-       const wanted=reviewFinal?'final':'match1';
-       const current=draftValues.get(row.occurrenceId);
-       const typed=tr.querySelector('[data-p4-proposal]')?.value||'';
-       if(current?.skippedWeight||typed==='0')
-         err('SKIPPED_OR_ZERO_WEIGHT_REQUIRES_DISPOSITION',
-           'A 0 kg Skip draft is not an accepted zero or reviewed mass');
-       if(wanted==='match1'&&row.match1View?.stageDecision)
-         err('MATCH1_ALREADY_HAS_DECISION','Existing Match-1 decision cannot be overwritten from simple table');
-       if(wanted==='final'&&row.finalView?.stageDecision)
-         err('FINAL_ALREADY_HAS_DECISION','Existing Final decision cannot be overwritten from simple table');
-       if(wanted==='final'&&!(Number(row.match1Kg)>0||Number(row.sourceKg)>0))
-         err('FINAL_PRECURSOR_REQUIRED',
-           'Review a positive source or Match-1 mass before independent Final acceptance');
-       const family=auditXml229AcceptedMatch1Row(row);
-       if(wanted==='final'&&family&&family.code!=='FAMILY_COMPATIBLE_ONLY')
-         err('FAMILY_ENGINEERING_HOLD',
-           'This historic Match-1 family requires independent engineering disposition before Final');
-       const value=typed||(wanted==='final'&&Number(row.match1Kg)>0
-         ?String(row.match1Kg):wanted==='final'&&Number(row.sourceKg)>0
-         ?String(row.sourceKg):'');
-       const reason=tr.querySelector('[data-p4-reason]')?.value?.trim()||'';
-       if(!reason)err('WEIGHT_REVIEW_REASON_REQUIRED','Supply an independent engineering reason before review');
-       const {choice}=choiceForXml229WeightRow(row,{
-         stage:wanted,value,reason,
-         proposalId:wanted==='match1'?(current?.proposalId||''):'',
+       const session=active;
+       const draftBefore=draftValues.get(row.occurrenceId);
+       const draftJson=JSON.stringify(draftBefore||null);
+       const prepared=await prepareXml229ExplicitMassReview({
+         session,row,stage:reviewFinal?'final':'match1',draft:draftBefore,
+         typed:tr.querySelector('[data-p4-proposal]')?.value||'',
+         reason:tr.querySelector('[data-p4-reason]')?.value?.trim()||'',
+         readVisible:()=>xml229VisibleSingleReviewSnapshot(tr),
+         isCurrent:()=>active===session&&live()===session&&
+           tr.isConnected!==false&&table.contains(tr),
        });
-       const session=active,stage=wanted==='final'?'Rigidmatch2':'RigidMatch1';
-       const view=await session.readIndividual({occurrenceId:row.occurrenceId,stage});
-       if(live()!==session||active!==session||view?.basisId!==session.receipt.basisId||
-          view?.sourceId!==session.receipt.sourceId||view?.stage!==stage||
-          view?.occurrenceId!==row.occurrenceId)
-         err('WEIGHT_REVIEW_VIEW_STALE');
-       pendingReview={session,view,choice,occurrenceId:row.occurrenceId,
-         draftJson:JSON.stringify(draftValues.get(row.occurrenceId)||null),
-         stageLabel:wanted==='final'?'Final Match-2':'Match-1'};
+       if(JSON.stringify(draftValues.get(row.occurrenceId)||null)!==draftJson)
+         err('WEIGHT_REVIEW_DRAFT_CHANGED_DURING_PREPARE');
+       pendingReview=prepared;
        const confirm=root.querySelector('[data-p4-confirm-single]');
        confirm.hidden=false;
-       confirm.textContent='Confirm '+pendingReview.stageLabel+' · '+value+' kg (source reviewed)';
+       confirm.textContent='Confirm '+prepared.stageLabel+' · '+prepared.value+' kg (source reviewed)';
        bulkDetail.hidden=false;
-       bulkDetail.textContent='Prepared '+pendingReview.stageLabel+' for original occurrence '+
-         row.occurrenceId+' at '+value+' kg. Engineering reason: '+reason+
-         '. This is NOT a decision until Confirm. Native CII remains HELD.';
+       bulkDetail.textContent='Prepared '+prepared.stageLabel+' for original occurrence '+
+         row.occurrenceId+' at '+prepared.value+' kg. Engineering reason: '+
+         prepared.reason+'. NOT a decision until Confirm. Native CII remains HELD.';
        say('Review prepared. Confirm explicitly above the table. No mass accepted yet.');
        return;
      }
