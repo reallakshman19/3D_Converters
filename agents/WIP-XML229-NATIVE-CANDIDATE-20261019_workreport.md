@@ -38,3 +38,19 @@ Extended the SAME draft on top of source-correct R2 Final-to-engine XML transfer
 - No automatic RIGID fabrication for VALV, INST or unmatched FLAN. No native mass-writing/geometry policy changed.
 
 Evidence limit: a first-party runtime witness + independent second-path CII structural readback is real application integration, but is NOT an independently authored G5/I03 source-to-retained child lineage or Owner's complete private basis acceptance. Draft, nonreleasing.
+
+## WP4 — source-first executable Run hook repair and real-Worker browser qualification (2026-10-19)
+
+- Found a CRITICAL actual app wiring gap: the candidate wrapper passed runtime.engineRunner but the real XML workflow service called runXmlCii2019StandaloneEngineJob directly. Earlier standalone candidate mocks were insufficient. Corrected XML workflow service to invoke the injected engine custody port AFTER branch-format+parity, defaulting to unmodified native engine when no port is provided. Both source and docs copies updated.
+- Added public API→real service→engineRunner positive and refusal tests (not just a simulated runWorkflow stub); the existing parity-closure tests now run in the dedicated Node 22/24 matrix.
+- Fail-closed candidate rejects all analyzeTopology/generateTopoFix/useTopoFixForCii options because that path can replace converter input after R2 mass attestation; no unverified TopoFix geometry passes.
+- Separated genuine Chromium tests: prior root/docs UI HOLD test, a current GC-PW source-mass 35kg→exact R2 Worker rewrite test, and a bounded real current-Worker→parity→Pyodide candidate test. Source 35 kg synthetic positive is **Source authority**, not an independently accepted Final Match-2 decision.
+- Full Pyodide browser test carries a 180s Node-host independent deadline to prevent a deadlocked browser from consuming the entire workflow. Synthetic live Worker readiness waits for the actual session, not the default UI blank-weight filter.
+- Python native witness is unlinked from the persistent Pyodide virtual FS immediately after reading. Raw witnesses and CII text are not stored by the production candidate UI.
+
+### Acceptance boundaries
+
+- Focused actual workflow hook and Python/JS contract tests passed on the previous head (20b1012c); exact latest-head CI may be running. Do not describe queued jobs as green.
+- Chromium UI HOLD smoke passed at 20b1012c. Full current Worker→R2→native Pyodide end-to-end acceptance is NOT yet confirmed; do not treat its running/timeout result as a pass.
+- The prior 15 broad CI failures include confirmed legacy hard-coded merge-base and narrow C05 scope guards; **overall PR is not green**.
+- No native mass policy for VALV/INST/noneligible FLAN/splits, no independently authored G5/I03 or Owner-private all-source acceptance, no production release.
