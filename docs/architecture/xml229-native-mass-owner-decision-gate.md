@@ -31,7 +31,7 @@ equality by itself establishes original physical identity.
 | `RIGID`, `Rigid=2` | Incoming edge may be a RIGID owner | Prove exactly which retained element and rigid slot owns original mass, and that transformations preserve or explicitly allocate it |
 | `VALV` with positive Final kg but no `Rigid=2` | Does not automatically create RIGID record | Engineering chooses an appropriate mass representation, geometry, split policy and output convention. Do **not** auto-convert to RIGID |
 | `INST` with positive Final kg but no `Rigid=2` | Does not automatically create RIGID record | Engineering chooses how an instrument physical mass is consumed, if and where supported; prohibit silent loss/duplication |
-| `FLAN` with positive Final kg | Narrow same-component-reference RIGID→FLAN case may be classified | Differentiate physical flange mass from its upstream component and disallow borrowing wrong owner mass |
+| `FLAN` with positive Final kg | A retained incoming RIGID→FLAN edge qualifies when the immediately prior node has `Rigid=2` and both component references normalize to the same nonblank value | Its native mass must come from the **flange arrival node**, never the prior RIGID owner; source XML adjacency alone is not post-cleanup lineage |
 | Other positive original physical type | No globally proved native ownership rule | Explicit engineering type/slot allocation and fail-closed independent output challenge required |
 
 No inferred or score-based rule is authority. Manual draft, default valve weight,
@@ -76,7 +76,8 @@ test mode and excludes draft/JSON-derived engineering mass authority.
 It validates SHA, R2 original/engine identity and owner-count consistency;
 checks native CII structure, force units and ELEMENTS→RIGID pointer integrity;
 and gives only aggregate per-type counts and masses. It separately reports
-`explicitRigid2SourceKg`, `unresolvedPositiveNativeOwnerKg`,
+`explicitRigid2SourceKg`, `sameRefRigidToFlanCandidateKg`,
+`preConversionRigidEdgeCandidateKg`, `unresolvedPositiveNativeOwnerKg`,
 `nativeRigidEquivalentKgUnderClaimedScale`, and the algebraic aggregate
 difference. **Numerical balance is never native occurrence-to-slot proof**:
 a controlled forged 2000-unit single rigid output matches four source masses
@@ -84,15 +85,38 @@ of 200kg at claimed scale 10 while three component owners remain unresolved.
 
 Optional `--deny-unresolved-mass` fails with
 `NATIVE_OWNER_RULE_UNRESOLVED` **before writing the report** if a positive
-source physical has no explicit `Rigid=2` marker. This is a conservative
-diagnostic guard, not an engineering rule: an explicitly approved
-same-reference RIGID→FLAN allocation could still be blocked by it. Passing the
-flag alone does **not** prove native output slot ownership, Final authorship,
-or release. The inventory is not an allocation algorithm and **always**
-emits native-release/Final-consumption verification as false. The private
+source physical matches neither **pre-conversion** native incoming-edge
+predicate: (a) `Rigid=2` on a non-first arrival node; or (b) `FLAN`
+immediately after `Rigid=2` with identical nonblank normalized component
+reference. A `Rigid=2` tag on the first branch node has no incoming element,
+and a mismatched flange reference cannot borrow its predecessor's mass.
+Passing this flag does **not** prove that the candidate edge survives
+cleanup/renumbering, maps to the correct native output slot, has a reviewed
+Final decision, or is release-ready. The inventory is not an allocation
+algorithm and **always** emits native-release/Final-consumption verification
+as false. The private
 report must not be published with source/master rows.
 G5 synthetic tests reject forged authority, source/engine duplicate/drift,
 unexpected CII pointers, altered mass/units and invalid scale.
+
+### Current native edge-predicate challenge (not owner release)
+
+Additional controlled actual Python CLI cases explicitly exercise:
+- **Same-reference** RIGID(35kg)→FLAN(70kg): two native RIGID output
+  records represent 1050 scaled units, with the flange record receiving its
+  **own** 70kg, not its upstream RIGID's 35kg. VALV(45kg) and INST(50kg)
+  still lack an established native RIGID edge in this model (95kg).
+- Identical adjacency **but mismatched component references**: flange must
+  not qualify as a RIGID edge, output has one 35kg direct RIGID and 165kg
+  without the known pre-conversion predicate.
+- A first-branch-node `Rigid=2` marker creates no incoming native edge;
+  a later same-reference flange can independently qualify.
+- Each remains `nativeCiiPhysicalSlotVerified=false`. Source adjacency and
+  numeric equality cannot certify post-cleanup native edge identity.
+
+**Engineering action:** distinguish legitimate native edge eligibility from
+independent output mapping; do not silently mark a VALV, INST or unrelated
+FLAN mass represented by another node's native RIGID slot.
 
 **EXACT_NEXT_ACTION:** Owner/engineering supplies approved per-class physical
 mass-owner geometry and representation. Implement a separate, tightly scoped
