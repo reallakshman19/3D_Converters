@@ -107,6 +107,8 @@ def inventory(transfer, engine_xml_bytes, cii_bytes, *, weight_scale,
     used_original, used_engine = set(), set()
     by_type = {}
     all_kg = Decimal(0)
+    unresolved_kg = Decimal(0)
+    explicitly_rigid2_kg = Decimal(0)
     for row in matches:
         require(isinstance(row, dict), "R2_MATCH_INVALID")
         try:
@@ -145,11 +147,17 @@ def inventory(transfer, engine_xml_bytes, cii_bytes, *, weight_scale,
         explicit = field(node, "Rigid") == "2"
         entry = by_type.setdefault(kind, {
             "positivePhysicals": 0, "engineKg": Decimal(0),
-            "explicitRigid2": 0, "ruleRequired": 0
+            "explicitRigid2": 0, "ruleRequired": 0,
+            "explicitRigid2Kg": Decimal(0), "requiresRuleKg": Decimal(0)
         })
         entry["positivePhysicals"] += 1
         entry["engineKg"] += weight
         entry["explicitRigid2" if explicit else "ruleRequired"] += 1
+        entry["explicitRigid2Kg" if explicit else "requiresRuleKg"] += weight
+        if explicit:
+            explicitly_rigid2_kg += weight
+        else:
+            unresolved_kg += weight
         all_kg += weight
     try:
         cii_text = cii_bytes.decode("utf-8")
@@ -172,6 +180,8 @@ def inventory(transfer, engine_xml_bytes, cii_bytes, *, weight_scale,
             "engineKg": str(entry["engineKg"]),
             "explicitRigid2": entry["explicitRigid2"],
             "needsNativeOwnerRule": entry["ruleRequired"],
+            "explicitRigid2Kg": str(entry["explicitRigid2Kg"]),
+            "needsNativeOwnerRuleKg": str(entry["requiresRuleKg"]),
         }
         for kind, entry in sorted(by_type.items())
     }
@@ -191,10 +201,18 @@ def inventory(transfer, engine_xml_bytes, cii_bytes, *, weight_scale,
         "nativeCiiUnits": "N.",
         "nativeRigidOutputForce": str(native_units),
         "nativeRigidEquivalentKgUnderClaimedScale": str(native_units / factor),
+        "nativeAggregateDifferenceKgUnderClaimedScale":
+            str(all_kg - native_units / factor),
+        "explicitRigid2SourceKg": str(explicitly_rigid2_kg),
+        "unresolvedPositiveNativeOwnerKg": str(unresolved_kg),
+        "aggregateBalanceIsNotLineageProof": True,
         "byComponentType": components,
         "nativeOwnerRuleRequiredCount":
             sum(row["needsNativeOwnerRule"] for row in components.values()),
         "coverageStatus": "NATIVE_ORIGINAL_OCCURRENCE_TO_OUTPUT_UNVERIFIED",
+        "unresolvedOwnerRuleStatus":
+            ("BLOCKED_MISSING_NATIVE_OWNER_RULE" if unresolved_kg > 0
+             else "NO_NON_RIGID2_OWNER_IN_THIS_CENSUS"),
         "independentLineageAuthorVerified": False,
         "physicalMatch2ConsumptionVerified": False,
         "nativeCiiPhysicalSlotVerified": False,
@@ -208,6 +226,8 @@ def main(argv=None):
     parser.add_argument("--engine-xml", type=Path, required=True)
     parser.add_argument("--cii", type=Path, required=True)
     parser.add_argument("--weight-scale", required=True)
+    parser.add_argument("--deny-unresolved-mass", action="store_true",
+                        help="Fail closed before writing a report if positive physicals lack explicit Rigid=2 ownership. Never authorizes native release.")
     parser.add_argument("--expected-cii-sha256", required=True)
     parser.add_argument("--output", type=Path, required=True,
                         help="OWNER-LOCAL PRIVATE output; never upload original rows")
@@ -216,6 +236,8 @@ def main(argv=None):
                        args.engine_xml.read_bytes(), args.cii.read_bytes(),
                        weight_scale=args.weight_scale,
                        expected_cii_sha256=args.expected_cii_sha256)
+    if args.deny_unresolved_mass and Decimal(result["unresolvedPositiveNativeOwnerKg"]) > 0:
+        raise InventoryError("NATIVE_OWNER_RULE_UNRESOLVED")
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print("XML229 native owner inventory held; output private; native release=false")
 
