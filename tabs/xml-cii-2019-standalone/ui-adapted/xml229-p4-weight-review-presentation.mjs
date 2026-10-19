@@ -135,7 +135,7 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
     <button data-p4-next type="button" ${m.end>=m.total?'disabled':''}>Next</button>
     <small>Showing ${m.rows.length?m.start+1:0}–${m.end} of ${m.total} matching original physical owners.</small>
   </div>
-  <p style="color:#fbbf24">Applied Weight and Skip Weight are session-only drafts: 0 kg means skipped for review, not verified zero mass. Native CII Run remains HELD until independent Final/output authority is verified.</p>`;
+  <p style="color:#fbbf24">Applied Weight and Skip Weight are locally saved drafts bound to the verified InputBasis: 0 kg means skipped for review, not verified zero mass. Native CII Run remains HELD until independent Final/output authority is verified.</p>`;
 }
 export function choiceForXml229WeightRow(row,{stage,proposalId='',value='',reason=''}={}){
  const explanation=txt(reason).trim();
