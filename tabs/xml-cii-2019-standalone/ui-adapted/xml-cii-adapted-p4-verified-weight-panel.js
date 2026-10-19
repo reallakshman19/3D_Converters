@@ -14,11 +14,10 @@ import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-s
 import {renderXml229WeightReviewPage} from './xml229-p4-weight-review-presentation.mjs';
 import {prepareXml229ExplicitMassReview,commitXml229ExplicitMassReview,xml229VisibleSingleReviewSnapshot}
  from './xml229-p4-explicit-mass-review.mjs';
-import {planXml229UnqualifiedDrafts,hydrateXml229WeightDraftInputs} from './xml229-p4-unqualified-drafts.mjs';
-import {applyXml229SourceWideSuggestionDrafts} from './xml229-p4-source-wide-suggestion-action.mjs';
+import {hydrateXml229WeightDraftInputs} from './xml229-p4-unqualified-drafts.mjs';
+import {applyXml229SourceWideSuggestionDrafts,applyXml229BlankWeightDrafts} from './xml229-p4-source-wide-suggestion-action.mjs';
 import {disarmXml229EditedDraft} from './xml229-p4-two-click-confirmation.mjs';
 import {createXml229BulkApplyQueue} from './xml229-p4-busy-apply-queue.mjs';
-import {planXml229SkipWeightDrafts} from './xml229-p4-skip-weight-drafts.mjs';
 import {openXml229WeightDraftWorkspace} from './xml229-p4-weight-draft-workspace.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {exportXml229WeightEvidence} from './xml229-p4-private-weight-evidence.mjs';
@@ -504,41 +503,14 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        });
        return;
      }
-     if(skipButton){
-        const session=active;
-        const planned=await planXml229SkipWeightDrafts(session,{
-          existingDrafts:draftValues,
-          isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
-        });
-        if(active!==session||live()!==session)err('SKIP_WEIGHT_SOURCE_STALE');
-        for(const [id,draft] of planned.drafts)
-          if(!draftValues.has(id))draftValues.set(id,draft);
-        persistDrafts();
-        pendingBulk=null;bulkDetail.hidden=true;bulkDetail.textContent='';
-        mode='blank-rigid';query='';offset=0;
-        await render();
-        say('Skip Weight: '+planned.counts.skipped+
-          ' blank eligible weight row(s) filled with 0 kg DRAFT. '+
-          planned.counts.alreadyEdited+' existing drafts kept; '+
-          planned.counts.existingReview+' reviewed rows untouched. '+
-          '0 kg is not verified engineering mass and does not enter CII/Final automatically.');
-        return;
-      }
-      if(draftFillButton){
-       const session=active;
-       const planned=await planXml229UnqualifiedDrafts(session,{
-         existingDrafts:draftValues,
+     if(skipButton||draftFillButton){
+       const session=active;pendingBulk=null;
+       say(await applyXml229BlankWeightDrafts({
+         kind:skipButton?'skip':'unqualified',session,drafts:draftValues,
          isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
-       });
-       for(const [id,draft] of planned.drafts)if(!draftValues.has(id))
-         draftValues.set(id,draft);
-       persistDrafts();
-       pendingBulk=null;mode='blank-rigid';offset=0;await render();
-       const c=planned.counts;
-       say(c.prepared+' new unqualified editable draft(s) across '+c.blankRigid+
-         ' blank RIGIDs; '+c.withoutProposal+' have no proposal, '+
-         c.qualifiedPresent+' have qualified candidates and '+c.alreadyDrafted+
-         ' already had local drafts. Zero decisions accepted. Drafts are InputBasis-bound.');
+         saveDrafts:persistDrafts,render,detail:bulkDetail,
+         resetView:kind=>{mode='blank-rigid';offset=0;if(kind==='skip')query='';},
+       }));
        return;
      }
      if(prev||next){
