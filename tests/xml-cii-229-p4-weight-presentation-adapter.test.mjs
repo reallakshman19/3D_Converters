@@ -308,12 +308,14 @@ test('Auto Fill refuses a tampered projected kilogram value',async()=>{
 
 test('Auto Fill actually hydrates input values and selected candidates rather than placeholders only',async()=>{
  const file=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',import.meta.url),'utf8');
- assert.match(file,/planXml229RigidWeightDrafts\(session,/);
+ const action=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-source-wide-suggestion-action.mjs',import.meta.url),'utf8');
+ assert.match(file,/applyXml229SourceWideSuggestionDrafts/);
+ assert.match(action,/planXml229RigidWeightDrafts\(session,/);
  const hydration=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs',import.meta.url),'utf8');
  assert.match(hydration,/input\.value=saved\.value/);
  assert.match(file,/hydrateXml229WeightDraftInputs\(table,page\.rows,draftValues\)/);
  assert.match(hydration,/selection\.value=saved\.proposalId/);
- assert.match(file,/confirm\.disabled=!plan\.qualified/);
+ assert.match(action,/confirm\.disabled=!plan\.qualified/);
  assert.doesNotMatch(file,/nativeCiiReleaseAuthorized:true/);
  const raw=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs',import.meta.url),'utf8');
  const served=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs',import.meta.url),'utf8');
