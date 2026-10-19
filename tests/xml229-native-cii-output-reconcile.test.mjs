@@ -88,6 +88,25 @@ test('swapped/native-element pointer and source-owner collision refuse',async()=
   assert.equal(out.nativeRigidObserved,1);
   assert.equal(out.reasons.DUPLICATE_NATIVE_PHYSICAL_OWNER,1);
 });
+test('retained model kg must independently match R2 accepted Final kg',async()=>{
+  const x=await fixture();
+  x.witness.edges[0].to.weightKg=36;
+  await assert.rejects(run(x),{code:'XML229_NATIVE_MODEL_MASS_DRIFT'});
+});
+test('extra referenced native mass without original owner stays unresolved',async()=>{
+  const x=await fixture();
+  x.ciiText=nativeCii({pointers:[1,2],forces:['350 0','450 0']});
+  x.witness.ciiSha256=await hash(x.ciiText);
+  x.witness.modelRigidCount=2;
+  x.witness.edges[1].rigidRecordIndex=1;
+  x.witness.edges[1].rigidForce='450';
+  x.witness.edges[1].to.componentRefNo='OTHER';
+  const out=await run(x);
+  assert.equal(out.nativeRigidObserved,1);
+  assert.equal(out.unclaimedPositiveNativeSlots,1);
+  assert.equal(out.reasons.UNCLAIMED_POSITIVE_NATIVE_MASS,1);
+  assert.equal(out.nativeCiiReleaseAuthorized,false);
+});
 test('original source owner dropped or split is diagnosed, not invented',async()=>{
   const x=await fixture();
   x.witness.edges[1].to.componentRefNo='CHANGED';
