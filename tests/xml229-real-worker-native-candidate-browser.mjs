@@ -97,7 +97,9 @@ try{
  await page.waitForFunction(()=>document.querySelectorAll('tr[data-p4-row]').length===1,
   null,{timeout:20000});
 
- const result=await page.evaluate(async()=>{
+ // Independent Node-host deadline: even if Pyodide blocks the browser's
+ // own event loop, the CI harness must terminate with a usable failure.
+ const result=await Promise.race([page.evaluate(async()=>{
    const {getXml229CurrentWorkerHeldReview}=await import(
      '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
    const {runXml229NonreleasingNativeCandidate}=await import(
@@ -139,7 +141,11 @@ try{
      rewriteVerified:true,
      candidate,failure,
    };
- });
+ }),new Promise((_,reject)=>{
+   const watchdog=setTimeout(()=>reject(new Error(
+     'XML229_REAL_WORKER_NATIVE_CHROMIUM_DEADLINE_EXCEEDED')),180000);
+   watchdog.unref();
+ })]);
  assert.equal(result.reviewedFinalEligible,true,'Synthetic source Weight=35 must bind without inferred approval: '+JSON.stringify(result));
  assert.equal(result.completionCounts?.source,1,'The synthetic source mass should be exactly one source-authoritative positive kg');
  assert.equal(result.rewriteVerified,true);
