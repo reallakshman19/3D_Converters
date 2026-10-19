@@ -39,8 +39,12 @@ test('simple source-bound Weight UI shows Applied Weight, three adjacent filters
   assert.match(html,/Weight items/);
   assert.match(html,/data-p4-skip-weight/);
   assert.match(html,/Apply all suggestions/);
-  assert.doesNotMatch(html,/data-p4-candidate|data-p4-reason|data-p4-accept-match1|data-p4-accept-final|data-p4-bulk-confirm|data-p4-filter-unresolved/);
-  assert.doesNotMatch(html,/Apply all Match-1|Engineering reason|Review Final|<option value="">Manual/);
+  assert.match(html,/data-p4-reason/);
+  assert.match(html,/data-p4-review-match1/);
+  assert.match(html,/data-p4-review-final/);
+  assert.doesNotMatch(html,/data-p4-candidate|data-p4-accept-match1|data-p4-accept-final|data-p4-bulk-confirm|data-p4-filter-unresolved/);
+  assert.match(html,/Review Final/);
+  assert.doesNotMatch(html,/Apply all Match-1|<option value="">Manual/);
   assert.equal((html.match(/<th style=/g)||[]).length,14);
   assert.match(html,/data-p4-scope="rigid"/);
   assert.match(html,/data-p4-scope="blank-rigid"/);
@@ -213,7 +217,9 @@ test('adapter uses Worker readPage/review and keeps native Run HOLD and full sou
    'Worker paging must stay source-bound; captured session prevents late cancelled responses from painting');
  assert.doesNotMatch(panel,/await active\.review\(\{view,choice\}\)/);
   assert.match(panel,/planXml229SkipWeightDrafts\(/);
- assert.doesNotMatch(panel,/choiceForXml229WeightRow/);
+ assert.match(panel,/choiceForXml229WeightRow/);
+ assert.match(panel,/readIndividual\(/);
+ assert.match(panel,/data-p4-confirm-single/);
  assert.match(panel,/getXml229CurrentWorkerHeldReview/);
  assert.match(run,/projectOriginalReviewIntoRunChecklist/);
  assert.match(run,/verifiedEngineering:/);
