@@ -15,6 +15,7 @@ const safeCode=v=>typeof v==='string'&&/^[A-Z][A-Z0-9_]{2,79}$/.test(v)
   ?v:'UNCLASSIFIED_READ_FAILURE';
 const count=v=>whole(v)?v:null;
 const statuses=new Set(['NOT_REACHED','MISSING','STALE','FAILED','VERIFIED','HELD','NOT_ASSESSED']);
+const leaseReasons=new Set(['NEVER_BUILT','BUILD_STARTED','WORKER_REPLACED','WORKER_PUBLISHED','WORKER_REVOKED','WORKER_CLOSED','NO_BOUND_WORKER']);
 const stage=(name,status,reason,counts=null)=>Object.freeze({
   name,status:statuses.has(status)?status:'NOT_ASSESSED',reason,
   ...(counts?{counts}:{}),
@@ -96,13 +97,14 @@ function classify({hold,source,sessionState,proofValid,proof,readError,finalInte
 }
 /** Called on each render AND again from the explicit fresh-evidence download. */
 export function buildXml229RunHoldAudit({
- input={},report=null,sessionState='UNKNOWN',
+ input={},report=null,sessionState='UNKNOWN',leaseDiagnosis=null,
  sessionReceipt=null,completion=null,finalIntent=null,
  readError=null,candidate=null,flowTrace=null,
 }={}){
  const source=sourceSnapshot(input);
  const hold=report?.checklistRows?.some(x=>
    x.id==='xml229-original-json-engineering-authority'&&x.blocking===true)===true;
+ const leaseReason=leaseReasons.has(leaseDiagnosis?.reason)?leaseDiagnosis.reason:'NO_BOUND_WORKER';
  const valid=isXml229VerifiedCompletionForInput(input,sessionReceipt,completion);
  const code=classify({hold,source,sessionState,proofValid:valid,
    proof:completion,readError,finalIntent,candidate});
@@ -121,7 +123,7 @@ export function buildXml229RunHoldAudit({
    stage('current-gc-pw-worker',
      sessionState==='CLOSED'?'STALE':sessionReceipt?'VERIFIED':'MISSING',
      sessionState==='CLOSED'?'WORKER_SESSION_CLOSED':
-     sessionReceipt?'CURRENT_SESSION_RECEIPT_PRESENT':'NO_CURRENT_SESSION_RECEIPT'),
+     sessionReceipt?'CURRENT_SESSION_RECEIPT_PRESENT':leaseReason),
    stage('preview-facts-and-mass-census',
      valid?'VERIFIED':readError?'FAILED':completion?'STALE':'NOT_REACHED',
      valid?'SEVEN_FACTS_PER_PHYSICAL_AND_SOURCE_BASIS_MATCH':
@@ -180,6 +182,8 @@ export function buildXml229RunHoldAudit({
      selectedSourceCount:source.selectedSources,
      sourceMismatchCode:source.issue},
    worker:{sessionState,completionAccepted:valid,
+     leaseReason,leaseGeneration:count(leaseDiagnosis?.generation),
+     leasePresent:leaseDiagnosis?.leasePresent===true,
      readFailureCode:readError?safeCode(readError.code):null},
    nativeCandidate:candidate?{
      status:candidate.status,
