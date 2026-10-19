@@ -7,6 +7,45 @@ if(!globalThis.crypto)globalThis.crypto=webcrypto;
 const sha=async s=>Buffer.from(await crypto.subtle.digest('SHA-256',
   new TextEncoder().encode(s))).toString('hex');
 const basis='a'.repeat(64),intentSha='b'.repeat(64),jsonSha='d'.repeat(64);
+const candidateCii=()=>{
+ const rows=['#$ CONTROL','2 0 0 0 0 0','0 1 0 0 0 0',
+   '0 0 0 0 0 0','0','#$ ELEMENTS'];
+ for(let i=0;i<2;i++){
+   for(let row=0;row<15;row++){
+     if(row===0)rows.push((10+i*10)+' '+(20+i*10)+' 0 0 0 0');
+     else if(row===12)rows.push('0 '+(i===0?1:0)+' 0 0 0 0');
+     else if(row===14)rows.push('0 0 0');
+     else rows.push('0 0 0 0 0 0');
+   }
+ }
+ rows.push('#$ RIGID','350 0','#$ UNITS','N.');
+ return rows.join('\n')+'\n';
+};
+const sampleNode=(num,kind,ref,kg,x)=>({
+ nativeNodeNumber:num,sourceNodeNumber:num,componentType:kind,
+ componentRefNo:ref,endpoint:2,position:[x,0,0],
+ rigid:kind==='RIGID'?2:null,weightKg:kg,
+});
+async function witnessFor(cii){
+ return {schema:'XML229.NativeRetainedCandidateWitness.v1',
+   evidenceKind:'FIRST_PARTY_RUNTIME_NOT_INDEPENDENT_AUTHORITY',
+   engineInputSha256:await sha('<final-weight-bound-engine-input/>'),
+   ciiSha256:await sha(cii),weightScale:'10',
+   modelElementCount:2,modelRigidCount:1,
+   physicalMatch2ConsumptionVerified:false,
+   nativeCiiPhysicalSlotVerified:false,nativeCiiReleaseAuthorized:false,
+   edges:[
+     {nativeElementIndex:0,branchName:'B1',ciiFromNode:10,ciiToNode:20,
+       rigidRecordIndex:0,rigidForce:'350',
+       from:sampleNode(10,'BRAN','B0',0,0),
+       to:sampleNode(20,'RIGID','R1',35,100)},
+     {nativeElementIndex:1,branchName:'B1',ciiFromNode:20,ciiToNode:30,
+       rigidRecordIndex:null,
+       from:sampleNode(20,'RIGID','R1',35,100),
+       to:sampleNode(30,'VALV','V1',45,200)},
+   ]};
+}
+
 function fixture(){
   let changed=false,closed=false,engineCalls=0;
   const session={
@@ -26,7 +65,14 @@ function fixture(){
         engineInputSha256:await sha(engineInputXmlText),
         nativeCiiReleaseAuthorized:false,nativeCiiPhysicalSlotVerified:false,
         originalPhysicalCount:2,verifiedEnginePhysicalCount:2,
-        matches:[{originalOccurrenceId:'A'},{originalOccurrenceId:'B'}]};
+        matches:[
+          {branchName:'B1',engineNodeNumber:'20',componentType:'RIGID',
+           componentRefNo:'R1',endpoint:'2',enginePosition:'100 0 0',
+           engineWeightKg:35},
+          {branchName:'B1',engineNodeNumber:'30',componentType:'VALV',
+           componentRefNo:'V1',endpoint:'2',enginePosition:'200 0 0',
+           engineWeightKg:45},
+        ]};
     },
     async prepareEngineInputMasses({engineInputXmlText}){
       assert.equal(engineInputXmlText,'<parity-engine-input/>');
@@ -50,7 +96,10 @@ function fixture(){
     assert.equal(j.sourceText,'<final-weight-bound-engine-input/>');
     assert.equal(j.stagedJsonText,'');
     assert.equal(j.options.outputMode,'cii-only');
-    return {ok:true,ciiText:'native CII bytes',ciiName:'candidate.cii'};
+    assert.equal(j.xml229NativeCandidateWitness,true);
+    const ciiText=candidateCii();
+    return {ok:true,ciiText,ciiName:'candidate.cii',
+      nativeCandidateWitness:await witnessFor(ciiText)};
   };
   const run=()=>runXml229NonreleasingNativeCandidate({
     job,session,runWorkflow,runEngine,
@@ -64,7 +113,9 @@ test('attests parity XML before running real engine and returns digest, never CI
   assert.equal(x.engineCalls(),1);
   assert.equal(result.status,'ACTUAL_NATIVE_CONVERTER_EXECUTED_NOT_RELEASED');
   assert.equal(result.originalPhysicalCount,2);
-  assert.equal(result.ciiSha256,await sha('native CII bytes'));
+  assert.equal(result.ciiSha256,await sha(candidateCii()));
+  assert.equal(result.nativeRigidObserved,1);
+  assert.equal(result.unresolvedNativeOwners,1);
   assert.equal(result.nativeCiiPhysicalSlotVerified,false);
   assert.equal(result.physicalMatch2ConsumptionVerified,false);
   assert.equal(result.nativeCiiReleaseAuthorized,false);
