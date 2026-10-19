@@ -73,9 +73,16 @@ test('real CII RIGID pointer reconciles RIGID; VALV stays unresolved, no release
   assert.equal('ciiText' in got,false);
   assert.equal('edges' in got,false);
 });
-test('incorrect R2 Final kg vs actual native slot refuses',async()=>{
+test('incorrect R2 Final kg is rejected at earliest retained-model discrepancy',async()=>{
   const x=await fixture();
   x.transfer.matches[0].engineWeightKg=40;
+  await assert.rejects(run(x),{code:'XML229_NATIVE_MODEL_MASS_DRIFT'});
+});
+test('forged emitted native RIGID weight fails CII mass comparison with matching model kg',async()=>{
+  const x=await fixture();
+  x.ciiText=nativeCii({forces:['400 0']});
+  x.witness.ciiSha256=await hash(x.ciiText);
+  x.witness.edges[0].rigidForce='400';
   await assert.rejects(run(x),{code:'XML229_NATIVE_PHYSICAL_MASS_DRIFT'});
 });
 test('swapped/native-element pointer and source-owner collision refuse',async()=>{
