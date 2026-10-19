@@ -75,9 +75,22 @@ test mode and excludes draft/JSON-derived engineering mass authority.
 
 It validates SHA, R2 original/engine identity and owner-count consistency;
 checks native CII structure, force units and ELEMENTS→RIGID pointer integrity;
-and gives only aggregate per-type counts and masses. It is not an allocation
-algorithm and **always** emits native-release/Final-consumption verification
-as false. The private report must not be published with source/master rows.
+and gives only aggregate per-type counts and masses. It separately reports
+`explicitRigid2SourceKg`, `unresolvedPositiveNativeOwnerKg`,
+`nativeRigidEquivalentKgUnderClaimedScale`, and the algebraic aggregate
+difference. **Numerical balance is never native occurrence-to-slot proof**:
+a controlled forged 2000-unit single rigid output matches four source masses
+of 200kg at claimed scale 10 while three component owners remain unresolved.
+
+Optional `--deny-unresolved-mass` fails with
+`NATIVE_OWNER_RULE_UNRESOLVED` **before writing the report** if a positive
+source physical has no explicit `Rigid=2` marker. This is a conservative
+diagnostic guard, not an engineering rule: an explicitly approved
+same-reference RIGID→FLAN allocation could still be blocked by it. Passing the
+flag alone does **not** prove native output slot ownership, Final authorship,
+or release. The inventory is not an allocation algorithm and **always**
+emits native-release/Final-consumption verification as false. The private
+report must not be published with source/master rows.
 G5 synthetic tests reject forged authority, source/engine duplicate/drift,
 unexpected CII pointers, altered mass/units and invalid scale.
 
