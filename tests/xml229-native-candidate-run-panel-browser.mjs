@@ -78,6 +78,26 @@ try{
   assert.equal(status.runDisabled,true,JSON.stringify(status));
   assert.equal(status.explicitNonreleasing,true,JSON.stringify(status));
   assert.equal(status.held,true,JSON.stringify(status));
+  // When no current Worker exists, clicking Audit must yield a readable
+  // non-authorizing diagnosis, NOT an automatic Run or CII download.
+  const auditButton=page.locator('[data-action="xml229-download-run-hold-audit"]');
+  assert.equal(await auditButton.count(),1,
+    'Run HOLD must expose an audit export on both served module paths');
+  assert.match(await page.locator('#run').textContent(),/Run HOLD audit trail/);
+  const capture=page.waitForEvent('download',{timeout:10000});
+  await auditButton.click();
+  const download=await capture;
+  assert.equal(download.suggestedFilename(),'xml229-run-hold-audit.json');
+  const evidence=JSON.parse(await readFile(await download.path(),'utf8'));
+  assert.equal(evidence.schema,'XML229.RunHoldAudit.v1');
+  assert.equal(evidence.diagnosisCode,'LIVE_WORKER_SESSION_MISSING');
+  assert.equal(evidence.worker.sessionState,'MISSING');
+  assert.equal(evidence.chronology.available,true);
+  assert(evidence.chronology.events.some(e=>e.kind==='RUN_AUDIT_REQUESTED'));
+  assert.equal(evidence.nativeCiiReleaseAuthorized,false);
+  assert.equal(evidence.independentlyAccepted,false);
+  assert.doesNotMatch(JSON.stringify(evidence),/SYNTHETIC\/B1|<PipeStressExport|data:/);
+
  }
  // Verify candidate Python runtime asset is actually served in both layouts.
  for(const prefix of ['','docs/']){
@@ -88,7 +108,9 @@ try{
   assert((await response.text()).includes('XML229.NativeRetainedCandidateWitness.v1'));
  }
  assert.deepEqual(pageErrors,[],'browser page errors: '+pageErrors.join('; '));
- assert.deepEqual(downloads,[],'HELD candidate caused download');
+ assert.deepEqual(downloads,[
+   'xml229-run-hold-audit.json','xml229-run-hold-audit.json'],
+   'Only explicitly requested audit JSON downloads are authorized');
  console.log(JSON.stringify({schema:'XML229.NativeCandidateServedSmoke.v1',
    snapshots,pageErrors:pageErrors.length,downloads:downloads.length,
    nativeReleaseAuthorized:false}));
