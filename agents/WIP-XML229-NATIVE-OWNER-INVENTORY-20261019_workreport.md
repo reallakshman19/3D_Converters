@@ -79,5 +79,39 @@ false. No Python native runtime writer, historical accepted masses,
 UI approval controls or release gate changed. Historical C05
 restricted-scope CI failures remain separate.
 
+## 2026-10-19 04:10Z next engineering challenge
+
+A proposed native mass slot mapping previously could be asserted from counts,
+aggregate kg or selected pre-conversion native edge predicates. Added a
+strictly optional, **OWNER-LOCAL PROVISIONAL** slot challenge to the
+read-only inventory. JSON `XML229.NativeMassOwnerProvisionalClaims.v1`
+binds exact R2 InputBasis / Final-intent / engine-XML and actual CII digests
+and enumerates EVERY original positive physical as either
+`CII_RIGID_CANDIDATE` or `UNRESOLVED` with an explicit reason.
+For candidates, independent emitted CII `ELEMENTS` pointer + endpoint
+and exact per-original source kg×claimed scale must agree, and no
+positive native rigid record can be orphaned. Duplicate indices,
+foreign claims, unauthorized VALV→RIGID, stale hashes, and forged
+release flags fail closed. No source or owner IDs appear in output;
+every returned release/author/Final/physical-lineage flag remains FALSE.
+Splits and alternative native representation are not inferred here.
+
+Real native CLI controlled two-slot same-reference RIGID35+FLAN70
+fixture: **2/4** original physicals individually challenged,
+**105 kg** represented in candidate RIGID slots, **95 kg** from VALV45+
+INST50 explicitly unresolved. A wrong-reference flange fixture leaves
+**1/4** challenged and **165 kg** unresolved. Both remain nonreleasing.
+This challenge is NOT independent original→retained native edge geometry
+proof; identical source masses can be swapped by a false claimant. The
+separate G5 source-independent lineage, author verification, class
+allocation approvals and Owner engineering sign-off are still necessary.
+
+Latest held-out code-head
+`fc6b55d3483ba9887565e7586102533b5993bc40` job
+`117886390154` PASS: 12 I03 independent mass oracles and **20** G5
+native/negative tests. Follow-up documentation commits have no
+production runtime change. C05 restricted-scope workflows remain
+separately failing; no CI guards edited.
+
 ## EXACT_NEXT_ACTION
-Review the passing source-exact synthetic native per-slot witness, classify VALV/INST/unmatched FLAN and any split-child native mass ownership with an independently approved engineering rule, then build a separate governed candidate exercising exact Owner-private original Final→engine→emitted native CII per-occurrence mass/units lineage. Run private local inventory without uploading source rows. Obtain formal independent Appendix A and v3.6 binding before merge/release; keep Native CII HOLD until Owner independently signs off.
+Obtain independently authorized physical class/split ownership and authentic per-original Final decisions; then challenge the Owner-private production model with a separately authored G5 native retained-edge lineage, independently authored mass allocations, actual CII bytes and the new provisional-pointer falsifier. Refuse release if any author, original mass, split allocation, native unit conversion, or native element/rigid owner remains unmatched. Do not put Owner-private rows in public CI, revive obsolete PRs, or merge without independent Appendix A and bound v3.6 qualification plus explicit Owner acceptance.
