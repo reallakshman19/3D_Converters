@@ -91,10 +91,14 @@ def incoming_rigid_candidate(nodes, ordinal):
     arrival, a Rigid=2 predecessor sharing a nonblank component reference.
     Its rigid weight is the arrival node's own Weight, never the predecessor's.
     """
+    # Native ELEMENTS arise only from edges. The first node of a branch
+    # has no incoming edge even if its own Rigid tag says 2.
+    if ordinal == 0:
+        return "NO_KNOWN_NATIVE_RIGID_EDGE"
     node = nodes[ordinal]
     if field(node, "Rigid") == "2":
         return "DIRECT_RIGID2"
-    if ordinal == 0 or field(node, "ComponentType").upper() != "FLAN":
+    if field(node, "ComponentType").upper() != "FLAN":
         return "NO_KNOWN_NATIVE_RIGID_EDGE"
     before = nodes[ordinal - 1]
     ref = normalized_ref(field(node, "ComponentRefNo"))
