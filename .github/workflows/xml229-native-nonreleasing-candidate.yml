@@ -8,6 +8,13 @@ on:
       - 'docs/tabs/xml-cii-2019-standalone/**'
       - 'tests/xml229-nonreleasing-native-candidate.test.mjs'
       - 'tests/xml-cii-229-r2-physical-transfer.test.mjs'
+      - 'tests/xml229-native-cii-output-reconcile.test.mjs'
+      - 'tests/xml229-native-candidate-witness.test.py'
+      - 'converters/scripts/xml229_native_candidate_witness.py'
+      - 'converters/scripts/xml_to_cii2019_runtime_custody.py'
+      - 'converters/scripts/xml_to_cii2019_patched.py'
+      - 'converters/xml-cii-2019-standalone/engine.js'
+      - 'converters/xml-cii-2019-standalone/invocation-builder.js'
       - '.github/workflows/xml229-native-nonreleasing-candidate.yml'
   workflow_dispatch:
 jobs:
@@ -18,7 +25,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node --test tests/xml229-nonreleasing-native-candidate.test.mjs tests/xml-cii-229-r2-physical-transfer.test.mjs
+      - run: node --test tests/xml229-nonreleasing-native-candidate.test.mjs tests/xml-cii-229-r2-physical-transfer.test.mjs tests/xml229-native-cii-output-reconcile.test.mjs
+      - run: python3 tests/xml229-native-candidate-witness.test.py
   node24:
     runs-on: ubuntu-latest
     steps:
@@ -26,4 +34,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: node --test tests/xml229-nonreleasing-native-candidate.test.mjs tests/xml-cii-229-r2-physical-transfer.test.mjs
+      - run: node --test tests/xml229-nonreleasing-native-candidate.test.mjs tests/xml-cii-229-r2-physical-transfer.test.mjs tests/xml229-native-cii-output-reconcile.test.mjs
+      - run: python3 tests/xml229-native-candidate-witness.test.py
