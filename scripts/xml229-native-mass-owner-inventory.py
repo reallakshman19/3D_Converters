@@ -268,6 +268,116 @@ def inventory(transfer, engine_xml_bytes, cii_bytes, *, weight_scale,
     }
 
 
+_CLAIMS_SCHEMA = "XML229.NativeMassOwnerProvisionalClaims.v1"
+
+def challenge_provisional_native_slots(transfer, engine_xml_bytes, cii_bytes,
+                                       claims, *, weight_scale,
+                                       expected_cii_sha256):
+    """Challenge proposed original→RIGID slot matches, never review/release."""
+    inventory(transfer, engine_xml_bytes, cii_bytes,
+              weight_scale=weight_scale, expected_cii_sha256=expected_cii_sha256)
+    require(isinstance(claims, dict) and
+            claims.get("schema") == _CLAIMS_SCHEMA and
+            claims.get("nativeCiiReleaseAuthorized") is False and
+            claims.get("basisId") == transfer["basisId"] and
+            claims.get("finalIntentSha256") == transfer["finalIntentSha256"] and
+            claims.get("engineInputSha256") == transfer["engineInputSha256"] and
+            claims.get("ciiSha256") == expected_cii_sha256,
+            "PROVISIONAL_LINEAGE_BASIS_OR_AUTHORITY_DRIFT")
+    declared = claims.get("rows")
+    require(isinstance(declared, list), "PROVISIONAL_LINEAGE_ROWS_REQUIRED")
+    source_rows = {row["originalOccurrenceId"]: row for row in transfer["matches"]}
+    require(len(source_rows) == len(transfer["matches"]) and
+            len(declared) == len(source_rows),
+            "PROVISIONAL_LINEAGE_POPULATION_DRIFT")
+    try:
+        output_text = cii_bytes.decode("utf-8")
+        elements, by_rigid = _G5.parse_elements(output_text)
+        cii_slots = _G5.sections_from_output(output_text)["RIGID"]
+    except (UnicodeDecodeError, _G5.LineageError):
+        raise InventoryError("NATIVE_CII_STRUCTURE_INVALID") from None
+    native_weights = []
+    for slot in cii_slots:
+        parts=slot.split()
+        require(len(parts) == 2, "CII_RIGID_RECORD_INVALID")
+        native_weights.append(decimal(parts[0]))
+    branches = branches_from_xml(engine_xml_bytes)
+    assigned_original, assigned_rigid, assigned_elements = set(), set(), set()
+    matched_kg, unresolved_kg = Decimal(0), Decimal(0)
+    matched_count = unresolved_count = 0
+    factor = decimal(weight_scale, positive=True)
+    for claim in declared:
+        require(isinstance(claim, dict), "PROVISIONAL_LINEAGE_ROW_INVALID")
+        oid = claim.get("originalOccurrenceId")
+        require(isinstance(oid, str) and oid in source_rows and
+                oid not in assigned_original,
+                "PROVISIONAL_LINEAGE_ORIGINAL_DRIFT")
+        assigned_original.add(oid)
+        source = source_rows[oid]
+        branch = branches[source["branchOccurrenceIndex"]]
+        nodes = [node for node in branch if local_name(node) == "Node"]
+        ordinal = source["engineNodeOrdinal"]
+        kg = decimal(source["engineWeightKg"], positive=True)
+        classification = incoming_rigid_candidate(nodes, ordinal)
+        status = claim.get("status")
+        if status == "UNRESOLVED":
+            require(isinstance(claim.get("reason"), str) and
+                    3 <= len(claim["reason"].strip()) <= 512 and
+                    not any(key in claim for key in (
+                        "nativeElementIndex", "rigidRecordIndex",
+                        "ciiFromNode", "ciiToNode")),
+                    "PROVISIONAL_UNRESOLVED_WITH_SLOT")
+            unresolved_count += 1
+            unresolved_kg += kg
+            continue
+        require(status == "CII_RIGID_CANDIDATE",
+                "PROVISIONAL_LINEAGE_STATUS_INVALID")
+        require(classification in ("DIRECT_RIGID2", "SAME_REF_RIGID_TO_FLAN"),
+                "PROVISIONAL_NATIVE_CLASS_RULE_UNVERIFIED")
+        ridx, eidx = claim.get("rigidRecordIndex"), claim.get("nativeElementIndex")
+        require(type(ridx) is int and type(eidx) is int and
+                ridx >= 0 and eidx >= 0 and eidx < len(elements) and
+                ridx < len(cii_slots) and
+                ridx not in assigned_rigid and eidx not in assigned_elements,
+                "PROVISIONAL_NATIVE_SLOT_DUPLICATE_OR_RANGE")
+        require(by_rigid.get(ridx) == eidx,
+                "PROVISIONAL_NATIVE_RIGID_POINTER_DRIFT")
+        actual_from, actual_to, _ = elements[eidx]
+        require(type(claim.get("ciiFromNode")) is int and
+                type(claim.get("ciiToNode")) is int and
+                (actual_from, actual_to) ==
+                  (claim["ciiFromNode"], claim["ciiToNode"]),
+                "PROVISIONAL_NATIVE_ELEMENT_ENDPOINT_DRIFT")
+        # We challenge actual output pointers and emitted owner-node mass,
+        # but do NOT authenticate who authored this mapping or prove geometry.
+        require(native_weights[ridx] == kg * factor,
+                "PROVISIONAL_NATIVE_RIGID_MASS_DRIFT")
+        assigned_rigid.add(ridx)
+        assigned_elements.add(eidx)
+        matched_count += 1
+        matched_kg += kg
+    require(assigned_original == set(source_rows),
+            "PROVISIONAL_LINEAGE_POPULATION_DRIFT")
+    for idx, value in enumerate(native_weights):
+        require(idx in assigned_rigid or value == 0,
+                "PROVISIONAL_UNACCOUNTED_POSITIVE_RIGID")
+    return {
+        "schema": "XML229.NativeProvisionalSlotChallenge.v1",
+        "status": "PROVISIONAL_CLAIMS_CHALLENGED_NOT_RELEASED",
+        "sourcePhysicalCount": len(source_rows),
+        "oneToOneNativeCandidateCount": matched_count,
+        "oneToOneNativeCandidateKg": str(matched_kg),
+        "unresolvedPhysicalCount": unresolved_count,
+        "unresolvedPhysicalKg": str(unresolved_kg),
+        "unassignedZeroNativeRigidSlots": len(native_weights) - len(assigned_rigid),
+        "verifiedClaimAuthor": False,
+        "independentSourceLineageVerified": False,
+        "physicalMatch2ConsumptionVerified": False,
+        "nativeCiiPhysicalSlotVerified": False,
+        "nativeCiiReleaseAuthorized": False,
+    }
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--r2-transfer", type=Path, required=True)
@@ -276,6 +386,8 @@ def main(argv=None):
     parser.add_argument("--weight-scale", required=True)
     parser.add_argument("--deny-unresolved-mass", action="store_true",
                         help="Fail closed if positive physicals match neither known native incoming-edge predicate. Pre-conversion matches are not output lineage or release.")
+    parser.add_argument("--provisional-lineage-claims", type=Path,
+                        help="Owner-local nonreleasing per-original CII pointer/mass claim challenge; claims not authenticated.")
     parser.add_argument("--expected-cii-sha256", required=True)
     parser.add_argument("--output", type=Path, required=True,
                         help="OWNER-LOCAL PRIVATE output; never upload original rows")
@@ -286,6 +398,13 @@ def main(argv=None):
                        expected_cii_sha256=args.expected_cii_sha256)
     if args.deny_unresolved_mass and Decimal(result["unresolvedPositiveNativeOwnerKg"]) > 0:
         raise InventoryError("NATIVE_OWNER_RULE_UNRESOLVED")
+    if args.provisional_lineage_claims:
+        result["provisionalNativeChallenge"] = challenge_provisional_native_slots(
+            json.loads(args.r2_transfer.read_text(encoding="utf-8")),
+            args.engine_xml.read_bytes(), args.cii.read_bytes(),
+            json.loads(args.provisional_lineage_claims.read_text(encoding="utf-8")),
+            weight_scale=args.weight_scale,
+            expected_cii_sha256=args.expected_cii_sha256)
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print("XML229 native owner inventory held; output private; native release=false")
 
