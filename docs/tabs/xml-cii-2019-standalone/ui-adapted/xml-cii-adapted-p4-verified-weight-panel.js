@@ -14,9 +14,9 @@ import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-s
 import {renderXml229WeightReviewPage} from './xml229-p4-weight-review-presentation.mjs';
 import {prepareXml229ExplicitMassReview,commitXml229ExplicitMassReview,xml229VisibleSingleReviewSnapshot}
  from './xml229-p4-explicit-mass-review.mjs';
-import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs} from './xml229-p4-unqualified-drafts.mjs';
+import {planXml229UnqualifiedDrafts,hydrateXml229WeightDraftInputs} from './xml229-p4-unqualified-drafts.mjs';
+import {applyXml229SourceWideSuggestionDrafts} from './xml229-p4-source-wide-suggestion-action.mjs';
 import {disarmXml229EditedDraft} from './xml229-p4-two-click-confirmation.mjs';
-import {revealXml229PreparedWeightInput} from './xml229-p4-reveal-applied-weight.mjs';
 import {createXml229BulkApplyQueue} from './xml229-p4-busy-apply-queue.mjs';
 import {planXml229SkipWeightDrafts} from './xml229-p4-skip-weight-drafts.mjs';
 import {openXml229WeightDraftWorkspace} from './xml229-p4-weight-draft-workspace.mjs';
@@ -494,53 +494,14 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        mode=scope.getAttribute('data-p4-scope')||'all';
        offset=0;pendingBulk=null;await render();return;
      }
-     if(planButton){say('Preparing ≥'+minScorePercent+'% drafts across verified source...');const session=active;
-       const plan=await session.planQualifiedBlankFill({minScorePercent});
-       if(!Number.isSafeInteger(plan?.qualified)||!Array.isArray(plan.qualifiedSuggestions)||
-          plan.qualifiedSuggestions.length!==plan.qualified)
-         err('SUGGESTION_WORKER_PLAN_INCOMPLETE',
-           'Worker qualified-count and source-proposal evidence do not match');
-       const planned=await planXml229RigidWeightDrafts(session,{
-         existingDrafts:draftValues,minScorePercent,
-         qualifiedSuggestions:plan.qualifiedSuggestions,
+     if(planButton){
+       const session=active;pendingBulk=null;
+       await applyXml229SourceWideSuggestionDrafts({
+         session,drafts:draftValues,minScorePercent,saveDrafts:persistDrafts,
          isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
+         showFirst:index=>{mode='blank-rigid';query='';offset=Math.floor(index/25)*25;},
+         render,table,detail:bulkDetail,say,
        });
-       if(active!==session||live()!==session)
-         err('STALE_WEIGHT_AUTO_FILL_SOURCE','Verified source changed during suggestion preparation');
-       for(const [id,draft] of planned.drafts)
-         if(!draftValues.has(id))draftValues.set(id,draft);
-       persistDrafts();
-       pendingBulk=null; // Suggestions populate drafts, not a Match-1 commit.
-       // Show the first actual populated input. The formerly selected 25 rows
-       // may contain zero eligible suggestions even for a source-wide plan.
-       if(planned.firstPreparedIndex!==null){
-         mode='blank-rigid';query='';
-         offset=Math.floor(planned.firstPreparedIndex/25)*25;
-       }
-       const visiblePopulated=await render();
-       if(planned.counts.prepared>0&&!(visiblePopulated>0))
-         err('SUGGESTION_VISIBLE_INPUT_NOT_APPLIED',
-           'No actual proposed kilograms were populated on the selected page');
-       if(visiblePopulated>0&&!revealXml229PreparedWeightInput(table))
-         err('SUGGESTION_INPUT_OUTSIDE_VIEWPORT','Applied kg could not be revealed horizontally');
-       bulkDetail.hidden=true;
-       bulkDetail.textContent='';
-       const confirm=table.querySelector('[data-p4-bulk-confirm]');
-       if(confirm){
-         confirm.disabled=!plan.qualified;
-         confirm.textContent='Apply all Match-1 ('+plan.qualified+')';
-       }
-       const c=planned.counts;
-       say('Apply all suggestions ≥'+minScorePercent+'%: '+c.prepared+
-         ' editable draft(s) prepared across the verified source. '+
-         visiblePopulated+' actual kg input(s) populated on this page; first input revealed. '+
-         c.workerQualified+' source-qualified candidate(s) reconciled ('+
-         c.workerQualifiedPrepared+' newly filled, '+
-         c.workerQualifiedAlreadyDrafted+' existing drafts kept, '+
-         c.manualConflictsPreserved+' manual edit conflicts preserved); '+
-         c.preparedUnqualified+' review-only drafts. '+
-         c.withoutProposal+' no proposal, '+c.belowThreshold+
-         ' below threshold. Applied Weight drafts are not accepted; governed CII remains HELD.');
        return;
      }
      if(skipButton){
