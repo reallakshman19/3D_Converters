@@ -6,11 +6,11 @@ import {runXml229NonreleasingNativeCandidate} from
 if(!globalThis.crypto)globalThis.crypto=webcrypto;
 const sha=async s=>Buffer.from(await crypto.subtle.digest('SHA-256',
   new TextEncoder().encode(s))).toString('hex');
-const basis='a'.repeat(64),intentSha='b'.repeat(64);
+const basis='a'.repeat(64),intentSha='b'.repeat(64),jsonSha='d'.repeat(64);
 function fixture(){
   let changed=false,closed=false,engineCalls=0;
   const session={
-    receipt:{basisId:basis,sourceId:'SRC',sourceGenerationId:'G1'},
+    receipt:{basisId:basis,sourceId:'SRC',sourceGenerationId:'G1',originalJsonSha256:jsonSha},
     get closed(){return closed},
     async readNativeFinalIntent(){
       return {schema:'XML229.NativeFinalPhysicalIntent.v1',
@@ -22,7 +22,7 @@ function fixture(){
       return {schema:'XML229.R2.OriginalPhysicalEngineInputTransfer.v1',
         status:'ENGINE_INPUT_MASS_TRANSFER_VERIFIED_ONLY',
         mappingKind:'STRICT_EXACT_PRE_SPLIT',complete:true,transferObserved:true,
-        basisId:basis,sourceGenerationId:'G1',finalIntentSha256:intentSha,
+        basisId:basis,originalJsonSha256:jsonSha,sourceGenerationId:'G1',finalIntentSha256:intentSha,
         engineInputSha256:await sha(engineInputXmlText),
         nativeCiiReleaseAuthorized:false,nativeCiiPhysicalSlotVerified:false,
         originalPhysicalCount:2,verifiedEnginePhysicalCount:2,
@@ -47,8 +47,7 @@ function fixture(){
     assertCurrent(){if(closed)throw Error('STALE_WORKER')},
   });
   return {session,job,run,engineCalls:()=>engineCalls,
-    changeFinal:()=>{changed=true},close:()=>{closed=true},
-    setRunner:fn=>{runWorkflow=fn}};
+    changeFinal:()=>{changed=true},close:()=>{closed=true}};
 }
 test('attests parity XML before running real engine and returns digest, never CII',async()=>{
   const x=fixture(),result=await x.run();
@@ -74,6 +73,13 @@ test('a forged SHA or incomplete original physical transfer blocks Python invoca
     await assert.rejects(x.run(),{code:'XML229_CANDIDATE_ENGINE_TRANSFER_REJECTED'});
     assert.equal(x.engineCalls(),0);
   }
+});
+test('original staged JSON hash drift blocks Python',async()=>{
+  const x=fixture(),old=x.session.attestEngineInput;
+  x.session.attestEngineInput=async a=>({...await old(a),
+    originalJsonSha256:'e'.repeat(64)});
+  await assert.rejects(x.run(),{code:'XML229_CANDIDATE_ENGINE_TRANSFER_REJECTED'});
+  assert.equal(x.engineCalls(),0);
 });
 test('unqualified Final and closed Worker fail without native converter',async()=>{
   const x=fixture(),old=x.session.readNativeFinalIntent;
@@ -101,4 +107,13 @@ test('workflow that never reaches native engine cannot report success',async()=>
     job,session:x.session,runWorkflow:async()=>({ok:false,ciiText:null}),
   }),{code:'XML229_CANDIDATE_NATIVE_OUTPUT_UNAVAILABLE'});
   assert.equal(x.engineCalls(),0);
+});
+
+test('normal production job builder still refuses governed JSON Run',async()=>{
+  const {buildXmlCiiWorkflowJobFromUiState}=
+    await import('../tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js');
+  await assert.rejects(buildXmlCiiWorkflowJobFromUiState({
+    sourceKind:'xml',sourceText:'<root/>',
+    xml229StagedSourceReceipt:{schema:'XML229.OriginalStagedSourceReceipt.v1'},
+  }),/XML229_GOVERNED_NATIVE_CII_HELD/);
 });
