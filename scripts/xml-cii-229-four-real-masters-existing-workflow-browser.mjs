@@ -427,7 +427,17 @@ try{
       JSON.stringify(record.stages.restoreDigestAudit.changed||[]) +
       '; refusing review import');
   await page.locator('[data-phase="weight-match"]').click();
-  await page.locator('tr[data-p4-row]').first().waitFor({timeout:120000});
+  // No silent two-minute timeout: surface an exact failure code if a storage
+  // or generation rebind blocks the current verified Weight panel.
+  await page.waitForFunction(()=>{
+    const status=document.querySelector('[data-p4-weight-status]')?.textContent||'';
+    return document.querySelector('tr[data-p4-row]')||
+      /verification unavailable|source review verification unavailable|draft.*failed/i.test(status);
+  },null,{timeout:120000});
+  const reverifiedWeightStatus=await page.locator('[data-p4-weight-status]').textContent();
+  record.stages.reverifiedWeightStatus=reverifiedWeightStatus;
+  assert.ok(await page.locator('tr[data-p4-row]').count()>0,
+    'reverified same-basis Weight table failed: '+reverifiedWeightStatus);
   // It must not auto-hydrate reviews merely because a private backup file
   // exists. Select an explicit file, after a new verified Worker has opened.
   const [fresh]=await Promise.all([
