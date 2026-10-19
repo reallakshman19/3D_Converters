@@ -5,6 +5,8 @@
  */
 import {runXmlCii2019Workflow} from '../xml-cii-workflow-api-atta-default.js';
 import {runXmlCii2019StandaloneEngineJob} from '../xml-cii-workflow-engine-client.js';
+import {reconcileXml229NonreleasingNativeOutput}
+  from './xml229-native-cii-output-reconcile.mjs';
 
 const HEX=/^[a-f0-9]{64}$/i;
 function deny(code) {
@@ -71,7 +73,7 @@ export async function runXml229NonreleasingNativeCandidate({
   assertCurrent();
   if(!acceptedIntent(intent,receipt))
     deny('XML229_CANDIDATE_FINAL_INTENT_UNQUALIFIED');
-  let count=0,transfer=null;
+  let count=0,transfer=null,privateWitness=null;
   const native=await runWorkflow(job,{
     engineRunner:async engineJob=>{
       assertCurrent();
@@ -98,11 +100,13 @@ export async function runXml229NonreleasingNativeCandidate({
       transfer=proof;
       // Exact attested engine input is now native CLI input. No SECOND
       // staged-JSON pass; later Python transformations still need G5 proof.
-      return runEngine({
+      const nativeResult=await runEngine({
         ...engineJob,sourceText:prepared.engineInputXmlText,
-        stagedJsonText:'',
+        stagedJsonText:'',xml229NativeCandidateWitness:true,
         options:{...engineJob.options,outputMode:'cii-only'},
       });
+      privateWitness=nativeResult?.nativeCandidateWitness;
+      return nativeResult;
     },
   });
   assertCurrent();
@@ -113,7 +117,13 @@ export async function runXml229NonreleasingNativeCandidate({
   assertCurrent();
   if(!acceptedIntent(after,receipt)||after.intentSha256!==intent.intentSha256)
     deny('XML229_CANDIDATE_FINAL_CHANGED');
+  const reconciled=await reconcileXml229NonreleasingNativeOutput({
+    transfer,witness:privateWitness,ciiText:native.ciiText,
+  });
+  assertCurrent();
   const ciiSha=await digest(native.ciiText);
+  if(ciiSha!==reconciled.ciiSha256)
+    deny('XML229_CANDIDATE_OUTPUT_SHA_CHANGED');
   return Object.freeze({
     schema:'XML229.NonreleasingNativeProductionCandidate.v1',
     status:'ACTUAL_NATIVE_CONVERTER_EXECUTED_NOT_RELEASED',
@@ -122,6 +132,13 @@ export async function runXml229NonreleasingNativeCandidate({
     originalPhysicalCount:transfer.originalPhysicalCount,
     verifiedEnginePhysicalCount:transfer.verifiedEnginePhysicalCount,
     actualNativeCiiProduced:true,
+    nativeOutputStatus:reconciled.status,
+    nativeElements:reconciled.actualNativeElements,
+    nativeRigidRecords:reconciled.actualNativeRigidRecords,
+    nativeRigidObserved:reconciled.nativeRigidObserved,
+    unresolvedNativeOwners:reconciled.unresolved,
+    unresolvedByCause:reconciled.reasons,
+    byComponentType:reconciled.byType,
     physicalMatch2ConsumptionVerified:false,
     nativeCiiPhysicalSlotVerified:false,
     independentOriginalToNativeGeometryVerified:false,
