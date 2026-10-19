@@ -438,10 +438,12 @@ function renderRunControls(parent, stateRef, state, report, render) {
               throw Object.assign(new Error('STALE_REVIEW_SESSION'),{code:'STALE_REVIEW_SESSION'});
           },
         });
-        verifyStatus.textContent='Actual native converter candidate executed; '+
-          result.verifiedEnginePhysicalCount+' original physical masses in verified engine XML. '+
-          'CII digest '+result.ciiSha256.slice(0,12)+
-          '… (local only). Native slot lineage and release remain HELD; no CII saved.';
+        verifyStatus.textContent='Native CII candidate checked: '+
+          result.nativeRigidObserved+' observed native mass pointers; '+
+          result.unresolvedNativeOwners+' original physical masses without proven native ownership. '+
+          'Actual elements '+result.nativeElements+', RIGID slots '+result.nativeRigidRecords+
+          '. CII SHA '+result.ciiSha256.slice(0,12)+
+          '… . Type-specific engineering decisions and independent release remain HELD; no CII saved.';
       }catch(error){
         const code=/^[A-Z0-9_]{3,80}$/.test(error?.code||'')
           ?error.code:'XML229_CANDIDATE_FAILED';
