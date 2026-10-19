@@ -195,6 +195,10 @@ export async function materializeXml229ReviewedEngineMassInput({
   fail('ENGINE_MASS_WRITER_XML_REQUIRED','A parseable actual parity XML and serializer are required');
  const originals=parse(originalXmlText,'original');
  const proposed=parse(engineInputXmlText,'engine');
+ let doc=proposed[0];
+ while(doc&&doc.nodeType!==9)doc=doc.parentNode;
+ if(!doc||typeof doc.createElementNS!=='function')
+  fail('ENGINE_MASS_WRITER_SERIALIZER_REQUIRED','Missing mutable XML document');
  if(originals.length!==proposed.length)
   fail('ENGINE_MASS_WRITER_BRANCH_DRIFT','Original branch ordinal count differs');
  const accepted=readVerifiedModeAFinalRows(session);
@@ -244,9 +248,6 @@ export async function materializeXml229ReviewedEngineMassInput({
   const owner=candidates[0].node;
   let weight=children(owner,'Weight')[0];
   if(!weight){
-   const doc=owner.ownerDocument;
-   if(!doc||typeof doc.createElementNS!=='function')
-     fail('ENGINE_MASS_WRITER_WEIGHT_FIELD_MISSING','Cannot safely create Weight field');
    weight=doc.createElementNS(owner.namespaceURI||null,'Weight');
    owner.appendChild(weight);
   }
@@ -257,8 +258,6 @@ export async function materializeXml229ReviewedEngineMassInput({
   fail('ENGINE_MASS_WRITER_POPULATION_DRIFT','Not all approved masses have a unique original');
  // Serializing the parsed document is intentional: R2 attests EXACT bytes
  // actually forwarded to native engine after this write, not original parity.
- const doc=proposed[0]?.ownerDocument;
- if(!doc)fail('ENGINE_MASS_WRITER_SERIALIZER_REQUIRED','Missing serialized XML document');
  const prepared=new XMLSerializer().serializeToString(doc);
  const proof=await attestXml229OriginalPhysicalEngineInput({
    ...args,engineInputXmlText:prepared,
