@@ -33,6 +33,7 @@ function acceptedTransfer(proof,intent,receipt,sha) {
     proof.complete===true && proof.transferObserved===true &&
     proof.mappingKind==='STRICT_EXACT_PRE_SPLIT' &&
     proof.basisId===intent.basisId &&
+    proof.originalJsonSha256===receipt.originalJsonSha256 &&
     proof.sourceGenerationId===receipt.sourceGenerationId &&
     proof.finalIntentSha256===intent.intentSha256 &&
     proof.engineInputSha256===sha &&
@@ -63,6 +64,7 @@ export async function runXml229NonreleasingNativeCandidate({
   assertCurrent();
   const receipt=session.receipt;
   if(!receipt||!HEX.test(receipt.basisId||'')||
+     !HEX.test(receipt.originalJsonSha256||'')||
      !receipt.sourceId||!receipt.sourceGenerationId)
     deny('XML229_CANDIDATE_RECEIPT_INVALID');
   const intent=await session.readNativeFinalIntent();
