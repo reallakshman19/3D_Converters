@@ -172,3 +172,105 @@ export async function attestXml229OriginalPhysicalEngineInput({
    reason:'Matching enriched XML is NOT proof of native Python model/CIIRIGID slot consumption; independent native owner and CII output custody remains mandatory.',
  });
 }
+
+
+/**
+ * NONRELEASING PRODUCTION WRITER: apply the CURRENT reviewed Final/source kg
+ * to the exact ordinary-parity XML using full ORIGINAL physical occurrences.
+ * No score-based guesses, legacy keys, global NodeNumber, implicit ALL,
+ * geometry changes, native owner selection or CII release flag.
+ *
+ * This is a source- and Worker-bound mass write BEFORE the native runtime.
+ * A second R2 attestation checks the resulting complete exact XML and
+ * both Final revisions again. No source/masters/decisions are mutated.
+ */
+export async function materializeXml229ReviewedEngineMassInput({
+ session,sourceId,originalXmlText,engineInputXmlText,
+ originalJsonSha256,sourceGenerationId,independentlyEnumeratedOriginalPhysical,
+}={}) {
+ const args={session,sourceId,originalXmlText,engineInputXmlText,
+   originalJsonSha256,sourceGenerationId,independentlyEnumeratedOriginalPhysical};
+ if(typeof engineInputXmlText!=='string'||!engineInputXmlText.trim()||
+    typeof XMLSerializer!=='function')
+  fail('ENGINE_MASS_WRITER_XML_REQUIRED','A parseable actual parity XML and serializer are required');
+ const originals=parse(originalXmlText,'original');
+ const proposed=parse(engineInputXmlText,'engine');
+ if(originals.length!==proposed.length)
+  fail('ENGINE_MASS_WRITER_BRANCH_DRIFT','Original branch ordinal count differs');
+ const accepted=readVerifiedModeAFinalRows(session);
+ const intent=await commitXml229NativeFinalIntent(session,{
+   originalJsonSha256,sourceGenerationId,
+ });
+ if(!intent.eligibleForEngineBinding||
+    accepted.sources.length!==1||accepted.sources[0]!==sourceId||
+    !Array.isArray(independentlyEnumeratedOriginalPhysical)||
+    accepted.physicalCount!==independentlyEnumeratedOriginalPhysical.length)
+  fail('ENGINE_MASS_WRITER_FINAL_UNQUALIFIED','Full single-source current Final/source mass and original physical census required');
+ const byId=new Map(accepted.rows.map(row=>[row.occurrenceId,row]));
+ const usedOriginal=new Set(),usedTarget=new Set();
+ for(const expected of independentlyEnumeratedOriginalPhysical) {
+  const identity=decodePhysicalOccurrenceId(expected.occurrenceId||
+    JSON.stringify([expected.sourceId,expected.branchOccurrenceIndex,
+      expected.nodeOrdinal,expected.componentSignature]));
+  const key=identity.occurrenceId;
+  if(identity.sourceId!==sourceId||
+     identity.branchOccurrenceIndex!==expected.branchOccurrenceIndex||
+     identity.nodeOrdinal!==expected.nodeOrdinal||
+     identity.componentSignature!==expected.componentSignature||
+     usedOriginal.has(key))
+    fail('ENGINE_MASS_WRITER_ORIGINAL_DRIFT','Original occurrence is duplicate or altered');
+  usedOriginal.add(key);
+  const approved=byId.get(key);
+  if(!approved||!positive(approved.effectiveKg)||
+     approved.status==='Match-1'||approved.status==='Needs review')
+    fail('ENGINE_MASS_WRITER_UNAPPROVED_KG','No individually verified eligible mass');
+  const originalBranch=originals[identity.branchOccurrenceIndex];
+  const targetBranch=proposed[identity.branchOccurrenceIndex];
+  if(!originalBranch||!targetBranch||
+     field(originalBranch,'Branchname')!==field(targetBranch,'Branchname'))
+    fail('ENGINE_MASS_WRITER_BRANCH_DRIFT','Branch occurrence or identity changed');
+  const originalNode=children(originalBranch,'Node')[identity.nodeOrdinal];
+  if(!originalNode||occurrenceSignature(originalNode)!==identity.componentSignature)
+    fail('ENGINE_MASS_WRITER_ORIGINAL_DRIFT','Original physical signature changed');
+  const expectedPosition=positionalSignature(originalNode);
+  const candidates=children(targetBranch,'Node').map((node,index)=>({node,index}))
+    .filter(row=>positionalSignature(row.node)===expectedPosition);
+  if(candidates.length!==1)
+    fail('ENGINE_MASS_WRITER_AMBIGUOUS_TARGET','No unique native input physical position');
+  const target=JSON.stringify([identity.branchOccurrenceIndex,candidates[0].index]);
+  if(usedTarget.has(target))
+    fail('ENGINE_MASS_WRITER_DUPLICATE_TARGET','Physical owners collided');
+  usedTarget.add(target);
+  const owner=candidates[0].node;
+  let weight=children(owner,'Weight')[0];
+  if(!weight){
+   const doc=owner.ownerDocument;
+   if(!doc||typeof doc.createElementNS!=='function')
+     fail('ENGINE_MASS_WRITER_WEIGHT_FIELD_MISSING','Cannot safely create Weight field');
+   weight=doc.createElementNS(owner.namespaceURI||null,'Weight');
+   owner.appendChild(weight);
+  }
+  weight.textContent=String(approved.effectiveKg);
+ }
+ if(usedOriginal.size!==accepted.physicalCount||
+    byId.size!==usedOriginal.size)
+  fail('ENGINE_MASS_WRITER_POPULATION_DRIFT','Not all approved masses have a unique original');
+ // Serializing the parsed document is intentional: R2 attests EXACT bytes
+ // actually forwarded to native engine after this write, not original parity.
+ const doc=proposed[0]?.ownerDocument;
+ if(!doc)fail('ENGINE_MASS_WRITER_SERIALIZER_REQUIRED','Missing serialized XML document');
+ const prepared=new XMLSerializer().serializeToString(doc);
+ const proof=await attestXml229OriginalPhysicalEngineInput({
+   ...args,engineInputXmlText:prepared,
+ });
+ if(proof.finalIntentSha256!==intent.intentSha256||
+    proof.verifiedEnginePhysicalCount!==accepted.physicalCount)
+  fail('ENGINE_MASS_WRITER_FINAL_CHANGED','Final review changed during write');
+ return Object.freeze({
+  schema:'XML229.ReviewedEngineMassCandidate.v1',
+  engineInputXmlText:prepared,
+  transfer:proof,
+  nativeCiiPhysicalSlotVerified:false,
+  nativeCiiReleaseAuthorized:false,
+ });
+}
