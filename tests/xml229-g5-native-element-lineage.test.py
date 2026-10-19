@@ -300,6 +300,25 @@ class NativeMassOwnerInventoryTests(unittest.TestCase):
             self.assertFalse(report["physicalMatch2ConsumptionVerified"])
             self.assertFalse(report["nativeCiiReleaseAuthorized"])
 
+    def test_branch_start_rigid2_marker_is_not_an_incoming_edge(self):
+        from xml.etree import ElementTree as ET
+        nodes=ET.fromstring(
+            "<Branch>"
+            "<Node><ComponentType>RIGID</ComponentType><Rigid>2</Rigid>"
+            "<ComponentRefNo>PUBLIC/SAME</ComponentRefNo><Weight>35</Weight></Node>"
+            "<Node><ComponentType>FLAN</ComponentType>"
+            "<ComponentRefNo>PUBLIC/SAME</ComponentRefNo><Weight>70</Weight></Node>"
+            "</Branch>"
+        )
+        self.assertEqual(INV.incoming_rigid_candidate(list(nodes),0),
+                         "NO_KNOWN_NATIVE_RIGID_EDGE")
+        self.assertEqual(INV.incoming_rigid_candidate(list(nodes),1),
+                         "SAME_REF_RIGID_TO_FLAN")
+        self.assertEqual(INV.field(nodes[1],"Weight"),"70")
+        # Qualifying a flange edge must never borrow the prior 35kg.
+        self.assertFalse(INV.incoming_rigid_candidate(list(nodes),0)
+                         == "DIRECT_RIGID2")
+
     def test_immediately_adjacent_but_mismatched_flange_ref_is_not_owner(self):
         with tempfile.TemporaryDirectory() as td:
             transfer,xml,cii=self.case(td,flange_case="mismatched")
