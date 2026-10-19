@@ -74,8 +74,15 @@ function stored(storage,key,identityValue){
  try{return readSnapshot(JSON.parse(raw),identityValue);}
  catch(error){if(error.code)throw error;fail('WEIGHT_DRAFT_STORAGE_INVALID');}
 }
-export function openXml229WeightDraftWorkspace(receipt,{storage}={}){
+export function openXml229WeightDraftWorkspace(receipt,{storage,occurrenceIds}={}){
  const id=identity(receipt),key=PREFIX+id.basisId;
+ const census=occurrenceIds===undefined?null:new Set(occurrenceIds);
+ if(census&&(census.size!==occurrenceIds.length||census.size>MAX||
+   [...census].some(x=>!str(x,512)||!x)))fail('WEIGHT_DRAFT_PHYSICAL_CENSUS_INVALID');
+ const ensureCensus=drafts=>{
+   if(census&&[...drafts.keys()].some(x=>!census.has(x)))
+     fail('WEIGHT_DRAFT_UNKNOWN_ORIGINAL_OCCURRENCE');
+ };
  if(storage===undefined){
   try{storage=globalThis.localStorage||null;}
   catch{storage=null;}
@@ -86,14 +93,17 @@ export function openXml229WeightDraftWorkspace(receipt,{storage}={}){
  if(existing){
   if(!existing.isFor(receipt))fail('WEIGHT_DRAFT_BASIS_COLLISION');
   // The same module-global Map remains alive across panel installations.
+  if(census)ensureCensus(existing.drafts);
   return existing;
  }
  const drafts=stored(storage,key,id);
+ ensureCensus(drafts);
  const workspace=Object.freeze({
   drafts,storageAvailable:!!storage,
   isFor(other){try{return same(id,identity(other));}catch{return false;}},
   exportBackup(){return snapshotFor(id,drafts);},
   save(){
+   ensureCensus(drafts);
    const snapshot=snapshotFor(id,drafts);
    const json=JSON.stringify(snapshot);
    if(json.length>MAX_BYTES)fail('WEIGHT_DRAFT_STORAGE_LIMIT');
@@ -105,6 +115,7 @@ export function openXml229WeightDraftWorkspace(receipt,{storage}={}){
   },
   restoreBackup(snapshot){
    const next=readSnapshot(snapshot,id);
+   ensureCensus(next);
    const old=new Map(drafts);
    drafts.clear();
    for(const [k,v] of next)drafts.set(k,v);
