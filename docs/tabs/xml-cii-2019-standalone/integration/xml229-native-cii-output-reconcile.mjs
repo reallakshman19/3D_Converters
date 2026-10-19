@@ -126,7 +126,7 @@ export async function reconcileXml229NonreleasingNativeOutput({
         deny('XML229_NATIVE_WITNESS_FORCE_DRIFT');
     }
   }
-  const used=new Set(),byType={};
+  const used=new Set(),claimedSlots=new Set(),byType={};
   let nativeRigidObserved=0,unresolved=0,observedKg=0,unresolvedKg=0;
   const reasons={};
   for(const row of transfer.matches){
@@ -145,10 +145,14 @@ export async function reconcileXml229NonreleasingNativeOutput({
       if(used.has(edge.nativeElementIndex))reason='DUPLICATE_NATIVE_PHYSICAL_OWNER';
       else if(edge.rigidRecordIndex===null)reason='NATIVE_MASS_RULE_REQUIRED';
       else {
+        const modelKg=number(edge.to?.weightKg,'XML229_NATIVE_MODEL_MASS_INVALID');
+        if(Math.abs(modelKg-kg)>1e-8)
+          deny('XML229_NATIVE_MODEL_MASS_DRIFT');
         const force=forces[edge.rigidRecordIndex],expected=kg*scale;
         if(Math.abs(force-expected)>Math.max(1e-4,Math.abs(expected)*1e-5))
           deny('XML229_NATIVE_PHYSICAL_MASS_DRIFT');
         used.add(edge.nativeElementIndex);
+        claimedSlots.add(edge.rigidRecordIndex);
         nativeRigidObserved++;entry.nativeRigidObserved++;
         observedKg+=kg;entry.observedKg+=kg;
       }
@@ -162,14 +166,22 @@ export async function reconcileXml229NonreleasingNativeOutput({
   if(nativeRigidObserved+unresolved!==transfer.originalPhysicalCount||
      transfer.originalPhysicalCount!==transfer.matches.length)
     deny('XML229_NATIVE_R2_CENSUS_DRIFT');
+  // The output may contain extra positive native mass slots not claimed by
+  // any R2 original physical. Report them, never infer their ownership.
+  const unclaimedPositiveNativeSlots=forces.reduce((n,v,index)=>
+    n+(v>0&&!claimedSlots.has(index)?1:0),0);
+  if(unclaimedPositiveNativeSlots)
+    reasons.UNCLAIMED_POSITIVE_NATIVE_MASS=unclaimedPositiveNativeSlots;
   return Object.freeze({
     schema:'XML229.NativeCandidateOutputReconciliation.v1',
-    status:unresolved?'NATIVE_MASS_POLICY_OR_GEOMETRY_UNRESOLVED':
+    status:unresolved||unclaimedPositiveNativeSlots?
+      'NATIVE_MASS_POLICY_OR_GEOMETRY_UNRESOLVED':
       'OBSERVED_RIGID_POINTERS_CHALLENGED_NOT_RELEASED',
     ciiSha256:digest,engineInputSha256:transfer.engineInputSha256,
     originalPhysicalCount:transfer.originalPhysicalCount,
     actualNativeElements:pointers.length,actualNativeRigidRecords:forces.length,
-    nativeRigidObserved,unresolved,observedKg,unresolvedKg,reasons,byType,
+    nativeRigidObserved,unresolved,unclaimedPositiveNativeSlots,
+    observedKg,unresolvedKg,reasons,byType,
     // First-party model witness + second-path CII readback are not an
     // independent accepted physical-to-native mass review/release.
     independentLineageAuthorVerified:false,
