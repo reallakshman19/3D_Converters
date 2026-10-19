@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {makeXml229PublicBc4LineListRevision} from './xml229-ef05-line-list-revision.mjs';
 
 export async function installXml229WorkspaceRegistryWitness(page){
   // Test-only capture of the actual source-bound Worker registry publication.
@@ -130,11 +131,11 @@ async function captureXml229ChangedBasisDiagnostic(page,at,oldBasis){
 }
 
 export async function verifyXml229ChangedBasisJourney({page,lineListVariant,record,beforeWorker,beforeNav,collectEditable}){
-  // Real changed-input contrast AFTER normal output readback. Only supported
-  // source/master UI actions; never synthesize or inject Worker decisions.
+  // Real public-data changed-input contrast after normal output readback.
+  // No manufactured Worker, review decision or private engineering fixture.
   // Preserve the 419 prior canonical-ID edits as an in-process oracle.
   const alternateLineList=lineListVariant==='bc4-json'
-    ?'docs/Masters/ImportedRawLineListLL.xlsx'
+    ?await makeXml229PublicBc4LineListRevision()
     :'tests/fixtures/xml229/BC4.LineList.json';
   await page.locator('[data-phase="source"]').click();
   await page.locator('[data-sub-tab="linelist"]').click();
@@ -142,7 +143,7 @@ export async function verifyXml229ChangedBasisJourney({page,lineListVariant,reco
   await page.locator('[data-master-mapping-status="lineList"]')
     .filter({hasText:'Mapping status: APPLIED'}).waitFor({timeout:120000});
   await page.locator('[data-phase="preview"]').click();
-  const expectedAlternateRows=lineListVariant==='bc4-json'?801:385;
+  const expectedAlternateRows=385;
   await page.waitForFunction(expected=>{
     const inventory=document.querySelector('#mc-preview-table-host')?.parentElement?.textContent||'';
     return inventory.includes('Line List: '+expected+' row(s)');
@@ -194,7 +195,9 @@ export async function verifyXml229ChangedBasisJourney({page,lineListVariant,reco
   assert(overlapping.length>0,'changed-basis fixture has no comparable canonical occurrences');
   const leaked=overlapping.filter(([id])=>onChangedBasis.get(id)!=='');
   record.stages.workspaceChangedBasis={
-    inputChange:'opposite public Line List variant imported through Source & Master',
+    inputChange:lineListVariant==='bc4-json'
+      ?'deterministic public BC4 Line List cell revision via Source & Master'
+      :'opposite public BC4 Line List imported through Source & Master',
     beforeFocused:beforeNav.size,afterFocused:onChangedBasis.size,
     overlapping:overlapping.length,staleDraftsVisible:leaked.length,
     workerReplaced:true,basisChanged:true,leaseChanged:true,
