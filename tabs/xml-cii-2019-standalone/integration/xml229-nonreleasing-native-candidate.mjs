@@ -63,6 +63,13 @@ export async function runXml229NonreleasingNativeCandidate({
      typeof session.prepareEngineInputMasses!=='function'||
      typeof assertCurrent!=='function')
     deny('XML229_CANDIDATE_LIVE_SOURCE_REQUIRED');
+  // The current TopoFix path may replace the Python input XML after R2
+  // attestation. Until independently challengeable topology lineage exists,
+  // the nonreleasing candidate must not use a second input source.
+  if(job.options?.analyzeTopology===true||
+     job.options?.generateTopoFix===true||
+     job.options?.useTopoFixForCii===true)
+    deny('XML229_CANDIDATE_TOPOLOGY_INPUT_UNATTESTED');
   assertCurrent();
   const receipt=session.receipt;
   if(!receipt||!HEX.test(receipt.basisId||'')||
@@ -93,6 +100,10 @@ export async function runXml229NonreleasingNativeCandidate({
          prepared.nativeCiiReleaseAuthorized!==false||
          prepared.nativeCiiPhysicalSlotVerified!==false)
         deny('XML229_CANDIDATE_ENGINE_MASS_WRITE_REJECTED');
+      if(engineJob.options?.analyzeTopology===true||
+         engineJob.options?.generateTopoFix===true||
+         engineJob.options?.useTopoFixForCii===true)
+        deny('XML229_CANDIDATE_TOPOLOGY_INPUT_UNATTESTED');
       const inputSha=await digest(prepared.engineInputXmlText);
       const proof=prepared.transfer;
       if(!acceptedTransfer(proof,intent,receipt,inputSha))
