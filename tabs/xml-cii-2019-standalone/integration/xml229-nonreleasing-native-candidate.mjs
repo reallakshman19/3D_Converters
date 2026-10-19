@@ -58,7 +58,7 @@ export async function runXml229NonreleasingNativeCandidate({
      typeof job.sourceText!=='string'||!job.sourceText.trim()||
      !session||session.closed===true||
      typeof session.readNativeFinalIntent!=='function'||
-     typeof session.attestEngineInput!=='function'||
+     typeof session.prepareEngineInputMasses!=='function'||
      typeof assertCurrent!=='function')
     deny('XML229_CANDIDATE_LIVE_SOURCE_REQUIRED');
   assertCurrent();
@@ -79,18 +79,28 @@ export async function runXml229NonreleasingNativeCandidate({
       if(count!==1||engineJob?.sourceKind!=='xml'||
          typeof engineJob.sourceText!=='string'||!engineJob.sourceText.trim())
         deny('XML229_CANDIDATE_ENGINE_INPUT_INVALID');
-      const inputSha=await digest(engineJob.sourceText);
-      const proof=await session.attestEngineInput({
+      // Actual source-bound Final masses are written inside the SAME current
+      // GC-PW Worker to the ordinary parity XML by original occurrence ID.
+      // Worker reruns R2 on those EXACT bytes before returning them.
+      const prepared=await session.prepareEngineInputMasses({
         engineInputXmlText:engineJob.sourceText,
       });
       assertCurrent();
+      if(prepared?.schema!=='XML229.ReviewedEngineMassCandidate.v1'||
+         typeof prepared.engineInputXmlText!=='string'||
+         prepared.nativeCiiReleaseAuthorized!==false||
+         prepared.nativeCiiPhysicalSlotVerified!==false)
+        deny('XML229_CANDIDATE_ENGINE_MASS_WRITE_REJECTED');
+      const inputSha=await digest(prepared.engineInputXmlText);
+      const proof=prepared.transfer;
       if(!acceptedTransfer(proof,intent,receipt,inputSha))
         deny('XML229_CANDIDATE_ENGINE_TRANSFER_REJECTED');
       transfer=proof;
-      // Avoid repeating JSON enrichment after the exact XML is attested.
-      // Internal Python process/bend/cleanup steps still need native G5 lineage.
+      // Exact attested engine input is now native CLI input. No SECOND
+      // staged-JSON pass; later Python transformations still need G5 proof.
       return runEngine({
-        ...engineJob,stagedJsonText:'',
+        ...engineJob,sourceText:prepared.engineInputXmlText,
+        stagedJsonText:'',
         options:{...engineJob.options,outputMode:'cii-only'},
       });
     },
