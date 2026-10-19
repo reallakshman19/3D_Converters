@@ -52,7 +52,7 @@ function acceptedTransfer(proof,intent,receipt,sha) {
  * The caller must NOT store or export CII. No normal Run authorization changes.
  */
 export async function runXml229NonreleasingNativeCandidate({
-  job,session,assertCurrent=()=>{},
+  job,session,assertCurrent=()=>{},onStage=()=>{},
   runWorkflow=runXmlCii2019Workflow,
   runEngine=runXmlCii2019StandaloneEngineJob,
 }={}) {
@@ -71,16 +71,20 @@ export async function runXml229NonreleasingNativeCandidate({
      job.options?.useTopoFixForCii===true)
     deny('XML229_CANDIDATE_TOPOLOGY_INPUT_UNATTESTED');
   assertCurrent();
+  const stage=step=>{try{onStage(step)}catch{}};
+  stage('SOURCE_CUSTODY_CHECK');
   const receipt=session.receipt;
   if(!receipt||!HEX.test(receipt.basisId||'')||
      !HEX.test(receipt.originalJsonSha256||'')||
      !receipt.sourceId||!receipt.sourceGenerationId)
     deny('XML229_CANDIDATE_RECEIPT_INVALID');
   const intent=await session.readNativeFinalIntent();
+  stage('FINAL_INTENT_READ');
   assertCurrent();
   if(!acceptedIntent(intent,receipt))
     deny('XML229_CANDIDATE_FINAL_INTENT_UNQUALIFIED');
   let count=0,transfer=null,privateWitness=null;
+  stage('PARITY_AND_FORMAT_START');
   const native=await runWorkflow(job,{
     engineRunner:async engineJob=>{
       assertCurrent();
@@ -88,12 +92,14 @@ export async function runXml229NonreleasingNativeCandidate({
       if(count!==1||engineJob?.sourceKind!=='xml'||
          typeof engineJob.sourceText!=='string'||!engineJob.sourceText.trim())
         deny('XML229_CANDIDATE_ENGINE_INPUT_INVALID');
+      stage('PARITY_TO_ENGINE_BOUNDARY');
       // Actual source-bound Final masses are written inside the SAME current
       // GC-PW Worker to the ordinary parity XML by original occurrence ID.
       // Worker reruns R2 on those EXACT bytes before returning them.
       const prepared=await session.prepareEngineInputMasses({
         engineInputXmlText:engineJob.sourceText,
       });
+      stage('WORKER_REWRITE_RETURNED');
       assertCurrent();
       if(prepared?.schema!=='XML229.ReviewedEngineMassCandidate.v1'||
          typeof prepared.engineInputXmlText!=='string'||
@@ -111,15 +117,18 @@ export async function runXml229NonreleasingNativeCandidate({
       transfer=proof;
       // Exact attested engine input is now native CLI input. No SECOND
       // staged-JSON pass; later Python transformations still need G5 proof.
+      stage('NATIVE_PYODIDE_START');
       const nativeResult=await runEngine({
         ...engineJob,sourceText:prepared.engineInputXmlText,
         stagedJsonText:'',xml229NativeCandidateWitness:true,
         options:{...engineJob.options,outputMode:'cii-only'},
       });
+      stage('NATIVE_PYODIDE_RETURNED');
       privateWitness=nativeResult?.nativeCandidateWitness;
       return nativeResult;
     },
   });
+  stage('WORKFLOW_RETURNED');
   assertCurrent();
   if(count!==1||!transfer||native?.ok!==true||
      typeof native.ciiText!=='string'||!native.ciiText.trim())
@@ -128,6 +137,7 @@ export async function runXml229NonreleasingNativeCandidate({
   assertCurrent();
   if(!acceptedIntent(after,receipt)||after.intentSha256!==intent.intentSha256)
     deny('XML229_CANDIDATE_FINAL_CHANGED');
+  stage('OUTPUT_RECONCILE_START');
   const reconciled=await reconcileXml229NonreleasingNativeOutput({
     transfer,witness:privateWitness,ciiText:native.ciiText,
   });
@@ -135,6 +145,7 @@ export async function runXml229NonreleasingNativeCandidate({
   const ciiSha=await digest(native.ciiText);
   if(ciiSha!==reconciled.ciiSha256)
     deny('XML229_CANDIDATE_OUTPUT_SHA_CHANGED');
+  stage('OUTPUT_RECONCILE_COMPLETE');
   return Object.freeze({
     schema:'XML229.NonreleasingNativeProductionCandidate.v1',
     status:'ACTUAL_NATIVE_CONVERTER_EXECUTED_NOT_RELEASED',
