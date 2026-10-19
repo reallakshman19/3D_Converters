@@ -156,5 +156,155 @@ class NativeElementLineageTests(unittest.TestCase):
             self.assertEqual(result["physicalGroups"],1)
             self.assertFalse(result["nativeCiiReleaseAuthorized"])
 
+
+INV=load("native_owner_inventory",ROOT/"scripts/xml229-native-mass-owner-inventory.py")
+
+
+class NativeMassOwnerInventoryTests(unittest.TestCase):
+    """No fabricated Final approvals; exercise *only* R2 evidence anatomy."""
+
+    def case(self, td):
+        import subprocess
+        import sys
+        from xml.etree import ElementTree as ET
+        root=Path(td)
+        kinds=[("RIGID","2","35"),("VALV","","45"),
+               ("INST","","50"),("FLAN","","70")]
+        nodes=[
+            "<Node><NodeNumber>10</NodeNumber><Position>0 0 0</Position>"
+            "<ComponentType>BRAN</ComponentType><ComponentRefNo>PUBLIC/0</ComponentRefNo>"
+            "<Weight>0</Weight><OutsideDiameter>610</OutsideDiameter></Node>"
+        ]
+        for i,(kind,rigid,mass) in enumerate(kinds):
+            nodes.append(
+                f"<Node><NodeNumber>{20+i*10}</NodeNumber>"
+                f"<Position>{(i+1)*200} 0 0</Position>"
+                f"<ComponentType>{kind}</ComponentType>"
+                f"<ComponentRefNo>PUBLIC/{i+1}</ComponentRefNo>"
+                f"<Endpoint>2</Endpoint><Rigid>{rigid}</Rigid>"
+                f"<Weight>{mass}</Weight><OutsideDiameter>610</OutsideDiameter></Node>"
+            )
+        xml=("<PipeStressExport xmlns='http://aveva.com/pipeStress116.xsd'>"
+             "<Pipe><Branch><Branchname>/PUBLIC-NATIVE-OWNERS/B1</Branchname>"
+             + "".join(nodes) + "</Branch></Pipe></PipeStressExport>").encode()
+        (root/"engine.xml").write_bytes(xml)
+        cii=root/"output.cii"
+        native=ROOT/"converters/scripts/xml_to_cii2019_runtime_custody.py"
+        result=subprocess.run(
+            [sys.executable,str(native),"--input",str(root/"engine.xml"),
+             "--output",str(cii),"--weight-scale","10"],
+            capture_output=True,text=True,timeout=30)
+        self.assertEqual(result.returncode,0,result.stderr[-1300:])
+        cii_bytes=cii.read_bytes()
+        node_list=[n for n in ET.fromstring(xml).iter()
+                   if n.tag.rsplit("}",1)[-1]=="Node"]
+        matches=[]
+        for ordinal in range(1,5):
+            node=node_list[ordinal]
+            val=lambda name: next((e.text or "" for e in node
+                   if e.tag.rsplit("}",1)[-1]==name),"").strip()
+            signature=f"public-frozen-{ordinal}"
+            matches.append({
+                "originalOccurrenceId":json.dumps(
+                    ["PUBLIC",0,ordinal,signature],separators=(",",":")),
+                "sourceId":"PUBLIC","branchOccurrenceIndex":0,
+                "originalNodeOrdinal":ordinal,"engineNodeOrdinal":ordinal,
+                "componentSignature":signature,
+                "branchName":"/PUBLIC-NATIVE-OWNERS/B1",
+                "engineNodeNumber":val("NodeNumber"),
+                "enginePosition":val("Position"),
+                "componentType":val("ComponentType"),
+                "componentRefNo":val("ComponentRefNo"),
+                "endpoint":val("Endpoint"),"nodeName":val("NodeName"),
+                "rigid":val("Rigid"),"engineWeightKg":float(val("Weight"))
+            })
+        transfer={
+            "schema":"XML229.R2.OriginalPhysicalEngineInputTransfer.v1",
+            "basisId":"a"*64,"finalIntentSha256":"b"*64,
+            "originalJsonSha256":"c"*64,"engineInputSha256":sha(xml),
+            "complete":True,"status":"ENGINE_INPUT_MASS_TRANSFER_VERIFIED_ONLY",
+            "mappingKind":"STRICT_EXACT_PRE_SPLIT",
+            "originalPhysicalCount":4,"verifiedEnginePhysicalCount":4,
+            "nativeCiiPhysicalSlotVerified":False,
+            "nativeCiiReleaseAuthorized":False,
+            "matches":matches
+        }
+        return transfer,xml,cii_bytes
+
+    def evaluate(self,transfer,xml,cii):
+        return INV.inventory(transfer,xml,cii,weight_scale="10",
+                             expected_cii_sha256=sha(cii))
+
+    def rejected(self,code,fn):
+        with self.assertRaises(INV.InventoryError) as raised:
+            fn()
+        self.assertEqual(raised.exception.code,code)
+
+    def test_native_inventory_all_component_types_does_not_authorize_any_slot(self):
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii=self.case(td)
+            report=self.evaluate(transfer,xml,cii)
+            self.assertEqual(report["sourcePhysicalCount"],4)
+            self.assertEqual(report["sourceApprovedEngineKg"],"200")
+            self.assertEqual(report["nativeRigidCount"],1)
+            self.assertEqual(report["nativeRigidPointerCount"],1)
+            self.assertEqual(report["nativeRigidOutputForce"],"350")
+            self.assertEqual(report["nativeRigidEquivalentKgUnderClaimedScale"],"35")
+            for kind in ("RIGID","VALV","INST","FLAN"):
+                self.assertEqual(report["byComponentType"][kind]["positivePhysicals"],1)
+            self.assertEqual(report["byComponentType"]["RIGID"]["explicitRigid2"],1)
+            self.assertEqual(report["nativeOwnerRuleRequiredCount"],3)
+            self.assertFalse(report["nativeCiiPhysicalSlotVerified"])
+            self.assertFalse(report["physicalMatch2ConsumptionVerified"])
+            self.assertFalse(report["nativeCiiReleaseAuthorized"])
+            self.assertEqual(report["coverageStatus"],
+                "NATIVE_ORIGINAL_OCCURRENCE_TO_OUTPUT_UNVERIFIED")
+            self.assertNotIn("matches",report)
+            self.assertNotIn("originalOccurrenceIds",report)
+
+    def test_hash_owners_manual_mass_and_status_guards_are_fail_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii=self.case(td)
+            self.rejected("ENGINE_INPUT_SHA_DRIFT",lambda:
+                self.evaluate(transfer,xml.replace(b">45<",b">46<"),cii))
+            wrong=json.loads(json.dumps(transfer))
+            wrong["matches"][0]["engineWeightKg"]=36
+            self.rejected("R2_ENGINE_MASS_DRIFT",lambda:self.evaluate(wrong,xml,cii))
+            wrong=json.loads(json.dumps(transfer))
+            wrong["matches"][1]["originalOccurrenceId"]=wrong["matches"][0]["originalOccurrenceId"]
+            self.rejected("R2_ORIGINAL_OCCURRENCE_INVALID",lambda:
+                self.evaluate(wrong,xml,cii))
+            wrong=json.loads(json.dumps(transfer))
+            wrong["matches"][1]["engineNodeOrdinal"]=1
+            self.rejected("R2_DUPLICATE_PHYSICAL_OWNER",lambda:
+                self.evaluate(wrong,xml,cii))
+            wrong=json.loads(json.dumps(transfer))
+            wrong["nativeCiiReleaseAuthorized"]=True
+            self.rejected("TRANSFER_RELEASE_OR_COMPLETENESS_INVALID",lambda:
+                self.evaluate(wrong,xml,cii))
+            wrong=json.loads(json.dumps(transfer))
+            wrong["verifiedEnginePhysicalCount"]=3
+            self.rejected("R2_PHYSICAL_CENSUS_DRIFT",lambda:
+                self.evaluate(wrong,xml,cii))
+            self.rejected("CII_SHA_DRIFT",lambda:
+                INV.inventory(transfer,xml,cii,weight_scale="10",
+                    expected_cii_sha256="0"*64))
+            self.rejected("MASS_OR_SCALE_INVALID",lambda:
+                INV.inventory(transfer,xml,cii,weight_scale="NaN",
+                    expected_cii_sha256=sha(cii)))
+
+    def test_native_cii_units_and_slot_count_witness_are_fail_closed(self):
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii=self.case(td)
+            tampered=cii.replace(b"  N. ",b"  lbf. ")
+            self.assertNotEqual(tampered,cii)
+            self.rejected("CII_FORCE_UNIT_UNVERIFIED",lambda:
+                self.evaluate(transfer,xml,tampered))
+            altered=cii.replace(b"#$ RIGID\n",b"#$ RIGID\n"
+                                +b"  0.000000     0.000000\n")
+            self.assertNotEqual(altered,cii)
+            self.rejected("NATIVE_CII_STRUCTURE_INVALID",lambda:
+                self.evaluate(transfer,xml,altered))
+
 if __name__=="__main__":
     unittest.main()
