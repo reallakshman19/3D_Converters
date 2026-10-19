@@ -365,6 +365,69 @@ try{
  };
  record.passes.push('actual GC-PW Worker: 80% Apply edits preserved, kg matched across pages, first input horizontally visible');
 
+ // T-WORKSPACE-01: real Worker and ordinary UI, not a mock.
+ // Capture every canonical occurrence's actual editable input after Apply,
+ // Skip and a manual conflict. This fixture is public; no IDs are logged.
+ await page.locator('[data-p4-skip-weight]').click();
+ await waitWeightIdle();
+ assert.match(await page.locator('[data-p4-weight-status]').textContent(),/Skip Weight:/);
+ const collectEditable=async()=>{
+   await page.locator('[data-p4-scope="blank-rigid"]').click();
+   await waitWeightIdle();
+   const result=new Map();
+   for(let index=0;index<pageCount;index++){
+     const actual=await page.evaluate(()=>[...document.querySelectorAll('tr[data-p4-row]')]
+       .map(tr=>({id:tr.dataset.p4Occurrence,
+         value:tr.querySelector('[data-p4-applied-weight]')?.value??null})));
+     for(const r of actual){assert(!result.has(r.id));result.set(r.id,r.value);}
+     if(index+1===pageCount)break;
+     const previous=await page.locator('tr[data-p4-row]').first().getAttribute('data-p4-occurrence');
+     await page.locator('[data-p4-next]').click();await waitWeightIdle();
+     await page.waitForFunction(old=>document.querySelector('tr[data-p4-row]')?.dataset.p4Occurrence!==old,
+       previous,{timeout:90000});
+   }
+   return result;
+ };
+ const beforeNav=await collectEditable();
+ assert.equal(beforeNav.get(manualId),manualKg);
+ const skipIds=[...beforeNav].filter(([,kg])=>kg==='0').map(([id])=>id);
+ assert(skipIds.length>0,'public fixture did not exercise Skip');
+ const proposedIds=[...beforeNav].filter(([id,kg])=>
+   kg!==''&&kg!==null&&kg!=='0'&&id!==manualId).map(([id])=>id);
+ assert(proposedIds.length>0,'public fixture did not exercise suggestions');
+ await page.locator('[data-p4-scope="all"]').click();await waitWeightIdle();
+ const samePanel=await collectEditable();
+ assert.deepEqual([...samePanel],[...beforeNav],
+   'Same-panel scope filter/pagination changed canonical editable kg');
+ const beforeRevisions=await page.evaluate(()=>{
+   const row=document.querySelector('[data-p4-weight-root]')?.__p4VisibleRows?.[0];
+   return {match1:row?.match1View?.match1Revision??null,
+     final:row?.finalView?.finalRevision??null};
+ });
+ await page.locator('[data-phase="preview"]').click();
+ await page.locator('[data-phase="run"]').click();
+ await page.locator('[data-action="xml229-output-participation"]').waitFor();
+ assert.equal(await page.locator('[data-action="xml229-output-participation"]').inputValue(),'governed');
+ assert.equal(await page.locator('[data-action="run"]').isDisabled(),true);
+ await page.locator('[data-phase="weight-match"]').click();
+ await page.locator('[data-p4-weight-status]').waitFor();
+ const afterNav=await collectEditable();
+ const afterRevisions=await page.evaluate(()=>{
+   const row=document.querySelector('[data-p4-weight-root]')?.__p4VisibleRows?.[0];
+   return {match1:row?.match1View?.match1Revision??null,
+     final:row?.finalView?.finalRevision??null};
+ });
+ assert.deepEqual(afterRevisions,beforeRevisions,'review CAS revisions changed on navigation');
+ const lost=[...beforeNav].filter(([id,kg])=>afterNav.get(id)!==kg);
+ record.stages.workspaceNavigation={eligibleOccurrences:beforeNav.size,
+   filledBefore:[...beforeNav.values()].filter(x=>x!=='').length,
+   skippedBefore:skipIds.length,suggestionsBefore:proposedIds.length,
+   manualBefore:manualKg,samePanelPreserved:true,changedAfterRemount:lost.length,
+   appliedAfter:afterNav.get(manualId)||'',reviewRevisionsUnchanged:true,
+   governedStillHeld:true};
+ assert.deepEqual(lost,[],'Applied Weight drafts lost across phase navigation: '+lost.length+' canonical occurrences');
+ record.passes.push('same-basis Weight->Preview->Run->Weight retains editable manual/suggestion/Skip values');
+
 
   // Real 41-branch P3: capture exact effective four-master config from
   // the SAME verified Worker lease through the explicit OWNER PRIVATE button.
