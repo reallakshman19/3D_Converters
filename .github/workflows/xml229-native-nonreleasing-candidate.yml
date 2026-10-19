@@ -11,6 +11,8 @@ on:
       - 'tests/xml229-native-cii-output-reconcile.test.mjs'
       - 'tests/xml229-native-candidate-witness.test.py'
       - 'tests/xml229-native-candidate-run-panel-browser.mjs'
+      - 'tests/xml229-native-candidate-real-workflow-hook.test.mjs'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js'
       - 'converters/scripts/xml229_native_candidate_witness.py'
       - 'converters/scripts/xml_to_cii2019_runtime_custody.py'
       - 'converters/scripts/xml_to_cii2019_patched.py'
@@ -26,7 +28,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node --test tests/xml229-nonreleasing-native-candidate.test.mjs tests/xml-cii-229-r2-physical-transfer.test.mjs tests/xml229-native-cii-output-reconcile.test.mjs
+      - run: node --test tests/xml229-nonreleasing-native-candidate.test.mjs tests/xml-cii-229-r2-physical-transfer.test.mjs tests/xml229-native-cii-output-reconcile.test.mjs tests/xml229-native-candidate-real-workflow-hook.test.mjs tests/xml-cii-preview-run-parity-closure.test.mjs
       - run: python3 tests/xml229-native-candidate-witness.test.py
   node24:
     runs-on: ubuntu-latest
@@ -35,7 +37,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: node --test tests/xml229-nonreleasing-native-candidate.test.mjs tests/xml-cii-229-r2-physical-transfer.test.mjs tests/xml229-native-cii-output-reconcile.test.mjs
+      - run: node --test tests/xml229-nonreleasing-native-candidate.test.mjs tests/xml-cii-229-r2-physical-transfer.test.mjs tests/xml229-native-cii-output-reconcile.test.mjs tests/xml229-native-candidate-real-workflow-hook.test.mjs tests/xml-cii-preview-run-parity-closure.test.mjs
       - run: python3 tests/xml229-native-candidate-witness.test.py
   served-chromium-hold:
     runs-on: ubuntu-latest
