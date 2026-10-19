@@ -268,6 +268,142 @@ def inventory(transfer, engine_xml_bytes, cii_bytes, *, weight_scale,
     }
 
 
+_RETAINED_SCHEMA = "XML229.NativeRetainedEdgeObservation.v1"
+
+def challenge_retained_native_edges(transfer, engine_xml_bytes, cii_bytes,
+                                    observation, *, weight_scale,
+                                    expected_cii_sha256):
+    """Source-to-retained-model-to-emitted-CII challenge, always HELD.
+
+    The retained model comes from the production native runtime, not from an
+    independent engineering source. Unique exact R2 identity and emitted CII
+    slot agreement are required. Ambiguous, cleaned, split or renumbered owners
+    without a unique match stay unverified; no guesses are made.
+    """
+    inventory(transfer, engine_xml_bytes, cii_bytes,
+              weight_scale=weight_scale,
+              expected_cii_sha256=expected_cii_sha256)
+    require(isinstance(observation, dict) and
+            observation.get("schema") == _RETAINED_SCHEMA and
+            observation.get("nativeCiiReleaseAuthorized") is False and
+            observation.get("physicalMatch2ConsumptionVerified") is False and
+            observation.get("nativeCiiPhysicalSlotVerified") is False and
+            observation.get("engineInputSha256") == digest(engine_xml_bytes) and
+            observation.get("ciiSha256") == expected_cii_sha256 and
+            decimal(observation.get("weightScale"), positive=True) ==
+              decimal(weight_scale, positive=True),
+            "RETAINED_OBSERVATION_CUSTODY_DRIFT")
+    edges = observation.get("edges")
+    require(isinstance(edges, list) and
+            observation.get("modelElementCount") == len(edges),
+            "RETAINED_EDGE_POPULATION_DRIFT")
+    try:
+        text = cii_bytes.decode("utf-8")
+        native_edges, by_rigid = _G5.parse_elements(text)
+        slots = _G5.sections_from_output(text)["RIGID"]
+    except (UnicodeDecodeError, _G5.LineageError):
+        raise InventoryError("NATIVE_CII_STRUCTURE_INVALID") from None
+    require(len(edges) == len(native_edges) and
+            observation.get("modelRigidCount") == len(slots),
+            "RETAINED_EDGE_POPULATION_DRIFT")
+    factor = decimal(weight_scale, positive=True)
+    matches_by_key = {}
+    branches = branches_from_xml(engine_xml_bytes)
+    for row in transfer["matches"]:
+        branch = branches[row["branchOccurrenceIndex"]]
+        nodes = [n for n in branch if local_name(n) == "Node"]
+        node = nodes[row["engineNodeOrdinal"]]
+        key = (
+            row["branchName"],
+            int(row["engineNodeNumber"]),
+            row["componentType"].upper(),
+            row["componentRefNo"],
+            row["endpoint"] or "",
+            tuple(decimal(x) for x in row["enginePosition"].split()),
+        )
+        require(len(key[-1]) == 3, "R2_ENGINE_IDENTITY_DRIFT")
+        matches_by_key.setdefault(key, []).append(
+            (row["originalOccurrenceId"],decimal(row["engineWeightKg"],positive=True)))
+    linked_source = set()
+    bound_positive_slots = set()
+    matched_kg = Decimal(0)
+    matched_count = 0
+    for index, (edge, actual) in enumerate(zip(edges, native_edges)):
+        require(isinstance(edge, dict) and
+                edge.get("nativeElementIndex") == index and
+                type(edge.get("ciiFromNode")) is int and
+                type(edge.get("ciiToNode")) is int and
+                (edge["ciiFromNode"],edge["ciiToNode"],
+                 edge.get("rigidRecordIndex")) == actual,
+                "RETAINED_EDGE_TO_OUTPUT_DRIFT")
+        to = edge.get("to")
+        require(isinstance(to, dict) and
+                isinstance(to.get("position"), list) and
+                len(to["position"]) == 3 and
+                type(to.get("sourceNodeNumber")) is int,
+                "RETAINED_MODEL_NODE_INVALID")
+        ridx = edge.get("rigidRecordIndex")
+        if ridx is not None:
+            require(type(ridx) is int and
+                    by_rigid.get(ridx) == index and
+                    ridx < len(slots),
+                    "RETAINED_EDGE_TO_OUTPUT_DRIFT")
+            parts = slots[ridx].split()
+            require(len(parts) == 2 and
+                    decimal(parts[0]) ==
+                      decimal(to.get("weightKg")) * factor,
+                    "RETAINED_EDGE_MASS_DRIFT")
+        key = (
+            edge.get("branchName"),to["sourceNodeNumber"],
+            str(to.get("componentType","")).upper(),
+            to.get("componentRefNo"),"" if to.get("endpoint") is None
+            else str(to.get("endpoint")),
+            tuple(decimal(x) for x in to["position"]),
+        )
+        owners = matches_by_key.get(key,[])
+        require(len(owners) <= 1, "RETAINED_ORIGINAL_AMBIGUOUS")
+        if not owners:
+            if ridx is not None and decimal(to.get("weightKg")) > 0:
+                raise InventoryError("RETAINED_POSITIVE_RIGID_WITHOUT_R2_OWNER")
+            continue
+        oid, verified_kg = owners[0]
+        require(oid not in linked_source,"RETAINED_DUPLICATE_SOURCE_OWNER")
+        linked_source.add(oid)
+        require(decimal(to.get("weightKg")) == verified_kg,
+                "RETAINED_SOURCE_MASS_DRIFT")
+        if ridx is not None and verified_kg > 0:
+            require(ridx not in bound_positive_slots,
+                    "RETAINED_POSITIVE_SLOT_DUPLICATE")
+            bound_positive_slots.add(ridx)
+            matched_count += 1
+            matched_kg += verified_kg
+    positive_output = {
+        i for i,slot in enumerate(slots)
+        if decimal(slot.split()[0]) > 0
+    }
+    require(positive_output == bound_positive_slots,
+            "RETAINED_POSITIVE_NATIVE_SLOT_UNACCOUNTED")
+    source_kg = sum(
+        (decimal(row["engineWeightKg"],positive=True)
+         for row in transfer["matches"]),Decimal(0))
+    require(source_kg >= matched_kg, "RETAINED_MASS_INCONSISTENT")
+    return {
+        "schema":"XML229.NativeRetainedEdgeChallenge.v1",
+        "status":"RUNTIME_MODEL_AND_CII_CHALLENGED_HELD",
+        "sourcePhysicalCount":len(transfer["matches"]),
+        "modelEdgeCount":len(edges),
+        "nativeRigidCount":len(slots),
+        "sourcePhysicalsWithUniqueRetainedArrival":len(linked_source),
+        "nativePositiveRigidOwnersBoundToR2":matched_count,
+        "nativePositiveRigidKgBoundToR2":str(matched_kg),
+        "unrepresentedOriginalKg":str(source_kg-matched_kg),
+        "independentRuntimeAuthorVerified":False,
+        "independentOriginalToNativeGeometryVerified":False,
+        "physicalMatch2ConsumptionVerified":False,
+        "nativeCiiPhysicalSlotVerified":False,
+        "nativeCiiReleaseAuthorized":False,
+    }
+
 _CLAIMS_SCHEMA = "XML229.NativeMassOwnerProvisionalClaims.v1"
 
 def challenge_provisional_native_slots(transfer, engine_xml_bytes, cii_bytes,
@@ -388,6 +524,8 @@ def main(argv=None):
                         help="Fail closed if positive physicals match neither known native incoming-edge predicate. Pre-conversion matches are not output lineage or release.")
     parser.add_argument("--provisional-lineage-claims", type=Path,
                         help="Owner-local nonreleasing per-original CII pointer/mass claim challenge; claims not authenticated.")
+    parser.add_argument("--private-retained-edge-observation", type=Path,
+                        help="Owner-local actual runtime retained-edge witness; not independently authored.")
     parser.add_argument("--expected-cii-sha256", required=True)
     parser.add_argument("--output", type=Path, required=True,
                         help="OWNER-LOCAL PRIVATE output; never upload original rows")
@@ -403,6 +541,13 @@ def main(argv=None):
             json.loads(args.r2_transfer.read_text(encoding="utf-8")),
             args.engine_xml.read_bytes(), args.cii.read_bytes(),
             json.loads(args.provisional_lineage_claims.read_text(encoding="utf-8")),
+            weight_scale=args.weight_scale,
+            expected_cii_sha256=args.expected_cii_sha256)
+    if args.private_retained_edge_observation:
+        result["retainedEdgeChallenge"] = challenge_retained_native_edges(
+            json.loads(args.r2_transfer.read_text(encoding="utf-8")),
+            args.engine_xml.read_bytes(), args.cii.read_bytes(),
+            json.loads(args.private_retained_edge_observation.read_text(encoding="utf-8")),
             weight_scale=args.weight_scale,
             expected_cii_sha256=args.expected_cii_sha256)
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
