@@ -372,6 +372,54 @@ def challenge_retained_native_edges(transfer, engine_xml_bytes, cii_bytes,
         require(decimal(to.get("weightKg")) == verified_kg,
                 "RETAINED_SOURCE_MASS_DRIFT")
         if ridx is not None and verified_kg > 0:
+            # Independently bind the retained upstream node to the ORIGINAL
+            # engine XML branch, not a claimant-supplied CII endpoint alone.
+            # Any split/rewrite requiring a synthetic predecessor must be
+            # handled by an independently authored native child-allocation
+            # ledger, never assumed here.
+            original = next(r for r in transfer["matches"]
+                            if r["originalOccurrenceId"] == oid)
+            source_branch = branches[original["branchOccurrenceIndex"]]
+            source_nodes = [
+                n for n in source_branch if local_name(n) == "Node"
+            ]
+            from_node = edge.get("from")
+            require(isinstance(from_node, dict),
+                    "RETAINED_FROM_SOURCE_UNMATCHED")
+            preceding = []
+            for prior in source_nodes[:original["engineNodeOrdinal"]]:
+                prior_position = field(prior, "Position").split()
+                if len(prior_position) != 3:
+                    continue
+                if (
+                    str(from_node.get("sourceNodeNumber")) ==
+                      field(prior,"NodeNumber") and
+                    from_node.get("componentType") ==
+                      field(prior,"ComponentType") and
+                    from_node.get("componentRefNo") ==
+                      field(prior,"ComponentRefNo") and
+                    ("" if from_node.get("endpoint") is None
+                     else str(from_node["endpoint"])) ==
+                      field(prior,"Endpoint") and
+                    tuple(decimal(x) for x in from_node.get("position",[])) ==
+                      tuple(decimal(x) for x in prior_position)
+                ):
+                    preceding.append(prior)
+            require(len(preceding) == 1, "RETAINED_FROM_SOURCE_UNMATCHED")
+            actual_source_node = source_nodes[original["engineNodeOrdinal"]]
+            observed_rigid = "" if to.get("rigid") is None else str(to["rigid"])
+            require(observed_rigid == field(actual_source_node,"Rigid"),
+                    "RETAINED_SOURCE_CLASSIFICATION_DRIFT")
+            before = preceding[0]
+            to_ref = normalized_ref(field(actual_source_node,"ComponentRefNo"))
+            from_ref = normalized_ref(field(before,"ComponentRefNo"))
+            permitted = (
+                field(actual_source_node,"Rigid") == "2" or
+                (field(before,"Rigid") == "2" and
+                 field(actual_source_node,"ComponentType").upper() == "FLAN"
+                 and bool(to_ref) and to_ref == from_ref)
+            )
+            require(permitted, "RETAINED_NATIVE_CLASS_RULE_UNVERIFIED")
             require(ridx not in bound_positive_slots,
                     "RETAINED_POSITIVE_SLOT_DUPLICATE")
             bound_positive_slots.add(ridx)
