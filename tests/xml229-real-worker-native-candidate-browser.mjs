@@ -28,7 +28,12 @@ let browser;
 try{
  browser=await chromium.launch({headless:true});
  const page=await browser.newPage();
- const pageErrors=[];page.on('pageerror',e=>pageErrors.push(String(e)));
+ const pageErrors=[],stages=[];
+ page.on('pageerror',e=>pageErrors.push(String(e)));
+ page.on('console',m=>{if(m.text().startsWith('XML229_STAGE:')){
+   const code=m.text().slice('XML229_STAGE:'.length);stages.push(code);
+   console.log('XML229_BROWSER_STAGE '+code);
+ }});
  await page.goto('http://127.0.0.1:'+server.address().port+'/test.html');
  await page.evaluate(async()=>{
   const {installXml229P4PreviewBridge}=await import(
@@ -131,7 +136,7 @@ try{
    };
    let candidate=null,failure=null;
    try{candidate=await runXml229NonreleasingNativeCandidate({
-     job,session,assertCurrent:()=>{
+     job,session,onStage:step=>console.log('XML229_STAGE:'+step),assertCurrent:()=>{
        if(session.closed||getXml229CurrentWorkerHeldReview(window.__stateRef)!==session)
          throw new Error('STALE_CURRENT_WORKER');
      },
@@ -148,7 +153,7 @@ try{
    };
  }),new Promise((_,reject)=>{
    const watchdog=setTimeout(()=>reject(new Error(
-     'XML229_REAL_WORKER_NATIVE_CHROMIUM_DEADLINE_EXCEEDED')),180000);
+     'XML229_REAL_WORKER_NATIVE_CHROMIUM_DEADLINE_EXCEEDED last='+stages.at(-1)+' all='+stages.join(','))),85000);
    watchdog.unref();
  })]);
  assert.equal(result.reviewedFinalEligible,true,'Synthetic source Weight=35 must bind without inferred approval: '+JSON.stringify(result));
