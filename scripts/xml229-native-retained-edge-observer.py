@@ -13,6 +13,7 @@ from decimal import Decimal, InvalidOperation
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -140,7 +141,11 @@ def observe(input_path, output_path, witness_path, scale):
         "nativeCiiPhysicalSlotVerified": False,
         "nativeCiiReleaseAuthorized": False,
     }
-    witness_path.write_text(json.dumps(witness, indent=2) + "\n", encoding="utf-8")
+    # This witness contains original node references. Never publish it or
+    # overwrite a pre-existing path; create with private permissions on POSIX.
+    fd = os.open(witness_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as out:
+        out.write(json.dumps(witness, indent=2) + "\n")
     print("XML229_NATIVE_RETAINED_OBSERVATION HELD; private witness written")
 
 
