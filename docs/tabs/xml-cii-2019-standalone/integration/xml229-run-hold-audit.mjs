@@ -5,6 +5,8 @@
  */
 import {isXml229VerifiedCompletionForInput}
   from './xml229-verified-output-readiness.mjs';
+import {auditXml229CrossWorkerFlowTrace}
+  from '../../../contracts/xml229-flow-trace-v1/audit.mjs';
 
 export const XML229_RUN_HOLD_AUDIT_SCHEMA='XML229.RunHoldAudit.v1';
 const whole=n=>Number.isSafeInteger(n)&&n>=0;
@@ -156,6 +158,9 @@ export function buildXml229RunHoldAudit({
          Object.entries(e.counts).filter(([k,v])=>
            ['physical','facts','sourceMass','match1','final','unresolved','qualifiedCandidates','branches'].includes(k)&&whole(v)))}:{}),
      })):[];
+ const chronologyIntegrity=flowTrace
+   ?auditXml229CrossWorkerFlowTrace(flowTrace)
+   :{status:'NOT_AVAILABLE',issues:['NO_FLOW_TRACE'],firstGap:null,summary:{}};
  const first=evidence.find(x=>x.status==='STALE'||x.status==='FAILED'||
     x.status==='MISSING'||x.status==='HELD'||x.status==='NOT_REACHED');
  return Object.freeze({
@@ -179,6 +184,7 @@ export function buildXml229RunHoldAudit({
      ...(whole(candidate.unresolvedNativeOwners)?{unresolvedNativeOwners:candidate.unresolvedNativeOwners}:{}),
    }:null,
    chronology:{available:!!flowTrace,
+     integrity:chronologyIntegrity,
      observedEvents:count(flowTrace?.observedEvents)||events.length,
      totalEvents:count(flowTrace?.totalEvents)||events.length,
      droppedEvents:count(flowTrace?.droppedEvents)||0,
