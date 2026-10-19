@@ -248,8 +248,8 @@ class NativeMassOwnerInventoryTests(unittest.TestCase):
             self.assertEqual(report["sourceApprovedEngineKg"],"200")
             self.assertEqual(report["nativeRigidCount"],1)
             self.assertEqual(report["nativeRigidPointerCount"],1)
-            self.assertEqual(report["nativeRigidOutputForce"],"350")
-            self.assertEqual(report["nativeRigidEquivalentKgUnderClaimedScale"],"35")
+            self.assertEqual(float(report["nativeRigidOutputForce"]),350.0)
+            self.assertEqual(float(report["nativeRigidEquivalentKgUnderClaimedScale"]),35.0)
             for kind in ("RIGID","VALV","INST","FLAN"):
                 self.assertEqual(report["byComponentType"][kind]["positivePhysicals"],1)
             self.assertEqual(report["byComponentType"]["RIGID"]["explicitRigid2"],1)
