@@ -10,7 +10,8 @@ import {materializeXmlCiiDatasetBackedConfig} from '../xml-cii-dataset-backed-co
 import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-custody.mjs';
 import {digestCanonical,canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-scope.js';
-import {renderXml229WeightReviewPage,formatXml229DecisionAuditSummary} from './xml229-p4-weight-review-presentation.mjs';
+import {renderXml229WeightReviewPage,formatXml229DecisionAuditSummary,choiceForXml229WeightRow} from './xml229-p4-weight-review-presentation.mjs';
+import {auditXml229AcceptedMatch1Row} from '../integration/xml229-accepted-match1-family-audit.mjs';
 import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs} from './xml229-p4-unqualified-drafts.mjs';
 import {disarmXml229EditedDraft} from './xml229-p4-two-click-confirmation.mjs';
 import {revealXml229PreparedWeightInput} from './xml229-p4-reveal-applied-weight.mjs';
@@ -227,6 +228,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
   never accept Match-1/Final or change native CII Run authorization.</p>
   ${existingWorkflow?'':'<button type="button" data-p4-weight-build>Build verified original-source Weight review</button>'}
   <span role="status" data-p4-weight-status style="margin-left:8px;"></span>
+  <button data-p4-confirm-single type="button" hidden style="padding:6px;margin:5px;background:#854d0e;color:white">Confirm reviewed mass</button>
   <pre data-p4-bulk-detail role="status" hidden
    style="white-space:pre-wrap;font-size:12px;color:#cbd5e1;background:#101e32;padding:8px;border-radius:6px;"></pre>
   <div style="margin:10px 0"><button type="button" data-p4-export-flow-trace
@@ -262,7 +264,12 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const build=root.querySelector('[data-p4-weight-build]');
  const key=stateRef?.modeABaseRef||stateRef;
  let active=getXml229CurrentWorkerHeldReview(stateRef),offset=0,busy=false;
- let mode='rigid',query='',pendingBulk=null,searchTimer=null,renderSequence=0,minScorePercent=80;
+ let mode='rigid',query='',pendingBulk=null,pendingReview=null,searchTimer=null,renderSequence=0,minScorePercent=80;
+ const disarmReview=()=>{
+   pendingReview=null;
+   const confirm=root.querySelector('[data-p4-confirm-single]');
+   if(confirm)confirm.hidden=true;
+ };
  let draftOwner=null,draftValues=new Map(),draftWorkspace=null;
  // A verified Worker receipt, never the panel instance, owns draft identity.
  const bindDrafts=session=>{
@@ -277,6 +284,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    return 0;
  };
  const clearDrafts=()=>{
+   disarmReview();
    // Never destroy source-bound drafts merely because the panel was rebuilt.
    draftOwner=null;draftWorkspace=null;draftValues=new Map();
    bulkDetail.hidden=true;bulkDetail.textContent='';
@@ -288,6 +296,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      pendingBulk=null;
      say('Applied Weight edited; the previous suggestion plan was invalidated. No mass approved.');
    }
+   if(pendingReview){disarmReview();say('Draft edited: prepared review cancelled. No decision accepted.');}
    try{persistDrafts();}
    catch(error){say('Draft is in memory but local checkpoint failed ['+
      String(error.code||'WEIGHT_DRAFT_STORAGE_WRITE_FAILED')+
@@ -305,6 +314,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      'No Match-1/Final decisions were restored or accepted automatically.',true);
  };
  const render=async()=>{
+   disarmReview();
    if(!active)return;
    const session=active,token=++renderSequence;
    const page=mode==='all'&&!query
@@ -439,6 +449,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const skipButton=event.target.closest?.('[data-p4-skip-weight]');
       const saveButton=event.target.closest?.('[data-p4-save-review]');
    const restoreButton=event.target.closest?.('[data-p4-choose-review]');
+   const reviewMatch1=event.target.closest?.('[data-p4-review-match1]');
+   const reviewFinal=event.target.closest?.('[data-p4-review-final]');
+   const confirmReview=event.target.closest?.('[data-p4-confirm-single]');
    const saveDraftButton=event.target.closest?.('[data-p4-save-drafts]');
    const restoreDraftButton=event.target.closest?.('[data-p4-choose-drafts]');
    const safetyButton=event.target.closest?.('[data-p4-full-source-safety]'),auditButton=event.target.closest?.('[data-p4-audit-decisions]');
@@ -446,9 +459,30 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const coverageButton=event.target.closest?.('[data-p4-export-candidate-readiness]');
    const traceButton=event.target.closest?.('[data-p4-export-flow-trace]');
    const candidateChip=event.target.closest?.('[data-p4-pick]');
-      if(!prev&&!next&&!scope&&!planButton&&!skipButton&&!draftFillButton&&!candidateChip&&!auditButton&&!safetyButton&&!custodyButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton&&!saveDraftButton&&!restoreDraftButton)return;
+      if(!prev&&!next&&!scope&&!planButton&&!skipButton&&!draftFillButton&&!candidateChip&&!auditButton&&!safetyButton&&!custodyButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton&&!saveDraftButton&&!restoreDraftButton&&!reviewMatch1&&!reviewFinal&&!confirmReview)return;
    busy=true;root.dataset.p4Busy='true';
    try{
+     if(confirmReview){
+       const prepared=pendingReview;
+       disarmReview(); // Second click must not be replayable.
+       if(!prepared||active!==prepared.session||live()!==prepared.session)
+         err('WEIGHT_REVIEW_PREPARE_STALE');
+       const currentDraft=draftValues.get(prepared.occurrenceId);
+       if(JSON.stringify(currentDraft||null)!==prepared.draftJson)
+         err('WEIGHT_REVIEW_DRAFT_CHANGED');
+       const reviewed=await prepared.session.review({
+         view:prepared.view,choice:prepared.choice,
+       });
+       if(active!==prepared.session||live()!==prepared.session)
+         err('WEIGHT_REVIEW_SOURCE_STALE');
+       if(!reviewed?.decisionRevision)err('WEIGHT_REVIEW_DECISION_UNATTESTED');
+       draftValues.delete(prepared.occurrenceId);
+       persistDrafts();
+       pendingBulk=null;await render();
+       say(prepared.stageLabel+' explicitly committed through verified Worker CAS for original occurrence '+
+         prepared.occurrenceId+'. The separate engineering and native CII release gates remain HELD.');
+       return;
+     }
      if(restoreDraftButton){
        root.querySelector('[data-p4-import-drafts]')?.click();
        return;
@@ -634,6 +668,52 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        err('STALE_PHYSICAL_ROW','Original physical source row changed');
      const draft=tr.querySelector('[data-p4-proposal]');
      const selection=tr.querySelector('[data-p4-candidate]');
+     if(reviewMatch1||reviewFinal){
+       // Click 1 is read-only. The Worker sends a fresh CAS view; the separate
+       // confirmation click is the only possible decision write.
+       captureDraft(tr);
+       const wanted=reviewFinal?'final':'match1';
+       const current=draftValues.get(row.occurrenceId);
+       const typed=tr.querySelector('[data-p4-proposal]')?.value||'';
+       if(current?.skippedWeight||typed==='0')
+         err('SKIPPED_OR_ZERO_WEIGHT_REQUIRES_DISPOSITION',
+           'A 0 kg Skip draft is not an accepted zero or reviewed mass');
+       if(wanted==='match1'&&row.match1View?.stageDecision)
+         err('MATCH1_ALREADY_HAS_DECISION','Existing Match-1 decision cannot be overwritten from simple table');
+       if(wanted==='final'&&row.finalView?.stageDecision)
+         err('FINAL_ALREADY_HAS_DECISION','Existing Final decision cannot be overwritten from simple table');
+       const family=auditXml229AcceptedMatch1Row(row);
+       if(wanted==='final'&&family&&family.code!=='FAMILY_COMPATIBLE_ONLY')
+         err('FAMILY_ENGINEERING_HOLD',
+           'This historic Match-1 family requires independent engineering disposition before Final');
+       const value=typed||(wanted==='final'&&Number(row.match1Kg)>0
+         ?String(row.match1Kg):wanted==='final'&&Number(row.sourceKg)>0
+         ?String(row.sourceKg):'');
+       const reason=tr.querySelector('[data-p4-reason]')?.value?.trim()||'';
+       if(!reason)err('WEIGHT_REVIEW_REASON_REQUIRED','Supply an independent engineering reason before review');
+       const {choice}=choiceForXml229WeightRow(row,{
+         stage:wanted,value,reason,
+         proposalId:wanted==='match1'?(current?.proposalId||''):'',
+       });
+       const session=active,stage=wanted==='final'?'Rigidmatch2':'RigidMatch1';
+       const view=await session.readIndividual({occurrenceId:row.occurrenceId,stage});
+       if(live()!==session||active!==session||view?.basisId!==session.receipt.basisId||
+          view?.sourceId!==session.receipt.sourceId||view?.stage!==stage||
+          view?.occurrenceId!==row.occurrenceId)
+         err('WEIGHT_REVIEW_VIEW_STALE');
+       pendingReview={session,view,choice,occurrenceId:row.occurrenceId,
+         draftJson:JSON.stringify(draftValues.get(row.occurrenceId)||null),
+         stageLabel:wanted==='final'?'Final Match-2':'Match-1'};
+       const confirm=root.querySelector('[data-p4-confirm-single]');
+       confirm.hidden=false;
+       confirm.textContent='Confirm '+pendingReview.stageLabel+' · '+value+' kg (source reviewed)';
+       bulkDetail.hidden=false;
+       bulkDetail.textContent='Prepared '+pendingReview.stageLabel+' for original occurrence '+
+         row.occurrenceId+' at '+value+' kg. Engineering reason: '+reason+
+         '. This is NOT a decision until Confirm. Native CII remains HELD.';
+       say('Review prepared. Confirm explicitly above the table. No mass accepted yet.');
+       return;
+     }
      if(candidateChip){
        const proposalId=candidateChip.getAttribute('data-p4-pick')||'';
        const candidate=(row.proposals||[]).find(p=>p.proposalId===proposalId);
