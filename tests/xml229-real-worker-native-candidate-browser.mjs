@@ -40,6 +40,8 @@ try{
  page.on('console',m=>{if(m.text().startsWith('XML229_STAGE:')){
    const code=m.text().slice('XML229_STAGE:'.length);stages.push(code);
    console.log('XML229_BROWSER_STAGE '+code);
+ }else if(m.text().startsWith('XML229_NATIVE_ERROR:')){
+   console.error(m.text().slice(0,700));
  }});
  await page.goto('http://127.0.0.1:'+server.address().port+'/test.html');
  await page.evaluate(async()=>{
@@ -123,6 +125,8 @@ try{
      '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
    const {runXml229NonreleasingNativeCandidate}=await import(
      '/docs/tabs/xml-cii-2019-standalone/integration/xml229-nonreleasing-native-candidate.mjs');
+   const {runXmlCii2019StandaloneEngineJob}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-engine-client.js');
    const session=getXml229CurrentWorkerHeldReview(window.__stateRef);
    if(!session)throw new Error('Missing actual GC-PW Worker');
    const completion=await session.readCompletion();
@@ -145,7 +149,14 @@ try{
    };
    let candidate=null,failure=null;
    try{candidate=await runXml229NonreleasingNativeCandidate({
-     job,session,onStage:step=>console.log('XML229_STAGE:'+step),assertCurrent:()=>{
+     job,session,onStage:step=>console.log('XML229_STAGE:'+step),
+     runEngine:async payload=>{
+       const result=await runXmlCii2019StandaloneEngineJob(payload);
+       if(!result?.ok)
+         console.warn('XML229_NATIVE_ERROR:'+String(result?.error||'unknown').slice(-560));
+       return result;
+     },
+     assertCurrent:()=>{
        if(session.closed||getXml229CurrentWorkerHeldReview(window.__stateRef)!==session)
          throw new Error('STALE_CURRENT_WORKER');
      },
