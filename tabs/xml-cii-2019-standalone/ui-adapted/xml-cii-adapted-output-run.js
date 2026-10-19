@@ -438,12 +438,16 @@ function renderRunControls(parent, stateRef, state, report, render) {
               throw Object.assign(new Error('STALE_REVIEW_SESSION'),{code:'STALE_REVIEW_SESSION'});
           },
         });
+        const classSummary=Object.entries(result.byComponentType||{})
+          .sort(([a],[b])=>a.localeCompare(b))
+          .map(([type,row])=>type+': '+row.nativeRigidObserved+'/'+row.originalPhysicals+
+            ' native RIGID mass observed').join(' · ');
         verifyStatus.textContent='Native CII candidate checked: '+
           result.nativeRigidObserved+' observed native mass pointers; '+
           result.unresolvedNativeOwners+' original physical masses without proven native ownership. '+
           'Actual elements '+result.nativeElements+', RIGID slots '+result.nativeRigidRecords+
           '. CII SHA '+result.ciiSha256.slice(0,12)+
-          '… . Type-specific engineering decisions and independent release remain HELD; no CII saved.';
+          '… . '+classSummary+'. Independent engineering release remains HELD; no CII saved.';
       }catch(error){
         const code=/^[A-Z0-9_]{3,80}$/.test(error?.code||'')
           ?error.code:'XML229_CANDIDATE_FAILED';
