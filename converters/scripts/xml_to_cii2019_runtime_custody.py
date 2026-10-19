@@ -431,6 +431,12 @@ def main() -> None:
         args.weight_scale,
         support_config,
     )
+    # Candidate-only first-party observation of the already-built native
+    # retained model and exact emitted CII slots. Not independent G5 or release.
+    if args.xml229_native_candidate_witness_out:
+        from xml229_native_candidate_witness import write_witness
+        write_witness(args.xml229_native_candidate_witness_out, model, cii_text,
+                      weight_scale=args.weight_scale, engine_input=args.input)
     args.output.write_text(cii_text, encoding="utf-8")
     if args.diagnostics_out:
         args.diagnostics_out.write_text(base._build_diagnostics_report(model), encoding="utf-8")
