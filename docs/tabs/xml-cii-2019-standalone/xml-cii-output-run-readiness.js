@@ -241,7 +241,7 @@ function readinessDiagnostics(checklistRows) {
   return checklistRows.filter((item) => item.blocking || item.severity === 'warning').map((item) => ({ level: item.blocking ? 'error' : 'warning', source: 'output-run', type: item.id, message: item.message }));
 }
 
-export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineering = null} = {}) {
+export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineering = null,sessionState = 'UNKNOWN'} = {}) {
   // Recompose one report from one checklist. No DOM-only patches: logs, counts,
   // diagnostics and the Run button all see identical source-bound status.
   const projection = projectXml229RunChecklist(
@@ -250,7 +250,7 @@ export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineeri
   // Weight is missing. Attach a separately derived first-unverified boundary
   // to the exact same canonical report, never to a DOM-only replacement row.
   const holdAudit = buildXml229RunHoldAudit({
-    input,report:{checklistRows:projection.rows},
+    input,report:{checklistRows:projection.rows},sessionState,
     sessionReceipt:verifiedEngineering?.sessionReceipt,
     completion:verifiedEngineering?.proof,
     readError:verifiedEngineering?.readError,
