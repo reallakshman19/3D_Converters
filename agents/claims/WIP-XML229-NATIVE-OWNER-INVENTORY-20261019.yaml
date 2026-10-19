@@ -1,0 +1,15 @@
+schema: AgentClaim.v1
+repository: reallakshman19/3D_Converters
+claim_id: WIP-XML229-NATIVE-OWNER-INVENTORY-20261019
+claim_state: OWNER_SCOPED_EVIDENCE_ONLY_DRAFT
+branch: investigate/xml229-native-mass-owner-inventory-20261019
+source_issue: 229
+criticality: ENGINEERING_CRITICAL
+scope:
+  - scripts/xml229-native-mass-owner-inventory.py
+  - tests/xml229-g5-native-element-lineage.test.py
+  - agents/WIP-XML229-NATIVE-OWNER-INVENTORY-20261019_workreport.md
+  - agents/claims/WIP-XML229-NATIVE-OWNER-INVENTORY-20261019.yaml
+  - .backups/20261019-xml229-native-inventory/tests__xml229-g5-native-element-lineage.test.py.original
+explicit_exclusions: [NATIVE_CII_WRITER, FINAL_DECISION_WRITER, PUBLIC_UI, SOURCE_MASTERS, WORKFLOWS, HISTORICAL_125_DECISIONS, RUN_GATE, MERGE, RELEASE]
+merge_authority: OWNER_ONLY_NOT_GRANTED
