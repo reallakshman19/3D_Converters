@@ -596,6 +596,11 @@ class NativeMassOwnerInventoryTests(unittest.TestCase):
         self.assertEqual(native_output.read_bytes(),cii,
             "Passive observer must call exactly the unchanged production runtime")
         captured=json.loads(witness.read_text())
+        import os
+        import stat
+        if os.name == "posix":
+            self.assertEqual(stat.S_IMODE(witness.stat().st_mode),0o600,
+                "Original owner model witness must be private")
         self.assertEqual(captured["ciiSha256"],sha(cii))
         self.assertEqual(captured["engineInputSha256"],sha(xml))
         self.assertNotIn("PUBLIC/1",result.stdout)
@@ -628,6 +633,24 @@ class NativeMassOwnerInventoryTests(unittest.TestCase):
             self.assertEqual(result["nativePositiveRigidOwnersBoundToR2"],1)
             self.assertEqual(float(result["nativePositiveRigidKgBoundToR2"]),35)
             self.assertEqual(float(result["unrepresentedOriginalKg"]),165)
+
+    def test_native_observer_rejects_overwriting_private_original_model_witness(self):
+        import subprocess
+        import sys
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii,witness=self.observed_case(td,flange_case="matched")
+            root=Path(td)
+            original=(root/"private-retained-edges.json").read_bytes()
+            repeat=subprocess.run([
+              sys.executable,str(ROOT/"scripts/xml229-native-retained-edge-observer.py"),
+              "--engine-xml",str(root/"engine.xml"),
+              "--cii-out",str(root/"model-emitted.cii"),
+              "--private-witness-out",str(root/"private-retained-edges.json"),
+              "--weight-scale","10",
+            ],capture_output=True,text=True,timeout=40)
+            self.assertNotEqual(repeat.returncode,0)
+            self.assertEqual((root/"private-retained-edges.json").read_bytes(),original)
+            self.assertNotIn("PUBLIC/1",repeat.stdout)
 
     def test_model_observation_rejects_source_swaps_and_output_drift(self):
         import copy
