@@ -169,6 +169,15 @@ test('Final review drift after converter refuses candidate summary',async()=>{
   await assert.rejects(x.run(),{code:'XML229_CANDIDATE_FINAL_CHANGED'});
   assert.equal(x.engineCalls(),1);
 });
+test('Topology/TopoFix path cannot replace the byte-attested candidate native input',async()=>{
+  for(const flag of ['analyzeTopology','generateTopoFix','useTopoFixForCii']){
+    const x=fixture();x.job.options[flag]=true;
+    await assert.rejects(x.run(),{
+      code:'XML229_CANDIDATE_TOPOLOGY_INPUT_UNATTESTED',
+    });
+    assert.equal(x.engineCalls(),0);
+  }
+});
 test('workflow that never reaches native engine cannot report success',async()=>{
   const job={sourceKind:'xml',sourceText:'<source/>',options:{}};
   const x=fixture();
