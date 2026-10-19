@@ -13,6 +13,7 @@ on:
       - 'tests/xml229-native-candidate-run-panel-browser.mjs'
       - 'tests/xml229-native-candidate-real-workflow-hook.test.mjs'
       - 'tests/xml229-real-worker-native-candidate-browser.mjs'
+      - 'tests/xml229-real-worker-r2-chromium.mjs'
       - 'tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js'
       - 'converters/scripts/xml229_native_candidate_witness.py'
       - 'converters/scripts/xml_to_cii2019_runtime_custody.py'
@@ -74,3 +75,20 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Real current GC-PW Worker → reviewed source-kg → exact R2 → Pyodide native CII
         run: node tests/xml229-real-worker-native-candidate-browser.mjs
+  real-worker-r2-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    needs: [node22, node24]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install genuine Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Current GC-PW Worker original-source mass rewrite and R2 attestation
+        run: node tests/xml229-real-worker-r2-chromium.mjs
