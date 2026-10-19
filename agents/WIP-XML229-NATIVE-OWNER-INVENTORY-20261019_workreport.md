@@ -43,5 +43,41 @@ restricted-diff jobs must not be waved or characterized as this tool's failure.
 Independent Appendix A and v3.6 work-specific bound approval are NOT_OBSERVED.
 All release flags remain false.
 
+## 2026-10-19 source-exact native RIGID→FLAN reconciliation
+
+The earlier strict option's “no Rigid=2 marker” heuristic was overly broad:
+the actual native `_edge_is_rigid` predicate also accepts an arrival FLAN
+immediately after a `Rigid=2` node with the **same nonblank normalized
+ComponentRefNo**. `_rigid_weight_for_edge` uses the arrival FLAN's kg,
+never borrows mass from the upstream RIGID. Branch-first `Rigid=2` does
+not create an incoming edge by itself. All of these are only pre-conversion
+hints: native cleanup/splits and per-original independent output lineage
+are still unproved.
+
+Updated nonreleasing inventory now separates direct-Rigid2 source kg,
+same-reference RIGID→FLAN candidate kg, remaining positive source kg
+without a known native edge predicate, and output native rigid kg-equivalent.
+Its strict refusal now checks **both** native predicates; it does not
+promote passing predicate checks into an approval.
+
+Positive actual Python CLI synthetic fixture:
+same-ref RIGID(35kg)→FLAN(70kg) emits **two** native CII RIGID slots
+[350, 700] and output ELEMENTS pointers at arrival native nodes 20
+(slot 1) and 30 (slot 2). Combined 105kg recognized preconversion,
+with VALV(45kg)+INST(50kg) still needing an ownership decision (95kg).
+The identical adjacent FLAN with **different component reference**
+does not create the second native RIGID and remains in 165kg unknown
+population. First-node Rigid2 marker alone cannot create a phantom
+incoming CII element.
+
+Independent G5 exact code-head
+`c9176e7b9cccfb6de80d4dec1725238ed2f28921`, GitHub Actions
+job `117879271710`: **12 I03 and 17 G5/inventory PASS**.
+These are controlled synthetic node signatures, not Owner's private
+423 physical mass records. Source-to-Final-to-output release flags remain
+false. No Python native runtime writer, historical accepted masses,
+UI approval controls or release gate changed. Historical C05
+restricted-scope CI failures remain separate.
+
 ## EXACT_NEXT_ACTION
-Run the held-out G5 Python negative/control suite in CI from the exact PR head; correct any test/runtime errors without expanding the writer surface. Produce a local Owner/private native inventory for a separately reviewed Final basis and actual CII bytes, then have engineering explicitly specify class-specific VALV/INST/FLAN ownership and 1-to-many allocation before implementing a governed native release path. Do not release based on inventory summaries.
+Review the passing source-exact synthetic native per-slot witness, classify VALV/INST/unmatched FLAN and any split-child native mass ownership with an independently approved engineering rule, then build a separate governed candidate exercising exact Owner-private original Final→engine→emitted native CII per-occurrence mass/units lineage. Run private local inventory without uploading source rows. Obtain formal independent Appendix A and v3.6 binding before merge/release; keep Native CII HOLD until Owner independently signs off.
