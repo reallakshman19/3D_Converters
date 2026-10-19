@@ -11,7 +11,7 @@ import {materializeXmlCiiDatasetBackedConfig} from '../xml-cii-dataset-backed-co
 import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-custody.mjs';
 import {digestCanonical,canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-scope.js';
-import {renderXml229WeightReviewPage,formatXml229DecisionAuditSummary} from './xml229-p4-weight-review-presentation.mjs';
+import {renderXml229WeightReviewPage} from './xml229-p4-weight-review-presentation.mjs';
 import {prepareXml229ExplicitMassReview,commitXml229ExplicitMassReview,xml229VisibleSingleReviewSnapshot}
  from './xml229-p4-explicit-mass-review.mjs';
 import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs} from './xml229-p4-unqualified-drafts.mjs';
@@ -21,10 +21,10 @@ import {createXml229BulkApplyQueue} from './xml229-p4-busy-apply-queue.mjs';
 import {planXml229SkipWeightDrafts} from './xml229-p4-skip-weight-drafts.mjs';
 import {openXml229WeightDraftWorkspace} from './xml229-p4-weight-draft-workspace.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
-import {prepareXml229G3G4LocalAggregateExport} from './xml229-g3g4-local-aggregate-export.mjs';
+import {exportXml229WeightEvidence} from './xml229-p4-private-weight-evidence.mjs';
 import {downloadXml229FullSourceSafety} from './xml229-full-source-safety-download.mjs';
 import {downloadXml229OwnerBasisCustody} from './xml229-owner-basis-custody-download.mjs';
-import {beginXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace} from './xml229-flow-trace-registry.mjs';
+import {beginXml229FlowTrace} from './xml229-flow-trace-registry.mjs';
 import {getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,
  publishXml229VerifiedEngineeringBuild,revokeXml229VerifiedEngineeringBasis}
  from '../integration/xml229-engineering-basis-authority.mjs';
@@ -476,38 +476,11 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
          ' unresolved. Keep this private file to restore only after verified 4 Preview rebuild.');
        return;
      }
-     if(traceButton){
-       const session=active,trace=getXml229FlowTrace(stateRef);
-       if(!trace||live()!==session||root.isConnected===false)
-         err('FLOW_TRACE_SESSION_STALE','Current Worker flow trace unavailable');
-       const proof=await session.readCompletion();
-       if(live()!==session||active!==session||root.isConnected===false)
-         err('FLOW_TRACE_SESSION_STALE','Source changed during trace collection');
-       recordXml229FlowTrace(stateRef,{kind:'WEIGHT_UI_RENDERED',actor:'weight-ui',
-         counts:{physical:proof.verifiedPhysicalCount,facts:proof.verifiedFactCount,
-           sourceMass:proof.counts?.source,match1:proof.counts?.match1,
-           final:proof.counts?.final,unresolved:proof.counts?.unresolved}});
-       const json=JSON.stringify(trace.snapshot(),null,2);
-       if(json.length>131072)err('FLOW_TRACE_EXPORT_TOO_LARGE','Trace exceeds private export budget');
-       downloadTextFile('xml229-cross-worker-flow-trace.json',json,'application/json;charset=utf-8');
-       say('Private Worker/UI trace exported; native CII remains HELD.');
-       return;
-     }
-     if(coverageButton){
+     if(traceButton||coverageButton||auditButton){
        const session=active;
-       if(live()!==session||root.isConnected===false)
-         err('G3_G4_AGGREGATE_EXPORT_HELD','Current original source review is stale');
-       const pair=await session.readCandidateReadinessPair();
-       if(live()!==session||active!==session||root.isConnected===false)
-         err('G3_G4_AGGREGATE_EXPORT_HELD','Original source changed during aggregate export');
-       const receipt=prepareXml229G3G4LocalAggregateExport({
-         pair,receipt:session.receipt,
-       });
-       downloadTextFile(receipt.filename,receipt.text,'application/json;charset=utf-8');
-       say('Private G3/G4 aggregate exported: '+
-         pair.coverage.physicalCount+' original physicals, '+
-         pair.coverage.counts.occurrencesWithQualifiedCandidates+
-         ' with qualified proposals; native CII remains HELD.');
+       const kind=traceButton?'trace':coverageButton?'coverage':'audit';
+       say(await exportXml229WeightEvidence({kind,session,stateRef,
+         isCurrent:()=>live()===session&&active===session&&root.isConnected!==false}));
        return;
      }
      if(safetyButton){await downloadXml229FullSourceSafety({session:active,isCurrent:()=>live()===active&&root.isConnected!==false,say});return;}
@@ -516,20 +489,6 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
          getEntry:()=>getXml229VerifiedEngineeringEntry(stateRef),
          isCurrent:()=>getXml229CurrentWorkerHeldReview(stateRef)===active&&root.isConnected!==false});
        say('Private effective config and exact four-master custody saved locally. No Match-1, Final or native CII authority granted.');return;
-     }
-     if(auditButton){
-       const live=getXml229CurrentWorkerHeldReview(stateRef);
-       if(live!==active)err('PROVENANCE_SESSION_STALE',
-         'Current verified source changed before decision provenance audit');
-       const report=await active.readDecisionProvenance();
-       if(getXml229CurrentWorkerHeldReview(stateRef)!==active||
-          report?.basisId!==active.receipt?.basisId)
-         err('PROVENANCE_SESSION_STALE','Original source changed during decision audit');
-       downloadTextFile('xml229-weight-decision-provenance.json',
-         JSON.stringify({...report,exportedAt:new Date().toISOString()},null,2),
-         'application/json;charset=utf-8');
-       say(formatXml229DecisionAuditSummary(report));
-       return;
      }
      if(scope){
        mode=scope.getAttribute('data-p4-scope')||'all';
