@@ -163,24 +163,34 @@ INV=load("native_owner_inventory",ROOT/"scripts/xml229-native-mass-owner-invento
 class NativeMassOwnerInventoryTests(unittest.TestCase):
     """No fabricated Final approvals; exercise *only* R2 evidence anatomy."""
 
-    def case(self, td):
+    def case(self, td, *, flange_case="original"):
         import subprocess
         import sys
         from xml.etree import ElementTree as ET
         root=Path(td)
-        kinds=[("RIGID","2","35"),("VALV","","45"),
-               ("INST","","50"),("FLAN","","70")]
+        if flange_case == "original":
+            kinds=[("RIGID","2","35"),("VALV","","45"),
+                   ("INST","","50"),("FLAN","","70")]
+        else:
+            assert flange_case in ("matched", "mismatched")
+            kinds=[("RIGID","2","35"),("FLAN","","70"),
+                   ("VALV","","45"),("INST","","50")]
         nodes=[
             "<Node><NodeNumber>10</NodeNumber><Position>0 0 0</Position>"
             "<ComponentType>BRAN</ComponentType><ComponentRefNo>PUBLIC/0</ComponentRefNo>"
             "<Weight>0</Weight><OutsideDiameter>610</OutsideDiameter></Node>"
         ]
         for i,(kind,rigid,mass) in enumerate(kinds):
+            component_ref=(
+                "PUBLIC/1" if kind=="FLAN" and flange_case=="matched"
+                else ("PUBLIC/WRONG" if kind=="FLAN" and flange_case=="mismatched"
+                      else f"PUBLIC/{i+1}")
+            )
             nodes.append(
                 f"<Node><NodeNumber>{20+i*10}</NodeNumber>"
                 f"<Position>{(i+1)*200} 0 0</Position>"
                 f"<ComponentType>{kind}</ComponentType>"
-                f"<ComponentRefNo>PUBLIC/{i+1}</ComponentRefNo>"
+                f"<ComponentRefNo>{component_ref}</ComponentRefNo>"
                 f"<Endpoint>2</Endpoint><Rigid>{rigid}</Rigid>"
                 f"<Weight>{mass}</Weight><OutsideDiameter>610</OutsideDiameter></Node>"
             )
@@ -270,6 +280,35 @@ class NativeMassOwnerInventoryTests(unittest.TestCase):
                 "NATIVE_ORIGINAL_OCCURRENCE_TO_OUTPUT_UNVERIFIED")
             self.assertNotIn("matches",report)
             self.assertNotIn("originalOccurrenceIds",report)
+
+    def test_same_ref_rigid_to_flan_uses_flange_mass_not_upstream_mass(self):
+        """Exercise existing native edge classification and real emitted CII."""
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii=self.case(td,flange_case="matched")
+            report=self.evaluate(transfer,xml,cii)
+            self.assertEqual(report["sourcePhysicalCount"],4)
+            self.assertEqual(report["nativeRigidCount"],2)
+            self.assertEqual(report["nativeRigidPointerCount"],2)
+            self.assertEqual(float(report["nativeRigidOutputForce"]),1050)
+            self.assertEqual(report["sameRefRigidToFlanCandidateKg"],"70")
+            self.assertEqual(report["preConversionRigidEdgeCandidateKg"],"105")
+            self.assertEqual(report["unresolvedPositiveNativeOwnerKg"],"95")
+            flange=report["byComponentType"]["FLAN"]
+            self.assertEqual(flange["explicitRigid2"],0)
+            self.assertEqual(flange["sameRefRigidToFlanCandidates"],1)
+            self.assertEqual(flange["needsNativeOwnerRule"],0)
+            self.assertFalse(report["physicalMatch2ConsumptionVerified"])
+            self.assertFalse(report["nativeCiiReleaseAuthorized"])
+
+    def test_immediately_adjacent_but_mismatched_flange_ref_is_not_owner(self):
+        with tempfile.TemporaryDirectory() as td:
+            transfer,xml,cii=self.case(td,flange_case="mismatched")
+            report=self.evaluate(transfer,xml,cii)
+            self.assertEqual(report["nativeRigidCount"],1)
+            self.assertEqual(report["sameRefRigidToFlanCandidateKg"],"0")
+            self.assertEqual(report["unresolvedPositiveNativeOwnerKg"],"165")
+            self.assertEqual(report["byComponentType"]["FLAN"]["needsNativeOwnerRule"],1)
+            self.assertFalse(report["nativeCiiPhysicalSlotVerified"])
 
     def test_hash_owners_manual_mass_and_status_guards_are_fail_closed(self):
         with tempfile.TemporaryDirectory() as td:
