@@ -68,11 +68,16 @@ function parseNativeCii(cii){
  }
  return {slots,weights,elementCount,rigidCount};
 }
-function sameFormattedSixDigit(expected,actual){
+function sameNativeFormattedMass(expected,actual){
  if(!mass(expected)||!Number.isFinite(actual))return false;
- // The CAESAR CII RIGID numeric writer emits six significant digits.
- return Math.abs(actual-Number(expected.toPrecision(6)))<=
-   Math.max(1e-6,Math.abs(expected)*1e-9);
+ // Mirror xml_to_cii2019.py::_format_auto_float exactly by magnitude:
+ // .6E = seven significant digits, #.6G = six; <1e-12 emits zero.
+ const magnitude=Math.abs(expected);
+ const output=magnitude<1e-12?0:
+   magnitude>=1e9||magnitude<0.1
+     ?Number(expected.toExponential(6)):Number(expected.toPrecision(6));
+ // A tiny positive approved mass must not disappear as a zero output.
+ return !(expected>0&&output===0)&&actual===output;
 }
 /**
  * @param {Object} input
@@ -137,7 +142,7 @@ export async function reconcileXml229ActualCiiAgainstFinal({
   if(!actual||actual.element!==claim.nativeElementIndex||
      actual.from!==claim.ciiFromNode||actual.to!==claim.ciiToNode)
    fail('NATIVE_CII_ELEMENT_RIGID_LINEAGE_MISMATCH');
-  if(!sameFormattedSixDigit(original.effectiveKg*10,
+  if(!sameNativeFormattedMass(original.effectiveKg*10,
      parsed.weights[claim.rigidRecordIndex]))
    fail('NATIVE_CII_MASS_CONSUMPTION_MISMATCH');
  }

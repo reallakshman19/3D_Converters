@@ -126,8 +126,10 @@ def stage_native_original_lineage(original_path, packet_path):
         original = source_nodes[ni]
         require(signature(original) == decoded[3],
                 "NATIVE_PHYSICAL_SIGNATURE_DRIFT")
-        ET.SubElement(original, LINEAGE_TAG).text = oid
-    ET.SubElement(source, LINEAGE_STAGE).text = packet["basisId"]
+        ns = original.tag.rsplit("}", 1)[0] + "}" if "}" in original.tag else ""
+        ET.SubElement(original, ns + LINEAGE_TAG).text = oid
+    ns = source.tag.rsplit("}", 1)[0] + "}" if "}" in source.tag else ""
+    ET.SubElement(source, ns + LINEAGE_STAGE).text = packet["basisId"]
     output = Path(original_path).with_name(
         Path(original_path).stem + "_xml229_lineaged.xml")
     ET.ElementTree(source).write(output, encoding="utf-8", xml_declaration=True)
@@ -315,10 +317,21 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
         require(index not in used and index in slots,
                 "CII_NATIVE_PHYSICAL_RIGID_POINTER_UNVERIFIED")
         used.add(index)
-        # Native CII formatter emits 6 significant digits; compare to the
-        # independently calculated expected rounded number.
-        expected = float(format(row["kg"]*scale, ".6g"))
-        require(math.isclose(emitted[index], expected, abs_tol=1e-6, rel_tol=1e-9),
+        # Compare the ACTUAL CII formatter's emitted numeric value, rather
+        # than a blanket six-significant-digit approximation. It emits six
+        # fractional scientific digits (SEVEN significant digits) for small
+        # or huge values, and six significant digits otherwise.
+        force = row["kg"] * scale
+        require(math.isfinite(force), "CII_NATIVE_MASS_OUT_OF_RANGE")
+        if abs(force) < 1e-12:
+            expected = 0.0
+        elif abs(force) >= 1e9 or abs(force) < 0.1:
+            expected = float(f"{force:.6E}")
+        else:
+            expected = float(f"{force:#.6G}")
+        require(not (row["kg"] > 0 and expected == 0),
+                "CII_NATIVE_MASS_UNREPRESENTABLE")
+        require(emitted[index] == expected,
                 "CII_NATIVE_APPLIED_MASS_MISMATCH")
         require(math.isclose(edges[index].to_node.weight, row["kg"],
                              abs_tol=1e-8, rel_tol=1e-9),

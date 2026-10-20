@@ -62,6 +62,23 @@ test('tampered emitted mass, pointer, force units, or native element ancestry fa
  await assert.rejects(reconcileXml229ActualCiiAgainstFinal(raw),
   {code:'NATIVE_SOURCE_XML_SHA_DRIFT'});
 });
+test('scientific formatter matches seven significant digits and rejects nearby wrong output',async()=>{
+ const tiny=bundle(cii({mass:'1.234567E-07'}));
+ tiny.packet.components[0].effectiveKg=0.00000001234567;
+ tiny.writerDiagnostic.claims[0].massKg=tiny.packet.components[0].effectiveKg;
+ const proof=await reconcileXml229ActualCiiAgainstFinal(tiny);
+ assert.equal(proof.nativeCiiReleaseAuthorized,true);
+ const altered=bundle(cii({mass:'1.234568E-07'}));
+ altered.packet.components[0].effectiveKg=tiny.packet.components[0].effectiveKg;
+ altered.writerDiagnostic.claims[0].massKg=tiny.packet.components[0].effectiveKg;
+ await assert.rejects(reconcileXml229ActualCiiAgainstFinal(altered),
+   {code:'NATIVE_CII_MASS_CONSUMPTION_MISMATCH'});
+ const huge=bundle(cii({mass:'1.234568E+09'}));
+ huge.packet.components[0].effectiveKg=123456780;
+ huge.writerDiagnostic.claims[0].massKg=123456780;
+ assert.equal((await reconcileXml229ActualCiiAgainstFinal(huge)).nativeCiiReleaseAuthorized,true);
+});
+
 test('accepted zero consumes real pointed CII RIGID; absent and mismatched masses reject',async()=>{
  const zero=bundle(cii({mass:'0'}));
  zero.packet.components[0].effectiveKg=0;

@@ -152,6 +152,32 @@ class NativeFinalMassTests(unittest.TestCase):
             self.assertEqual(e.exception.code,"CII_NATIVE_APPLIED_MASS_MISMATCH")
 
 
+    def test_emitted_scientific_format_matches_actual_formatter(self):
+        # Native formatter uses seven significant digits in E-notation, not
+        # six; an unrelated tiny output deviation must still fail closed.
+        xml=input_xml()
+        with TemporaryDirectory() as td:
+            original=Path(td)/"original.xml"
+            enriched=Path(td)/"engine.xml"
+            manifest=Path(td)/"packet.json"
+            original.write_text(xml)
+            enriched.write_text(xml)
+            tiny=0.00000001234567
+            manifest.write_text(json.dumps(packet(xml,kg=tiny)))
+            _,owners=bind_native_final_xml(original,enriched,manifest)
+            proof=verify_emitted_native_masses(
+                cii(force="1.234567E-07"),owners,model(tiny))
+            self.assertEqual(proof["claims"][0]["massKg"],tiny)
+            with self.assertRaises(NativeMassError) as e:
+                verify_emitted_native_masses(
+                    cii(force="1.234568E-07"),owners,model(tiny))
+            self.assertEqual(e.exception.code,"CII_NATIVE_APPLIED_MASS_MISMATCH")
+            huge=123456780.0
+            manifest.write_text(json.dumps(packet(xml,kg=huge)))
+            _,owners=bind_native_final_xml(original,enriched,manifest)
+            verify_emitted_native_masses(
+                cii(force="1.234568E+09"),owners,model(huge))
+
     def test_staged_original_occurrence_survives_native_renumbering(self):
         with TemporaryDirectory() as td:
             original=Path(td)/"source.xml"
