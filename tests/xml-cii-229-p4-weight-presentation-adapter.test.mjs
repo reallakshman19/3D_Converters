@@ -50,7 +50,7 @@ test('simple source-bound Weight UI shows Applied Weight, three adjacent filters
   assert.match(html,/data-p4-min-score/);
   assert.match(html,/423 components/);
   assert.match(html,/showing 1–1/);
-  assert.match(html,/Editable draft · not approved/);
+  assert.match(html,/saved draft, not an engineering acceptance/);
   assert.equal(xml229WeightReviewPageModel(page,0).counts.unresolved,1);
 });
 
@@ -374,7 +374,7 @@ test('Auto Fill actually hydrates input values and selected candidates rather th
  assert.match(file,/applyXml229SourceWideSuggestionDrafts/);
  assert.match(action,/planXml229RigidWeightDrafts\(session,/);
  const hydration=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs',import.meta.url),'utf8');
- assert.match(hydration,/input\.value=saved\.value/);
+ assert.match(hydration,/input\.value=saved\.skippedWeight\?'':saved\.value/);
  assert.match(file,/hydrateXml229WeightDraftInputs\(table,page\.rows,draftValues\)/);
  assert.match(hydration,/selection\.value=saved\.proposalId/);
  assert.match(action,/confirm\.disabled=!plan\.qualified/);
