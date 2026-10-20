@@ -14,6 +14,8 @@ import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-s
 import {renderXml229WeightReviewPage} from './xml229-p4-weight-review-presentation.mjs';
 import {commitXml229SelectedAppliedWeight}
  from './xml229-p4-applied-weight-owner-selection.mjs';
+import {commitXml229AllSelectedFinal,commitXml229VisibleSelectedFinal}
+ from './xml229-p4-source-wide-final-commit.mjs';
 import {hydrateXml229WeightDraftInputs,seedXml229VisibleSuggestedWeightDrafts}
  from './xml229-p4-unqualified-drafts.mjs';
 import {applyXml229SourceWideSuggestionDrafts,applyXml229BlankWeightDrafts} from './xml229-p4-source-wide-suggestion-action.mjs';
@@ -293,27 +295,14 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    // Owner policy: the selected positive Applied Weight is the engineering
    // decision. Use protected Worker Final CAS directly (no second UI gate).
    // Prefills apply to this visible page only; no invisible/unselected rows.
-   let committed=0;
-   for(const row of page.rows){
-     const selected=draftValues.get(row.occurrenceId);
-     const value=Number(selected?.value);
-     if(!selected||selected.skippedWeight||!Number.isFinite(value)||value<=0||
-        row.finalKg!==null||row.sourceKg!==null)continue;
-     if(token!==renderSequence||active!==session||live()!==session)return count;
-     try{
-       await commitXml229SelectedAppliedWeight({
-         session,row,value,proposalId:selected.proposalId||'',
-         origin:selected.autoFilled?'prefill':'manual',
-         isCurrent:()=>token===renderSequence&&active===session&&live()===session,
-       });
-       draftValues.delete(row.occurrenceId);committed++;
-     }catch(error){
-       say('Applied Weight could not be recorded for the verified occurrence ['+
-         String(error?.code||'APPLIED_WEIGHT_COMMIT_FAILED')+
-         ']. Selection retained locally; native CII still HELD.',true);
-       break;
-     }
-   }
+   const {committed,stale}=await commitXml229VisibleSelectedFinal({
+     session,rows:page.rows,drafts:draftValues,
+     isCurrent:()=>token===renderSequence&&active===session&&live()===session,
+     onError:error=>say('Applied Weight could not be recorded ['+
+       String(error?.code||'APPLIED_WEIGHT_COMMIT_FAILED')+
+       ']. Selection retained locally; native CII still HELD.',true),
+   });
+   if(stale)return count;
    if(committed>0){
      persistDrafts();
      await render(); // authoritative Final read and new stage revisions
@@ -537,31 +526,13 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        // "Apply all" applies ALL current source-bound selected positive kg,
        // not only whichever physicals happen to be visible in the table.
        // Each row receives a fresh guarded Final CAS view before acceptance.
-       let accepted=0,scanned=0;
-       for(let start=0;;start+=25){
-         if(active!==session||live()!==session||root.isConnected===false)
-           err('APPLIED_WEIGHT_SOURCE_STALE','The original source changed during Apply all');
-         const full=await session.readPage({offset:start,limit:25,filter:'all'});
-         if(!full||!Array.isArray(full.rows)||!Number.isSafeInteger(full.totalCount))
-           err('APPLIED_WEIGHT_ALL_SOURCE_PAGE_INVALID');
-         for(const item of full.rows){
-           scanned++;
-           const selected=draftValues.get(item.occurrenceId);
-           const value=Number(selected?.value);
-           if(!selected||selected.skippedWeight||!Number.isFinite(value)||value<=0||
-              item.finalKg!==null||item.sourceKg!==null)continue;
-           await commitXml229SelectedAppliedWeight({
-             session,row:item,value,proposalId:selected.proposalId||'',
-             origin:selected.autoFilled?'prefill':'manual',
-             isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
-           });
-           draftValues.delete(item.occurrenceId);accepted++;
-         }
-         persistDrafts();
-         if(start+full.rows.length>=full.totalCount)break;
-         if(!full.rows.length)err('APPLIED_WEIGHT_ALL_SOURCE_PAGE_TRUNCATED');
-         say('Applied Weight: '+accepted+' selected Final mass(es) accepted; checking original physicals '+scanned+'/'+full.totalCount+'.');
-       }
+       const {accepted}=await commitXml229AllSelectedFinal({
+         session,drafts:draftValues,
+         isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
+         saveDrafts:persistDrafts,
+         onProgress:({accepted,scanned,total})=>say('Applied Weight: '+accepted+
+           ' selected Final masses accepted; physicals '+scanned+'/'+total+'.'),
+       });
        await render();
        say('Apply all suggestions complete: '+accepted+' additional selected positive kg masses recorded as Owner-designated GC-PW Final. Missing/0 kg physicals remain unresolved. Native CII output remains separately HELD.');
        return;
