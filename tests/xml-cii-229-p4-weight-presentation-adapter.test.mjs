@@ -33,7 +33,7 @@ test('simple source-bound Weight UI shows Applied Weight, three adjacent filters
   assert.match(html,/data-p4-applied-weight/);
   assert.match(html,/Nearest Suggestions/);
   assert.match(html,/Applied Weight/);
-  assert.match(html,/Recorded Weight/);
+  assert.doesNotMatch(html,/Recorded Weight/);
   assert.match(html,/Filter Blank Weight/);
   assert.match(html,/All XML physicals/);
   assert.match(html,/Weight items/);
@@ -45,7 +45,7 @@ test('simple source-bound Weight UI shows Applied Weight, three adjacent filters
   assert.doesNotMatch(html,/data-p4-candidate|data-p4-accept-match1|data-p4-accept-final|data-p4-bulk-confirm|data-p4-filter-unresolved/);
   assert.match(html,/Review Final/);
   assert.doesNotMatch(html,/Apply all Match-1|<option value="">Manual/);
-  assert.equal((html.match(/<th style=/g)||[]).length,14);
+  assert.equal((html.match(/<th style=/g)||[]).length,13);
   assert.match(html,/data-p4-scope="rigid"/);
   assert.match(html,/data-p4-scope="blank-rigid"/);
   assert.match(html,/data-p4-scope="all"/);
@@ -54,6 +54,31 @@ test('simple source-bound Weight UI shows Applied Weight, three adjacent filters
   assert.match(html,/showing 1–1/);
   assert.match(html,/Editable draft · not approved/);
   assert.equal(xml229WeightReviewPageModel(page,0).counts.unresolved,1);
+});
+
+test('Applied Weight is the only visible mass column, with Worker-accepted mass as its fallback',()=>{
+ const base=row();
+ for(const {field,kg,kind} of [
+  {field:'sourceKg',kg:13,kind:'source'},
+  {field:'match1Kg',kg:14,kind:'match1'},
+  {field:'finalKg',kg:15,kind:'final'},
+ ]){
+  const reviewed={...base,[field]:kg};
+  const html=renderXml229WeightReviewPage({totalCount:1,rows:[reviewed]});
+  assert.match(html,new RegExp('data-p4-applied-weight[^>]*value="'+kg+'"','s'));
+  assert.equal(xml229WeightReviewStatus(reviewed).kind,kind);
+  assert.doesNotMatch(html,/Recorded Weight/);
+  assert.equal((html.match(/<th style=/g)||[]).length,13);
+  assert.match(html,/Source:|Match-1:|Final:/);
+ }
+ const priority=renderXml229WeightReviewPage({totalCount:1,rows:[{
+  ...base,sourceKg:13,match1Kg:14,finalKg:15,
+ }]});
+ assert.match(priority,/data-p4-applied-weight[^>]*value="15"/s);
+ const blank=renderXml229WeightReviewPage({totalCount:1,rows:[base]});
+ assert.match(blank,/data-p4-applied-weight[^>]*value=""/s);
+ assert.match(blank,/data-p4-review-match1/);
+ assert.match(blank,/data-p4-review-final/);
 });
 
 test('rendered original occurrence and master candidate are escaped and can never inject HTML',()=>{
