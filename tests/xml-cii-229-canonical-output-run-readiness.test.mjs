@@ -135,8 +135,11 @@ test('Run result errors and readiness blockers are separate counters (#275 inves
  state.result={error:'Independent Run error',logs:['Error: first','Error: second']};
  const r=buildStandaloneOutputRunReadiness(state);
  assert.equal(r.summary.blockingCount,1,'only source-only CII release is blocking');
- assert.equal(r.logRows.filter(x=>x.level==='error').length,4,
-  'one checklist held row, two error log entries and one result.error are distinct');
+ assert.equal(r.logRows.filter(x=>x.level==='error').length,3,
+  'only actual result/error logs are errors; policy HELD is a warning');
+ assert.equal(r.logRows.filter(x=>x.level==='warning'&&x.source==='readiness').length>0,true,
+  'governed native HOLD is still blocking but not a runtime error');
+ assert.equal(r.diagnostics.find(x=>x.type==='xml229-original-json-engineering-authority').level,'warning');
  // This reproduces a counter-vs-log mismatch; it does not identify the
  // Owner's two private, unprovided error strings.
 });
