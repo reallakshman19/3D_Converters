@@ -210,6 +210,65 @@ def read_packet(path, xml_path):
     return packet, parse_bytes(original_bytes)
 
 
+def _validate_finalized_geometry(packet, source):
+    """Challenge the exact pre-acceptance Worker XML and original ordinal map.
+
+    A finalized snapshot may REMOVE original nodes, but may not change any
+    retained source component or invent new geometry. Accepted weights are
+    indexed by original ordinals and must all survive this reduction.
+    """
+    final = packet.get("finalizedGeometry")
+    if final is None:
+        require(not packet.get("sourceGenerationId"),
+                "NATIVE_FINALIZED_GEOMETRY_REQUIRED")
+        return source, None
+    require(isinstance(final, dict) and
+            final.get("schema") == "XML229.FinalizedWeightGeometry.v1" and
+            final.get("basisId") == packet.get("basisId") and
+            final.get("sourceXmlSha256") == packet.get("sourceXmlSha256") and
+            isinstance(final.get("xmlText"), str) and
+            len(final["xmlText"]) <= 32 * 1024 * 1024 and
+            isinstance(final.get("sha256"), str) and
+            final["sha256"] == hashlib.sha256(
+                final["xmlText"].encode("utf-8")).hexdigest(),
+            "NATIVE_FINALIZED_GEOMETRY_SHA_DRIFT")
+    snapshot = parse_bytes(final["xmlText"].encode("utf-8"))
+    originals, selected = branches(source), branches(snapshot)
+    retained = final.get("retainedSourceOrdinalsByBranch")
+    require(isinstance(retained, list) and len(originals) == len(selected)
+            and len(retained) == len(originals),
+            "NATIVE_FINALIZED_GEOMETRY_CENSUS_DRIFT")
+    lookup = {}
+    total = 0
+    for bi, (src, dst, ordinals) in enumerate(zip(originals, selected, retained)):
+        old_nodes, final_nodes = nodes(src), nodes(dst)
+        total += len(old_nodes)
+        require(txt(src, "Branchname") == txt(dst, "Branchname") and
+                isinstance(ordinals, list) and len(ordinals) == len(final_nodes),
+                "NATIVE_FINALIZED_GEOMETRY_CENSUS_DRIFT")
+        last = -1
+        for source_index, final_node in zip(ordinals, final_nodes):
+            require(type(source_index) is int and
+                    last < source_index < len(old_nodes),
+                    "NATIVE_FINALIZED_GEOMETRY_ORDINAL_DRIFT")
+            original = old_nodes[source_index]
+            immutable = ("ComponentType", "ComponentRefNo", "Endpoint",
+                         "NodeName", "NodeNumber", "Position", "Rigid",
+                         "ElementLengthMm", "Weight", "ConnectionType")
+            require(all(txt(original, key) == txt(final_node, key)
+                        for key in immutable),
+                    "NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT")
+            lookup[(bi, source_index)] = final_node
+            last = source_index
+    require(total == final.get("originalNodeCount"),
+            "NATIVE_FINALIZED_GEOMETRY_CENSUS_DRIFT")
+    require(child(snapshot, LINEAGE_STAGE) is None and
+            not any(child(n, LINEAGE_TAG) is not None
+                    for branch in selected for n in nodes(branch)),
+            "NATIVE_UNTRUSTED_LINEAGE_TAG")
+    return snapshot, lookup
+
+
 def stage_native_original_lineage(original_path, packet_path):
     """Annotate exact original source occurrences BEFORE staged-JSON enrichment.
 
@@ -222,6 +281,7 @@ def stage_native_original_lineage(original_path, packet_path):
             not any(child(node, LINEAGE_TAG) is not None
                     for branch in branches(source) for node in nodes(branch)),
             "NATIVE_UNTRUSTED_LINEAGE_TAG")
+    final_source, retained_by_original = _validate_finalized_geometry(packet, source)
     source_branches = branches(source)
     seen = set()
     for item in packet["components"]:
@@ -247,13 +307,17 @@ def stage_native_original_lineage(original_path, packet_path):
         original = source_nodes[ni]
         require(signature(original) == decoded[3],
                 "NATIVE_PHYSICAL_SIGNATURE_DRIFT")
-        ns = original.tag.rsplit("}", 1)[0] + "}" if "}" in original.tag else ""
-        ET.SubElement(original, ns + LINEAGE_TAG).text = oid
-    ns = source.tag.rsplit("}", 1)[0] + "}" if "}" in source.tag else ""
-    ET.SubElement(source, ns + LINEAGE_STAGE).text = packet["basisId"]
+        target = (retained_by_original.get((bi, ni))
+                  if retained_by_original is not None else original)
+        require(target is not None,
+                "NATIVE_ACCEPTED_PHYSICAL_NOT_IN_FINAL_GEOMETRY")
+        ns = target.tag.rsplit("}", 1)[0] + "}" if "}" in target.tag else ""
+        ET.SubElement(target, ns + LINEAGE_TAG).text = oid
+    ns = final_source.tag.rsplit("}", 1)[0] + "}" if "}" in final_source.tag else ""
+    ET.SubElement(final_source, ns + LINEAGE_STAGE).text = packet["basisId"]
     output = Path(original_path).with_name(
         Path(original_path).stem + "_xml229_lineaged.xml")
-    ET.ElementTree(source).write(output, encoding="utf-8", xml_declaration=True)
+    ET.ElementTree(final_source).write(output, encoding="utf-8", xml_declaration=True)
     return output
 
 
@@ -343,6 +407,8 @@ def bind_native_final_xml(original_path, enriched_path, packet_path,
             "endpoint": txt(owner, "Endpoint"),
             "position": txt(owner, "Position"), "kg": float(kg),
             "stagedLineage": bool(require_staged_lineage),
+            "finalizedGeometrySha256": (
+                packet.get("finalizedGeometry") or {}).get("sha256"),
         })
     require(len(used) == packet["physicalCount"],
             "NATIVE_ORIGINAL_POPULATION_DRIFT")
@@ -474,6 +540,8 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
             "claimedNativeRigidCount": len(used),
             "outputRigidCount": len(emitted),
             "actualCiiSha256": hashlib.sha256(cii_text.encode("utf-8")).hexdigest(),
+            "finalizedGeometrySha256": (
+                owners[0].get("finalizedGeometrySha256") if owners else None),
             "massesConsumedInNativeRigid": True,
             "claims": sorted(claims, key=lambda c: c["occurrenceId"]),
             "independentNativeChildLineageVerified": False,
