@@ -97,10 +97,10 @@ export function commitVerifiedIndividualWeightReview(session,view,choice={}) {
     fail('STALE_INDIVIDUAL_REVIEW','Basis, candidates, Match-1 or Final decision changed; reopen review');
   const action=choice?.action;
   const reason=typeof choice.reason==='string'?choice.reason.trim():'';
-  if(!['accept-proposal','enter-manual','final-override','reject','defer'].includes(action))
+  if(!['accept-proposal','enter-manual','final-override','set-zero-mass','reject','defer'].includes(action))
     fail('INVALID_REVIEW_ACTION','An explicit engineering review action is required');
   if(view.stage==='Rigidmatch2'&&['accept-proposal','enter-manual'].includes(action)||
-     view.stage==='RigidMatch1'&&action==='final-override')
+     view.stage==='RigidMatch1'&&['final-override','set-zero-mass'].includes(action))
     fail('STAGE_CONFLICT','Final manual override is distinct from Match-1 proposal acceptance');
   let value=null,proposalId=null;
   if(action==='accept-proposal'){
@@ -117,6 +117,16 @@ export function commitVerifiedIndividualWeightReview(session,view,choice={}) {
       fail('ENGINEERING_REASON_REQUIRED','Manual and Final accepted mass requires explicit positive kg and reason');
     value=choice.value;
   }
+  if(action==='set-zero-mass'){
+    if(view.stage!=='Rigidmatch2'||choice.value!==0||choice.unit!=='kg'||
+       choice.zeroMassConfirmed!==true||
+       !reason.startsWith('Owner-confirmed explicit zero kg: '))
+      fail('ZERO_WEIGHT_CONFIRMATION_REQUIRED','Explicit owner confirmation required for 0 kg Final');
+    if(current.sourceKg!==null||current.match1Kg!==null||
+       current.finalKg!==null||current.stageDecision)
+      fail('ZERO_WEIGHT_NOT_BLANK','Confirmed 0 kg may fill only an unresolved blank physical');
+    value=0;
+  }
   if(['reject','defer'].includes(action)&&!reason)
     fail('ENGINEERING_REASON_REQUIRED','Reject and Defer require engineering reason');
   if(MASS(current.sourceKg)&&MASS(value)&&current.sourceKg!==value&&!reason)
@@ -129,7 +139,8 @@ export function commitVerifiedIndividualWeightReview(session,view,choice={}) {
     occurrenceId:current.occurrenceId,expectedDecisionRevision:current.stageRevision,
     action};
   if(proposalId)cmd.proposalId=proposalId;
-  if(MASS(value)){cmd.value=value;cmd.unit='kg';}
+  if(MASS(value)||action==='set-zero-mass'){cmd.value=value;cmd.unit='kg';}
+  if(action==='set-zero-mass')cmd.zeroMassConfirmed=true;
   if(reason)cmd.reason=reason;
   const result=session.review.applyDecisions({basisId:current.basisId,scopeId:current.sourceId,
     stage:current.stage,expectedDecisionRevision:current.stageRevision,commands:[cmd]});
