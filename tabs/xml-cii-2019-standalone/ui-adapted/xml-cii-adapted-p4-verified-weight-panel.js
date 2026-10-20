@@ -252,12 +252,12 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    if(disarmXml229EditedDraft(tr,root.__p4VisibleRows,draftValues,
      pendingBulk,table,bulkDetail)){
      pendingBulk=null;
-     say('Applied Weight edited; the previous suggestion plan was invalidated. No mass approved.');
+     say('Applied Weight updated. Previous bulk selection cancelled.');
    }
    try{persistDrafts();}
-   catch(error){say('Draft is in memory but local checkpoint failed ['+
+   catch(error){say('Applied Weight is available in this session, but local save failed ['+
      String(error.code||'WEIGHT_DRAFT_STORAGE_WRITE_FAILED')+
-     ']. Save Applied Weight drafts before leaving.',true);}
+     ']. Save Applied Weight before leaving.',true);}
  };
  const say=(message,bad=false)=>{
    status.textContent=message;status.style.color=bad?'#f87171':'#10b981';
@@ -325,7 +325,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        const count=draftWorkspace.restoreBackup(backup);
        pendingBulk=null;offset=0;
        await render();
-       say('Restored '+count+' Applied Weight draft(s) on exact verified InputBasis. No Match-1/Final accepted; native CII remains HELD.');
+       say('Restored '+count+' Applied Weight selection(s) for the same verified source. Native CII remains HELD.');
      }catch(error){
        say('Draft restore rejected ['+String(error.code||'WEIGHT_DRAFT_FILE_INVALID')+
          ']. Existing drafts and reviewed masses were not replaced.',true);
@@ -344,7 +344,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      persistDrafts();
      bulkDetail.hidden=true;bulkDetail.textContent='';
      await render();
-     say('Suggestion threshold set to '+minScorePercent+'%. Current visible rows updated; no mass accepted.');
+     say('Suggestion threshold set to '+minScorePercent+'%. Applied Weight suggestions refreshed.');
      return;
    }
    if(event.target.closest?.('[data-p4-candidate]')){
@@ -392,7 +392,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        resolveInputs,onProgress:stage=>say('GC-PW Worker: '+stage),
      });
      offset=0;clearDrafts();await render();
-     say('Verified original physical facts ready; weights NOT auto-accepted.');
+     say('Verified source facts ready. Applied Weight suggestions are available.');
    }catch(error){
      say('Weight verification held: '+String(error?.message||error)+
        (error?.code?' ['+error.code+']':''),true);
@@ -427,7 +427,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        const saved=draftWorkspace.exportBackup();
        downloadTextFile('xml229-source-bound-applied-weight-drafts.json',
          JSON.stringify(saved,null,2),'application/json;charset=utf-8');
-       say('Saved '+saved.entries.length+' private Applied Weight draft(s), bound to the current verified source/masters. No Match-1/Final accepted.');
+       say('Saved '+saved.entries.length+' Applied Weight selection(s) for the current verified source and masters.');
        return;
      }
      if(restoreButton){
@@ -503,7 +503,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        else tr.dataset.p4PickedProposal=proposalId;
        draft.value=String(candidate.value);
        captureDraft(tr);
-       say('Source suggestion applied to editable kg field as a draft. Native CII remains HELD.');
+       say('Applied Weight updated from the selected source-linked suggestion.');
        return;
      }
    }catch(error){
@@ -523,7 +523,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      (counts.match1??0)+' accepted Match-1, '+
      (counts.final??0)+' accepted Final, '+
      (counts.unresolved??0)+' unresolved. '+
-     'Applied Weight and Skip Weight are locally saved InputBasis-bound drafts, not accepted masses. Governed CII remains HELD.');
+     'Applied Weight selections are saved for this source. Native CII output release remains HELD.');
  };
  if(active){
    const initial=active;
