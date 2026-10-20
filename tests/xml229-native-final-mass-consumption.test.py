@@ -184,6 +184,52 @@ class NativeFinalMassTests(unittest.TestCase):
             self.assertIn("NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT",
                           wrong_source.stderr)
 
+    def test_real_ef05_423_original_physical_owner_census(self):
+        # Public EF05 audit only: do not label synthetic 423 accepted masses
+        # as actual engineering decisions. This detects unsupported native
+        # families before anyone mistakes a capacity pass for release proof.
+        import xml.etree.ElementTree as ET
+        source=(Path(__file__).resolve().parents[1]/
+                'Benchmarks'/'EF-05-PRO.TEST.xml')
+        root=ET.parse(source).getroot()
+        counts={}
+        native_existing={}
+        for branch in root.iter():
+            if branch.tag.split('}')[-1]!='Branch':
+                continue
+            def field(node,key):
+                return next((c.text or '' for c in node
+                             if c.tag.split('}')[-1]==key),'').strip()
+            source_nodes=[n for n in branch
+                          if n.tag.split('}')[-1]=='Node']
+            cleaned=[]
+            for node in source_nodes:
+                typ=field(node,'ComponentType').upper()
+                try:
+                    length=float(field(node,'ElementLengthMm'))
+                except ValueError:
+                    length=None
+                if typ=='GASK' or length is not None and length<=6:
+                    continue
+                cleaned.append(node)
+            for i,node in enumerate(cleaned):
+                typ=field(node,'ComponentType').upper()
+                if typ not in ('RIGID','FLAN','VALV','INST'):
+                    continue
+                counts[typ]=counts.get(typ,0)+1
+                prev=cleaned[i-1] if i else None
+                ref=field(node,'ComponentRefNo').lstrip('=')
+                old=field(prev,'ComponentRefNo').lstrip('=') if prev is not None else ''
+                edge_supported=field(node,'Rigid')=='2' or (
+                    typ=='FLAN' and prev is not None and
+                    field(prev,'Rigid')=='2' and bool(ref) and ref==old)
+                if edge_supported:
+                    native_existing[typ]=native_existing.get(typ,0)+1
+        self.assertEqual(counts,{'RIGID':198,'FLAN':138,'VALV':59,'INST':28})
+        self.assertEqual(sum(counts.values()),423)
+        self.assertEqual(native_existing,{'RIGID':198})
+        self.assertEqual(sum(counts.values())-sum(native_existing.values()),225)
+
     def test_423_synthetic_accepted_owners_reconcile_actual_native_cii(self):
         # Capacity/lineage regression, NOT a claim that the Owner's 423 EF05
         # physicals have accepted engineering masses or valid native RIGIDs.
