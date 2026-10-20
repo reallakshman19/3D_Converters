@@ -101,7 +101,7 @@ class NativeFinalMassTests(unittest.TestCase):
             self.assertTrue(result["massesConsumedInNativeRigid"])
             self.assertFalse(result["nativeCiiReleaseAuthorized"])
             self.assertIn("125",native.split("#$ RIGID",1)[1].split("#$",1)[0])
-            # Same selected owner with a false mass/lineage claim cannot pass.
+            # Confirmed zero has a real native owner, CII pointer and 0 force.
             packet_path.write_text(json.dumps(packet(xml,kg=0)))
             output.unlink()
             proof.unlink()
@@ -111,8 +111,10 @@ class NativeFinalMassTests(unittest.TestCase):
                 "--xml229-native-final-packet",str(packet_path),
                 "--xml229-native-mass-proof",str(proof),
             ],capture_output=True,text=True)
-            self.assertNotEqual(process.returncode,0)
-            self.assertFalse(output.exists())
+            self.assertEqual(process.returncode,0,process.stderr)
+            self.assertTrue(output.exists())
+            self.assertEqual(json.loads(proof.read_text())["claims"][0]["massKg"],0)
+            self.assertIn("0",output.read_text().split("#$ RIGID",1)[1].split("#$",1)[0])
 
     def test_altered_source_or_duplicate_owner_never_applies_mass(self):
         with TemporaryDirectory() as td:
@@ -141,9 +143,12 @@ class NativeFinalMassTests(unittest.TestCase):
             transformed.write_text(xml)
             doc["components"][0]["effectiveKg"]=0
             manifest.write_text(json.dumps(doc))
+            output,owners=bind_native_final_xml(original,transformed,manifest)
+            self.assertEqual(owners[0]["kg"],0)
+            self.assertIn("<Weight>0</Weight>",output.read_text())
             with self.assertRaises(NativeMassError) as e:
-                bind_native_final_xml(original,transformed,manifest)
-            self.assertEqual(e.exception.code,"NATIVE_ZERO_MASS_LINEAGE_UNVERIFIED")
+                verify_emitted_native_masses(cii(force="1"),owners,model(0))
+            self.assertEqual(e.exception.code,"CII_NATIVE_APPLIED_MASS_MISMATCH")
 
 if __name__=="__main__":
     unittest.main()

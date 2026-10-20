@@ -1,7 +1,7 @@
 /**
  * Governed XML229 native-weight consumption diagnostic.
- * This deliberately runs the ACTUAL native converter in-memory, then a second
- * JS parser over its ACTUAL CII output; it does not release CII bytes.
+ * Runs the ACTUAL native converter, then an independent parser over its
+ * ACTUAL CII bytes. Release requires a current live Worker and 1:1 proof.
  */
 import {readTextFile,enrichSupportConfigJson,workflowOptionsFromState,sourceNameFromState}
  from '../xml-cii-workflow-ui-adapter.js';
@@ -56,19 +56,32 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   writerDiagnostic:native.xml229NativeMassDiagnostic,
  });
  const after=await session.readNativeFinalIntent();
- if(!isCurrent()||after?.intentSha256!==packet.finalIntentSha256)
-  fail('NATIVE_CANDIDATE_FINAL_CHANGED_DURING_OUTPUT');
- // Never return the raw candidate CII or a downloadable result. The output is
- // a non-releasing diagnostic until a separately authored G5 child lineage
- // and release policy are supported.
+ const finished=await session.readCompletion();
+ if(!isCurrent()||after?.intentSha256!==packet.finalIntentSha256||
+    finished?.basisId!==before.basisId||
+    finished?.sourceGenerationId!==before.sourceGenerationId||
+    finished?.originalJsonSha256!==before.originalJsonSha256||
+    finished?.verifiedPhysicalCount!==before.verifiedPhysicalCount||
+    finished?.counts?.unresolved!==0||finished?.counts?.match1!==0||
+    independent.massConsumptionVerified!==true||
+    independent.strictOneToOneOwnerMatch!==true||
+    independent.nativeCiiReleaseAuthorized!==true)
+  fail('NATIVE_CANDIDATE_FINAL_CHANGED_OR_OUTPUT_UNVERIFIED');
  return Object.freeze({
   schema:'XML229.GovernedNativeCandidateResult.v1',
   status:independent.status,
+  basisId:packet.basisId,sourceId:packet.sourceId,
+  sourceGenerationId:packet.sourceGenerationId,
+  originalJsonSha256:packet.originalJsonSha256,
+  sourceXmlSha256:packet.sourceXmlSha256,
+  finalIntentSha256:packet.finalIntentSha256,
   physicalCount:independent.physicalCount,
   nativeRigidCount:independent.nativeRigidCount,
   actualCiiSha256:independent.actualCiiSha256,
-  massConsumptionVerified:independent.massConsumptionVerified===true,
-  nativeCiiReleaseAuthorized:false,
-  reason:'Strict one-to-one mass consumption verified; independent post-split child geometry lineage and native release remain unverified.',
+  massConsumptionVerified:true,
+  strictOneToOneOwnerMatch:true,
+  nativeCiiReleaseAuthorized:true,
+  // Keep bytes in memory; caller may publish only within the same current lease.
+  ciiText:native.ciiText,
  });
 }

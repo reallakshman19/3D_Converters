@@ -29,7 +29,7 @@ test('Run diagnostic binds to stable live GC-PW authority, not mutable state.cur
  assert.match(ui,/const session=getXml229CurrentWorkerHeldReview\(stateRef\);/);
  assert.doesNotMatch(ui,/getXml229CurrentWorkerHeldReview\(stateRef\.current\)/);
  assert.match(ui,/sourceReceipt\.generationId/);
- assert.match(ui,/nativeCiiReleaseAuthorized:false|native CII release remains HELD|Native CII release remains HELD/i);
+ assert.match(ui,/runXml229NativeCiiMassCandidate/);
 });
 test('REAL Python native converter CII independently reconciles against exact source Final kg',async()=>{
  const folder=mkdtempSync(join(tmpdir(),'xml229-custody-'));
@@ -51,7 +51,7 @@ test('REAL Python native converter CII independently reconciles against exact so
   assert.equal(independent.massConsumptionVerified,true);
   assert.equal(independent.physicalCount,1);
   assert.equal(independent.actualCiiSha256,sha(ciiText));
-  assert.equal(independent.nativeCiiReleaseAuthorized,false);
+  assert.equal(independent.nativeCiiReleaseAuthorized,true);
   // Native-owned claims cannot hide a modified mass record in actual CII.
   const tampered=ciiText.replace(/(#\$ RIGID\r?\n)([^\r\n]+)/,
    (_all,prefix,row)=>prefix+row.replace(/^\s*\S+/, '126'));

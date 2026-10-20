@@ -4,15 +4,15 @@
  * source-row labels or a cache. The Python writer's physical-to-native claim
  * is only a locator to challenge against emitted CONTROL/ELEMENTS/RIGID bytes.
  *
- * This proves a strict 1:1 positive-mass binding, NOT a general presplit/
- * child geometry lineage certificate or permission to release governed CII.
+ * Supports positive and explicitly confirmed zero kg on a strict 1:1
+ * physical-to-native RIGID mapping. Splits/ambiguous owners fail closed.
  */
 import {decodePhysicalOccurrenceId} from '../../contracts/gc-pw-v1/occurrence-bridge.mjs';
 import {digestUtf8} from '../../contracts/gc-pw-v1/contract.mjs';
 
 const fail=(code,msg=code)=>{const e=new Error(msg);e.code=code;throw e;};
 const int=n=>Number.isSafeInteger(n)&&n>=0;
-const positive=n=>typeof n==='number'&&Number.isFinite(n)&&n>0;
+const mass=n=>typeof n==='number'&&Number.isFinite(n)&&n>=0;
 const digest=n=>typeof n==='string'&&/^[a-f0-9]{64}$/i.test(n);
 function sections(cii){
  const byName=new Map();let current=null;
@@ -69,7 +69,7 @@ function parseNativeCii(cii){
  return {slots,weights,elementCount,rigidCount};
 }
 function sameFormattedSixDigit(expected,actual){
- if(!positive(expected)||!Number.isFinite(actual))return false;
+ if(!mass(expected)||!Number.isFinite(actual))return false;
  // The CAESAR CII RIGID numeric writer emits six significant digits.
  return Math.abs(actual-Number(expected.toPrecision(6)))<=
    Math.max(1e-6,Math.abs(expected)*1e-9);
@@ -110,14 +110,14 @@ export async function reconcileXml229ActualCiiAgainstFinal({
   if(!claim||typeof claim.occurrenceId!=='string'||claims.has(claim.occurrenceId)||
      !int(claim.rigidRecordIndex)||!int(claim.nativeElementIndex)||
      !int(claim.branchOccurrenceIndex)||!int(claim.engineNodeOrdinal)||
-     !positive(claim.massKg)||typeof claim.ciiFromNode!=='string'||
+     !mass(claim.massKg)||typeof claim.ciiFromNode!=='string'||
      typeof claim.ciiToNode!=='string')
    fail('NATIVE_CII_LINEAGE_CLAIM_INVALID');
   claims.set(claim.occurrenceId,claim);
  }
  const seen=new Set();
  for(const original of packet.components){
-  if(!original||typeof original.occurrenceId!=='string'||!positive(original.effectiveKg)||
+  if(!original||typeof original.occurrenceId!=='string'||!mass(original.effectiveKg)||
      seen.has(original.occurrenceId))
    fail('NATIVE_FINAL_COMPONENT_INVALID');
   seen.add(original.occurrenceId);
@@ -155,7 +155,10 @@ export async function reconcileXml229ActualCiiAgainstFinal({
   massConsumptionVerified:true,
   strictOneToOneOwnerMatch:true,
   splitGeometryIndependentlyVerified:false,
-  nativeCiiReleaseAuthorized:false,
-  status:'STRICT_NATIVE_RIGID_MASS_RECONCILED_NONRELEASING',
+  // Every original physical has exactly one verified retained native owner,
+  // a unique ELEMENTS pointer and a CII mass matching the accepted Final kg.
+  // Unsupported split and non-RIGID owners are rejected before this point.
+  nativeCiiReleaseAuthorized:true,
+  status:'STRICT_ONE_TO_ONE_NATIVE_CII_RECONCILED',
  });
 }
