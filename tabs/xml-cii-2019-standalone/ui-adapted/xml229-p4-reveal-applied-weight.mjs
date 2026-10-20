@@ -5,7 +5,10 @@
  */
 export function revealXml229PreparedWeightInput(table){
  const scroller=table?.querySelector?.('.mc-rigid-review-table-wrap');
- const input=scroller?.querySelector('tr[data-p4-draft-filled="true"] input[data-p4-applied-weight]');
+ // A selected kg can become an accepted Worker Final during the render.
+ // Reveal that same one editable Applied Weight input after source-wide apply.
+ const input=scroller?.querySelector('tr[data-p4-draft-filled="true"] input[data-p4-applied-weight]')||
+  scroller?.querySelector('tr[data-p4-stage="final"] input[data-p4-applied-weight]');
  if(!scroller||!input||input.value==='')return false;
  const viewport=scroller.getBoundingClientRect(),before=input.getBoundingClientRect();
  if(before.right>viewport.right)scroller.scrollLeft+=before.right-viewport.right+12;
