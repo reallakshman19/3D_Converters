@@ -207,14 +207,15 @@ try{
     await readFile(await safetyDownload.path(),'utf8'));
   assert.equal(record.stages.fullSourceWeight.readOnly,true);
   assert.equal(record.stages.fullSourceWeight.population.sevenFactsPerPhysical,true);
-  // EF-05 carries 423 XML physical endpoints, but 51 are the first end
-  // of a separately retained two-endpoint component geometry witness.
-  // GC-PW must review exactly 372 distinct physical *part* owners.
-  assert.equal(record.stages.fullSourceWeight.population.physicalCount,372);
-  assert.equal(record.stages.fullSourceWeight.population.factCount,2604);
+  // EF-05 has 423 original physical node occurrences. Exactly 51 matching
+  // same-type 1->2 pairs and 123 FLAN/VALV -> existing RIGID continuations
+  // have a shared component identity. A canonical physical PART receives
+  // one weight decision, never separate kg for the first endpoint.
+  assert.equal(record.stages.fullSourceWeight.population.physicalCount,249);
+  assert.equal(record.stages.fullSourceWeight.population.factCount,1743);
   const auditedReviews=record.stages.fullSourceWeight.review;
   assert.equal(auditedReviews.source+auditedReviews.acceptedMatch1+
-    auditedReviews.acceptedFinal+auditedReviews.unresolved,372,
+    auditedReviews.acceptedFinal+auditedReviews.unresolved,249,
     'read-only full-source export must report current actual Worker mass population');
   assert.equal(record.stages.fullSourceWeight.review.unchanged,true);
   assert(record.stages.fullSourceWeight.proposals.valveToFlangeRejected>=0,
