@@ -57,8 +57,8 @@ self.addEventListener('message',({data:req})=>{
      for(const [ordinal,node] of cleaned.entries()){
        const right=cleaned[ordinal+1];
        const type=field(node,'ComponentType').toUpperCase();
-       const ref=field(node,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
-       const rightRef=field(right,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
+       const ref=field(node,'ComponentRefNo').trim().replace(/^=/,'').replace(/\s+/g,'').toUpperCase();
+       const rightRef=field(right,'ComponentRefNo').trim().replace(/^=/,'').replace(/\s+/g,'').toUpperCase();
        const rightType=field(right,'ComponentType').toUpperCase();
        const sameFamily=type===rightType&&
          ['RIGID','FLAN','VALV','INST'].includes(type);
