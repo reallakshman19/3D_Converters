@@ -316,7 +316,8 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    }
    if(committed>0){
      persistDrafts();
-     return render(); // authoritative Final read and new stage revisions
+     await render(); // authoritative Final read and new stage revisions
+     return count; // source-wide Apply all observed values before they became accepted
    }
    return count;
  };
