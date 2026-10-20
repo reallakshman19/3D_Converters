@@ -446,6 +446,56 @@ def stage_native_original_lineage(original_path, packet_path):
         final_source, {row["occurrenceId"] for row in packet["components"]})
     require(not endpoint_audit["doubleAcceptedPairs"],
             "NATIVE_DOUBLE_ENDPOINT_MASS_OWNER")
+    card = (packet.get("finalizedGeometry") or {}).get(
+        "physicalOwnerCardinality")
+    if card is not None:
+        require(isinstance(card, dict) and
+                card.get("schema") ==
+                "XML229.PreAcceptancePhysicalPartCardinality.v1" and
+                card.get("weightsAccepted") is False and
+                card.get("pairedEndpointPhysicalParts") ==
+                endpoint_audit["twoEndpointPhysicalParts"] and
+                card.get("reviewedPhysicalNodeOccurrences") ==
+                packet["physicalCount"] and
+                card.get("distinctPhysicalPartCandidates") ==
+                packet["physicalCount"] and
+                card.get("sourcePhysicalNodeOccurrences") ==
+                packet["physicalCount"] +
+                endpoint_audit["twoEndpointPhysicalParts"],
+                "NATIVE_PREACCEPTANCE_OWNER_CARDINALITY_DRIFT")
+        retained = packet["finalizedGeometry"][
+            "retainedSourceOrdinalsByBranch"]
+        expected_pairs = []
+        for pair in endpoint_audit["aliasPairs"]:
+            bi = pair["branchOccurrenceIndex"]
+            old_nodes = nodes(source_branches[bi])
+            left_source_ordinal = retained[bi][
+                pair["firstEngineNodeOrdinal"]]
+            right_source_ordinal = retained[bi][
+                pair["secondEngineNodeOrdinal"]]
+            left_oid = json.dumps([
+                packet["sourceId"], bi, left_source_ordinal,
+                signature(old_nodes[left_source_ordinal])],
+                separators=(",", ":"), ensure_ascii=False)
+            right_oid = json.dumps([
+                packet["sourceId"], bi, right_source_ordinal,
+                signature(old_nodes[right_source_ordinal])],
+                separators=(",", ":"), ensure_ascii=False)
+            expected_pairs.append({
+                "componentType": pair["componentType"],
+                "componentRefNo": pair["componentRefNo"],
+                "branchOccurrenceIndex": bi,
+                "firstOccurrenceId": left_oid,
+                "secondOccurrenceId": right_oid,
+                "firstIsWeightOwner": False,
+                "secondIsWeightOwner": True,
+            })
+        require(card.get("endpointPairs") == expected_pairs,
+                "NATIVE_PREACCEPTANCE_OWNER_CARDINALITY_DRIFT")
+        accepted = {row["occurrenceId"] for row in packet["components"]}
+        require(all(pair["firstOccurrenceId"] not in accepted
+                    for pair in expected_pairs),
+                "NATIVE_NONCANONICAL_ENDPOINT_OWNER")
     ns = final_source.tag.rsplit("}", 1)[0] + "}" if "}" in final_source.tag else ""
     ET.SubElement(final_source, ns + LINEAGE_STAGE).text = packet["basisId"]
     output = Path(original_path).with_name(
