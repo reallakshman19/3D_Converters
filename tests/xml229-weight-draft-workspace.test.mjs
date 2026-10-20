@@ -48,6 +48,49 @@ test('reload recovers an entire atomic checkpoint, but never other source/master
  assert.equal(again.isFor({...receipt('b'),sourceGenerationId:'WRONG'}),false);
 });
 
+test('fresh Worker generation reattests the exact source basis and physical census across reload',async()=>{
+ const store=storage(),old=receipt('7');
+ const first=openXml229WeightDraftWorkspace(old,{storage:store,
+  occurrenceIds:['physical-1','physical-2']});
+ first.drafts.set('physical-1',{value:'31.5',proposalId:'',reason:'Original engineering check'});
+ first.save();
+ const fresh=await import('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-draft-workspace.mjs?reload-generation=1');
+ const reverified={...old,sourceGenerationId:'NEW-VERIFIED-GENERATION'};
+ const recovered=fresh.openXml229WeightDraftWorkspace(reverified,{storage:store,
+  occurrenceIds:['physical-1','physical-2']});
+ assert.equal(recovered.drafts.get('physical-1').value,'31.5');
+ assert.equal(recovered.isFor(old),false,'new Worker generation must become current');
+ recovered.save();
+ const now=JSON.parse([...store.items.values()][0]);
+ assert.equal(now.sourceGenerationId,'NEW-VERIFIED-GENERATION');
+ assert.equal(now.reviewDecisionsAuthorized,false);
+ assert.equal(now.nativeCiiReleaseAuthorized,false);
+});
+test('generation rebind never accepts unknown physicals, other SHA or an unchecked census',async()=>{
+ const store=storage(),old=receipt('8');
+ const first=openXml229WeightDraftWorkspace(old,{storage:store,occurrenceIds:['physical-1']});
+ first.drafts.set('physical-1',{value:'93'});
+ first.save();
+ const fresh=await import('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-draft-workspace.mjs?reload-generation=2');
+ const changed={...old,sourceGenerationId:'REVERIFIED'};
+ assert.throws(()=>fresh.openXml229WeightDraftWorkspace(changed,{storage:store}),
+  {code:'WEIGHT_DRAFT_BASIS_OR_FORMAT_MISMATCH'});
+ assert.throws(()=>fresh.openXml229WeightDraftWorkspace(changed,{
+  storage:store,occurrenceIds:['not-physical-1']}),
+  {code:'WEIGHT_DRAFT_UNKNOWN_ORIGINAL_OCCURRENCE'});
+ assert.throws(()=>fresh.openXml229WeightDraftWorkspace({
+  ...changed,originalJsonSha256:'f'.repeat(64)},{
+  storage:store,occurrenceIds:['physical-1']}),
+  {code:'WEIGHT_DRAFT_BASIS_OR_FORMAT_MISMATCH'});
+ // A second Worker on the SAME page gets a new generation; it must receive
+ // a new ownership object but preserve only census-confirmed kg drafts.
+ const updated=openXml229WeightDraftWorkspace(changed,{
+  storage:store,occurrenceIds:['physical-1']});
+ assert.equal(updated.drafts.get('physical-1').value,'93');
+ assert.equal(updated.isFor(old),false);
+ assert.equal(first.isFor(changed),false);
+ assert.equal(updated.reviewDecisionsAuthorized,undefined);
+});
 test('private backup restore requires exact basis and never mixes reviewed ledgers',()=>{
  const store=storage();
  const source=openXml229WeightDraftWorkspace(receipt('d'),{storage:store});

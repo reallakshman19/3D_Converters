@@ -170,12 +170,18 @@ test('P1 production click path and served mirror use one exact draft-confirmatio
  const helper='tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-two-click-confirmation.mjs';
  const p=await readFile(new URL('../'+panel,import.meta.url),'utf8');
  assert.doesNotMatch(p,/commitXml229TwoClickMatch1\(\{/);
-  assert.match(p,/planXml229SkipWeightDrafts\(/);
+  const action=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-source-wide-suggestion-action.mjs',import.meta.url),'utf8');
+  assert.match(action,/planXml229SkipWeightDrafts\(/);
+  assert.match(p,/applyXml229BlankWeightDrafts/);
  assert.match(p,/pendingBulk=null/);
  assert.match(p,/disarmXml229EditedDraft\(/);
  const h=await readFile(new URL('../'+helper,import.meta.url),'utf8');
  assert.match(h,/if\(confirm\)confirm\.disabled=true/);
- assert.equal(p.split('\n').length<=620,true,'oversized legacy panel must not grow');
+ assert.ok(p.split('\n').length<=620,'oversized panel must be decomposed into review/exports/draft actions');
+ assert.match(p,/prepareXml229ExplicitMassReview/);
+ assert.match(p,/commitXml229ExplicitMassReview/);
+ const review=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-explicit-mass-review.mjs',import.meta.url),'utf8');
+ assert.match(review,/session\.review\(\{view:prepared\.view,choice:prepared\.choice\}\)/);
  for(const name of [panel,helper]){
   const root=await readFile(new URL('../'+name,import.meta.url),'utf8');
   const served=await readFile(new URL('../docs/'+name,import.meta.url),'utf8');

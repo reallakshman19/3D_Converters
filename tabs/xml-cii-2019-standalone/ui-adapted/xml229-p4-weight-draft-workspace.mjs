@@ -13,8 +13,9 @@ const MAX_BYTES=1500000;
 const live=new Map();
 const fail=code=>{const error=new Error(code);error.code=code;throw error;};
 const str=(value,max)=>typeof value==='string'&&value.length<=max;
-const same=(a,b)=>a.basisId===b.basisId&&a.sourceId===b.sourceId&&
- a.sourceGenerationId===b.sourceGenerationId&&a.originalJsonSha256===b.originalJsonSha256;
+const sameStable=(a,b)=>a.basisId===b.basisId&&a.sourceId===b.sourceId&&
+ a.originalJsonSha256===b.originalJsonSha256;
+const same=(a,b)=>sameStable(a,b)&&a.sourceGenerationId===b.sourceGenerationId;
 
 function identity(receipt){
  const r={basisId:receipt?.basisId,sourceId:receipt?.sourceId,
@@ -40,8 +41,12 @@ function cleanDraft(d){
   skippedWeight:d.skippedWeight===true,
  };
 }
-function readSnapshot(snapshot,expected){
- if(!snapshot||snapshot.schema!==SCHEMA||!same(snapshot,expected)||
+function readSnapshot(snapshot,expected,{allowReattestedGeneration=false}={}){
+ // Reattestation of the exact same cryptographic InputBasis may allocate a
+ // new ephemeral Blob source generation after reload; the full occurrence
+ // census is checked before recovered kg is made visible.
+ if(!snapshot||snapshot.schema!==SCHEMA||
+    !(same(snapshot,expected)||allowReattestedGeneration&&sameStable(snapshot,expected))||
     !Array.isArray(snapshot.entries)||snapshot.entries.length>MAX)
    fail('WEIGHT_DRAFT_BASIS_OR_FORMAT_MISMATCH');
  const result=new Map();
@@ -65,13 +70,14 @@ function snapshotFor(id,drafts){
  return {schema:SCHEMA,...id,entries,reviewDecisionsAuthorized:false,
   nativeCiiReleaseAuthorized:false};
 }
-function stored(storage,key,identityValue){
+function stored(storage,key,identityValue,{reattestedCensus=false}={}){
  if(!storage)return new Map();
  let raw;
  try{raw=storage.getItem(key);}catch{fail('WEIGHT_DRAFT_STORAGE_READ_FAILED');}
  if(raw===null)return new Map();
  if(typeof raw!=='string'||raw.length>MAX_BYTES)fail('WEIGHT_DRAFT_STORAGE_INVALID');
- try{return readSnapshot(JSON.parse(raw),identityValue);}
+ try{return readSnapshot(JSON.parse(raw),identityValue,
+  {allowReattestedGeneration:reattestedCensus});}
  catch(error){if(error.code)throw error;fail('WEIGHT_DRAFT_STORAGE_INVALID');}
 }
 export function openXml229WeightDraftWorkspace(receipt,{storage,occurrenceIds}={}){
@@ -90,17 +96,23 @@ export function openXml229WeightDraftWorkspace(receipt,{storage,occurrenceIds}={
  if(storage!==null&&(!storage||typeof storage.getItem!=='function'||
    typeof storage.setItem!=='function'))fail('WEIGHT_DRAFT_STORAGE_INVALID');
  const existing=live.get(key);
- if(existing){
-  if(!existing.isFor(receipt))fail('WEIGHT_DRAFT_BASIS_COLLISION');
-  // The same module-global Map remains alive across panel installations.
+ if(existing?.isFor(receipt)){
+  // Same attested generation: reuse the exact Map across panel installations.
   if(census)ensureCensus(existing.drafts);
   return existing;
  }
- const drafts=stored(storage,key,id);
+ if(existing&&(!census||!existing.isSameVerifiedBasis(receipt)))
+   fail('WEIGHT_DRAFT_BASIS_COLLISION');
+ // Newly verified same content + physical census permits an ephemeral source
+ // generation rebind without accepting any ledger decision. Never reuse a
+ // cached draft if source/master basis, original JSON SHA or census changed.
+ const drafts=existing?new Map(existing.drafts):stored(storage,key,id,
+  {reattestedCensus:!!census});
  ensureCensus(drafts);
  const workspace=Object.freeze({
   drafts,storageAvailable:!!storage,
   isFor(other){try{return same(id,identity(other));}catch{return false;}},
+  isSameVerifiedBasis(other){try{return sameStable(id,identity(other));}catch{return false;}},
   exportBackup(){return snapshotFor(id,drafts);},
   save(){
    ensureCensus(drafts);

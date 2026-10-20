@@ -57,7 +57,7 @@ function fixture(){
   session:{basis:{basisId},review},sourceId};
 }
 
-test('new 14-column Applied Weight draft UI is fed by exact original physical census, not legacy node keys',()=>{
+test('single 13-column Applied Weight review UI is fed by exact original physical census, not legacy node keys',()=>{
  const args=fixture();
  const projection=buildXml229VerifiedWeightRowProjection(args);
  assert.equal(projection.count,2);
@@ -84,7 +84,7 @@ test('new 14-column Applied Weight draft UI is fed by exact original physical ce
  assert.deepEqual(ps.get(b.occurrenceId),[]);
  const html=renderXml229WeightReviewPage({totalCount:2,populationCount:2,
   rows:[{...a,sourceKg:null,match1Kg:null,finalKg:null,proposals:ps.get(a.occurrenceId)}]},0);
- assert.equal((html.match(/<th style=/g)||[]).length,14);
+ assert.equal((html.match(/<th style=/g)||[]).length,13);
  for(const field of ['Line Key','ComponentRefNo_Endpoint','DTXR','Valve Hint','Nearest Suggestions','Applied Weight'])assert.match(html,new RegExp(field));
  assert.match(html,/CONTROL VALVE/);
  assert.match(html,/96%/);
@@ -122,14 +122,17 @@ test('production integration uses existing GC-PW bulk planner and not legacy Wei
  assert.match(guard,/planExactSourceWeightCommands/);
  assert.match(guard,/commitExactSourceWeightCommands/);
  assert.match(worker,/buildXml229VerifiedWeightRowProjection/);
- assert.match(panel,/planQualifiedBlankFill/);
+ const actions=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-source-wide-suggestion-action.mjs',import.meta.url),'utf8');
+ assert.match(actions,/session\.planQualifiedBlankFill/);
+ assert.match(panel,/applyXml229SourceWideSuggestionDrafts/);
  const twoClick=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-two-click-confirmation.mjs',import.meta.url),'utf8');
   assert.ok(!panel.includes('commitXml229TwoClickMatch1('),
     'simplified Weight UI must not expose hidden two-click Match-1 acceptance');
-  assert.ok(panel.includes('planXml229SkipWeightDrafts'));
+  assert.ok(actions.includes('planXml229SkipWeightDrafts'));
+  assert.ok(panel.includes('applyXml229BlankWeightDrafts'));
   assert.ok(panel.includes('data-p4-skip-weight'));
   assert.ok(panel.includes('draftValues'),
-    'Applied Weight remains a session-only draft, never an automatic ledger write');
+    'Applied Weight remains a source-bound draft, never an automatic ledger write');
  assert.ok(twoClick.includes('session.commitQualifiedBlankFill({planId:plan.planId})'));
  assert.ok(twoClick.includes('if(confirm)confirm.disabled=true'));
  assert.doesNotMatch(panel,/bindXmlCiiWeightMatchPhase/);

@@ -237,7 +237,12 @@ try{
  assert(!JSON.stringify(evidence).includes('Engineer verified physical master'));
  const first=page.locator('tr[data-p4-row]').first();
   const occurrenceId=await first.getAttribute('data-p4-occurrence');
-  assert.equal(await first.locator('[data-p4-accept-match1],[data-p4-accept-final],[data-p4-reason]').count(),0);
+  assert.equal(await first.locator('[data-p4-accept-match1],[data-p4-accept-final]').count(),0);
+  assert.equal(await first.locator('[data-p4-reason]').count(),1,
+    'engineering reason is available for explicit two-click review');
+  assert.equal(await first.locator('[data-p4-review-match1],[data-p4-review-final]').count(),2);
+  assert.equal(await page.locator('[data-p4-confirm-single]').isHidden(),true,
+    'no review can be confirmed before a deliberate preparation click');
   const reviewed=await exerciseXml229WorkerFixtureReview(page,{occurrenceId});
   assert.equal(reviewed.counts.match1,0);
   assert.equal(reviewed.counts.final,1);

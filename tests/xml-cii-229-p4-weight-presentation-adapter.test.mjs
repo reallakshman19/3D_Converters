@@ -33,15 +33,19 @@ test('simple source-bound Weight UI shows Applied Weight, three adjacent filters
   assert.match(html,/data-p4-applied-weight/);
   assert.match(html,/Nearest Suggestions/);
   assert.match(html,/Applied Weight/);
-  assert.match(html,/Recorded Weight/);
+  assert.doesNotMatch(html,/Recorded Weight/);
   assert.match(html,/Filter Blank Weight/);
   assert.match(html,/All XML physicals/);
   assert.match(html,/Weight items/);
   assert.match(html,/data-p4-skip-weight/);
   assert.match(html,/Apply all suggestions/);
-  assert.doesNotMatch(html,/data-p4-candidate|data-p4-reason|data-p4-accept-match1|data-p4-accept-final|data-p4-bulk-confirm|data-p4-filter-unresolved/);
-  assert.doesNotMatch(html,/Apply all Match-1|Engineering reason|Review Final|<option value="">Manual/);
-  assert.equal((html.match(/<th style=/g)||[]).length,14);
+  assert.match(html,/data-p4-reason/);
+  assert.match(html,/data-p4-review-match1/);
+  assert.match(html,/data-p4-review-final/);
+  assert.doesNotMatch(html,/data-p4-candidate|data-p4-accept-match1|data-p4-accept-final|data-p4-bulk-confirm|data-p4-filter-unresolved/);
+  assert.match(html,/Review Final/);
+  assert.doesNotMatch(html,/Apply all Match-1|<option value="">Manual/);
+  assert.equal((html.match(/<th style=/g)||[]).length,13);
   assert.match(html,/data-p4-scope="rigid"/);
   assert.match(html,/data-p4-scope="blank-rigid"/);
   assert.match(html,/data-p4-scope="all"/);
@@ -50,6 +54,31 @@ test('simple source-bound Weight UI shows Applied Weight, three adjacent filters
   assert.match(html,/showing 1–1/);
   assert.match(html,/Editable draft · not approved/);
   assert.equal(xml229WeightReviewPageModel(page,0).counts.unresolved,1);
+});
+
+test('Applied Weight is the only visible mass column, with Worker-accepted mass as its fallback',()=>{
+ const base=row();
+ for(const {field,kg,kind} of [
+  {field:'sourceKg',kg:13,kind:'source'},
+  {field:'match1Kg',kg:14,kind:'match1'},
+  {field:'finalKg',kg:15,kind:'final'},
+ ]){
+  const reviewed={...base,[field]:kg};
+  const html=renderXml229WeightReviewPage({totalCount:1,rows:[reviewed]});
+  assert.match(html,new RegExp('data-p4-applied-weight[^>]*value="'+kg+'"','s'));
+  assert.equal(xml229WeightReviewStatus(reviewed).kind,kind);
+  assert.doesNotMatch(html,/Recorded Weight/);
+  assert.equal((html.match(/<th style=/g)||[]).length,13);
+  assert.match(html,/Source:|Match-1:|Final:/);
+ }
+ const priority=renderXml229WeightReviewPage({totalCount:1,rows:[{
+  ...base,sourceKg:13,match1Kg:14,finalKg:15,
+ }]});
+ assert.match(priority,/data-p4-applied-weight[^>]*value="15"/s);
+ const blank=renderXml229WeightReviewPage({totalCount:1,rows:[base]});
+ assert.match(blank,/data-p4-applied-weight[^>]*value=""/s);
+ assert.match(blank,/data-p4-review-match1/);
+ assert.match(blank,/data-p4-review-final/);
 });
 
 test('rendered original occurrence and master candidate are escaped and can never inject HTML',()=>{
@@ -207,13 +236,20 @@ test('adapter uses Worker readPage/review and keeps native Run HOLD and full sou
  const run=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',import.meta.url),'utf8');
   const worker=await readFile(new URL('../tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs',import.meta.url),'utf8');
   assert.match(worker,/matchesXml229WeightReviewFilter\(mode,/);
-  assert.match(panel,/planQualifiedBlankFill/);
+  const actions=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-source-wide-suggestion-action.mjs',import.meta.url),'utf8');
+  const single=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-explicit-mass-review.mjs',import.meta.url),'utf8');
+  assert.match(actions,/session\.planQualifiedBlankFill/);
+  assert.match(panel,/applyXml229SourceWideSuggestionDrafts/);
   assert.doesNotMatch(panel,/commitXml229TwoClickMatch1/);
  assert.match(panel,/(?:active|session)\.readPage\(\{offset,limit:25\}\)/,
    'Worker paging must stay source-bound; captured session prevents late cancelled responses from painting');
  assert.doesNotMatch(panel,/await active\.review\(\{view,choice\}\)/);
-  assert.match(panel,/planXml229SkipWeightDrafts\(/);
- assert.doesNotMatch(panel,/choiceForXml229WeightRow/);
+  assert.match(actions,/planXml229SkipWeightDrafts\(/);
+  assert.match(panel,/applyXml229BlankWeightDrafts/);
+ assert.match(single,/choiceForXml229WeightRow/);
+ assert.match(single,/session\.readIndividual\(/);
+ assert.match(single,/session\.review\(/);
+ assert.match(panel,/data-p4-confirm-single/);
  assert.match(panel,/getXml229CurrentWorkerHeldReview/);
  assert.match(run,/projectOriginalReviewIntoRunChecklist/);
  assert.match(run,/verifiedEngineering:/);
@@ -297,12 +333,14 @@ test('Auto Fill refuses a tampered projected kilogram value',async()=>{
 
 test('Auto Fill actually hydrates input values and selected candidates rather than placeholders only',async()=>{
  const file=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',import.meta.url),'utf8');
- assert.match(file,/planXml229RigidWeightDrafts\(session,/);
+ const action=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-source-wide-suggestion-action.mjs',import.meta.url),'utf8');
+ assert.match(file,/applyXml229SourceWideSuggestionDrafts/);
+ assert.match(action,/planXml229RigidWeightDrafts\(session,/);
  const hydration=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs',import.meta.url),'utf8');
  assert.match(hydration,/input\.value=saved\.value/);
  assert.match(file,/hydrateXml229WeightDraftInputs\(table,page\.rows,draftValues\)/);
  assert.match(hydration,/selection\.value=saved\.proposalId/);
- assert.match(file,/confirm\.disabled=!plan\.qualified/);
+ assert.match(action,/confirm\.disabled=!plan\.qualified/);
  assert.doesNotMatch(file,/nativeCiiReleaseAuthorized:true/);
  const raw=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs',import.meta.url),'utf8');
  const served=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs',import.meta.url),'utf8');
@@ -376,7 +414,9 @@ test('two click Match-1 UI retains explicit Worker planId commitment',async()=>{
  const panel=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',import.meta.url),'utf8');
  const worker=await readFile(new URL('../tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs',import.meta.url),'utf8');
  assert.match(panel,/minScorePercent=80/);
- assert.match(panel,/session\.planQualifiedBlankFill\(\{minScorePercent\}\)/);
+ const actions=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-source-wide-suggestion-action.mjs',import.meta.url),'utf8');
+ assert.match(panel,/applyXml229SourceWideSuggestionDrafts/);
+ assert.match(actions,/session\.planQualifiedBlankFill\(\{minScorePercent\}\)/);
  const guard=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-two-click-confirmation.mjs',import.meta.url),'utf8');
  assert.match(guard,/session\.commitQualifiedBlankFill\(\{planId:plan\.planId\}\)/);
  assert.match(worker,/candidateEligibility:/);
