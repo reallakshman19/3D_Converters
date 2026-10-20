@@ -104,6 +104,31 @@ test('actual XML Preview computation is independently assessed into COMPLETE sou
  assert.equal(row300.find(x=>x.fieldId==='mass.kg').value,null);
  assert.equal(positive.workerResult.branchRows.length,1);
 });
+test('nonpositive original node IDs receive source-ordinal-attested positive IDs before Final',async()=>{
+ const xml=XML.replace('<NodeNumber>309</NodeNumber>','<NodeNumber>-1</NodeNumber>');
+ const basis=await createPreviewBasis({domainId:'xml-cii/2019',
+  sources:[{sourceId:SOURCE_ID,mediaType:'application/xml',text:xml}],
+  masters,selection,config,overrides:{},sha256:digestUtf8});
+ const orig=projectXmlCiiOccurrences({xmlText:xml,sourceId:SOURCE_ID});
+ const preview=xmlCiiDryRunPreview(xml,config,'');
+ const open=await openXml229EngineeringFactModel({
+  basis,live:{...live,sources:{[SOURCE_ID]:xml}},
+  xmlText:xml,sourceId:SOURCE_ID,
+  previewResult:{...preview,sourceOccurrences:orig,
+    engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},
+  expectedOriginalCount:orig.branchCount+orig.nodeCount,
+ });
+ assert.deepEqual(open.finalizedGeometry.assignedNodeNumbers,[{
+   branchOccurrenceIndex:0,sourceNodeOrdinal:2,
+   sourceNodeNumber:'-1',finalNodeNumber:330,
+ }]);
+ assert.match(open.finalizedGeometry.xmlText,/<NodeNumber>330<\/NodeNumber>/);
+ assert.equal(open.physicalOccurrences[1].nodeOrdinal,2,
+   'mass owner retains the ORIGINAL ordinal, not the new engine NodeNumber');
+ assert.equal(open.finalizedGeometry.sha256,
+   await digestUtf8(open.finalizedGeometry.xmlText));
+});
+
 test('physical endpoint pairs are identified before accepting weights, without merging facts',async()=>{
  const pairedXml=XML
   .replace('<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>2</Endpoint>',
