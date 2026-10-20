@@ -217,6 +217,37 @@ export async function openXml229EngineeringFactModel({
   // retained-by-branch ledger; the Worker binds it to the GC-PW source basis.
   if(typeof XMLSerializer!=='function')
     fail('FINALIZED_GEOMETRY_SERIALIZER_REQUIRED','XML serializer unavailable');
+  // Pre-acceptance topology normalization: a nonpositive NodeNumber is an
+  // unassigned placeholder, NEVER an approved native connected-node ID.
+  // Assign globally unique positive IDs while retaining source ordinals and
+  // XML positions. No mass or new physical edges are introduced here.
+  const positiveIds=projection.nodes.map(row=>Number(row.nodeNumber))
+    .filter(n=>Number.isSafeInteger(n)&&n>0);
+  let nextId=Math.max(0,...positiveIds)+10;
+  const assignedNodeNumbers=[];
+  for(const [bi,branch] of branches.entries()){
+    const effective=children(branch,'Node');
+    const ordinals=prepared.ledger.retainedByBranch[bi];
+    for(const [slot,node] of effective.entries()){
+      const raw=field(node,'NodeNumber');
+      const id=Number(raw);
+      if(!Number.isSafeInteger(id))
+        fail('FINALIZED_NODE_NUMBER_INVALID','Original node ID must be an integer');
+      if(id>0)continue;
+      if(!Number.isSafeInteger(nextId)||nextId<=0)
+        fail('FINALIZED_NODE_NUMBER_OVERFLOW','No available native node number');
+      const fieldNode=children(node,'NodeNumber')[0];
+      if(!fieldNode)
+        fail('FINALIZED_NODE_NUMBER_MISSING','Unnumbered source node cannot be normalized');
+      fieldNode.textContent=String(nextId);
+      assignedNodeNumbers.push(Object.freeze({
+        branchOccurrenceIndex:bi,
+        sourceNodeOrdinal:ordinals[slot].sourceNodeOrdinal,
+        sourceNodeNumber:raw,finalNodeNumber:nextId,
+      }));
+      nextId+=10;
+    }
+  }
   const finalXmlText=new XMLSerializer().serializeToString(prepared.document);
   // A physical *part* can have Endpoint=1 and Endpoint=2 XML witnesses.
   // These are not automatically two mass owners. Preserve both source facts,
@@ -259,6 +290,7 @@ export async function openXml229EngineeringFactModel({
     basisId:basis.basisId,sourceXmlSha256:basis.sourceRefs[0].sha256,
     xmlText:finalXmlText,sha256:await digestUtf8(finalXmlText),
     originalNodeCount:prepared.ledger.originalCount,
+    assignedNodeNumbers:Object.freeze(assignedNodeNumbers),
     retainedSourceOrdinalsByBranch:prepared.ledger.retainedByBranch.map(
       rows=>rows.map(row=>row.sourceNodeOrdinal)),
   });
