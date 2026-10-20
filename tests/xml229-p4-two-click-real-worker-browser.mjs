@@ -113,6 +113,10 @@ try{
  const eligible=before.rows.flatMap(r=>r.proposals).filter(p=>p.qualified===true);
  assert.equal(eligible.length,1,'Expected exact source family-qualified gate candidate: '+JSON.stringify(before));
  assert.equal(await page.locator('[data-p4-applied-weight]').count(),1);
+ const headers=(await page.locator('.mc-rigid-review-table th').allTextContents()).map(s=>s.trim());
+ assert.equal(headers.length,13,'the table must have one mass column, not separate recorded and applied fields');
+ assert.equal(headers.includes('Recorded Weight'),false);
+ assert.equal(headers[12],'Applied Weight');
  assert.equal(await page.locator('[data-p4-skip-weight]').count(),1);
  assert.equal(await page.locator('[data-p4-bulk-confirm],[data-p4-candidate],[data-p4-accept-match1],[data-p4-accept-final]').count(),0);
  assert.equal(await page.locator('[data-p4-reason]').count(),1);
@@ -179,6 +183,9 @@ try{
  assert.equal(reviewed.counts.match1,1,'only explicit confirmation commits Match-1');
  assert.equal(reviewed.counts.final,0,'no independent Final approval implied');
  assert.equal(reviewed.nativeRelease,false,'no native CII release implied');
+ assert.equal(await page.locator('tr[data-p4-row] [data-p4-applied-weight]').first().inputValue(),'35.5',
+  'accepted Worker Match-1 mass is displayed in the same Applied Weight field');
+ assert.match(await page.locator('tr[data-p4-row] [data-p4-match1-mass]').first().textContent(),/35\\.5 kg/);
  assert.equal(await page.locator('[data-p4-confirm-single]').isHidden(),true,
   'confirmation must disarm after a committed decision');
  assert.deepEqual(pageErrors,[]);
