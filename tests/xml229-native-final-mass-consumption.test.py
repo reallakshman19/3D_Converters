@@ -267,8 +267,8 @@ class NativeFinalMassTests(unittest.TestCase):
             self.assertEqual(native['sourcePhysicalCount'],1)
             self.assertEqual(native['claims'][0]['massKg'],35.5)
             self.assertEqual(native['claims'][0]['emittedForceN'],355)
-            self.assertEqual(native['claims'][0]['ciiFromNode'],'20')
-            self.assertEqual(native['claims'][0]['ciiToNode'],'30')
+            self.assertEqual(float(native['claims'][0]['ciiFromNode']),20.0)
+            self.assertEqual(float(native['claims'][0]['ciiToNode']),30.0)
             output.unlink();proof.unlink()
             p['finalizedGeometry']['rigidEdgePromotions'][0]['distanceMm']=300
             manifest.write_text(json.dumps(p))
