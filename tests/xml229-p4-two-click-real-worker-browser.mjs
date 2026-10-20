@@ -184,10 +184,22 @@ try{
   const {getXml229CurrentWorkerHeldReview}=await import(
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
   const session=getXml229CurrentWorkerHeldReview(window.__stateRef);
+  const packet=await session.readNativeFinalPacket();
+  const backup=await session.exportReviewBackup();
+  let wrongGeometryRejected=null;
+  try{
+    await session.restoreReviewBackup({backup:{
+      ...backup,finalizedGeometrySha256:'0'.repeat(64)}});
+  }catch(error){wrongGeometryRejected=error?.code||String(error);}
   return {originalXmlText:window.__options.xmlText,
-   packet:await session.readNativeFinalPacket()};
+   packet,backup,wrongGeometryRejected};
  });
- const {originalXmlText,packet}=sourceAndFinal;
+ const {originalXmlText,packet,backup,wrongGeometryRejected}=sourceAndFinal;
+ assert.equal(backup.finalizedGeometrySha256,
+              packet.finalizedGeometry.sha256);
+ assert.equal(backup.physicalOwnerSchema,
+              'XML229.PreAcceptancePhysicalPartCardinality.v1');
+ assert.equal(wrongGeometryRejected,'REVIEW_BACKUP_FINAL_GEOMETRY_MISMATCH');
  assert.equal(packet.physicalCount,1);
  assert.equal(packet.components[0].effectiveKg,35.5);
  assert.equal(packet.finalizedGeometry.schema,'XML229.FinalizedWeightGeometry.v1');
