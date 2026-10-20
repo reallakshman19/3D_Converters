@@ -184,6 +184,99 @@ class NativeFinalMassTests(unittest.TestCase):
             self.assertIn("NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT",
                           wrong_source.stderr)
 
+    def test_real_native_cii_consumes_witnessed_valve_pair_mass(self):
+        import xml.etree.ElementTree as ET
+        xml=(
+            '<PipeStressExport><Pipe><Branch><Branchname>PAIR</Branchname>'
+            '<Node><NodeNumber>10</NodeNumber><ComponentType>PIPE</ComponentType>'
+            '<Position>0 0 0</Position></Node>'
+            '<Node><NodeNumber>-1</NodeNumber><ComponentType>VALV</ComponentType>'
+            '<ComponentRefNo>V-1</ComponentRefNo><Endpoint>1</Endpoint>'
+            '<Position>10 0 0</Position></Node>'
+            '<Node><NodeNumber>-1</NodeNumber><ComponentType>VALV</ComponentType>'
+            '<ComponentRefNo>V-1</ComponentRefNo><Endpoint>2</Endpoint>'
+            '<Position>300 0 0</Position></Node>'
+            '</Branch></Pipe></PipeStressExport>')
+        def oid(ordinal, endpoint):
+            sig=json.dumps(['VALV','V-1',endpoint,''],separators=(',',':'))
+            return json.dumps(['SOURCE',0,ordinal,sig],separators=(',',':'))
+        with TemporaryDirectory() as td:
+            directory=Path(td)
+            source=directory/'original.xml'
+            manifest=directory/'packet.json'
+            output=directory/'output.cii'
+            proof=directory/'proof.json'
+            source.write_text(xml)
+            p=packet(xml,kg=35.5,signature=['VALV','V-1','2',''])
+            p['sourceGenerationId']='preweight-physical-part-1'
+            root=ET.fromstring(xml)
+            branch=next(n for n in root.iter() if n.tag=='Branch')
+            ns=[n for n in branch if n.tag=='Node']
+            ns[1].find('NodeNumber').text='20'
+            ns[2].find('NodeNumber').text='30'
+            ET.SubElement(ns[2],'Rigid').text='2'
+            cleaned=ET.tostring(root,encoding='unicode')
+            card={
+                'schema':'XML229.PreAcceptancePhysicalPartCardinality.v1',
+                'sourcePhysicalNodeOccurrences':2,
+                'reviewedPhysicalNodeOccurrences':1,
+                'pairedEndpointPhysicalParts':1,
+                'distinctPhysicalPartCandidates':1,
+                'weightsAccepted':False,
+                'endpointPairs':[{
+                    'branchOccurrenceIndex':0,'componentType':'VALV',
+                    'componentRefNo':'V-1','firstOccurrenceId':oid(1,'1'),
+                    'secondOccurrenceId':oid(2,'2'),
+                    'firstIsWeightOwner':False,'secondIsWeightOwner':True,
+                }],
+            }
+            p['finalizedGeometry']={
+                'schema':'XML229.FinalizedWeightGeometry.v1',
+                'basisId':p['basisId'],
+                'sourceXmlSha256':p['sourceXmlSha256'],
+                'xmlText':cleaned,
+                'sha256':hashlib.sha256(cleaned.encode()).hexdigest(),
+                'originalNodeCount':3,
+                'retainedSourceOrdinalsByBranch':[[0,1,2]],
+                'assignedNodeNumbers':[
+                    {'branchOccurrenceIndex':0,'sourceNodeOrdinal':1,
+                     'sourceNodeNumber':'-1','finalNodeNumber':20},
+                    {'branchOccurrenceIndex':0,'sourceNodeOrdinal':2,
+                     'sourceNodeNumber':'-1','finalNodeNumber':30},
+                ],
+                'rigidEdgePromotions':[{
+                    'branchOccurrenceIndex':0,
+                    'firstSourceNodeOrdinal':1,
+                    'secondSourceNodeOrdinal':2,
+                    'componentType':'VALV','componentRefNo':'V-1',
+                    'distanceMm':290,
+                }],
+                'physicalOwnerCardinality':card,
+            }
+            manifest.write_text(json.dumps(p))
+            runner=(Path(__file__).resolve().parents[1]/
+                    'converters'/'scripts'/'xml_to_cii2019_runtime_custody.py')
+            cmd=[sys.executable,str(runner),'--input',str(source),
+                '--output',str(output),'--weight-scale','10',
+                '--xml229-native-final-packet',str(manifest),
+                '--xml229-native-mass-proof',str(proof)]
+            result=subprocess.run(cmd,capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stderr)
+            native=json.loads(proof.read_text())
+            self.assertEqual(native['sourcePhysicalCount'],1)
+            self.assertEqual(native['claims'][0]['massKg'],35.5)
+            self.assertEqual(native['claims'][0]['emittedForceN'],355)
+            self.assertEqual(native['claims'][0]['ciiFromNode'],'20')
+            self.assertEqual(native['claims'][0]['ciiToNode'],'30')
+            output.unlink();proof.unlink()
+            p['finalizedGeometry']['rigidEdgePromotions'][0]['distanceMm']=300
+            manifest.write_text(json.dumps(p))
+            invalid=subprocess.run(cmd,capture_output=True,text=True)
+            self.assertNotEqual(invalid.returncode,0)
+            self.assertIn('NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT',
+                          invalid.stderr)
+            self.assertFalse(output.exists())
+
     def test_negative_source_nodes_are_normalized_before_final_mass(self):
         # NodeNumber=-1 is not a usable shared native connected-node identity.
         # The verified preacceptance snapshot can allocate its number, but the
