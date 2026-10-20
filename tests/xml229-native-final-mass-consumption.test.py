@@ -11,6 +11,7 @@ import unittest
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"converters"/"scripts"))
 from xml229_native_final_mass_binding import (
     NativeMassError, bind_native_final_xml, stage_native_original_lineage,
+    assert_preaccepted_geometry_unchanged, assert_native_model_geometry_unchanged,
     verify_emitted_native_masses,
 )
 
@@ -177,6 +178,67 @@ class NativeFinalMassTests(unittest.TestCase):
             _,owners=bind_native_final_xml(original,enriched,manifest)
             verify_emitted_native_masses(
                 cii(force="1.234568E+09"),owners,model(huge))
+
+
+    def test_geometry_must_be_final_before_weight_acceptance(self):
+        from xml.etree import ElementTree as ET
+        with TemporaryDirectory() as td:
+            original=Path(td)/"source.xml"
+            engine=Path(td)/"engine.xml"
+            original.write_text(input_xml())
+            engine.write_text(input_xml())
+            self.assertTrue(assert_preaccepted_geometry_unchanged(original,engine))
+            for mutated in (
+                input_xml().replace("<NodeNumber>20</NodeNumber>",
+                                    "<NodeNumber>120</NodeNumber>"),
+            ):
+                engine.write_text(mutated)
+                self.assertTrue(assert_preaccepted_geometry_unchanged(original,engine),
+                    "Renumbering alone must not change finalized physical ownership")
+            changed=[
+                input_xml().replace("<Position>5 0 0</Position>",
+                                    "<Position>5 1 0</Position>"),
+                input_xml().replace("<ComponentType>RIGID</ComponentType>",
+                                    "<ComponentType>VALV</ComponentType>"),
+                input_xml().replace("<NodeNumber>20</NodeNumber>",
+                                    "<NodeNumber>20</NodeNumber><Node><NodeNumber>30</NodeNumber><ComponentType>PIPE</ComponentType><Position>8 0 0</Position></Node>"),
+            ]
+            for mutated in changed:
+                engine.write_text(mutated)
+                with self.subTest(mutated=mutated[-80:]):
+                    with self.assertRaises(NativeMassError) as exc:
+                        assert_preaccepted_geometry_unchanged(original,engine)
+                    self.assertEqual(exc.exception.code,
+                        "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+
+    def test_native_run_blocks_post_acceptance_short_element_cleanup(self):
+        # Actual native parser drops short unweighted helpers. In a governed
+        # source their topology must be finalized upstream, not after Final.
+        with TemporaryDirectory() as td:
+            directory=Path(td)
+            original=directory/"source.xml"
+            packet_path=directory/"packet.json"
+            output=directory/"native.cii"
+            proof=directory/"proof.json"
+            xml=input_xml().replace(
+                "</Node></Branch>",
+                "</Node><Node><NodeNumber>30</NodeNumber>"
+                "<ComponentType>PIPE</ComponentType>"
+                "<Position>5.1 0 0</Position></Node></Branch>")
+            original.write_text(xml)
+            packet_path.write_text(json.dumps(packet(xml)))
+            runner=Path(__file__).resolve().parents[1]/"converters"/"scripts"/"xml_to_cii2019_runtime_custody.py"
+            process=subprocess.run([
+                sys.executable,str(runner),"--input",str(original),
+                "--output",str(output),"--weight-scale","10",
+                "--xml229-native-final-packet",str(packet_path),
+                "--xml229-native-mass-proof",str(proof),
+            ],capture_output=True,text=True)
+            self.assertNotEqual(process.returncode,0)
+            self.assertIn("NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE",
+                          process.stderr)
+            self.assertFalse(output.exists())
+            self.assertFalse(proof.exists())
 
     def test_staged_original_occurrence_survives_native_renumbering(self):
         with TemporaryDirectory() as td:

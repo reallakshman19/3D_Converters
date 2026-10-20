@@ -391,8 +391,15 @@ def main() -> None:
         staged_original, args.staged_json, support_config)
     input_xml = patched._apply_process_data_to_xml(input_xml, support_config)
     input_xml, bend_policy = apply_bend_radius_policy(input_xml, support_config)
+    # Weights are accepted against the immutable original XML geometry.
+    # Geometry transformation must be complete BEFORE those decisions, not
+    # performed implicitly during this Run. Number-only renaming is allowed;
+    # added/deleted/reordered/repositioned/retyped physical nodes are not.
+    if args.xml229_native_final_packet is not None:
+        from xml229_native_final_mass_binding import assert_preaccepted_geometry_unchanged
+        assert_preaccepted_geometry_unchanged(args.input, input_xml)
     # The *actual* converter input receives accepted Final masses here, not
-    # a separate diagnostic copy. Unsupported splits/owners stop generation.
+    # a separate diagnostic copy. No post-acceptance geometry splitting.
     xml229_native_owners = None
     if args.xml229_native_final_packet is not None:
         if args.xml229_native_mass_proof is None or args.weight_scale != 10:
@@ -434,6 +441,9 @@ def main() -> None:
         patched._node_name_kind_map(document, node_number_kind_map),
         support_config,
     )
+    if xml229_native_owners is not None:
+        from xml229_native_final_mass_binding import assert_native_model_geometry_unchanged
+        assert_native_model_geometry_unchanged(args.input, document, model)
     require_rigid_weight_owners(input_xml, model)
     temperature_map, pressure_map = patched._branch_case_maps(document)
     base._build_restraint_payload = direction._direction_enabled_restraint_payload_factory(support_config)

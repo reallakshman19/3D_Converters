@@ -67,6 +67,88 @@ def parse_bytes(data):
     return root
 
 
+
+def _normalized_position(text):
+    """A geometry coordinate is a finite numeric triple, not formatted text."""
+    try:
+        values = tuple(float(v) for v in text.split())
+    except ValueError:
+        raise NativeMassError("NATIVE_GEOMETRY_POSITION_INVALID") from None
+    require(len(values) == 3 and all(math.isfinite(v) for v in values),
+            "NATIVE_GEOMETRY_POSITION_INVALID")
+    return values
+
+
+def _xml_geometry_row(node):
+    """Only topology/ownership fields; process and mass fields may vary.
+
+    NodeNumber is a label, not an ownership key: provenance survives
+    topology-neutral renumbering. Bend radius and process values are also
+    permitted to be enriched; creation, deletion, relocation or retyping
+    of native physical nodes is not.
+    """
+    return (txt(node, "ComponentType").upper(), txt(node, "ComponentRefNo"),
+            txt(node, "Endpoint"), txt(node, "NodeName"),
+            txt(node, "Rigid"), _normalized_position(txt(node, "Position")),
+            txt(node, "ElementLengthMm"))
+
+
+def assert_preaccepted_geometry_unchanged(original_path, engine_input_path):
+    """Every geometric split/cleanup must precede source-bound Final weights.
+
+    This check is before accepted masses are written. The original XML hash
+    is already part of the immutable Worker InputBasis. No child mass
+    allocation, source owner interpolation or automatically relaxed HOLD.
+    """
+    original = parse_bytes(Path(original_path).read_bytes())
+    engine = parse_bytes(Path(engine_input_path).read_bytes())
+    expected, actual = branches(original), branches(engine)
+    require(len(expected) == len(actual),
+            "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+    for src, dst in zip(expected, actual):
+        require(txt(src, "Branchname") == txt(dst, "Branchname"),
+                "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+        before, after = nodes(src), nodes(dst)
+        require(len(before) == len(after),
+                "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+        for first, second in zip(before, after):
+            require(_xml_geometry_row(first) == _xml_geometry_row(second),
+                    "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+    return True
+
+
+def assert_native_model_geometry_unchanged(original_path, document, model):
+    """The parsed native graph must also match the preapproved XML geometry.
+
+    The engine parser may collapse small segments or exclude invalid node
+    numbers AFTER the XML input check. Those are likewise not allowed after
+    weights were accepted; validation must inspect the actual graph.
+    """
+    source = parse_bytes(Path(original_path).read_bytes())
+    src_branches = branches(source)
+    require(len(src_branches) == len(document.branches),
+            "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+    expected_edges = 0
+    for original, native in zip(src_branches, document.branches):
+        before = nodes(original)
+        require(txt(original, "Branchname") == native.branch_name and
+                len(before) == len(native.nodes),
+                "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+        expected_edges += max(0, len(before) - 1)
+        for old, new in zip(before, native.nodes):
+            old_shape = _xml_geometry_row(old)
+            new_shape = (new.component_type, new.component_ref_no,
+                         str(new.endpoint) if new.endpoint is not None else "",
+                         new.node_name,
+                         str(new.rigid) if new.rigid is not None else "",
+                         tuple(new.position), txt(old, "ElementLengthMm"))
+            require(old_shape == new_shape,
+                    "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+    require(len(model.edges) == expected_edges,
+            "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+    return True
+
+
 def read_packet(path, xml_path):
     try:
         packet = json.loads(Path(path).read_text(encoding="utf-8"))
