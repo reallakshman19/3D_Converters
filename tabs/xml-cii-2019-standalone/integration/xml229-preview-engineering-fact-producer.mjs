@@ -255,7 +255,7 @@ export async function openXml229EngineeringFactModel({
   // XML positions. No mass or new physical edges are introduced here.
   const positiveIds=projection.nodes.map(row=>Number(row.nodeNumber))
     .filter(n=>Number.isSafeInteger(n)&&n>0);
-  let nextId=Math.max(0,...positiveIds)+10;
+  let nextId=positiveIds.reduce((max,n)=>Math.max(max,n),0)+10;
   const assignedNodeNumbers=[];
   for(const [bi,branch] of branches.entries()){
     const effective=children(branch,'Node');
@@ -266,7 +266,7 @@ export async function openXml229EngineeringFactModel({
       if(!Number.isSafeInteger(id))
         fail('FINALIZED_NODE_NUMBER_INVALID','Original node ID must be an integer');
       if(id>0)continue;
-      if(!Number.isSafeInteger(nextId)||nextId<=0)
+      if(!Number.isSafeInteger(nextId)||nextId<=0||nextId>2147483647)
         fail('FINALIZED_NODE_NUMBER_OVERFLOW','No available native node number');
       const fieldNode=children(node,'NodeNumber')[0];
       if(!fieldNode)
