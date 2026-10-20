@@ -431,8 +431,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        resolveInputs,onProgress:stage=>say('GC-PW Worker: '+stage),
      });
      offset=0;clearDrafts();await render();
-     await zeroPopup.offer(active);
      say('Verified source facts ready. Applied Weight suggestions are available.');
+     // Nonmodal offer scans independently; never block established status.
+     void zeroPopup.offer(active);
    }catch(error){
      say('Weight verification held: '+String(error?.message||error)+
        (error?.code?' ['+error.code+']':''),true);
@@ -578,7 +579,6 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    say('Build 4 Preview using the existing Build Preview button before reviewing weights. No separate Weight Build is required.',true);
  const attach=async(session)=>{
    await render();
-   await zeroPopup.offer(session);
    const proof=await session.readCompletion();
    if(root.isConnected===false||live()!==session||active!==session)return;
    const counts=proof?.counts||{};
@@ -588,6 +588,8 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      (counts.final??0)+' accepted Final, '+
      (counts.unresolved??0)+' unresolved. '+
      'Applied Weight selections are saved for this source. Native CII output release remains HELD.');
+   // Keep Preview/Weight status synchronous with Worker readiness; no toast delay.
+   void zeroPopup.offer(session);
  };
  if(active){
    const initial=active;
