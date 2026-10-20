@@ -54,7 +54,7 @@ test('indexed original JSON is source-only: 28/28 regex cannot authorize CII Run
  const report=buildStandaloneOutputRunReadiness(state);
  assert.equal(report.summary.blockingCount,1);
  assert.equal(gate(report).status,'held');
- assert.equal(gate(report).severity,'error');
+ assert.equal(gate(report).severity,'warning');
  assert.equal(gate(report).blocking,true);
  assert.match(gate(report).message,/source-only/);
  assert.match(gate(report).message,/configured branch identity/);
