@@ -295,7 +295,7 @@ export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineeri
     :'Current original-source engineering completion is not verified. ';
   const checklistRows = releaseRows.map(item=>
     item.id==='xml229-original-json-engineering-authority'&&item.blocking
-      ?{...item,message:massMessage+
+      ?{...item,message:massMessage+item.message+' '+
           'Governed native CII release is HELD pending independent full output/child-lineage proof. '+
           'This is a release-policy HOLD, not an exception from the converter. '+
           'Diagnosis: '+holdAudit.diagnosisCode+'. See Run HOLD audit.',

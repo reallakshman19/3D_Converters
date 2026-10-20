@@ -28,7 +28,7 @@ test('Run diagnostic binds to stable live GC-PW authority, not mutable state.cur
   import.meta.url)),'utf8');
  assert.match(ui,/const session=getXml229CurrentWorkerHeldReview\(stateRef\);/);
  assert.doesNotMatch(ui,/getXml229CurrentWorkerHeldReview\(stateRef\.current\)/);
- assert.match(ui,/sourceReceipt\.generationId/);
+ assert.match(ui,/receipt\.generationId/);
  assert.match(ui,/runXml229NativeCiiMassCandidate/);
 });
 test('REAL Python native converter CII independently reconciles against exact source Final kg',async()=>{
