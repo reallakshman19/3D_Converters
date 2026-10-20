@@ -143,7 +143,7 @@ class NativeFinalMassTests(unittest.TestCase):
             manifest.write_text(json.dumps(doc))
             with self.assertRaises(NativeMassError) as e:
                 bind_native_final_xml(original,transformed,manifest)
-            self.assertEqual(e.exception.code,"NATIVE_FINAL_MASS_REQUIRED")
+            self.assertEqual(e.exception.code,"NATIVE_ZERO_MASS_LINEAGE_UNVERIFIED")
 
 if __name__=="__main__":
     unittest.main()
