@@ -220,8 +220,11 @@ try{
  const independent=await reconcileXml229ActualCiiAgainstFinal({
   originalXmlText,packet,ciiText,writerDiagnostic:nativeProof,
  });
- assert.equal(independent.massesReconciled,true,
+ assert.equal(independent.massConsumptionVerified,true,
   'independent emitted-byte oracle must reconcile real Worker Final');
+ assert.equal(independent.strictOneToOneOwnerMatch,true);
+ assert.equal(independent.physicalCount,1);
+ assert.equal(independent.actualCiiSha256,nativeProof.actualCiiSha256);
  assert.equal(await page.locator('[data-p4-reason],[data-p4-review-match1],[data-p4-review-final],[data-p4-confirm-single]').count(),0);
  assert.deepEqual(pageErrors,[]);
  console.log(JSON.stringify({schema:'XML229.SimpleAppliedWeightChromium.v1',
