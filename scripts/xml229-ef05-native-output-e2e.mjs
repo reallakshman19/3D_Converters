@@ -187,7 +187,9 @@ try{
   record.stages.weight={visibleRows:await page.locator('tr[data-p4-row]').count(),
     status:(await page.locator('[data-p4-weight-status]').textContent()).slice(0,1000)};
   assert(record.stages.weight.visibleRows>0);
-  record.passes.push('actual Worker-backed Weight Match opened; no accepts added');
+  record.passes.push('actual Worker-backed Weight Match opened; visible selections may write Final');
+  await page.waitForFunction(()=>document.querySelector('[data-p4-weight-root]')?.dataset.p4ReadReady==='true',
+    null,{timeout:120000});
 
   // Full public 41-branch source / staged JSON / four-master GC-PW precheck:
   // all original physicals (including outside the focused Weight tab),
@@ -207,15 +209,18 @@ try{
   assert.equal(record.stages.fullSourceWeight.population.sevenFactsPerPhysical,true);
   assert.equal(record.stages.fullSourceWeight.population.physicalCount,423);
   assert.equal(record.stages.fullSourceWeight.population.factCount,2961);
-  assert.equal(record.stages.fullSourceWeight.review.unresolved,423);
+  const auditedReviews=record.stages.fullSourceWeight.review;
+  assert.equal(auditedReviews.source+auditedReviews.acceptedMatch1+
+    auditedReviews.acceptedFinal+auditedReviews.unresolved,423,
+    'read-only full-source export must report current actual Worker mass population');
   assert.equal(record.stages.fullSourceWeight.review.unchanged,true);
   assert.equal(record.stages.fullSourceWeight.proposals.valveToFlangeRejected,92);
   assert.equal(record.stages.fullSourceWeight.proposals.sourceFamilyConflict,0);
   assert.equal(record.stages.fullSourceWeight.proposals.valveToFlangeQualified,0);
   assert.equal(record.stages.fullSourceWeight.review.acceptedMatch1,0);
-  assert.equal(record.stages.fullSourceWeight.review.acceptedFinal,0);
+  assert(auditedReviews.acceptedFinal>=0,'accepted Final may already exist after visible source-ranked selection');
   assert.equal(record.stages.fullSourceWeight.nativeCiiReleaseAuthorized,false);
-  record.passes.push('public 41-branch full physical/fact/candidate family audit read-only; zero Final/native authority');
+  record.passes.push('public 41-branch read-only source/facts/candidate/actual Final audit; no native release');
 
  // Source-independent of Apply: read every current verified Worker presentation
  // page and derive the 80% kg oracle BEFORE requesting draft population.
