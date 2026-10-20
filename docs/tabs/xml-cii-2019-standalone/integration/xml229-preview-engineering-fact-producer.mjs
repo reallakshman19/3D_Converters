@@ -218,8 +218,44 @@ export async function openXml229EngineeringFactModel({
   if(typeof XMLSerializer!=='function')
     fail('FINALIZED_GEOMETRY_SERIALIZER_REQUIRED','XML serializer unavailable');
   const finalXmlText=new XMLSerializer().serializeToString(prepared.document);
+  // A physical *part* can have Endpoint=1 and Endpoint=2 XML witnesses.
+  // These are not automatically two mass owners. Preserve both source facts,
+  // but record their unique one-part lineage BEFORE the Weight review opens.
+  // This is evidence only; it never combines or accepts kilograms.
+  const byOrdinal=new Map(physical.map(p=>[
+    JSON.stringify([p.branchOccurrenceIndex,p.nodeOrdinal]),p]));
+  const endpointPairs=[];
+  for(const [bi,branch] of branches.entries()){
+    const ns=children(branch,'Node');
+    const ordinals=prepared.ledger.retainedByBranch[bi];
+    for(let i=0;i+1<ns.length;i++){
+      const a=ns[i],b=ns[i+1];
+      const kind=field(a,'ComponentType').toUpperCase();
+      const ref=field(a,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
+      const otherRef=field(b,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
+      if(!['RIGID','FLAN','VALV','INST'].includes(kind)||!ref||
+         kind!==field(b,'ComponentType').toUpperCase()||ref!==otherRef||
+         field(a,'Endpoint')!=='1'||field(b,'Endpoint')!=='2')continue;
+      const left=byOrdinal.get(JSON.stringify([bi,ordinals[i].sourceNodeOrdinal]));
+      const right=byOrdinal.get(JSON.stringify([bi,ordinals[i+1].sourceNodeOrdinal]));
+      if(left&&right)endpointPairs.push(Object.freeze({
+        componentType:kind,componentRefNo:ref,branchOccurrenceIndex:bi,
+        firstOccurrenceId:left.occurrenceId,
+        secondOccurrenceId:right.occurrenceId,
+      }));
+    }
+  }
+  const physicalOwnerCardinality=Object.freeze({
+    schema:'XML229.PreAcceptancePhysicalPartCardinality.v1',
+    reviewedPhysicalNodeOccurrences:physical.length,
+    pairedEndpointPhysicalParts:endpointPairs.length,
+    distinctPhysicalPartCandidates:physical.length-endpointPairs.length,
+    endpointPairs:Object.freeze(endpointPairs),
+    weightsAccepted:false,
+  });
   const finalizedGeometry=Object.freeze({
     schema:'XML229.FinalizedWeightGeometry.v1',
+    physicalOwnerCardinality,
     basisId:basis.basisId,sourceXmlSha256:basis.sourceRefs[0].sha256,
     xmlText:finalXmlText,sha256:await digestUtf8(finalXmlText),
     originalNodeCount:prepared.ledger.originalCount,
