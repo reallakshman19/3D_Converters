@@ -292,6 +292,37 @@ async function rpc(req){
        sourceGenerationId:sourceReceipt.generationId,
      });
    }
+   if(req.what==='native-final-packet'){
+     // Private Worker-owned weight input to the native converter. This is
+     // actual accepted Source/Final mass, never candidate or localStorage.
+     const intent=await commitXml229NativeFinalIntent(ready,{
+       originalJsonSha256:sourceReceipt.sha256,
+       sourceGenerationId:sourceReceipt.generationId,
+     });
+     const full=readVerifiedModeAFinalRows(ready);
+     if(!intent.eligibleForEngineBinding||
+        full.rows.length!==physicalIdentityList?.length||
+        full.basisId!==intent.basisId||
+        !ready.basis.sourceRefs?.[0]?.sha256||
+        full.rows.some(row=>row.status==='Needs review'||row.status==='Match-1'||
+           !(typeof row.effectiveKg==='number'&&Number.isFinite(row.effectiveKg)&&row.effectiveKg>0)))
+       fail('NATIVE_FINAL_MASS_CENSUS_UNREADY',
+         'Every independently indexed original physical needs a positive accepted Source/Final mass');
+     return {
+       schema:'XML229.NativeFinalPhysicalPacket.v1',
+       basisId:full.basisId,sourceId,
+       originalJsonSha256:sourceReceipt.sha256,
+       sourceGenerationId:sourceReceipt.generationId,
+       sourceXmlSha256:ready.basis.sourceRefs[0].sha256,
+       finalIntentSha256:intent.intentSha256,
+       physicalCount:full.rows.length,
+       components:full.rows.map(row=>({
+         occurrenceId:row.occurrenceId,
+         effectiveKg:row.effectiveKg,
+       })),
+       nativeCiiReleaseAuthorized:false,
+     };
+   }
    if(req.what==='completion')return currentRunAdvisory();
    if(req.what==='review-backup'){
      const proof=await rpc({...req,what:'completion'});
