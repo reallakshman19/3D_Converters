@@ -59,8 +59,12 @@ self.addEventListener('message',({data:req})=>{
        const type=field(node,'ComponentType').toUpperCase();
        const ref=field(node,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
        const rightRef=field(right,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
-       const paired=right&&['RIGID','FLAN','VALV','INST'].includes(type)&&
-         ref&&type===field(right,'ComponentType').toUpperCase()&&
+       const rightType=field(right,'ComponentType').toUpperCase();
+       const sameFamily=type===rightType&&
+         ['RIGID','FLAN','VALV','INST'].includes(type);
+       const rigidContinuation=['FLAN','VALV'].includes(type)&&
+         rightType==='RIGID'&&field(right,'Rigid')==='2';
+       const paired=right&&ref&&(sameFamily||rigidContinuation)&&
          ref===rightRef&&field(node,'Endpoint')==='1'&&
          field(right,'Endpoint')==='2'&&
          isXmlCiiWeightReviewNode(node)&&isXmlCiiWeightReviewNode(right)&&
