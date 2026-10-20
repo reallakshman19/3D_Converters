@@ -337,7 +337,10 @@ async function rpc(req){
      // Digest-only metadata (no source/master contents). Useful to locate
      // which exact InputBasis field changed on a legitimate browser restart.
      const basis=ready.basis;
-     return {...backup,inputBasisDigests:{
+     return {...backup,
+       finalizedGeometrySha256:finalizedGeometry?.sha256,
+       physicalOwnerSchema:finalizedGeometry?.physicalOwnerCardinality?.schema,
+       inputBasisDigests:{
        sourceRefs:basis.sourceRefs,
        masters:basis.masters,
        selectionSha256:basis.selectionSha256,
@@ -465,6 +468,14 @@ async function rpc(req){
    if(restoringReview)fail('REVIEW_RESTORE_IN_PROGRESS');
    restoringReview=true;
    try{
+     // New 372-part Final decisions cannot inherit old per-endpoint approvals
+     // from the same original source/master hash. Review backup is bound to
+     // the exact finalized pre-acceptance physical geometry, not source alone.
+     if(req.backup?.finalizedGeometrySha256!==finalizedGeometry?.sha256||
+        req.backup?.physicalOwnerSchema!==
+         finalizedGeometry?.physicalOwnerCardinality?.schema)
+       fail('REVIEW_BACKUP_FINAL_GEOMETRY_MISMATCH',
+         'Rebuild and review weights on this finalized physical-component geometry');
      const proof=await rpc({...req,kind:'read',what:'completion'});
      const result=await restoreXml229SourceBoundReviewBackup(review,req.backup,{
        basisId,sourceId,proof,
