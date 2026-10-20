@@ -184,6 +184,72 @@ class NativeFinalMassTests(unittest.TestCase):
             self.assertIn("NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT",
                           wrong_source.stderr)
 
+    def test_existing_rigid_to_flange_edge_consumes_flange_weight(self):
+        with TemporaryDirectory() as td:
+            directory=Path(td)
+            original=directory/"original.xml"
+            output=directory/"native.cii"
+            proof=directory/"proof.json"
+            manifest=directory/"packet.json"
+            xml=input_xml()
+            xml=xml.replace(
+                "<ComponentType>PIPE</ComponentType>",
+                "<ComponentType>RIGID</ComponentType>"
+                "<ComponentRefNo>REF-1</ComponentRefNo><Rigid>2</Rigid>")
+            xml=xml.replace(
+                "<NodeName>WGT</NodeName>\n<ComponentType>RIGID</ComponentType>",
+                "<NodeName>WGT</NodeName>\n<ComponentType>FLAN</ComponentType>")
+            xml=xml.replace(
+                "<Position>5 0 0</Position><Rigid>2</Rigid>",
+                "<Position>5 0 0</Position>")
+            self.assertIn("<ComponentType>FLAN</ComponentType>",xml)
+            original.write_text(xml)
+            p=packet(xml,signature=["FLAN","REF-1","2","WGT"])
+            p["sourceGenerationId"]="generation-flange"
+            p["finalizedGeometry"]={
+                "schema":"XML229.FinalizedWeightGeometry.v1",
+                "basisId":p["basisId"],"sourceXmlSha256":p["sourceXmlSha256"],
+                "xmlText":xml,"sha256":hashlib.sha256(xml.encode()).hexdigest(),
+                "originalNodeCount":2,
+                "retainedSourceOrdinalsByBranch":[[0,1]],
+            }
+            manifest.write_text(json.dumps(p))
+            runner=Path(__file__).resolve().parents[1]/"converters"/"scripts"/"xml_to_cii2019_runtime_custody.py"
+            result=subprocess.run([
+                sys.executable,str(runner),"--input",str(original),
+                "--output",str(output),"--weight-scale","10",
+                "--xml229-native-final-packet",str(manifest),
+                "--xml229-native-mass-proof",str(proof),
+            ],capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stderr)
+            mass=json.loads(proof.read_text())
+            self.assertEqual(mass["sourcePhysicalCount"],1)
+            self.assertEqual(mass["claims"][0]["massKg"],12.5)
+            self.assertIn("125",output.read_text().split("#$ RIGID",1)[1].split("#$",1)[0])
+            # Changing the existing predecessor reference means the actual
+            # native edge is not a RIGID owner; never synthesize a marker.
+            invalid=xml.replace(
+                "<NodeNumber>10</NodeNumber><ComponentType>RIGID</ComponentType>"
+                "<ComponentRefNo>REF-1</ComponentRefNo>",
+                "<NodeNumber>10</NodeNumber><ComponentType>RIGID</ComponentType>"
+                "<ComponentRefNo>OTHER</ComponentRefNo>")
+            original.write_text(invalid)
+            p["sourceXmlSha256"]=hashlib.sha256(invalid.encode()).hexdigest()
+            p["finalizedGeometry"]["sourceXmlSha256"]=p["sourceXmlSha256"]
+            p["finalizedGeometry"]["xmlText"]=invalid
+            p["finalizedGeometry"]["sha256"]=p["sourceXmlSha256"]
+            manifest.write_text(json.dumps(p))
+            output.unlink();proof.unlink()
+            rejected=subprocess.run([
+                sys.executable,str(runner),"--input",str(original),
+                "--output",str(output),"--weight-scale","10",
+                "--xml229-native-final-packet",str(manifest),
+                "--xml229-native-mass-proof",str(proof),
+            ],capture_output=True,text=True)
+            self.assertNotEqual(rejected.returncode,0)
+            self.assertIn("NATIVE_RIGID_OWNER_UNSUPPORTED",rejected.stderr)
+            self.assertFalse(output.exists())
+
     def test_accepted_owner_cannot_be_removed_from_finalized_geometry(self):
         with TemporaryDirectory() as td:
             directory=Path(td)
