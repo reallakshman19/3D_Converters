@@ -26,7 +26,7 @@ test('native Run surfaces post-acceptance geometry changes as actionable blocker
  const ui=readFileSync(fileURLToPath(new URL(
   '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs',
   import.meta.url)),'utf8');
- assert.match(ui,/native\\?\.error/);
+ assert.ok(ui.includes('native?.error'));
  assert.match(ui,/NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE/);
 });
 
