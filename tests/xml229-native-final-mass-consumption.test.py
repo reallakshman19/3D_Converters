@@ -240,9 +240,14 @@ class NativeFinalMassTests(unittest.TestCase):
             self.assertEqual(report["sourcePhysicalCount"],count)
             self.assertEqual(report["claimedNativeRigidCount"],count)
             self.assertEqual(len(report["claims"]),count)
-            self.assertEqual(
-                [row["massKg"] for row in report["claims"]],
-                [c["effectiveKg"] for c in components])
+            # Claims follow canonical occurrence-ID ordering, not numeric
+            # component order. Require every exact source identity once.
+            actual_by_id={row["occurrenceId"]:row["massKg"]
+                          for row in report["claims"]}
+            expected_by_id={item["occurrenceId"]:item["effectiveKg"]
+                            for item in components}
+            self.assertEqual(len(actual_by_id),count)
+            self.assertEqual(actual_by_id,expected_by_id)
             self.assertEqual(report["finalizedGeometrySha256"],
                              p["finalizedGeometry"]["sha256"])
             self.assertTrue(report["massesConsumedInNativeRigid"])
