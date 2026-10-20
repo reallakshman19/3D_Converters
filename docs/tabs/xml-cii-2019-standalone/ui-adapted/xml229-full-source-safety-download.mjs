@@ -17,7 +17,9 @@ export async function downloadXml229FullSourceSafety({
    JSON.stringify(receipt,null,2),'application/json;charset=utf-8');
  say(receipt.population.physicalCount+' original physicals / '+
    receipt.population.factCount+' facts audited read-only; '+
+   receipt.review.acceptedFinal+' accepted Final, '+
+   receipt.review.unresolved+' unresolved; '+
    receipt.proposals.valveToFlangeRejected+' valve-to-flange proposals held. '+
-   'Zero Match-1/Final; native CII remains HELD.');
+   'Native CII release remains HELD pending actual output authority.');
  return receipt;
 }
