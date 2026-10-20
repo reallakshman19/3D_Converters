@@ -160,6 +160,9 @@ test('physical endpoint pairs are identified before accepting weights, without m
  assert.equal(topology.endpointPairs[0].firstIsWeightOwner,false);
  assert.equal(topology.endpointPairs[0].secondIsWeightOwner,true);
  assert.equal(topology.endpointPairs[0].componentType,'VALV');
+ assert.equal(opened.finalizedGeometry.rigidEdgePromotions.length,1);
+ assert.equal(opened.finalizedGeometry.rigidEdgePromotions[0].componentType,'VALV');
+ assert(opened.finalizedGeometry.rigidEdgePromotions[0].distanceMm>6);
  assert.equal(topology.endpointPairs[0].componentRefNo,'1006649732/119367');
  assert.notEqual(topology.endpointPairs[0].firstOccurrenceId,
                  topology.endpointPairs[0].secondOccurrenceId);
