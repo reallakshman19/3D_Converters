@@ -534,7 +534,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
            ' selected Final masses accepted; physicals '+scanned+'/'+total+'.'),
        });
        await render();
-       say('Apply all suggestions complete: '+accepted+' additional selected positive kg masses recorded as Owner-designated GC-PW Final. Missing/0 kg physicals remain unresolved. Native CII output remains separately HELD.');
+       say('Apply all suggestions ≥'+minScorePercent+'%: complete. '+accepted+' additional positive kg masses recorded as Owner-designated GC-PW Final. Missing/0 kg physicals remain unresolved. Native CII output remains separately HELD.');
        return;
      }
      if(draftFillButton){
