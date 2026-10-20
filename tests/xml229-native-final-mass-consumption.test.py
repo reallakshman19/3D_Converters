@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import hashlib
 import json
 import sys
+import subprocess
 import unittest
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"converters"/"scripts"))
@@ -73,6 +74,45 @@ class NativeFinalMassTests(unittest.TestCase):
             with self.assertRaises(NativeMassError) as e:
                 verify_emitted_native_masses(cii(pointer="0"),owners,model(12.5))
             self.assertEqual(e.exception.code,"CII_RIGID_ORPHANED")
+
+    def test_actual_python_runtime_writes_and_reconciles_emitted_cii(self):
+        with TemporaryDirectory() as td:
+            directory=Path(td)
+            original=directory/"source.xml"
+            packet_path=directory/"packet.json"
+            output=directory/"native.cii"
+            proof=directory/"proof.json"
+            xml=input_xml()
+            original.write_text(xml)
+            packet_path.write_text(json.dumps(packet(xml)))
+            runner=Path(__file__).resolve().parents[1]/"converters"/"scripts"/"xml_to_cii2019_runtime_custody.py"
+            process=subprocess.run([
+                sys.executable,str(runner),"--input",str(original),
+                "--output",str(output),"--weight-scale","10",
+                "--xml229-native-final-packet",str(packet_path),
+                "--xml229-native-mass-proof",str(proof),
+            ],capture_output=True,text=True)
+            self.assertEqual(process.returncode,0,process.stderr)
+            self.assertTrue(output.exists(),"Real native converter must publish .cii")
+            native=output.read_text()
+            result=json.loads(proof.read_text())
+            self.assertEqual(result["actualCiiSha256"],
+                hashlib.sha256(native.encode("utf-8")).hexdigest())
+            self.assertTrue(result["massesConsumedInNativeRigid"])
+            self.assertFalse(result["nativeCiiReleaseAuthorized"])
+            self.assertIn("125",native.split("#$ RIGID",1)[1].split("#$",1)[0])
+            # Same selected owner with a false mass/lineage claim cannot pass.
+            packet_path.write_text(json.dumps(packet(xml,kg=0)))
+            output.unlink()
+            proof.unlink()
+            process=subprocess.run([
+                sys.executable,str(runner),"--input",str(original),
+                "--output",str(output),"--weight-scale","10",
+                "--xml229-native-final-packet",str(packet_path),
+                "--xml229-native-mass-proof",str(proof),
+            ],capture_output=True,text=True)
+            self.assertNotEqual(process.returncode,0)
+            self.assertFalse(output.exists())
 
     def test_altered_source_or_duplicate_owner_never_applies_mass(self):
         with TemporaryDirectory() as td:
