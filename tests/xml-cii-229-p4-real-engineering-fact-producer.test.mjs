@@ -127,10 +127,13 @@ test('physical endpoint pairs are identified before accepting weights, without m
  });
  const topology=opened.finalizedGeometry.physicalOwnerCardinality;
  assert.equal(topology.weightsAccepted,false);
- assert.equal(topology.reviewedPhysicalNodeOccurrences,3);
- assert.equal(opened.physicalOccurrences.length,3);
+ assert.equal(topology.sourcePhysicalNodeOccurrences,3);
+ assert.equal(topology.reviewedPhysicalNodeOccurrences,2);
+ assert.equal(opened.physicalOccurrences.length,2);
  assert.equal(topology.pairedEndpointPhysicalParts,1);
  assert.equal(topology.distinctPhysicalPartCandidates,2);
+ assert.equal(topology.endpointPairs[0].firstIsWeightOwner,false);
+ assert.equal(topology.endpointPairs[0].secondIsWeightOwner,true);
  assert.equal(topology.endpointPairs[0].componentType,'VALV');
  assert.equal(topology.endpointPairs[0].componentRefNo,'1006649732/119367');
  assert.notEqual(topology.endpointPairs[0].firstOccurrenceId,
