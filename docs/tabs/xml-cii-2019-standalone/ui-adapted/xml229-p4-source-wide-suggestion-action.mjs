@@ -10,7 +10,7 @@ export async function applyXml229SourceWideSuggestionDrafts({
     typeof isCurrent!=='function'||typeof saveDrafts!=='function'||
     typeof showFirst!=='function'||typeof render!=='function')
    deny('SUGGESTION_SOURCE_BOUND_WORKSPACE_REQUIRED');
- say('Preparing ≥'+minScorePercent+'% drafts across verified source...');
+ say('Filling Applied Weight from source-linked suggestions ≥'+minScorePercent+'%...');
  const plan=await session.planQualifiedBlankFill({minScorePercent});
  if(!Number.isSafeInteger(plan?.qualified)||!Array.isArray(plan.qualifiedSuggestions)||
     plan.qualifiedSuggestions.length!==plan.qualified)
@@ -38,15 +38,15 @@ export async function applyXml229SourceWideSuggestionDrafts({
   confirm.textContent='Apply all Match-1 ('+plan.qualified+')';}
  const c=planned.counts;
  say('Apply all suggestions ≥'+minScorePercent+'%: '+c.prepared+
-   ' editable draft(s) prepared across the verified source. '+
+   ' Applied Weight value(s) filled across the verified source. '+
    visiblePopulated+' actual kg input(s) populated on this page; first input revealed. '+
    c.workerQualified+' source-qualified candidate(s) reconciled ('+
    c.workerQualifiedPrepared+' newly filled, '+
-   c.workerQualifiedAlreadyDrafted+' existing drafts kept, '+
+   c.workerQualifiedAlreadyDrafted+' existing values kept, '+
    c.manualConflictsPreserved+' manual edit conflicts preserved); '+
-   c.preparedUnqualified+' review-only drafts. '+
+   c.preparedUnqualified+' estimated suggestions (≈). '+
    c.withoutProposal+' no proposal, '+c.belowThreshold+
-   ' below threshold. Applied Weight drafts are not accepted; governed CII remains HELD.');
+   ' below threshold. Applied Weight selections saved; native CII output remains HELD.');
  return {planned,visiblePopulated,reviewDecisionsAuthorized:false,nativeCiiReleaseAuthorized:false};
 }
 
