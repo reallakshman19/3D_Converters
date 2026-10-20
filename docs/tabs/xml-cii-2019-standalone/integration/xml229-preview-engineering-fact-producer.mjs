@@ -116,6 +116,36 @@ export async function openXml229EngineeringFactModel({
       fail('PREVIEW_SOURCE_JOIN_DRIFT','Computed weight row does not match original physical component');
     weightRows.set(key,row);
   }
+  // This physical component selection is part of the final geometry basis,
+  // not a post-Final mass transformation. An adjacent same-ref 1 -> 2 pair
+  // has ONE mass owner at its second endpoint; its first source occurrence
+  // remains fully represented among original facts and final XML geometry.
+  const nonOwnerEndpointStarts=new Set();
+  const canonicalEndpointPairs=[];
+  for(const [bi,branch] of branches.entries()){
+    const effective=children(branch,'Node');
+    const retained=prepared.ledger.retainedByBranch[bi];
+    for(let i=0;i+1<effective.length;i++){
+      const a=effective[i],b=effective[i+1];
+      const kind=field(a,'ComponentType').toUpperCase();
+      const ref=field(a,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
+      const otherRef=field(b,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
+      if(!['RIGID','VALV','FLAN','INST'].includes(kind)||!ref||
+         kind!==field(b,'ComponentType').toUpperCase()||ref!==otherRef||
+         field(a,'Endpoint')!=='1'||field(b,'Endpoint')!=='2'||
+         !isXmlCiiWeightReviewNode(a)||!isXmlCiiWeightReviewNode(b)||
+         !isXmlCiiWeightReviewConnectionEligible(a)||
+         !isXmlCiiWeightReviewConnectionEligible(b))continue;
+      const left=retained[i].sourceNodeOrdinal,right=retained[i+1].sourceNodeOrdinal;
+      const key=JSON.stringify([bi,left]);
+      if(nonOwnerEndpointStarts.has(key))
+        fail('PHYSICAL_OWNER_ENDPOINT_OVERLAP','Conflicting physical source endpoint groups');
+      nonOwnerEndpointStarts.add(key);
+      canonicalEndpointPairs.push({branchOccurrenceIndex:bi,
+        componentType:kind,componentRefNo:ref,
+        firstSourceNodeOrdinal:left,secondSourceNodeOrdinal:right});
+    }
+  }
   const originalCensus=[],physical=[],expected=[];
   const records=[];
   const add=(occ,fieldId,val,authority,unit,detail)=>records.push(
@@ -145,6 +175,8 @@ export async function openXml229EngineeringFactModel({
       fail('RETAINED_NODE_CENSUS_DRIFT','Effective cleaned source/ledger mismatch');
     for(const [effectiveIndex,node] of effectiveNodes.entries()){
       const origin=ledger[effectiveIndex];
+      if(nonOwnerEndpointStarts.has(
+        JSON.stringify([branchIndex,origin.sourceNodeOrdinal])))continue;
       if(!isXmlCiiWeightReviewNode(node)||
         !isXmlCiiWeightReviewConnectionEligible(node))continue;
       if(physical.length>=maxPhysical)
@@ -267,20 +299,30 @@ export async function openXml229EngineeringFactModel({
       if(!['RIGID','FLAN','VALV','INST'].includes(kind)||!ref||
          kind!==field(b,'ComponentType').toUpperCase()||ref!==otherRef||
          field(a,'Endpoint')!=='1'||field(b,'Endpoint')!=='2')continue;
-      const left=byOrdinal.get(JSON.stringify([bi,ordinals[i].sourceNodeOrdinal]));
-      const right=byOrdinal.get(JSON.stringify([bi,ordinals[i+1].sourceNodeOrdinal]));
-      if(left&&right)endpointPairs.push(Object.freeze({
-        componentType:kind,componentRefNo:ref,branchOccurrenceIndex:bi,
-        firstOccurrenceId:left.occurrenceId,
-        secondOccurrenceId:right.occurrenceId,
-      }));
+      const firstOrdinal=ordinals[i].sourceNodeOrdinal;
+      const secondOrdinal=ordinals[i+1].sourceNodeOrdinal;
+      const firstSource=sourceNodeByOrdinal.get(JSON.stringify([bi,firstOrdinal]));
+      const right=byOrdinal.get(JSON.stringify([bi,secondOrdinal]));
+      if(firstSource&&right){
+        const signature=canonicalJson([firstSource.componentType,
+          firstSource.componentRefNo,firstSource.endpoint,field(a,'NodeName')]);
+        const firstOccurrenceId=physicalOccurrenceId({
+          sourceId,branchOccurrenceIndex:bi,
+          nodeOrdinal:firstOrdinal,componentSignature:signature});
+        endpointPairs.push(Object.freeze({
+          componentType:kind,componentRefNo:ref,branchOccurrenceIndex:bi,
+          firstOccurrenceId,secondOccurrenceId:right.occurrenceId,
+          firstIsWeightOwner:false,secondIsWeightOwner:true,
+        }));
+      }
     }
   }
   const physicalOwnerCardinality=Object.freeze({
     schema:'XML229.PreAcceptancePhysicalPartCardinality.v1',
+    sourcePhysicalNodeOccurrences:physical.length+nonOwnerEndpointStarts.size,
     reviewedPhysicalNodeOccurrences:physical.length,
     pairedEndpointPhysicalParts:endpointPairs.length,
-    distinctPhysicalPartCandidates:physical.length-endpointPairs.length,
+    distinctPhysicalPartCandidates:physical.length,
     endpointPairs:Object.freeze(endpointPairs),
     weightsAccepted:false,
   });
