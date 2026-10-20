@@ -28,6 +28,8 @@ test('native Run surfaces post-acceptance geometry changes as actionable blocker
   import.meta.url)),'utf8');
  assert.ok(ui.includes('native?.error'));
  assert.match(ui,/NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE/);
+ assert.match(ui,/NATIVE_DOUBLE_ENDPOINT_MASS_OWNER/);
+ assert.match(ui,/NATIVE_RIGID_OWNER_UNSUPPORTED/);
 });
 
 test('Run diagnostic binds to stable live GC-PW authority, not mutable state.current',()=>{
