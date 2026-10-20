@@ -117,7 +117,7 @@ function originalJsonAuthorityRows(input) {
     false,
     'Original JSON O1 source indexing (' + phaseCounts.join(', ') +
     ') is source-only. Even a verified engineering Preview and reviewed GC-PW Weight/Final session do not establish independent native CII Final/output consumption. Run is HELD until native output authority is verified; configured branch identity (whatever its verified occurrence count) and legacy cached rows never authorize it.',
-    {blocking:true,severity:'error',status:'held'})];
+    {blocking:true,severity:'warning',status:'held'})];
 }
 
 function inputXmlRows(input) {
@@ -238,7 +238,10 @@ function logRows(input, checklistRows) {
 }
 
 function readinessDiagnostics(checklistRows) {
-  return checklistRows.filter((item) => item.blocking || item.severity === 'warning').map((item) => ({ level: item.blocking ? 'error' : 'warning', source: 'output-run', type: item.id, message: item.message }));
+  return checklistRows.filter((item) => item.blocking || item.severity === 'warning')
+    .map((item) => ({ level: item.status === 'held' ? 'warning'
+      : item.blocking ? 'error' : 'warning',
+      source: 'output-run', type: item.id, message: item.message }));
 }
 
 export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineering = null,sessionState = 'UNKNOWN',leaseDiagnosis = null} = {}) {
