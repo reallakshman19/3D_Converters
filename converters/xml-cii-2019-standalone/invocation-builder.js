@@ -23,6 +23,12 @@ export function buildStandaloneCiiInvocation(job, paths, jobDir) {
   if (split === true) argv.push('--split-condensed-valve-flange');
   else if (split === false) argv.push('--no-split-condensed-valve-flange');
   if (paths.stagedJsonPath) argv.push('--staged-json', paths.stagedJsonPath);
+  if (paths.xml229NativeFinalPacketPath) {
+    if (!paths.xml229NativeMassProofPath) throw new Error('XML229_NATIVE_PROOF_PATH_REQUIRED');
+    if (options.kgToNewton === false) throw new Error('XML229_NATIVE_FORCE_UNIT_REQUIRED');
+    argv.push('--xml229-native-final-packet', paths.xml229NativeFinalPacketPath,
+      '--xml229-native-mass-proof', paths.xml229NativeMassProofPath);
+  }
   if (options.useRestraintTypeBasedOnJson === false) argv.push('--no-use-restraint-type-based-on-json');
   else argv.push('--use-restraint-type-based-on-json');
   return { scriptPath: '/scripts/xml_to_cii2019_runtime_custody.py', outputPath, outputName, argv };

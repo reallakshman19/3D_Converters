@@ -5,6 +5,7 @@ import { updateWorkflowOptions, applyStandaloneOutputRunReadiness, updateWorkflo
 import { deriveLineKeyFromBranchName } from '../../../converters/xml-cii2019-core/regex-line-key.js';
 import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
 import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
+import {runXml229NativeCiiMassCandidate} from './xml229-native-cii-candidate-run.mjs';
 import {ensureXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace,getXml229CandidateAttempt} from './xml229-flow-trace-registry.mjs';
 import {buildXml229RunHoldAudit} from '../integration/xml229-run-hold-audit.mjs';
 import {inspectXml229EngineeringLease} from '../integration/xml229-engineering-basis-authority.mjs';
@@ -115,7 +116,7 @@ function renderSummary(parent, report) {
       (Number.isSafeInteger(bytes)?' · '+bytes+' source bytes':'')+
       '. JSON-governed CII remains held because Final/output authority is not verified, and a staged JSON receipt is present. If that JSON belonged to a different XML, re-index the matching JSON for this XML, or choose XML-only testing. '+
       'For conversion testing without JSON-derived engineering weights, select XML-only below and refresh the checklist. '+
-      'Applied Weight drafts and 0 kg skips are not injected into native CII.';
+      'Applied Weight selections are recorded as Owner-designated GC-PW Final masses. Native CII remains HELD until the converter independently proves exact physical-mass consumption; zero kg is never accepted.';
     panel.appendChild(note);
   }
   return panel;
@@ -457,7 +458,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
   if (runReviewBtn.style) Object.assign(runReviewBtn.style, { width: '100%', padding: '12px' });
   runReviewBtn.addEventListener('click', () => { stateRef.current = updateWorkflowState(stateRef.current, { activePhaseId: 'weight-match' }); if (typeof render === 'function') render(); });
   const noteDiv = createElement('div', '', 'model-converters-workflow-detail-note');
-  noteDiv.innerHTML = approved ? 'XML-only mode excludes JSON-derived Weight/Final from native output; independent XML preflight remains mandatory.' : 'Opens <strong>4A Weight Match</strong> to edit Applied Weight drafts. Drafts do not unlock governed native CII; use XML-only for independent conversion testing.';
+  noteDiv.innerHTML = approved ? 'XML-only mode excludes JSON-derived Weight/Final from native output; independent XML preflight remains mandatory.' : 'Opens <strong>4A Weight Match</strong> to select and directly record Owner-designated Applied Weight in GC-PW Final. Native CII release still needs independently reconciled output consumption; XML-only testing excludes these weights.';
   const refreshBtn = button('refresh-output-run', 'Refresh readiness / checklist');
   refreshBtn.style.cssText = 'cursor:pointer;padding:12px;border-radius:6px;background:#1e293b;color:#cbd5e1;border:1px solid #334155;font-size:12px;width:100%;text-align:center;font-weight:700;';
   refreshBtn.addEventListener('click', () => { stateRef.current = applyStandaloneOutputRunReadiness(stateRef.current, buildStandaloneOutputRunReadiness(stateRef.current)); if (typeof render === 'function') render(); });
@@ -517,6 +518,44 @@ function renderRunControls(parent, stateRef, state, report, render) {
     });
     auditPanel.appendChild(auditBtn);
     actionDiv.appendChild(auditPanel);
+  }
+  if(!approved&&report.runHoldAudit?.gateStatus==='HELD'){
+    const verifyBtn=button('xml229-native-mass-candidate',
+      'Generate native CII and verify selected masses (diagnostic only)');
+    verifyBtn.style.cssText='cursor:pointer;padding:12px;border-radius:6px;background:#253a55;color:#e2e8f0;border:1px solid #64748b;width:100%;';
+    const verificationStatus=createElement('div',
+      'Requires all original physicals to have positive accepted GC-PW Source/Final kilograms. Unsupported split/lineage cases are rejected.',
+      'model-converters-workflow-detail-note');
+    verificationStatus.dataset.xml229NativeMassStatus='true';
+    verifyBtn.addEventListener('click',async()=>{
+      if(verifyBtn.disabled)return;
+      verifyBtn.disabled=true;
+      // Verified GC-PW sessions belong to the stable mode-A state REF, not
+      // its mutable current snapshot. Require the identical live source receipt.
+      const session=getXml229CurrentWorkerHeldReview(stateRef);
+      const sourceReceipt=stateRef.current?.xml229StagedSourceReceipt;
+      const isCurrent=()=>!!session&&!session.closed&&
+        typeof sourceReceipt?.sha256==='string'&&
+        typeof sourceReceipt?.generationId==='string'&&
+        getXml229CurrentWorkerHeldReview(stateRef)===session&&
+        stateRef.current?.xml229StagedSourceReceipt?.sha256===sourceReceipt.sha256&&
+        stateRef.current?.xml229StagedSourceReceipt?.generationId===sourceReceipt.generationId;
+      verificationStatus.textContent='Generating native candidate and reconciling actual CII RIGID records…';
+      try{
+        const diagnosis=await runXml229NativeCiiMassCandidate({
+          state:stateRef.current,session,isCurrent,
+        });
+        verificationStatus.textContent='Native mass output verified for '+
+          diagnosis.physicalCount+' original physicals against '+diagnosis.nativeRigidCount+
+          ' RIGID records; CII SHA '+diagnosis.actualCiiSha256.slice(0,16)+
+          '…. Native CII release remains HELD pending independently authored split/geometry lineage.';
+      }catch(error){
+        verificationStatus.textContent='Native mass diagnostic HELD ['+
+          String(error?.code||'NATIVE_CII_MASS_DIAGNOSTIC_FAILED')+
+          ']. No unverified CII output was released.';
+      }finally{verifyBtn.disabled=false;}
+    });
+    actionDiv.append(verifyBtn,verificationStatus);
   }
   const finalizeBtn = createElement('button', state.running ? 'Running...' : 'Finalise and Run Conversion', 'model-converters-download-btn');
   if (finalizeBtn.style) Object.assign(finalizeBtn.style, { width: '100%', padding: '12px', background: (state.running || report.summary.blockingCount > 0) ? '#334155' : '#1e4ed8', color: '#fff', border: 'none', fontWeight: '700' });

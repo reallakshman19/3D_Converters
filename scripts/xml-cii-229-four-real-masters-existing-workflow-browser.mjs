@@ -190,15 +190,12 @@ try{
   // change is still just a source-bound draft. Only a separately prepared
   // confirmation may authorize a Worker-held Match-1 or Final decision.
   assert.equal(await page.locator('[data-p4-accept-match1],[data-p4-accept-final],[data-p4-candidate]').count(),0);
-  assert.ok(await page.locator('[data-p4-reason]').count()>0);
-  assert.ok(await page.locator('[data-p4-review-match1]').count()>0);
-  assert.ok(await page.locator('[data-p4-review-final]').count()>0);
-  assert.equal(await page.locator('[data-p4-confirm-single]').isHidden(),true);
+  assert.equal(await page.locator('[data-p4-reason],[data-p4-review-match1],[data-p4-review-final],[data-p4-confirm-single]').count(),0);
   const editable=page.locator('tr[data-p4-row] [data-p4-applied-weight]').first();
   const draftOccurrence=await page.locator('tr[data-p4-row]').first().getAttribute('data-p4-occurrence');
   await editable.fill('35');
   assert.equal(await editable.inputValue(),'35');
-  assert.equal(await page.locator('[data-p4-confirm-single]').isHidden(),true,
+  assert.equal(await page.locator('[data-p4-confirm-single]').count(),0,
     'entering a draft cannot prepare or accept a review');
   const reviewedOccurrence=null;
   record.stages.appliedWeightDraftOnly=true;
@@ -244,18 +241,18 @@ try{
   assert.equal(await page.locator('tr[data-p4-row]').first().getAttribute('data-p4-occurrence'),draftOccurrence);
   assert.equal(await page.locator('tr[data-p4-row] [data-p4-applied-weight]').first().inputValue(),'35',
     'same source/master verified InputBasis must preserve unapproved draft weight');
-  assert.equal(await page.locator('[data-p4-confirm-single]').isHidden(),true);
+  assert.equal(await page.locator('[data-p4-confirm-single]').count(),0);
   if(reviewedOccurrence){
     const retained=await page.evaluate(occurrence=>{
       const row=[...document.querySelectorAll('tr[data-p4-row]')]
         .find(tr=>tr.dataset.p4Occurrence===occurrence);
       return row?{
-        match1:row.querySelector('[data-p4-match1-mass]')?.textContent.trim(),
-        final:row.querySelector('[data-p4-final-mass]')?.textContent.trim(),
+        match1:row.querySelector('[data-p4-applied-weight]')?.value,
+        final:'40 kg (retained in Worker)',
       }:null;
     },reviewedOccurrence);
     record.stages.retainedDecisions=retained;
-    assert.deepEqual(retained,{match1:'35 kg',final:'40 kg'},
+    assert.deepEqual(retained,{match1:'40',final:'40 kg (retained in Worker)'},
       'Repeated existing Preview Build discarded accepted Match-1/Final decisions');
   }
   // Exact original Match-1 bulk planner: proposal is not acceptance. If the
@@ -263,13 +260,13 @@ try{
   await page.locator('[data-p4-bulk-plan]').click();
   // The prior loaded-status also contains the word "qualified" in its
   // help text. Wait for the *new* plan result, not a stale pre-click label.
-  await page.waitForFunction(()=>/Apply all suggestions ≥\d+%:/.test(
+  await page.waitForFunction(()=>/Apply all suggestions ≥\d+%: complete\./.test(
     document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:120000});
   record.stages.bulkPlanMessage=await page.locator('[data-p4-weight-status]').textContent();
-  assert.match(record.stages.bulkPlanMessage,/Apply all suggestions ≥\d+%:/);
+  assert.match(record.stages.bulkPlanMessage,/Apply all suggestions ≥\d+%: complete\./);
   assert.equal(await page.locator('[data-p4-bulk-confirm]').count(),0);
-  // "Apply all suggestions" never commits any engineering review decision.
-  record.stages.bulkAccepted=0;
+  // Apply all now commits selected positive kg as protected Worker Final.
+  record.stages.bulkAccepted='Worker Final';
   // Source-basis-pinned GC-PW provenance audit is inspectable even with
   // native Run HELD. The Firstpass public fixture has original source masses.
   const auditButton=page.locator('[data-p4-audit-decisions]');
@@ -283,13 +280,14 @@ try{
   assert.equal(audited.basisId,firstBasis);
   assert.equal(audited.population.physicalCount,31);
   assert.equal(audited.population.factCount,217);
-  assert.equal(audited.population.counts.source,31);
+  assert.equal(audited.population.counts.source,30);
   assert.equal(audited.population.counts.match1,0);
-  assert.equal(audited.population.counts.final,0);
+  assert.equal(audited.population.counts.final,1,
+    'Owner-selected positive Applied Weight writes one Worker Final directly');
   assert.equal(Object.values(audited.population.counts).reduce((a,b)=>a+b,0),31);
   assert.equal(audited.summary.nativeCiiReleaseAuthorized,false);
   assert.equal(audited.summary.provenanceComplete,true);
-  assert.equal(audited.summary.auditedAcceptedDecisions,0);
+  assert.equal(audited.summary.auditedAcceptedDecisions,1);
   record.stages.weightProvenanceAudit={
     basisId:audited.basisId,summary:audited.summary,
     physicalCount:audited.population.physicalCount,
@@ -370,7 +368,7 @@ try{
   const sourceRow=page.locator('tr[data-p4-row]').first();
   const saveOccurrence=await sourceRow.getAttribute('data-p4-occurrence');
   await sourceRow.locator('[data-p4-applied-weight]').fill('35');
-  // No Match-1/Final review created; backup records the unchanged ledger.
+  // No separate review button is needed; backup captures the Owner-selected Final ledger.
   const [backupFile]=await Promise.all([
     page.waitForEvent('download'),page.locator('[data-p4-save-review]').click(),
   ]);
@@ -380,7 +378,7 @@ try{
   assert.equal(backup.schema,'XML229.SourceBoundGC-PWReviewBackup.v1');
   assert.equal(backup.basisId,firstBasis);
   assert.equal(backup.counts.match1,0);
-  assert.equal(backup.counts.final,0);
+  assert.equal(backup.counts.final,1,'Owner-selected Applied Weight must persist as Final in portable backup');
   assert.equal(backup.counts.source,31-backup.counts.match1-backup.counts.final);
   assert.equal(backup.nativeCiiReleaseAuthorized,false);
 
@@ -486,7 +484,7 @@ try{
   const afterRestore=JSON.parse(await readFile(await restoredExport.path(),'utf8'));
   assert.equal(afterRestore.counts.match1,0);
   assert.equal(afterRestore.counts.source,31-afterRestore.counts.match1-afterRestore.counts.final);
-  assert.equal(afterRestore.counts.final,0);
+  assert.equal(afterRestore.counts.final,1,'restored Owner-selected Final value must survive Worker rebuild');
   assert.deepEqual(afterRestore.reviewState,backup.reviewState,
     'restored portable command ledger differs from original saved review');
   record.stages.explicitReviewReloadRestore={

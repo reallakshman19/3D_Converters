@@ -118,14 +118,14 @@ try{
    return {basisId:session.receipt.basisId,expected};
  });
  await page.locator('[data-p4-bulk-plan]').click();
- await page.waitForFunction(()=>/Apply all suggestions ≥80%:/.test(
+ await page.waitForFunction(()=>/Apply all suggestions ≥80%: complete\./.test(
    document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:120000});
  const genuineAfter=await page.evaluate(expected=>{
    const scroller=document.querySelector('.mc-rigid-review-table-wrap');
    const inputs=[...document.querySelectorAll('tr[data-p4-row]')].map(tr=>({
      id:tr.dataset.p4Occurrence,kg:tr.querySelector('[data-p4-applied-weight]')?.value
    }));
-   const first=scroller?.querySelector('tr[data-p4-draft-filled="true"] input[data-p4-applied-weight]');
+   const first=scroller?.querySelector('tr[data-p4-stage="final"] input[data-p4-applied-weight]')||scroller?.querySelector('tr[data-p4-draft-filled="true"] input[data-p4-applied-weight]');
    const a=first?.getBoundingClientRect(),v=scroller?.getBoundingClientRect();
    return {inputs,scrollLeft:scroller?.scrollLeft??null,
      horizontalVisible:!!(a&&v&&a.left>=v.left-1&&a.right<=v.right+1),
@@ -172,7 +172,7 @@ try{
        value:tr.querySelector('[data-p4-proposal]').value,
        selected:tr.dataset.p4PickedProposal,
        filled:tr.dataset.p4DraftFilled,
-       accepted:tr.querySelector('[data-p4-match1-mass]').textContent,
+       accepted:tr.dataset.p4Stage,
      }));
      return {count,entries};
    };
@@ -192,7 +192,7 @@ try{
  assert.equal(populated.first.count,25);
  assert.equal(populated.second.count,2);
  assert(populated.first.entries.every((p,i)=>p.value===String(100+i/10)&&
-   p.selected==='master-'+i&&p.filled==='true'&&p.accepted==='—'));
+   p.selected==='master-'+i&&p.filled==='true'&&p.accepted==='unresolved'));
  assert(populated.second.entries.every((p,i)=>p.value===String(102.5+i/10)&&
    p.selected==='master-'+(25+i)&&p.filled==='true'));
  assert.equal(populated.title,true);
@@ -238,23 +238,24 @@ try{
  const first=page.locator('tr[data-p4-row]').first();
   const occurrenceId=await first.getAttribute('data-p4-occurrence');
   assert.equal(await first.locator('[data-p4-accept-match1],[data-p4-accept-final]').count(),0);
-  assert.equal(await first.locator('[data-p4-reason]').count(),1,
-    'engineering reason is available for explicit two-click review');
-  assert.equal(await first.locator('[data-p4-review-match1],[data-p4-review-final]').count(),2);
-  assert.equal(await page.locator('[data-p4-confirm-single]').isHidden(),true,
-    'no review can be confirmed before a deliberate preparation click');
+  assert.equal(await first.locator('[data-p4-reason],[data-p4-review-match1],[data-p4-review-final]').count(),0);
+  assert.equal(await page.locator('[data-p4-confirm-single]').count(),0);
+  assert.equal(await first.locator('[data-p4-applied-weight]').count(),1);
   const reviewed=await exerciseXml229WorkerFixtureReview(page,{occurrenceId});
   assert.equal(reviewed.counts.match1,0);
   assert.equal(reviewed.counts.final,1);
   assert.equal(reviewed.nativeCiiReleaseAuthorized,false);
   await page.locator('[data-p4-scope="rigid"]').click();
   const after=await page.evaluate(()=>({
-    rows:[...document.querySelectorAll('tr[data-p4-row]')].map(tr=>tr.textContent),
+    rows:[...document.querySelectorAll('tr[data-p4-row]')].map(tr=>({
+      value:tr.querySelector('[data-p4-applied-weight]')?.value,
+      stage:tr.dataset.p4Stage,
+    })),
     status:document.querySelector('[data-p4-weight-status]').textContent,
   }));
-  assert.match(after.rows[0],/35 kg/);
-  assert.match(after.rows[0],/40 kg/);
-  assert.doesNotMatch(after.rows[1],/40 kg/);
+  assert.equal(after.rows[0].value,'40');
+  assert.equal(after.rows[0].stage,'final');
+  assert.notEqual(after.rows[1].value,'40');
   const [afterDownload]=await Promise.all([
    page.waitForEvent('download'),aggregateButton.click(),
  ]);

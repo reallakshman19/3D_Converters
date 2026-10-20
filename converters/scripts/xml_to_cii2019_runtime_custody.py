@@ -382,6 +382,17 @@ def main() -> None:
     input_xml = patched._maybe_enrich_from_staged_json(args.input, args.staged_json, support_config)
     input_xml = patched._apply_process_data_to_xml(input_xml, support_config)
     input_xml, bend_policy = apply_bend_radius_policy(input_xml, support_config)
+    # The *actual* converter input receives accepted Final masses here, not
+    # a separate diagnostic copy. Unsupported splits/owners stop generation.
+    xml229_native_owners = None
+    if args.xml229_native_final_packet is not None:
+        if args.xml229_native_mass_proof is None or args.weight_scale != 10:
+            raise ValueError("XML229_NATIVE_MASS_PROOF_AND_KG_TO_N_REQUIRED")
+        from xml229_native_final_mass_binding import bind_native_final_xml
+        input_xml, xml229_native_owners = bind_native_final_xml(
+            args.input, input_xml, args.xml229_native_final_packet)
+    elif args.xml229_native_mass_proof is not None:
+        raise ValueError("XML229_NATIVE_FINAL_PACKET_REQUIRED")
     for row in bend_policy.get("rows", []):
         print(
             "BEND_RADIUS_POLICY "
@@ -431,6 +442,15 @@ def main() -> None:
         args.weight_scale,
         support_config,
     )
+    if xml229_native_owners is not None:
+        from xml229_native_final_mass_binding import verify_emitted_native_masses
+        import json as _xml229_json
+        # Parse the ACTUAL CII bytes and crosscheck ELEMENTS -> RIGID pointers,
+        # exact guarded source owners and numeric kg * 10 before publication.
+        mass_diagnostic = verify_emitted_native_masses(
+            cii_text, xml229_native_owners, model, scale=args.weight_scale)
+        args.xml229_native_mass_proof.write_text(
+            _xml229_json.dumps(mass_diagnostic, sort_keys=True), encoding="utf-8")
     args.output.write_text(cii_text, encoding="utf-8")
     if args.diagnostics_out:
         args.diagnostics_out.write_text(base._build_diagnostics_report(model), encoding="utf-8")

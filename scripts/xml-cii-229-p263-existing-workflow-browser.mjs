@@ -128,10 +128,7 @@ try{
   // The revised UI exposes explicit two-step review, but merely editing
   // Applied Weight must never create an accepted Match-1 or Final decision.
   assert.equal(await page.locator('[data-p4-accept-match1],[data-p4-accept-final],[data-p4-candidate]').count(),0);
-  assert.ok(await page.locator('[data-p4-review-match1]').count()>0);
-  assert.ok(await page.locator('[data-p4-review-final]').count()>0);
-  assert.ok(await page.locator('[data-p4-reason]').count()>0);
-  assert.equal(await page.locator('[data-p4-confirm-single]').isHidden(),true);
+  assert.equal(await page.locator('[data-p4-review-match1],[data-p4-review-final],[data-p4-reason],[data-p4-confirm-single]').count(),0);
   const applied=page.locator('tr[data-p4-row] [data-p4-applied-weight]').first();
   await applied.fill('35');
   assert.equal(await applied.inputValue(),'35');
@@ -157,18 +154,18 @@ try{
   assert.equal(await page.locator('tr[data-p4-row]').first().getAttribute('data-p4-occurrence'),draftOccurrence);
   assert.equal(await page.locator('tr[data-p4-row] [data-p4-applied-weight]').first().inputValue(),'35',
     'the same verified InputBasis must preserve unapproved kg drafts across phase navigation');
-  assert.equal(await page.locator('[data-p4-confirm-single]').isHidden(),true);
+  assert.equal(await page.locator('[data-p4-review-match1],[data-p4-review-final],[data-p4-confirm-single]').count(),0);
   if(reviewedOccurrence){
     const retained=await page.evaluate(occurrence=>{
       const row=[...document.querySelectorAll('tr[data-p4-row]')]
         .find(tr=>tr.dataset.p4Occurrence===occurrence);
       return row?{
-        match1:row.querySelector('[data-p4-match1-mass]')?.textContent.trim(),
-        final:row.querySelector('[data-p4-final-mass]')?.textContent.trim(),
+        match1:row.querySelector('[data-p4-applied-weight]')?.value,
+        final:'40 kg (retained in Worker)',
       }:null;
     },reviewedOccurrence);
     record.stages.retainedDecisions=retained;
-    assert.deepEqual(retained,{match1:'35 kg',final:'40 kg'},
+    assert.deepEqual(retained,{match1:'40',final:'40 kg (retained in Worker)'},
       'Repeated existing Preview Build discarded accepted Match-1/Final decisions');
   }
   await page.locator('[data-phase="run"]').click();

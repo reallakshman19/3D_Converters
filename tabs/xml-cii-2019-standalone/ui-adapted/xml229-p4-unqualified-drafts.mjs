@@ -172,6 +172,39 @@ export async function planXml229UnqualifiedDrafts(session,options={}){
  * measured from REAL number-input.value and selected option.value, not a
  * placeholder or a calculated count. Never invokes the review writer.
  */
+/** Project one attested rank-1 suggestion into the visible Applied Weight draft.
+ * Saved positive/manual edits win. An old 0 kg Skip is never a source mass;
+ * it can be replaced with a source-pinned suggestion, or displayed blank.
+ * No Worker review/Final/native-output RPC occurs here.
+ */
+export function seedXml229VisibleSuggestedWeightDrafts(rows,draftValues,{minScorePercent=80}={}){
+ if(!Array.isArray(rows)||!(draftValues instanceof Map))
+  deny('SUGGESTION_VISIBLE_ROWS_REQUIRED');
+ const threshold=xml229WeightThreshold(minScorePercent);
+ let prepared=0;
+ for(const row of rows){
+  if(!row||typeof row.occurrenceId!=='string'||!row.occurrenceId)
+    deny('SUGGESTION_VISIBLE_ROW_INVALID');
+  if(positive(row.sourceKg)||positive(row.match1Kg)||positive(row.finalKg)||
+     row.match1View?.stageDecision||row.finalView?.stageDecision)continue;
+  const saved=draftValues.get(row.occurrenceId);
+  if(saved&&!saved.skippedWeight)continue;
+  const candidate=(row.proposals||[]).find(p=>p.ranking===1);
+  const pinned=(row.match1View?.proposals||[]).find(p=>p.proposalId===candidate?.proposalId);
+  if(!candidate||!pinned||!positive(candidate.value)||candidate.unit!=='kg'||
+     pinned.value!==candidate.value||pinned.unit!=='kg'||
+     pinned.qualified!==candidate.qualified||typeof candidate.proposalId!=='string'||
+     !candidate.proposalId||(xml229ProposalScorePercent(candidate)??-1)<threshold)
+    continue;
+  draftValues.set(row.occurrenceId,Object.freeze({
+   value:String(candidate.value),proposalId:candidate.proposalId,reason:'',
+   autoFilled:true,autoUnqualified:candidate.qualified!==true,skippedWeight:false,
+  }));
+  prepared++;
+ }
+ return prepared;
+}
+
 export function hydrateXml229WeightDraftInputs(table,rows,draftValues){
  if(!table?.querySelectorAll||!Array.isArray(rows)||!(draftValues instanceof Map))
    deny('SUGGESTION_VISIBLE_TABLE_REQUIRED');
@@ -191,20 +224,22 @@ export function hydrateXml229WeightDraftInputs(table,rows,draftValues){
    const selection=tr.querySelector('[data-p4-candidate]');
    const reason=tr.querySelector('[data-p4-reason]');
    if(!input)deny('SUGGESTION_VISIBLE_INPUT_MISSING');
-   input.value=saved.value;
+   // Old Skip backups remain in custody, but the sole editable field never
+   // represents a Skip placeholder as a real 0 kg mass.
+   input.value=saved.skippedWeight?'':saved.value;
    if(selection)selection.value=saved.proposalId;
    else tr.dataset.p4PickedProposal=saved.proposalId||'';
    if(reason)reason.value=saved.reason||'';
-   if(input.value!==String(saved.value)||
+   if(input.value!==(saved.skippedWeight?'':String(saved.value))||
       (selection&&selection.value!==saved.proposalId))
      deny('SUGGESTION_VISIBLE_INPUT_NOT_APPLIED');
    tr.dataset.p4DraftFilled='true';
    const flag=tr.querySelector('[data-p4-draft-marker]');
    if(flag)flag.textContent=saved.skippedWeight
-     ?'Skipped: 0 kg draft (NOT an accepted zero mass)'
+     ?'No weight suggestion selected'
      :saved.autoUnqualified
-       ?'Suggestion needs engineering review — draft only'
-       :'Applied Weight is an editable draft — no approval';
+       ?'Suggested kg · not independently verified'
+       :'Editable kg · not accepted engineering mass';
    visiblePopulated++;
  }
  return visiblePopulated;

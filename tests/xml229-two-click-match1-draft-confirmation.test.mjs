@@ -178,8 +178,10 @@ test('P1 production click path and served mirror use one exact draft-confirmatio
  const h=await readFile(new URL('../'+helper,import.meta.url),'utf8');
  assert.match(h,/if\(confirm\)confirm\.disabled=true/);
  assert.ok(p.split('\n').length<=620,'oversized panel must be decomposed into review/exports/draft actions');
- assert.match(p,/prepareXml229ExplicitMassReview/);
- assert.match(p,/commitXml229ExplicitMassReview/);
+ // Review engine remains separately tested, but the simplified UI
+ // exposes one draft kg input and cannot submit Worker stage decisions.
+ assert.doesNotMatch(p,/prepareXml229ExplicitMassReview|commitXml229ExplicitMassReview|data-p4-review-match1|data-p4-review-final/);
+ assert.match(p,/seedXml229VisibleSuggestedWeightDrafts/);
  const review=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-explicit-mass-review.mjs',import.meta.url),'utf8');
  assert.match(review,/session\.review\(\{view:prepared\.view,choice:prepared\.choice\}\)/);
  for(const name of [panel,helper]){

@@ -130,7 +130,9 @@ test('production integration uses existing GC-PW bulk planner and not legacy Wei
     'simplified Weight UI must not expose hidden two-click Match-1 acceptance');
   assert.ok(actions.includes('planXml229SkipWeightDrafts'));
   assert.ok(panel.includes('applyXml229BlankWeightDrafts'));
-  assert.ok(panel.includes('data-p4-skip-weight'));
+  assert.ok(!panel.includes('data-p4-skip-weight'));
+  assert.ok(!panel.includes('data-p4-review-match1'));
+  assert.ok(!panel.includes('data-p4-review-final'));
   assert.ok(panel.includes('draftValues'),
     'Applied Weight remains a source-bound draft, never an automatic ledger write');
  assert.ok(twoClick.includes('session.commitQualifiedBlankFill({planId:plan.planId})'));

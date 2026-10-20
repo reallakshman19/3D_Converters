@@ -226,6 +226,10 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    async readNativeFinalIntent(){
      return rpc({kind:'read',what:'native-final-intent',sourceId});
    },
+   async readNativeFinalPacket(){
+     // Private per-original owner mass custody; not a release credential.
+     return rpc({kind:'read',what:'native-final-packet',sourceId});
+   },
    async attestEngineInput({engineInputXmlText}={}){
      return rpc({kind:'read',what:'attest-engine-input',sourceId,engineInputXmlText});
    },

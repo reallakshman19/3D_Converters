@@ -7,7 +7,7 @@ import {
 } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs';
 import {xml229UnbuiltIndependentStage}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-run-readiness-presentation.mjs';
-import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions}
+import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,seedXml229VisibleSuggestedWeightDrafts}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs';
 import {xml229WeightReviewEligible,xml229IsExcludedWeightFitting,xml229ProposalScorePercent,xml229WeightThreshold}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-weight-review-focus.mjs';
@@ -37,13 +37,11 @@ test('simple source-bound Weight UI shows Applied Weight, three adjacent filters
   assert.match(html,/Filter Blank Weight/);
   assert.match(html,/All XML physicals/);
   assert.match(html,/Weight items/);
-  assert.match(html,/data-p4-skip-weight/);
+  assert.doesNotMatch(html,/data-p4-skip-weight/);
   assert.match(html,/Apply all suggestions/);
-  assert.match(html,/data-p4-reason/);
-  assert.match(html,/data-p4-review-match1/);
-  assert.match(html,/data-p4-review-final/);
+  assert.doesNotMatch(html,/data-p4-reason|data-p4-review-match1|data-p4-review-final|data-p4-draft-marker/);
   assert.doesNotMatch(html,/data-p4-candidate|data-p4-accept-match1|data-p4-accept-final|data-p4-bulk-confirm|data-p4-filter-unresolved/);
-  assert.match(html,/Review Final/);
+  assert.doesNotMatch(html,/Review Final/);
   assert.doesNotMatch(html,/Apply all Match-1|<option value="">Manual/);
   assert.equal((html.match(/<th style=/g)||[]).length,13);
   assert.match(html,/data-p4-scope="rigid"/);
@@ -52,7 +50,7 @@ test('simple source-bound Weight UI shows Applied Weight, three adjacent filters
   assert.match(html,/data-p4-min-score/);
   assert.match(html,/423 components/);
   assert.match(html,/showing 1–1/);
-  assert.match(html,/Editable draft · not approved/);
+  assert.match(html,/no separate Match-1 or Final action is required/);
   assert.equal(xml229WeightReviewPageModel(page,0).counts.unresolved,1);
 });
 
@@ -69,7 +67,7 @@ test('Applied Weight is the only visible mass column, with Worker-accepted mass 
   assert.equal(xml229WeightReviewStatus(reviewed).kind,kind);
   assert.doesNotMatch(html,/Recorded Weight/);
   assert.equal((html.match(/<th style=/g)||[]).length,13);
-  assert.match(html,/Source:|Match-1:|Final:/);
+  assert.doesNotMatch(html,/Source:|Match-1:|Final:/);
  }
  const priority=renderXml229WeightReviewPage({totalCount:1,rows:[{
   ...base,sourceKg:13,match1Kg:14,finalKg:15,
@@ -77,8 +75,47 @@ test('Applied Weight is the only visible mass column, with Worker-accepted mass 
  assert.match(priority,/data-p4-applied-weight[^>]*value="15"/s);
  const blank=renderXml229WeightReviewPage({totalCount:1,rows:[base]});
  assert.match(blank,/data-p4-applied-weight[^>]*value=""/s);
- assert.match(blank,/data-p4-review-match1/);
- assert.match(blank,/data-p4-review-final/);
+ assert.doesNotMatch(blank,/data-p4-review-match1|data-p4-review-final/);
+});
+
+test('visible rank-1 Worker suggestions seed one input, never a ledger or native output',()=>{
+ const rowFor=(id,{value=35,score=0.99,qualified=false,sourceKg=null,existingDecision=null}={})=>{
+  const p={proposalId:'p-'+id,ranking:1,value,unit:'kg',qualified,score};
+  return {sourceId:'SOURCE',occurrenceId:id,sourceKg,match1Kg:null,finalKg:null,
+    proposals:[p],match1View:{stageDecision:existingDecision,proposals:[p]},
+    finalView:{stageDecision:null}};
+ };
+ const rows=[
+  rowFor('skip'),rowFor('manual'),rowFor('unqualified'),rowFor('accepted',{sourceKg:12}),
+  rowFor('low',{score:0.2}),rowFor('decision',{existingDecision:{state:'rejected'}}),
+  {...rowFor('unmatched'),match1View:{proposals:[]}},
+ ];
+ const drafts=new Map([
+  ['skip',{value:'0',proposalId:'',skippedWeight:true,autoFilled:false}],
+  ['manual',{value:'67.5',proposalId:'',reason:'Owner manually edited',autoFilled:false}],
+ ]);
+ const count=seedXml229VisibleSuggestedWeightDrafts(rows,drafts,{minScorePercent:80});
+ assert.equal(count,2);
+ assert.equal(drafts.get('skip').value,'35');
+ assert.equal(drafts.get('skip').skippedWeight,false);
+ assert.equal(drafts.get('skip').autoUnqualified,true);
+ assert.equal(drafts.get('manual').value,'67.5');
+ assert.equal(drafts.get('unqualified').proposalId,'p-unqualified');
+ assert.equal(drafts.has('accepted'),false);
+ assert.equal(drafts.has('low'),false);
+ assert.equal(drafts.has('decision'),false);
+ assert.equal(drafts.has('unmatched'),false);
+});
+test('an unqualified suggestion remains a draft even at 100 percent score',()=>{
+ const p={proposalId:'p1',ranking:1,value:166,unit:'kg',qualified:false,score:1};
+ const rows=[{sourceId:'SRC',occurrenceId:'physical',proposals:[p],
+  match1View:{stageDecision:null,proposals:[p]},finalView:{stageDecision:null}}];
+ const map=new Map();
+ assert.equal(seedXml229VisibleSuggestedWeightDrafts(rows,map),1);
+ assert.deepEqual(map.get('physical'),{
+  value:'166',proposalId:'p1',reason:'',autoFilled:true,
+  autoUnqualified:true,skippedWeight:false,
+ });
 });
 
 test('rendered original occurrence and master candidate are escaped and can never inject HTML',()=>{
@@ -249,7 +286,7 @@ test('adapter uses Worker readPage/review and keeps native Run HOLD and full sou
  assert.match(single,/choiceForXml229WeightRow/);
  assert.match(single,/session\.readIndividual\(/);
  assert.match(single,/session\.review\(/);
- assert.match(panel,/data-p4-confirm-single/);
+ assert.doesNotMatch(panel,/data-p4-confirm-single|prepareXml229ExplicitMassReview|commitXml229ExplicitMassReview/);
  assert.match(panel,/getXml229CurrentWorkerHeldReview/);
  assert.match(run,/projectOriginalReviewIntoRunChecklist/);
  assert.match(run,/verifiedEngineering:/);
@@ -337,7 +374,7 @@ test('Auto Fill actually hydrates input values and selected candidates rather th
  assert.match(file,/applyXml229SourceWideSuggestionDrafts/);
  assert.match(action,/planXml229RigidWeightDrafts\(session,/);
  const hydration=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs',import.meta.url),'utf8');
- assert.match(hydration,/input\.value=saved\.value/);
+ assert.match(hydration,/input\.value=saved\.skippedWeight\?'':saved\.value/);
  assert.match(file,/hydrateXml229WeightDraftInputs\(table,page\.rows,draftValues\)/);
  assert.match(hydration,/selection\.value=saved\.proposalId/);
  assert.match(action,/confirm\.disabled=!plan\.qualified/);
