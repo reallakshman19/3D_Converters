@@ -84,20 +84,12 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
       <div class="mc-wm-candidate-chips" style="display:flex;gap:4px;flex-wrap:wrap;max-height:90px;overflow:auto">
        ${chips||'<span style="color:#94a3b8">No verified candidate yet</span>'}
       </div></td>
-    <td style="min-width:260px" title="Single Applied Weight field. Verified source / accepted Match-1 / Final may prefill it; typing or Auto Fill creates a draft only.">
+    <td style="min-width:164px" title="Source-attested suggestion or edited kg draft. This field does not grant Worker Final or native CII authority.">
       <input data-p4-proposal data-p4-applied-weight class="mc-rigid-review-input"
         type="number" min="0" step="any" inputmode="decimal" placeholder="kg"
         value="${positive(accepted)?e(String(accepted)):''}"
-        aria-label="Applied Weight in kg (verified mass or editable draft)"
+        aria-label="Applied Weight (kg)"
         style="width:130px;padding:6px;background:#243b5d;color:#fff;border:1px solid #818cf8;font-weight:700">
-      <small data-p4-draft-marker style="display:block;color:#94a3b8">${state.kind==='unresolved'?'Editable draft · not approved':'Verified '+e(state.label)+' · edits require separate review'}</small>
-      <small style="display:block;color:#94a3b8">Source: ${kg(r.sourceKg)} · Match-1: <span data-p4-match1-mass>${kg(r.match1Kg)}</span> · Final: <span data-p4-final-mass>${kg(r.finalKg)}</span></small>
-      <input data-p4-reason type="text" maxlength="500" placeholder="Independent engineering reason"
-        aria-label="Engineering review reason (required)" style="display:block;width:235px;padding:4px;margin-top:5px;background:#0b1320;color:#e5eefc;border:1px solid #405a78">
-      <div style="display:flex;gap:4px;margin-top:5px">
-       <button type="button" data-p4-review-match1 aria-label="Prepare explicit Match-1 review">Review Match-1</button>
-       <button type="button" data-p4-review-final aria-label="Prepare independent Final review">Review Final</button>
-      </div>
     </td>
    </tr>`;
  }).join('');
@@ -110,7 +102,7 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
    <strong>Verified original physical facts</strong> · ${m.total} components${page?.populationCount!==undefined?' filtered from '+e(page.populationCount):''}
    · showing ${m.rows.length?m.start+1:0}–${m.end}.
    <small style="display:block;color:#94a3b8">Page only: ${m.counts.match1} Match-1, ${m.counts.final} Final, ${m.counts.unresolved} unresolved.
-    Source-bound Worker is the sole scorer and reviewer. Click a suggestion to fill Applied Weight, or edit it directly. To accept a positive mass, supply an independent engineering reason, prepare the intended stage, then separately confirm. Drafts are not decisions.</small>
+    Applied Weight shows the highest-ranked source suggestion when available; click a different suggestion or edit the kg value. It is a saved draft, not an engineering acceptance or native CII release.</small>
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0">
     ${tabs}
@@ -121,7 +113,6 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
       <input data-p4-min-score type="number" min="0" max="100" step="1" value="${e(minScorePercent)}"
        aria-label="Minimum suggestion score percentage" style="width:58px;background:#0b1320;color:#fff"> %</label>
     <button data-p4-bulk-plan type="button" class="model-converters-download-btn">Apply all suggestions</button>
-    <button data-p4-skip-weight type="button" class="model-converters-download-btn">Skip Weight (0 kg drafts)</button>
     <small data-p4-filter-count style="color:#94a3b8">Filters apply to all original occurrences.</small>
   </div>
   <div class="mc-rigid-review-table-wrap" style="overflow:auto;max-height:48vh;border:1px solid #253a55;border-radius:8px">
@@ -138,7 +129,7 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
     <button data-p4-next type="button" ${m.end>=m.total?'disabled':''}>Next</button>
     <small>Showing ${m.rows.length?m.start+1:0}–${m.end} of ${m.total} matching original physical owners.</small>
   </div>
-  <p style="color:#fbbf24">Applied Weight and Skip Weight are locally saved drafts bound to the verified InputBasis: 0 kg means skipped for review, not verified zero mass. Native CII Run remains HELD until independent Final/output authority is verified.</p>`;
+  <p style="color:#fbbf24">Applied Weight is a locally saved draft bound to the verified InputBasis. Suggestions are not accepted source masses. Native CII Run remains HELD until independent engineering and native-output authority is verified.</p>`;
 }
 export function choiceForXml229WeightRow(row,{stage,proposalId='',value='',reason=''}={}){
  const explanation=txt(reason).trim();
