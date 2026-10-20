@@ -18,7 +18,7 @@ export const xml229WeightReviewStatus=row=>{
  if(positive(row?.finalKg))return {label:'Final reviewed',kind:'final',mass:row.finalKg};
  if(positive(row?.match1Kg))return {label:'Match-1 reviewed',kind:'match1',mass:row.match1Kg};
  if(positive(row?.sourceKg))return {label:'Original XML mass',kind:'source',mass:row.sourceKg};
- return {label:'Needs review',kind:'unresolved',mass:null};
+ return {label:'No recorded mass',kind:'unresolved',mass:null};
 };
 const safeNumber=x=>Number.isFinite(Number(x))?Number(x):0;
 export function xml229WeightReviewPageModel(page,offset=0){
@@ -44,7 +44,7 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
   const chips=proposals.map(p=>{
    const scorePercent=xml229ProposalScorePercent(p);
    const score=scorePercent===null?'':' · '+e(Math.round(scorePercent))+'%';
-   const hint=[p.method,p.matchType,p.qualified?'Qualified source candidate':'Review required',
+   const hint=[p.method,p.matchType,p.qualified?'Source-qualified suggestion':'Estimated suggestion; mass not independently qualified',
      ...(p.eligibilityReasons||[]),...(p.evidenceRefs||[])].filter(Boolean).join(' · ');
    return `<button type="button" class="mc-rigid-review-candidate${p.qualified?' best':''}"
      data-p4-pick="${e(p.proposalId)}" title="${e(hint)}"
@@ -84,7 +84,7 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
       <div class="mc-wm-candidate-chips" style="display:flex;gap:4px;flex-wrap:wrap;max-height:90px;overflow:auto">
        ${chips||'<span style="color:#94a3b8">No verified candidate yet</span>'}
       </div></td>
-    <td style="min-width:164px" title="Source-attested suggestion or edited kg draft. This field does not grant Worker Final or native CII authority.">
+    <td style="min-width:164px" title="Applied Weight (kg), selected from the source-linked suggestions or entered directly. Native CII release has a separate gate.">
       <input data-p4-proposal data-p4-applied-weight class="mc-rigid-review-input"
         type="number" min="0" step="any" inputmode="decimal" placeholder="kg"
         value="${positive(accepted)?e(String(accepted)):''}"
@@ -101,8 +101,8 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
  return `<div class="model-converters-workflow-detail-note" style="margin:8px 0">
    <strong>Verified original physical facts</strong> · ${m.total} components${page?.populationCount!==undefined?' filtered from '+e(page.populationCount):''}
    · showing ${m.rows.length?m.start+1:0}–${m.end}.
-   <small style="display:block;color:#94a3b8">Page only: ${m.counts.match1} Match-1, ${m.counts.final} Final, ${m.counts.unresolved} unresolved.
-    Applied Weight shows the highest-ranked source suggestion when available; click a different suggestion or edit the kg value. It is a saved draft, not an engineering acceptance or native CII release.</small>
+   <small style="display:block;color:#94a3b8">Source-linked weight suggestions and editable kilograms.
+    Applied Weight is automatically filled from the best available source-linked suggestion. Click another suggestion or edit the kg value; no separate Match-1 or Final action is required to select it.</small>
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0">
     ${tabs}
@@ -129,7 +129,7 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
     <button data-p4-next type="button" ${m.end>=m.total?'disabled':''}>Next</button>
     <small>Showing ${m.rows.length?m.start+1:0}–${m.end} of ${m.total} matching original physical owners.</small>
   </div>
-  <p style="color:#fbbf24">Applied Weight is a locally saved draft bound to the verified InputBasis. Suggestions are not accepted source masses. Native CII Run remains HELD until independent engineering and native-output authority is verified.</p>`;
+  <p style="color:#fbbf24">Applied Weight selections are saved against the verified source. Source-qualified and estimated suggestions are distinguished by ★ and ≈. Native CII output authorization remains a separate gate and is currently HELD.</p>`;
 }
 export function choiceForXml229WeightRow(row,{stage,proposalId='',value='',reason=''}={}){
  const explanation=txt(reason).trim();
