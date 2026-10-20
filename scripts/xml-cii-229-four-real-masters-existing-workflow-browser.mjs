@@ -156,9 +156,10 @@ try{
   assert.equal(await page.locator('.mc-rigid-review-table-wrap').count(),1);
   assert.equal(await page.locator('tr[data-p4-row]').first().locator('td').count(),14);
   record.stages.historicalColumns=await page.locator('.mc-rigid-review-table th').allTextContents();
+  assert.equal(record.stages.historicalColumns.some(x=>x.trim()==='Recorded Weight'),false);
   assert.deepEqual(record.stages.historicalColumns.map(x=>x.trim()),[
     'Status','Short name / Valve Hint','DTXR','Branch','Line Key','ComponentType','Bore','Rating','Node',
-    'ComponentRefNo_Endpoint','Length','Recorded Weight','Nearest Suggestions','Applied Weight']);
+    'ComponentRefNo_Endpoint','Length','Nearest Suggestions','Applied Weight']);
   assert.equal(await page.locator('[data-p4-weight-build]').count(),0);
 
 
