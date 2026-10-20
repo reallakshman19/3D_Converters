@@ -280,6 +280,47 @@ export async function openXml229EngineeringFactModel({
       nextId+=10;
     }
   }
+  // An actual 1->2 same-ref VALV/FLAN/INST element is a geometrically
+  // witnessed physical segment. Classify that EXISTING span as a native
+  // rigid mass-bearing edge before any kg can be accepted; never invent a
+  // point, split an edge, or move kg onto an adjacent pipe.
+  // Only an unset endpoint Rigid field may be given the derived rigid role.
+  const rigidEdgePromotions=[];
+  for(const [bi,branch] of branches.entries()){
+    const effective=children(branch,'Node');
+    const retained=prepared.ledger.retainedByBranch[bi];
+    for(let i=0;i+1<effective.length;i++){
+      const left=effective[i],right=effective[i+1];
+      const type=field(left,'ComponentType').toUpperCase();
+      const ref=field(left,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
+      const otherRef=field(right,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
+      if(!['VALV','FLAN','INST'].includes(type)||!ref||
+         type!==field(right,'ComponentType').toUpperCase()||ref!==otherRef||
+         field(left,'Endpoint')!=='1'||field(right,'Endpoint')!=='2'||
+         !isXmlCiiWeightReviewNode(left)||!isXmlCiiWeightReviewNode(right)||
+         !isXmlCiiWeightReviewConnectionEligible(left)||
+         !isXmlCiiWeightReviewConnectionEligible(right)||
+         field(right,'Rigid'))continue;
+      const a=field(left,'Position').split(/\\s+/).map(Number);
+      const b=field(right,'Position').split(/\\s+/).map(Number);
+      if(a.length!==3||b.length!==3||
+         ![...a,...b].every(Number.isFinite))continue;
+      const distanceMm=Math.hypot(...a.map((n,j)=>n-b[j]));
+      if(!(distanceMm>6))continue;
+      const ns=right.namespaceURI||null;
+      const rigid=ns?prepared.document.createElementNS(ns,'Rigid'):
+        prepared.document.createElement('Rigid');
+      rigid.textContent='2';
+      right.appendChild(rigid);
+      rigidEdgePromotions.push(Object.freeze({
+        branchOccurrenceIndex:bi,
+        firstSourceNodeOrdinal:retained[i].sourceNodeOrdinal,
+        secondSourceNodeOrdinal:retained[i+1].sourceNodeOrdinal,
+        componentType:type,componentRefNo:ref,
+        distanceMm,
+      }));
+    }
+  }
   const finalXmlText=new XMLSerializer().serializeToString(prepared.document);
   // A physical *part* can have Endpoint=1 and Endpoint=2 XML witnesses.
   // These are not automatically two mass owners. Preserve both source facts,
@@ -333,6 +374,7 @@ export async function openXml229EngineeringFactModel({
     xmlText:finalXmlText,sha256:await digestUtf8(finalXmlText),
     originalNodeCount:prepared.ledger.originalCount,
     assignedNodeNumbers:Object.freeze(assignedNodeNumbers),
+    rigidEdgePromotions:Object.freeze(rigidEdgePromotions),
     retainedSourceOrdinalsByBranch:prepared.ledger.retainedByBranch.map(
       rows=>rows.map(row=>row.sourceNodeOrdinal)),
   });
