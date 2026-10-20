@@ -1,8 +1,4 @@
-/**
- * XML229 P4-D opt-in, source-attested one-flow Weight Match-1 / Final review.
- * Does not replace legacy Weight(kg), native CII Run, or persist issue.key
- * weights. Large original staged JSON remains INSIDE its GC-PW Worker.
- */
+/** XML229 source-attested Weight Match. Original JSON remains in the GC-PW Worker. */
 import {openXml229WorkerHeldOriginalWeightReview} from '../integration/xml229-original-blob-gcpw-client.mjs';
 import {renderXml229VerifiedPanelShell} from './xml229-p4-panel-shell.mjs';
 import {resolveXml229CurrentPreviewBlob} from './xml-cii-adapted-lfj-o1-intake.js';
@@ -35,13 +31,7 @@ const err=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
 const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
  .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const labelKg=n=>typeof n==='number'&&Number.isFinite(n)&&n>=0?n+' kg':'—';
-/**
- * The Worker InputBasis is source bytes + committed original Blob generation +
- * effective config/master revisions + physical selection. UI-only revision
- * bookkeeping and a new File wrapper around the same XML are NOT changes to
- * the verified source/master basis. These were false-staling the live Weight
- * Review after ordinary phase navigation and background UI hydration.
- */
+/** InputBasis tracks real XML/JSON/master changes, not UI navigation or File wrapper churn. */
 const ownerScope=value=>{
  const s=String(value??'').trim();
  return !s||s==='ALL'||s==='__ALL__'?'__ALL__':s;
@@ -70,8 +60,7 @@ export function compareXml229P4LiveSourceSnapshot(basis,current,{
  const activeId=String(current?.modeASourceId||current?.sourceBatch?.activeSourceId||basis.sourceId);
  if(activeId!==basis.sourceId)return false;
  const latest=captureXml229P4LiveSourceSnapshot(current,basis.sourceId);
- // A normalized/expanded "all branches" representation has the same
- // physical identity. A genuine partial/stale selection still fails closed.
+ // Accept equivalent full-branch selections, never a partial/stale source.
  if(basis.scope!==latest.scope){
    try{if(!verifyFullSelection(current))return false;}
    catch{return false;}
@@ -197,8 +186,7 @@ export async function openXml229P4VerifiedSession(stateRef,{
    }
    catch{/* genuinely stale/cancelled prior session cannot be reused */}
  }
- // One source-bound authority per stable baseRef, independent of DOM
- // ownership. A newer build invalidates an in-flight predecessor (CAS).
+ // One source authority per baseRef; newer Preview builds supersede old Workers.
  const ticket=beginXml229VerifiedEngineeringBuild(key);
  const session=await openXml229WorkerHeldOriginalWeightReview({...inputs,onProgress,signal,
    onFlowTrace:event=>{try{trace.record(event)}catch{}}});
@@ -289,14 +277,11 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    if(draftOwner!==session)bindDrafts(session);
    table.innerHTML=renderXml229WeightReviewPage(page,offset,{filter:mode,query,minScorePercent});
    root.__p4VisibleRows=page.rows;
-   // A verified Worker rank-1 proposal fills the single input as a DRAFT.
-   // Never overwrite a positive manual edit or any accepted source/ledger mass.
+   // Source-ranked suggestions never overwrite accepted or manual masses.
    seedXml229VisibleSuggestedWeightDrafts(page.rows,draftValues,{minScorePercent});
    const count=hydrateXml229WeightDraftInputs(table,page.rows,draftValues);
    persistDrafts(); // Source-basis-bound backup before any authoritative write.
-   // Owner policy: the selected positive Applied Weight is the engineering
-   // decision. Use protected Worker Final CAS directly (no second UI gate).
-   // Prefills apply to this visible page only; no invisible/unselected rows.
+   // Visible source-ranked selections go directly through protected Final CAS.
    const {committed,stale}=await commitXml229VisibleSelectedFinal({
      session,rows:page.rows,drafts:draftValues,
      isCurrent:()=>token===renderSequence&&active===session&&live()===session,
@@ -536,9 +521,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
          showFirst:index=>{mode='all';query='';offset=0;},
          render,table,detail:bulkDetail,say,
        });
-       // "Apply all" applies ALL current source-bound selected positive kg,
-       // not only whichever physicals happen to be visible in the table.
-       // Each row receives a fresh guarded Final CAS view before acceptance.
+       // Apply all traverses every source physical using fresh Final CAS.
        const {accepted}=await commitXml229AllSelectedFinal({
          session,drafts:draftValues,
          isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
@@ -611,9 +594,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    void attach(initial).catch(async error=>{
      if(root.isConnected===false)return;
      const latest=live();
-     // A second valid Preview build can replace an in-flight Worker read.
-     // Reattach only to that already attested Worker; never manufacture
-     // source facts, replay decisions, or silently build against old inputs.
+     // Reattach only to a newer independently verified Preview Worker.
      if(latest&&latest!==initial){
        active=latest;pendingBulk=null;clearDrafts();offset=0;
        try{await attach(latest);return;}
