@@ -37,13 +37,11 @@ test('simple source-bound Weight UI shows Applied Weight, three adjacent filters
   assert.match(html,/Filter Blank Weight/);
   assert.match(html,/All XML physicals/);
   assert.match(html,/Weight items/);
-  assert.match(html,/data-p4-skip-weight/);
+  assert.doesNotMatch(html,/data-p4-skip-weight/);
   assert.match(html,/Apply all suggestions/);
-  assert.match(html,/data-p4-reason/);
-  assert.match(html,/data-p4-review-match1/);
-  assert.match(html,/data-p4-review-final/);
+  assert.doesNotMatch(html,/data-p4-reason|data-p4-review-match1|data-p4-review-final|data-p4-draft-marker/);
   assert.doesNotMatch(html,/data-p4-candidate|data-p4-accept-match1|data-p4-accept-final|data-p4-bulk-confirm|data-p4-filter-unresolved/);
-  assert.match(html,/Review Final/);
+  assert.doesNotMatch(html,/Review Final/);
   assert.doesNotMatch(html,/Apply all Match-1|<option value="">Manual/);
   assert.equal((html.match(/<th style=/g)||[]).length,13);
   assert.match(html,/data-p4-scope="rigid"/);
@@ -69,7 +67,7 @@ test('Applied Weight is the only visible mass column, with Worker-accepted mass 
   assert.equal(xml229WeightReviewStatus(reviewed).kind,kind);
   assert.doesNotMatch(html,/Recorded Weight/);
   assert.equal((html.match(/<th style=/g)||[]).length,13);
-  assert.match(html,/Source:|Match-1:|Final:/);
+  assert.doesNotMatch(html,/Source:|Match-1:|Final:/);
  }
  const priority=renderXml229WeightReviewPage({totalCount:1,rows:[{
   ...base,sourceKg:13,match1Kg:14,finalKg:15,
@@ -77,8 +75,7 @@ test('Applied Weight is the only visible mass column, with Worker-accepted mass 
  assert.match(priority,/data-p4-applied-weight[^>]*value="15"/s);
  const blank=renderXml229WeightReviewPage({totalCount:1,rows:[base]});
  assert.match(blank,/data-p4-applied-weight[^>]*value=""/s);
- assert.match(blank,/data-p4-review-match1/);
- assert.match(blank,/data-p4-review-final/);
+ assert.doesNotMatch(blank,/data-p4-review-match1|data-p4-review-final/);
 });
 
 test('rendered original occurrence and master candidate are escaped and can never inject HTML',()=>{
@@ -249,7 +246,7 @@ test('adapter uses Worker readPage/review and keeps native Run HOLD and full sou
  assert.match(single,/choiceForXml229WeightRow/);
  assert.match(single,/session\.readIndividual\(/);
  assert.match(single,/session\.review\(/);
- assert.match(panel,/data-p4-confirm-single/);
+ assert.doesNotMatch(panel,/data-p4-confirm-single|prepareXml229ExplicitMassReview|commitXml229ExplicitMassReview/);
  assert.match(panel,/getXml229CurrentWorkerHeldReview/);
  assert.match(run,/projectOriginalReviewIntoRunChecklist/);
  assert.match(run,/verifiedEngineering:/);
