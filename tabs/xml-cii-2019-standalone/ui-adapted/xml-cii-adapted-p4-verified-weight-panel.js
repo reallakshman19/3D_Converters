@@ -272,14 +272,11 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const page=mode==='all'&&!query
      ?await session.readPage({offset,limit:25})
      :await session.readPage({offset,limit:25,filter:mode,query});
-   // A late response from a cancelled/replaced Worker cannot paint rows that
-   // appear current, even when a new Worker carries a different InputBasis.
    if(token!==renderSequence||session!==active||
       root.isConnected===false||live()!==session)return;
    if(draftOwner!==session)bindDrafts(session);
    table.innerHTML=renderXml229WeightReviewPage(page,offset,{filter:mode,query,minScorePercent});
    root.__p4VisibleRows=page.rows;
-   // Source-ranked suggestions never overwrite accepted or manual masses.
    seedXml229VisibleSuggestedWeightDrafts(page.rows,draftValues,{minScorePercent});
    const count=hydrateXml229WeightDraftInputs(table,page.rows,draftValues);
    persistDrafts(); // Source-basis-bound backup before any authoritative write.
@@ -595,7 +592,6 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      (counts.final??0)+' accepted Final, '+
      (counts.unresolved??0)+' unresolved. '+
      'Applied Weight selections are saved for this source. Native CII output release remains HELD.');
-   // Keep Preview/Weight status synchronous with Worker readiness; no toast delay.
    void zeroPopup.offer(session);
  };
  if(active){
@@ -617,7 +613,6 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        String(error?.code||'VERIFICATION_UNAVAILABLE')+']',true);
    });
  }
- // Removing the panel is not Worker disposal; explicit revocation is separate.
  return {dispose:()=>{if(searchTimer!==null)clearTimeout(searchTimer);},
    cancel:()=>revokeXml229VerifiedEngineeringBasis(key,{expectedSession:active})};
 }
