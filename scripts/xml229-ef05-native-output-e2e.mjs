@@ -304,7 +304,7 @@ try{
  try{
    await page.waitForFunction(()=>{
      const message=document.querySelector('[data-p4-weight-status]')?.textContent||'';
-     return /Apply all suggestions ≥80%:|Review not accepted:|Worker ended|rebuild/i.test(message);
+     return /Apply all suggestions ≥80%: complete\.|Weight action unavailable:|Worker ended|rebuild/i.test(message);
    },null,{timeout:90000});
  }catch(error){
    const state=await page.evaluate(()=>{
@@ -320,13 +320,14 @@ try{
      JSON.stringify(state)+'; '+String(error?.message||error));
  }
  const actualApplyStatus=await page.locator('[data-p4-weight-status]').textContent();
- assert.match(actualApplyStatus,/Apply all suggestions ≥80%:/,
+ assert.match(actualApplyStatus,/Apply all suggestions ≥80%: complete\./,
    'Real 80% Apply failed: '+actualApplyStatus);
  record.stages.applyStatus=actualApplyStatus.slice(0,600);
  const applyElapsedMs=Date.now()-applyStartMs;
  const firstVisibility=await page.evaluate(()=>{
    const scroller=document.querySelector('.mc-rigid-review-table-wrap');
-   const input=scroller?.querySelector('tr[data-p4-draft-filled="true"] input[data-p4-applied-weight]');
+   const input=scroller?.querySelector('tr[data-p4-stage="final"] input[data-p4-applied-weight]')||
+     scroller?.querySelector('tr[data-p4-draft-filled="true"] input[data-p4-applied-weight]');
    const a=input?.getBoundingClientRect(),b=scroller?.getBoundingClientRect();
    return {firstFilled:!!input,valuePresent:!!input?.value,
      inHorizontalViewport:!!(a&&b&&a.left>=b.left-1&&a.right<=b.right+1),
@@ -336,10 +337,10 @@ try{
  assert(firstVisibility.inHorizontalViewport,
    'production Applied Weight populated but still hidden horizontally');
 
- await page.locator('[data-p4-scope="blank-rigid"]').click();
+ await page.locator('[data-p4-scope="all"]').click();
  await waitWeightIdle();
  const seen=new Set(),mismatches=[];
- for(let pageNo=0;pageNo<pageCount;pageNo++){
+ for(let pageNo=0;pageNo<40;pageNo++){
    const actual=await page.evaluate(()=>[...document.querySelectorAll('tr[data-p4-row]')].map(tr=>({
      id:tr.dataset.p4Occurrence,kg:tr.querySelector('[data-p4-applied-weight]')?.value
    })));
@@ -349,7 +350,7 @@ try{
      const expected=id===manualId?manualKg:applyOracle.get(id);
      if(kg!==expected)mismatches.push({id,expected,kg});
    }
-   if(pageNo+1===pageCount)break;
+   if(await page.locator('[data-p4-next]').isDisabled())break;
    const previous=await page.locator('tr[data-p4-row]').first().getAttribute('data-p4-occurrence');
    await page.locator('[data-p4-next]').click();
    await waitWeightIdle();
@@ -365,10 +366,10 @@ try{
    pageCount,eligibleRank1:applyOracle.size,applyElapsedMs,
    observed:seen.size,editPreserved:true,
    mismatches:mismatches.length,firstVisibility,
-   acceptedMatch1Automatically:false,acceptedFinalAutomatically:false,
+   acceptedMatch1Automatically:false,acceptedFinalAutomatically:true,
    nativeCiiReleaseAuthorized:false,
  };
- record.passes.push('actual GC-PW Worker: 80% Apply edits preserved, kg matched across pages, first input horizontally visible');
+ record.passes.push('actual GC-PW Worker: one-step Final values and edited kg matched across all physical pages; no native release');
 
 
   // Real 41-branch P3: capture exact effective four-master config from
