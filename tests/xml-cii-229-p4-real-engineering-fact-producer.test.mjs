@@ -170,6 +170,39 @@ test('physical endpoint pairs are identified before accepting weights, without m
               await digestUtf8(opened.finalizedGeometry.xmlText));
 });
 
+test('FLAN/VALV first-end witness delegates to existing same-ref RIGID mass owner before review',async()=>{
+ const xml=XML.replace(
+  '<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>2</Endpoint>',
+  '<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>1</Endpoint>')
+  .replace('<ComponentType>INST</ComponentType>','<ComponentType>RIGID</ComponentType>')
+  .replace('<ComponentRefNo>1006649732/119369</ComponentRefNo>',
+   '<ComponentRefNo>1006649732/119367</ComponentRefNo>')
+  .replace('<Position>650 0 0</Position><Weight>0</Weight>',
+   '<Position>650 0 0</Position><Rigid>2</Rigid><Weight>0</Weight>');
+ const basis=await createPreviewBasis({domainId:'xml-cii/2019',
+   sources:[{sourceId:SOURCE_ID,mediaType:'application/xml',text:xml}],
+   masters,selection,config,overrides:{},sha256:digestUtf8});
+ const original=projectXmlCiiOccurrences({xmlText:xml,sourceId:SOURCE_ID});
+ const preview=xmlCiiDryRunPreview(xml,config,'');
+ const opened=await openXml229EngineeringFactModel({
+  basis,live:{...live,sources:{[SOURCE_ID]:xml}},xmlText:xml,
+  sourceId:SOURCE_ID,previewResult:{...preview,sourceOccurrences:original,
+   engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},
+  expectedOriginalCount:original.branchCount+original.nodeCount,
+ });
+ const card=opened.finalizedGeometry.physicalOwnerCardinality;
+ assert.equal(card.sourcePhysicalNodeOccurrences,3);
+ assert.equal(card.reviewedPhysicalNodeOccurrences,2);
+ assert.equal(card.pairedEndpointPhysicalParts,1);
+ assert.equal(card.endpointPairs[0].componentType,'VALV');
+ assert.equal(card.endpointPairs[0].firstIsWeightOwner,false);
+ assert.equal(card.endpointPairs[0].secondIsWeightOwner,true);
+ assert.equal(opened.physicalOccurrences.length,2);
+ assert.deepEqual(opened.physicalOccurrences.map(x=>x.nodeOrdinal),[1,3]);
+ assert.equal(opened.finalizedGeometry.rigidEdgePromotions.length,0,
+   'the source RIGID is already the mass-bearing CII edge; no new marker');
+});
+
 test('actual verified Preview result enters GC-PW Weight session via the EXISTING strict port',async()=>{
  const f=await fixture();
  const prepared=await openXml229EngineeringFactModel({
