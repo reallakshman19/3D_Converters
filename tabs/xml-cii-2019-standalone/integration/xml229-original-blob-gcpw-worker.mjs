@@ -305,9 +305,9 @@ async function rpc(req){
         full.basisId!==intent.basisId||
         !ready.basis.sourceRefs?.[0]?.sha256||
         full.rows.some(row=>row.status==='Needs review'||row.status==='Match-1'||
-           !(typeof row.effectiveKg==='number'&&Number.isFinite(row.effectiveKg)&&row.effectiveKg>0)))
+           !(typeof row.effectiveKg==='number'&&Number.isFinite(row.effectiveKg)&&row.effectiveKg>=0)))
        fail('NATIVE_FINAL_MASS_CENSUS_UNREADY',
-         'Every independently indexed original physical needs a positive accepted Source/Final mass');
+         'Every original physical needs an accepted nonnegative Source/Final mass; native zero-mass lineage is verified separately');
      return {
        schema:'XML229.NativeFinalPhysicalPacket.v1',
        basisId:full.basisId,sourceId,
