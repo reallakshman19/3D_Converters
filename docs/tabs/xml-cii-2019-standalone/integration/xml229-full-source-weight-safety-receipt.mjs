@@ -28,14 +28,12 @@ function attestRead(readiness,coverage,receipt){
     coverage.verifiedFactCount!==readiness.verifiedFactCount||
     !safeInt(coverage.proposalCount))
    error('PUBLIC41_WORKER_CUSTODY_OR_FACT_DRIFT');
- if(!reviewCounts(readiness.counts)||readiness.counts.match1!==0||
-    readiness.counts.final!==0||
-    readiness.counts.source+readiness.counts.unresolved!==readiness.verifiedPhysicalCount||
-    coverage.counts?.acceptedMatch1Count!==0||
-    coverage.counts?.acceptedFinalCount!==0||
+ const c=readiness.counts,cc=coverage.counts;
+ if(!reviewCounts(c)||c.source+c.match1+c.final+c.unresolved!==readiness.verifiedPhysicalCount||
+    cc?.acceptedMatch1Count<c.match1||cc?.acceptedFinalCount!==c.final||
     coverage.reviewDecisionsAuthorized!==false||
     coverage.nativeCiiReleaseAuthorized!==false)
-   error('PUBLIC41_NONEMPTY_REVIEW_LEDGER');
+   error('PUBLIC41_REVIEW_CENSUS_DRIFT');
 }
 /**
  * Owner-safe aggregate: 41-branch benchmark or private session; no automatic
@@ -84,9 +82,20 @@ export async function collectXml229ReadOnlyWeightAcceptance(session,{
    if(!row||!Array.isArray(row.proposals)||!Array.isArray(row.match1View?.proposals)||
       row.match1View.proposals.length!==row.proposals.length)
     error('PUBLIC41_CANDIDATE_PROJECTION_DRIFT');
-   if(positive(row.match1Kg)||positive(row.finalKg)||row.match1View.stageDecision||
-      row.finalView?.stageDecision)
-    error('PUBLIC41_REVIEW_MUTATED');
+   // This is a read-only audit, not an empty-ledger-only precheck. Accepted
+   // decisions belong to the current protected Worker and must be counted,
+   // not treated as corruption when the Owner already selected Applied Weight.
+   const m=row.match1View.stageDecision,f=row.finalView?.stageDecision;
+   if(m?.state==='accepted'){
+     if(!positive(row.match1Kg))error('PUBLIC41_MATCH1_MASS_DRIFT');
+     counts.acceptedMatch1++;
+   }else if(positive(row.match1Kg))error('PUBLIC41_MATCH1_LEDGER_DRIFT');
+   if(f?.state==='accepted'){
+     if(!((positive(row.finalKg))||
+       (row.finalKg===0&&f.action==='set-zero-mass')))
+      error('PUBLIC41_FINAL_MASS_DRIFT');
+     counts.acceptedFinal++;
+   }else if(typeof row.finalKg==='number')error('PUBLIC41_FINAL_LEDGER_DRIFT');
    counts.physical++;
    for(const p of row.proposals){
     const family=p.familyEligibility;
@@ -115,6 +124,8 @@ export async function collectXml229ReadOnlyWeightAcceptance(session,{
   if(offset+page.rows.length===total)break;
  }
  if(counts.physical!==receipt.physicalCount||
+    counts.acceptedMatch1!==coverage.counts.acceptedMatch1Count||
+    counts.acceptedFinal!==coverage.counts.acceptedFinalCount||
     counts.proposals!==coverage.proposalCount||
     counts.qualified!==coverage.counts.qualifiedCandidateCount||
     counts.unqualified!==coverage.counts.unqualifiedCandidateCount||
@@ -122,6 +133,7 @@ export async function collectXml229ReadOnlyWeightAcceptance(session,{
    error('PUBLIC41_SEMANTIC_ACCEPTANCE_DRIFT');
  const after=await session.readCompletion();
  if(JSON.stringify(reviewCounts(after.counts))!==JSON.stringify(reviewCounts(before.counts))||
+    JSON.stringify(reviewCounts(readiness.counts))!==JSON.stringify(reviewCounts(before.counts))||
     after.basisId!==before.basisId||after.verifiedFactCount!==before.verifiedFactCount||
     after.ciiReleaseAuthorized!==false)
    error('PUBLIC41_READ_ONLY_STATE_CHANGED');
@@ -138,9 +150,10 @@ export async function collectXml229ReadOnlyWeightAcceptance(session,{
     sourceFamilyConflict:counts.familyConflictProposals,
     valveToFlangeRejected:counts.valveToFlangeRejected,
     valveToFlangeQualified:0},
-  review:{source:before.counts.source,acceptedMatch1:0,acceptedFinal:0,
-    unresolved:before.counts.unresolved,unchanged:true},
-  ownerEngineeringAcceptance:false,
+  review:{source:before.counts.source,acceptedMatch1:counts.acceptedMatch1,
+    acceptedFinal:counts.acceptedFinal,unresolved:before.counts.unresolved,
+    unchanged:true},
+  ownerEngineeringAcceptance:counts.acceptedFinal>0,
   historical125DecisionVerification:false,
   nativeCiiReleaseAuthorized:false,readOnly:true,
  });
