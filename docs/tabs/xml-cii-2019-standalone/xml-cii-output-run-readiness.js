@@ -258,10 +258,24 @@ export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineeri
     completion:verifiedEngineering?.proof,
     readError:verifiedEngineering?.readError,
   });
+  const verifiedMass=verifiedEngineering?.proof?.counts;
+  const massMessage=verifiedEngineering?.proof?.schema==='XML229.P4.RunAdvisory.v1'&&
+    verifiedEngineering.proof.basisId===verifiedEngineering.sessionReceipt?.basisId&&
+    verifiedMass&&Number.isSafeInteger(verifiedMass.unresolved)&&
+    Number.isSafeInteger(verifiedMass.match1)&&Number.isSafeInteger(verifiedMass.final)
+    ?verifiedMass.unresolved>0
+      ?verifiedMass.unresolved+' original physical(s) still need Applied Weight. '+
+        'Assign a positive kg or explicitly confirm zero in Weight Match. '
+      :verifiedMass.match1>0
+        ?verifiedMass.match1+' physical(s) have Match-1 only; an Owner Final is required. '
+        :'Current Worker reports accepted Final masses; no missing mass is implied. '
+    :'Current original-source engineering completion is not verified. ';
   const checklistRows = projection.rows.map(item=>
     item.id==='xml229-original-json-engineering-authority'&&item.blocking
-      ?{...item,message:item.message+' Audit diagnosis: '+
-          holdAudit.diagnosisCode+'. See Run HOLD audit trail below.',
+      ?{...item,message:massMessage+
+          'Governed native CII release is HELD pending independent full output/child-lineage proof. '+
+          'This is a release-policy HOLD, not an exception from the converter. '+
+          'Diagnosis: '+holdAudit.diagnosisCode+'. See Run HOLD audit.',
         detail:JSON.stringify({schema:holdAudit.schema,diagnosisCode:holdAudit.diagnosisCode,
           firstUnverifiedBoundary:holdAudit.firstUnverifiedBoundary})}
       :item);
