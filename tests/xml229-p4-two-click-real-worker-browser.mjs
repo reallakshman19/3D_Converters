@@ -1,7 +1,13 @@
 /** Real served Chromium two-click workflow against a synthetic original XML Worker. */
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
-import {readFile} from 'node:fs/promises';
+import {readFile,writeFile,mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {reconcileXml229ActualCiiAgainstFinal}
+ from '../converters/xml-cii2019-core/xml229-native-cii-independent-reconciliation.mjs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -45,11 +51,15 @@ try{
    '<Branchname>/ASIM-1836-8"-P8810021-31441C4-PP/B4</Branchname>'+
    '<Node><NodeNumber>100</NodeNumber><ComponentType>GASK</ComponentType>'+
    '<ElementLengthMm>2</ElementLengthMm><Position>0 0 0</Position></Node>'+
+   // Keep a real pre-finalized predecessor so the native CII contains
+   // one physical element after Worker removes the GASK.
+   '<Node><NodeNumber>150</NodeNumber><ComponentType>PIPE</ComponentType>'+
+   '<Position>0 0 0</Position></Node>'+
    '<Node><NodeNumber>200</NodeNumber><ComponentType>RIGID</ComponentType>'+
    '<NodeName>88-VGT-25202</NodeName><BoreMm>200</BoreMm>'+
    '<ComponentRefNo>1006649732/119364</ComponentRefNo><Endpoint>2</Endpoint>'+
    '<ElementLengthMm>112</ElementLengthMm><Position>112 0 0</Position>'+
-   '<Weight>0</Weight></Node></Branch></Pipe></PipeStressExport>';
+   '<Rigid>2</Rigid><Weight>0</Weight></Node></Branch></Pipe></PipeStressExport>';
   const master=[{Rating:'300',Bore:200,Length:112,'RF/RTJ KG':35,TypeDesc:'Gate Valve'}];
   const receipt={schema:'XML229.OriginalStagedSourceReceipt.v1',
    phase:'INDEX_COMMITTED',rightsBasis:'SOURCE_FACTS_ONLY',engineeringReady:false,
@@ -167,6 +177,51 @@ try{
  assert.equal(after.counts.match1,0,'prefill and edit never accept Match-1');
  assert.equal(after.counts.final,1,'selected positive Applied Weight is accepted as owner-designated Worker Final');
  assert.equal(after.nativeRelease,false,'prefill and edit never authorize native CII');
+ // Browser -> actual Worker acceptance packet -> real Python native CII
+ // -> independent actual emitted-byte mass proof. Synthetic source only:
+ // does not authorize any Owner 423-physical engineering output.
+ const sourceAndFinal=await page.evaluate(async()=>{
+  const {getXml229CurrentWorkerHeldReview}=await import(
+   '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+  const session=getXml229CurrentWorkerHeldReview(window.__stateRef);
+  return {originalXmlText:window.__options.xmlText,
+   packet:await session.readNativeFinalPacket()};
+ });
+ const {originalXmlText,packet}=sourceAndFinal;
+ assert.equal(packet.physicalCount,1);
+ assert.equal(packet.components[0].effectiveKg,35.5);
+ assert.equal(packet.finalizedGeometry.schema,'XML229.FinalizedWeightGeometry.v1');
+ assert.equal(packet.finalizedGeometry.originalNodeCount,3);
+ assert.deepEqual(packet.finalizedGeometry.retainedSourceOrdinalsByBranch,[[1,2]]);
+ assert.ok(!packet.finalizedGeometry.xmlText.includes('<ComponentType>GASK</ComponentType>'));
+ const work=await mkdtemp(join(tmpdir(),'xml229-browser-final-native-'));
+ let nativeProof,ciiText;
+ try{
+  const originalPath=join(work,'original.xml');
+  const packetPath=join(work,'accepted.json');
+  const outputPath=join(work,'actual.cii');
+  const proofPath=join(work,'native-proof.json');
+  await writeFile(originalPath,originalXmlText);
+  await writeFile(packetPath,JSON.stringify(packet));
+  execFileSync('python3',[
+   join(root,'converters/scripts/xml_to_cii2019_runtime_custody.py'),
+   '--input',originalPath,'--output',outputPath,'--weight-scale','10',
+   '--xml229-native-final-packet',packetPath,
+   '--xml229-native-mass-proof',proofPath,
+  ],{encoding:'utf8',timeout:120000});
+  ciiText=await readFile(outputPath,'utf8');
+  nativeProof=JSON.parse(await readFile(proofPath,'utf8'));
+ }finally{
+  await rm(work,{recursive:true,force:true});
+ }
+ assert.equal(nativeProof.actualCiiSha256,createHash('sha256').update(ciiText).digest('hex'));
+ assert.equal(nativeProof.finalizedGeometrySha256,packet.finalizedGeometry.sha256);
+ assert.equal(nativeProof.claims[0].massKg,35.5);
+ const independent=await reconcileXml229ActualCiiAgainstFinal({
+  originalXmlText,packet,ciiText,writerDiagnostic:nativeProof,
+ });
+ assert.equal(independent.massesReconciled,true,
+  'independent emitted-byte oracle must reconcile real Worker Final');
  assert.equal(await page.locator('[data-p4-reason],[data-p4-review-match1],[data-p4-review-final],[data-p4-confirm-single]').count(),0);
  assert.deepEqual(pageErrors,[]);
  console.log(JSON.stringify({schema:'XML229.SimpleAppliedWeightChromium.v1',
