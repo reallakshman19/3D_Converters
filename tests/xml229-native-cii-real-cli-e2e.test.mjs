@@ -22,6 +22,15 @@ const packet={schema:'XML229.NativeFinalPhysicalPacket.v1',
  sourceId:'SOURCE',basisId:'a'.repeat(64),finalIntentSha256:'b'.repeat(64),
  sourceXmlSha256:sha(source),physicalCount:1,nativeCiiReleaseAuthorized:false,
  components:[{occurrenceId,effectiveKg:12.5}]};
+test('Run diagnostic binds to stable live GC-PW authority, not mutable state.current',()=>{
+ const ui=readFileSync(fileURLToPath(new URL(
+  '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',
+  import.meta.url)),'utf8');
+ assert.match(ui,/const session=getXml229CurrentWorkerHeldReview\(stateRef\);/);
+ assert.doesNotMatch(ui,/getXml229CurrentWorkerHeldReview\(stateRef\.current\)/);
+ assert.match(ui,/sourceReceipt\.generationId/);
+ assert.match(ui,/nativeCiiReleaseAuthorized:false|native CII release remains HELD|Native CII release remains HELD/i);
+});
 test('REAL Python native converter CII independently reconciles against exact source Final kg',async()=>{
  const folder=mkdtempSync(join(tmpdir(),'xml229-custody-'));
  try{
