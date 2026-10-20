@@ -185,7 +185,7 @@ try{
  assert.equal(reviewed.nativeRelease,false,'no native CII release implied');
  assert.equal(await page.locator('tr[data-p4-row] [data-p4-applied-weight]').first().inputValue(),'35.5',
   'accepted Worker Match-1 mass is displayed in the same Applied Weight field');
- assert.match(await page.locator('tr[data-p4-row] [data-p4-match1-mass]').first().textContent(),/35\\.5 kg/);
+ assert.match(await page.locator('tr[data-p4-row] [data-p4-match1-mass]').first().textContent(),/35\.5 kg/);
  assert.equal(await page.locator('[data-p4-confirm-single]').isHidden(),true,
   'confirmation must disarm after a committed decision');
  assert.deepEqual(pageErrors,[]);
