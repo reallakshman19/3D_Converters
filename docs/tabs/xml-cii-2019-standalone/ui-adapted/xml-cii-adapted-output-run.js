@@ -116,7 +116,7 @@ function renderSummary(parent, report) {
       (Number.isSafeInteger(bytes)?' · '+bytes+' source bytes':'')+
       '. JSON-governed CII remains held because Final/output authority is not verified, and a staged JSON receipt is present. If that JSON belonged to a different XML, re-index the matching JSON for this XML, or choose XML-only testing. '+
       'For conversion testing without JSON-derived engineering weights, select XML-only below and refresh the checklist. '+
-      'Applied Weight selections are recorded as Owner-designated GC-PW Final masses. Native CII remains HELD until the converter independently proves exact physical-mass consumption; zero kg is never accepted.';
+      'Applied Weight selections are recorded as Owner-designated GC-PW Final masses, including explicitly confirmed 0 kg. Governed native CII remains HELD until exact source-to-output mass and split-child lineage are independently verified; this is not a converter runtime error.';
     panel.appendChild(note);
   }
   return panel;
