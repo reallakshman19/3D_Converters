@@ -4,11 +4,10 @@ export function renderXml229VerifiedPanelShell(existingWorkflow=false){
   style="border:1px solid #64748b;border-radius:8px;padding:12px;margin:12px 0;">
   <strong>${existingWorkflow?'Weight Match — verified original physical facts':'Original-source Weight review (GC-PW)'}</strong>
   <p style="font-size:12px;color:#94a3b8;">Independent original XML census + full staged JSON Blob verification in separate Workers.
-  Applied Weight is an editable source-bound draft saved locally. Suggestion and Skip Weight actions
-  never accept Match-1/Final or change native CII Run authorization.</p>
+  Applied Weight is one editable source-bound field prefilled from the verified Worker suggestion when available.
+  Suggestions and edits never authorize engineering mass or native CII Run.</p>
   ${existingWorkflow?'':'<button type="button" data-p4-weight-build>Build verified original-source Weight review</button>'}
   <span role="status" data-p4-weight-status style="margin-left:8px;"></span>
-  <button data-p4-confirm-single type="button" hidden style="padding:6px;margin:5px;background:#854d0e;color:white">Confirm reviewed mass</button>
   <pre data-p4-bulk-detail role="status" hidden
    style="white-space:pre-wrap;font-size:12px;color:#cbd5e1;background:#101e32;padding:8px;border-radius:6px;"></pre>
   <div style="margin:10px 0"><button type="button" data-p4-export-flow-trace
