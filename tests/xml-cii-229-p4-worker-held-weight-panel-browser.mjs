@@ -118,14 +118,14 @@ try{
    return {basisId:session.receipt.basisId,expected};
  });
  await page.locator('[data-p4-bulk-plan]').click();
- await page.waitForFunction(()=>/Apply all suggestions ≥80%:/.test(
+ await page.waitForFunction(()=>/Apply all suggestions ≥80%: complete\./.test(
    document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:120000});
  const genuineAfter=await page.evaluate(expected=>{
    const scroller=document.querySelector('.mc-rigid-review-table-wrap');
    const inputs=[...document.querySelectorAll('tr[data-p4-row]')].map(tr=>({
      id:tr.dataset.p4Occurrence,kg:tr.querySelector('[data-p4-applied-weight]')?.value
    }));
-   const first=scroller?.querySelector('tr[data-p4-draft-filled="true"] input[data-p4-applied-weight]');
+   const first=scroller?.querySelector('tr[data-p4-stage="final"] input[data-p4-applied-weight]')||scroller?.querySelector('tr[data-p4-draft-filled="true"] input[data-p4-applied-weight]');
    const a=first?.getBoundingClientRect(),v=scroller?.getBoundingClientRect();
    return {inputs,scrollLeft:scroller?.scrollLeft??null,
      horizontalVisible:!!(a&&v&&a.left>=v.left-1&&a.right<=v.right+1),
