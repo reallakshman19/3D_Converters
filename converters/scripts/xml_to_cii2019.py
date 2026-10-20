@@ -502,7 +502,8 @@ def _branch_elements_from_root(root: ET.Element, namespace: str, root_name: str)
     raise ValueError("Input XML does not contain any Pipe elements.")
 
 
-def _parse_xml_document(path: Path, *, preserve_rigid_weight_owners: bool = False) -> XmlDocument:
+def _parse_xml_document(path: Path, *, preserve_rigid_weight_owners: bool = False,
+                        preserve_finalized_geometry: bool = False) -> XmlDocument:
     root = ET.parse(path).getroot()
     source_numbers = {}
     weighted_starts = set()
@@ -638,7 +639,11 @@ def _parse_xml_document(path: Path, *, preserve_rigid_weight_owners: bool = Fals
     # Cleaning at any single downstream call site risked those staying out
     # of sync with each other (e.g. restraints keyed by a node number that
     # a not-yet-cleaned edge list had already dropped).
-    branches = _drop_short_element_nodes(branches, preserve_rigid_weight_owners=preserve_rigid_weight_owners)
+    # Governed Final already reviewed one exact cleaned geometry. Re-running
+    # a DIFFERENT native short-span cleanup after mass approval is forbidden.
+    if not preserve_finalized_geometry:
+        branches = _drop_short_element_nodes(
+            branches, preserve_rigid_weight_owners=preserve_rigid_weight_owners)
 
     return XmlDocument(metadata=metadata, branches=branches)
 
