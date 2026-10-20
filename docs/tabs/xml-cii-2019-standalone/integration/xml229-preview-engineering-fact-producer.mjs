@@ -128,8 +128,8 @@ export async function openXml229EngineeringFactModel({
     for(let i=0;i+1<effective.length;i++){
       const a=effective[i],b=effective[i+1];
       const kind=field(a,'ComponentType').toUpperCase();
-      const ref=field(a,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
-      const otherRef=field(b,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
+      const ref=field(a,'ComponentRefNo').trim().replace(/^=/,'').replace(/\s+/g,'').toUpperCase();
+      const otherRef=field(b,'ComponentRefNo').trim().replace(/^=/,'').replace(/\s+/g,'').toUpperCase();
       const nextType=field(b,'ComponentType').toUpperCase();
       const sameFamily=kind===nextType&&['RIGID','VALV','FLAN','INST'].includes(kind);
       // Existing FLAN/VALV -> RIGID, same-reference, 1->2 is one
@@ -297,8 +297,8 @@ export async function openXml229EngineeringFactModel({
     for(let i=0;i+1<effective.length;i++){
       const left=effective[i],right=effective[i+1];
       const type=field(left,'ComponentType').toUpperCase();
-      const ref=field(left,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
-      const otherRef=field(right,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
+      const ref=field(left,'ComponentRefNo').trim().replace(/^=/,'').replace(/\s+/g,'').toUpperCase();
+      const otherRef=field(right,'ComponentRefNo').trim().replace(/^=/,'').replace(/\s+/g,'').toUpperCase();
       if(!['VALV','FLAN'].includes(type)||!ref||
          type!==field(right,'ComponentType').toUpperCase()||ref!==otherRef||
          field(left,'Endpoint')!=='1'||field(right,'Endpoint')!=='2'||
@@ -306,8 +306,8 @@ export async function openXml229EngineeringFactModel({
          !isXmlCiiWeightReviewConnectionEligible(left)||
          !isXmlCiiWeightReviewConnectionEligible(right)||
          field(right,'Rigid'))continue;
-      const a=field(left,'Position').split(/\\s+/).map(Number);
-      const b=field(right,'Position').split(/\\s+/).map(Number);
+      const a=field(left,'Position').split(/\s+/).map(Number);
+      const b=field(right,'Position').split(/\s+/).map(Number);
       if(a.length!==3||b.length!==3||
          ![...a,...b].every(Number.isFinite))continue;
       const distanceMm=Math.hypot(...a.map((n,j)=>n-b[j]));
@@ -340,8 +340,8 @@ export async function openXml229EngineeringFactModel({
     for(let i=0;i+1<ns.length;i++){
       const a=ns[i],b=ns[i+1];
       const kind=field(a,'ComponentType').toUpperCase();
-      const ref=field(a,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
-      const otherRef=field(b,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
+      const ref=field(a,'ComponentRefNo').trim().replace(/^=/,'').replace(/\s+/g,'').toUpperCase();
+      const otherRef=field(b,'ComponentRefNo').trim().replace(/^=/,'').replace(/\s+/g,'').toUpperCase();
       const nextType=field(b,'ComponentType').toUpperCase();
       const sameFamily=kind===nextType&&['RIGID','VALV','FLAN','INST'].includes(kind);
       const rigidContinuation=['FLAN','VALV'].includes(kind)&&
