@@ -130,8 +130,13 @@ export async function openXml229EngineeringFactModel({
       const kind=field(a,'ComponentType').toUpperCase();
       const ref=field(a,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
       const otherRef=field(b,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
-      if(!['RIGID','VALV','FLAN','INST'].includes(kind)||!ref||
-         kind!==field(b,'ComponentType').toUpperCase()||ref!==otherRef||
+      const nextType=field(b,'ComponentType').toUpperCase();
+      const sameFamily=kind===nextType&&['RIGID','VALV','FLAN','INST'].includes(kind);
+      // Existing FLAN/VALV -> RIGID, same-reference, 1->2 is one
+      // source component with a native mass-bearing end, NOT two masses.
+      const rigidContinuation=['FLAN','VALV'].includes(kind)&&
+        nextType==='RIGID'&&field(b,'Rigid')==='2';
+      if(!ref||!(sameFamily||rigidContinuation)||ref!==otherRef||
          field(a,'Endpoint')!=='1'||field(b,'Endpoint')!=='2'||
          !isXmlCiiWeightReviewNode(a)||!isXmlCiiWeightReviewNode(b)||
          !isXmlCiiWeightReviewConnectionEligible(a)||
@@ -337,8 +342,11 @@ export async function openXml229EngineeringFactModel({
       const kind=field(a,'ComponentType').toUpperCase();
       const ref=field(a,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
       const otherRef=field(b,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
-      if(!['RIGID','FLAN','VALV','INST'].includes(kind)||!ref||
-         kind!==field(b,'ComponentType').toUpperCase()||ref!==otherRef||
+      const nextType=field(b,'ComponentType').toUpperCase();
+      const sameFamily=kind===nextType&&['RIGID','VALV','FLAN','INST'].includes(kind);
+      const rigidContinuation=['FLAN','VALV'].includes(kind)&&
+        nextType==='RIGID'&&field(b,'Rigid')==='2';
+      if(!ref||!(sameFamily||rigidContinuation)||ref!==otherRef||
          field(a,'Endpoint')!=='1'||field(b,'Endpoint')!=='2')continue;
       const firstOrdinal=ordinals[i].sourceNodeOrdinal;
       const secondOrdinal=ordinals[i+1].sourceNodeOrdinal;
