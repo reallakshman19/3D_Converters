@@ -7,7 +7,7 @@ import {
 } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs';
 import {xml229UnbuiltIndependentStage}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-run-readiness-presentation.mjs';
-import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions}
+import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,seedXml229VisibleSuggestedWeightDrafts}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-unqualified-drafts.mjs';
 import {xml229WeightReviewEligible,xml229IsExcludedWeightFitting,xml229ProposalScorePercent,xml229WeightThreshold}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-weight-review-focus.mjs';
@@ -76,6 +76,46 @@ test('Applied Weight is the only visible mass column, with Worker-accepted mass 
  const blank=renderXml229WeightReviewPage({totalCount:1,rows:[base]});
  assert.match(blank,/data-p4-applied-weight[^>]*value=""/s);
  assert.doesNotMatch(blank,/data-p4-review-match1|data-p4-review-final/);
+});
+
+test('visible rank-1 Worker suggestions seed one input, never a ledger or native output',()=>{
+ const rowFor=(id,{value=35,score=0.99,qualified=false,sourceKg=null,existingDecision=null}={})=>{
+  const p={proposalId:'p-'+id,ranking:1,value,unit:'kg',qualified,score};
+  return {sourceId:'SOURCE',occurrenceId:id,sourceKg,match1Kg:null,finalKg:null,
+    proposals:[p],match1View:{stageDecision:existingDecision,proposals:[p]},
+    finalView:{stageDecision:null}};
+ };
+ const rows=[
+  rowFor('skip'),rowFor('manual'),rowFor('unqualified'),rowFor('accepted',{sourceKg:12}),
+  rowFor('low',{score:0.2}),rowFor('decision',{existingDecision:{state:'rejected'}}),
+  {...rowFor('unmatched'),match1View:{proposals:[]}},
+ ];
+ const drafts=new Map([
+  ['skip',{value:'0',proposalId:'',skippedWeight:true,autoFilled:false}],
+  ['manual',{value:'67.5',proposalId:'',reason:'Owner manually edited',autoFilled:false}],
+ ]);
+ const count=seedXml229VisibleSuggestedWeightDrafts(rows,drafts,{minScorePercent:80});
+ assert.equal(count,2);
+ assert.equal(drafts.get('skip').value,'35');
+ assert.equal(drafts.get('skip').skippedWeight,false);
+ assert.equal(drafts.get('skip').autoUnqualified,true);
+ assert.equal(drafts.get('manual').value,'67.5');
+ assert.equal(drafts.get('unqualified').proposalId,'p-unqualified');
+ assert.equal(drafts.has('accepted'),false);
+ assert.equal(drafts.has('low'),false);
+ assert.equal(drafts.has('decision'),false);
+ assert.equal(drafts.has('unmatched'),false);
+});
+test('an unqualified suggestion remains a draft even at 100 percent score',()=>{
+ const p={proposalId:'p1',ranking:1,value:166,unit:'kg',qualified:false,score:1};
+ const rows=[{sourceId:'SRC',occurrenceId:'physical',proposals:[p],
+  match1View:{stageDecision:null,proposals:[p]},finalView:{stageDecision:null}}];
+ const map=new Map();
+ assert.equal(seedXml229VisibleSuggestedWeightDrafts(rows,map),1);
+ assert.deepEqual(map.get('physical'),{
+  value:'166',proposalId:'p1',reason:'',autoFilled:true,
+  autoUnqualified:true,skippedWeight:false,
+ });
 });
 
 test('rendered original occurrence and master candidate are escaped and can never inject HTML',()=>{
