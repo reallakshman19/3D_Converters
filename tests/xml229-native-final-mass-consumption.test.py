@@ -391,6 +391,92 @@ class NativeFinalMassTests(unittest.TestCase):
                 'NATIVE_DOUBLE_ENDPOINT_MASS_OWNER')
             self.assertFalse((Path(td)/'source_xml229_lineaged.xml').exists())
 
+    def test_instrument_requires_original_source_authorized_rigid_end(self):
+        # A supplied Rigid=2 on original INST Endpoint=2 can be consumed as
+        # an existing native mass-bearing edge. The same unclassified source
+        # MUST fail; the converter cannot decide an instrument's stiffness.
+        def make_xml(classified):
+            rigid='<Rigid>2</Rigid>' if classified else ''
+            return (
+                '<PipeStressExport><Pipe><Branch><Branchname>INSTRUMENT</Branchname>'
+                '<Node><NodeNumber>10</NodeNumber><ComponentType>PIPE</ComponentType>'
+                '<Position>0 0 0</Position></Node>'
+                '<Node><NodeNumber>20</NodeNumber><ComponentType>INST</ComponentType>'
+                '<ComponentRefNo>=INST-1</ComponentRefNo><Endpoint>1</Endpoint>'
+                '<Position>20 0 0</Position></Node>'
+                '<Node><NodeNumber>30</NodeNumber><ComponentType>INST</ComponentType>'
+                '<ComponentRefNo>=INST-1</ComponentRefNo><Endpoint>2</Endpoint>'
+                '<Position>325 0 0</Position>'
+                +rigid+'<Weight>0</Weight></Node></Branch></Pipe></PipeStressExport>')
+        sig=json.dumps(['INST','=INST-1','2',''],separators=(',',':'))
+        first=json.dumps(['SOURCE',0,1,json.dumps(
+            ['INST','=INST-1','1',''],separators=(',',':'))],separators=(',',':'))
+        second=json.dumps(['SOURCE',0,2,sig],separators=(',',':'))
+        runner=Path(__file__).resolve().parents[1]/'converters'/'scripts'/'xml_to_cii2019_runtime_custody.py'
+        for classified in (True,False):
+            with self.subTest(source_explicitly_classified=classified):
+                with TemporaryDirectory() as td:
+                    directory=Path(td)
+                    xml=make_xml(classified)
+                    source=directory/'original.xml'
+                    manifest=directory/'packet.json'
+                    output=directory/'result.cii'
+                    proof=directory/'proof.json'
+                    source.write_text(xml)
+                    p=packet(xml,kg=18.25)
+                    p['sourceGenerationId']='explicit-source-instrument-case'
+                    p['components'][0]['occurrenceId']=second
+                    p['finalizedGeometry']={
+                        'schema':'XML229.FinalizedWeightGeometry.v1',
+                        'basisId':p['basisId'],
+                        'sourceXmlSha256':p['sourceXmlSha256'],
+                        'xmlText':xml,
+                        'sha256':hashlib.sha256(xml.encode()).hexdigest(),
+                        'originalNodeCount':3,
+                        'retainedSourceOrdinalsByBranch':[[0,1,2]],
+                        'assignedNodeNumbers':[],
+                        'rigidEdgePromotions':[],
+                        'physicalOwnerCardinality':{
+                            'schema':'XML229.PreAcceptancePhysicalPartCardinality.v1',
+                            'sourcePhysicalNodeOccurrences':2,
+                            'reviewedPhysicalNodeOccurrences':1,
+                            'pairedEndpointPhysicalParts':1,
+                            'distinctPhysicalPartCandidates':1,
+                            'weightsAccepted':False,
+                            'endpointPairs':[{
+                                'componentType':'INST',
+                                'componentRefNo':'INST-1',
+                                'branchOccurrenceIndex':0,
+                                'firstOccurrenceId':first,
+                                'secondOccurrenceId':second,
+                                'firstIsWeightOwner':False,
+                                'secondIsWeightOwner':True,
+                            }],
+                        },
+                    }
+                    manifest.write_text(json.dumps(p))
+                    result=subprocess.run([
+                        sys.executable,str(runner),'--input',str(source),
+                        '--output',str(output),'--weight-scale','10',
+                        '--xml229-native-final-packet',str(manifest),
+                        '--xml229-native-mass-proof',str(proof),
+                    ],capture_output=True,text=True)
+                    if classified:
+                        self.assertEqual(result.returncode,0,result.stderr)
+                        evidence=json.loads(proof.read_text())
+                        self.assertEqual(evidence['sourcePhysicalCount'],1)
+                        self.assertEqual(evidence['claims'][0]['massKg'],18.25)
+                        self.assertEqual(evidence['claims'][0]['emittedForceN'],182.5)
+                        self.assertEqual(float(evidence['claims'][0]['ciiFromNode']),20)
+                        self.assertEqual(float(evidence['claims'][0]['ciiToNode']),30)
+                        self.assertTrue(output.exists())
+                    else:
+                        self.assertNotEqual(result.returncode,0)
+                        self.assertIn('NATIVE_RIGID_OWNER_UNSUPPORTED',
+                                      result.stderr)
+                        self.assertFalse(output.exists())
+                        self.assertFalse(proof.exists())
+
     def test_existing_flange_start_and_native_rigid_end_are_one_owner(self):
         # EF-05 presents FLAN End=1 -> RIGID End=2 with the SAME source
         # physical reference. The approved mass belongs to the existing
