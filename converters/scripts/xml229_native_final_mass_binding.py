@@ -426,8 +426,12 @@ def audit_finalized_physical_endpoints(final_root, packet_components=None):
         consumed = set()
         for (ni, left, key), (nj, right, other) in zip(
                 candidates, candidates[1:]):
-            if nj != ni + 1 or key[:2] != other[:2] or (
-                    key[2], other[2]) != ("1", "2"):
+            same_family = key[:2] == other[:2]
+            rigid_continuation = (
+                key[0] in ("FLAN", "VALV") and other[0] == "RIGID" and
+                key[1] == other[1] and txt(right, "Rigid") == "2")
+            if (nj != ni + 1 or not (same_family or rigid_continuation) or
+                    (key[2], other[2]) != ("1", "2")):
                 continue
             require(ni not in consumed and nj not in consumed,
                     "NATIVE_ENDPOINT_ALIAS_OVERLAP")
