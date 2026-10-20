@@ -79,22 +79,19 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
     <td title="Original NodeNumber; physical identity uses branch and original node ordinal">${label(r.nodeNumber)}</td>
     <td title="Original component reference and endpoint">${label(r.componentRefNoEndpoint)}</td>
     <td title="Verified FactRecord length.mm from source geometry or explicit source length">${fmt(r.lengthMm,'mm')}</td>
-    <td style="min-width:140px" title="Recorded source/accepted engineering weights; Applied Weight is an independent session draft">
-      <strong>${kg(accepted)}</strong>
-      <small style="display:block;color:#94a3b8">Source: ${kg(r.sourceKg)}</small>
-      <small style="display:block;color:#94a3b8">Match-1: <span data-p4-match1-mass>${kg(r.match1Kg)}</span></small>
-      <small style="display:block;color:#94a3b8">Final: <span data-p4-final-mass>${kg(r.finalKg)}</span></small>
-    </td>
+
     <td style="max-width:420px;min-width:190px">
       <div class="mc-wm-candidate-chips" style="display:flex;gap:4px;flex-wrap:wrap;max-height:90px;overflow:auto">
        ${chips||'<span style="color:#94a3b8">No verified candidate yet</span>'}
       </div></td>
-    <td style="min-width:168px">
+    <td style="min-width:260px" title="Single Applied Weight field. Verified source / accepted Match-1 / Final may prefill it; typing or Auto Fill creates a draft only.">
       <input data-p4-proposal data-p4-applied-weight class="mc-rigid-review-input"
         type="number" min="0" step="any" inputmode="decimal" placeholder="kg"
-        aria-label="Applied Weight in kg, editable draft only"
+        value="${positive(accepted)?e(String(accepted)):''}"
+        aria-label="Applied Weight in kg (verified mass or editable draft)"
         style="width:130px;padding:6px;background:#243b5d;color:#fff;border:1px solid #818cf8;font-weight:700">
-      <small data-p4-draft-marker style="display:block;color:#94a3b8">Editable draft · not approved</small>
+      <small data-p4-draft-marker style="display:block;color:#94a3b8">${state.kind==='unresolved'?'Editable draft · not approved':'Verified '+e(state.label)+' · edits require separate review'}</small>
+      <small style="display:block;color:#94a3b8">Source: ${kg(r.sourceKg)} · Match-1: <span data-p4-match1-mass>${kg(r.match1Kg)}</span> · Final: <span data-p4-final-mass>${kg(r.finalKg)}</span></small>
       <input data-p4-reason type="text" maxlength="500" placeholder="Independent engineering reason"
         aria-label="Engineering review reason (required)" style="display:block;width:235px;padding:4px;margin-top:5px;background:#0b1320;color:#e5eefc;border:1px solid #405a78">
       <div style="display:flex;gap:4px;margin-top:5px">
@@ -128,10 +125,10 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
     <small data-p4-filter-count style="color:#94a3b8">Filters apply to all original occurrences.</small>
   </div>
   <div class="mc-rigid-review-table-wrap" style="overflow:auto;max-height:48vh;border:1px solid #253a55;border-radius:8px">
-    <table class="mc-rigid-review-table" style="border-collapse:collapse;font-size:12px;table-layout:auto;min-width:1940px">
+    <table class="mc-rigid-review-table" style="border-collapse:collapse;font-size:12px;table-layout:auto;min-width:1780px">
       <thead style="position:sticky;top:0;background:#14243a;color:#dceaff">
        <tr>${['Status','Short name / Valve Hint','DTXR','Branch','Line Key','ComponentType','Bore','Rating','Node',
-        'ComponentRefNo_Endpoint','Length','Recorded Weight',
+        'ComponentRefNo_Endpoint','Length',
         'Nearest Suggestions','Applied Weight'].map(h=>`<th style="padding:8px;white-space:nowrap">${e(h)}</th>`).join('')}</tr>
       </thead><tbody>${rows}</tbody>
     </table>
