@@ -58,7 +58,7 @@ test('one suggestion-backed editable Applied Weight field never writes engineeri
  assert.match(html,/All XML physicals/);
  assert.doesNotMatch(html,/data-p4-reason|data-p4-review-match1|data-p4-review-final|data-p4-draft-marker/);
  assert.equal((html.match(/data-p4-applied-weight/g)||[]).length,1);
- assert.match(html,/saved draft, not an engineering acceptance/);
+ assert.match(html,/no separate Match-1 or Final action is required/);
  assert.doesNotMatch(html,/data-p4-accept-match1|data-p4-accept-final|data-p4-candidate|data-p4-bulk-confirm/);
 });
 test('served Weight/Run assets are byte-identical, and current-source hold is explained',async()=>{
