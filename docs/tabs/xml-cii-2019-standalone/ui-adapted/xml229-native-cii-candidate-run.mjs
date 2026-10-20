@@ -81,6 +81,7 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   sourceGenerationId:packet.sourceGenerationId,
   originalJsonSha256:packet.originalJsonSha256,
   sourceXmlSha256:packet.sourceXmlSha256,
+  finalizedGeometrySha256:packet.finalizedGeometry?.sha256||null,
   finalIntentSha256:packet.finalIntentSha256,
   physicalCount:independent.physicalCount,
   nativeRigidCount:independent.nativeRigidCount,
