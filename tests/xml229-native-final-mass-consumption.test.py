@@ -391,6 +391,81 @@ class NativeFinalMassTests(unittest.TestCase):
                 'NATIVE_DOUBLE_ENDPOINT_MASS_OWNER')
             self.assertFalse((Path(td)/'source_xml229_lineaged.xml').exists())
 
+    def test_existing_flange_start_and_native_rigid_end_are_one_owner(self):
+        # EF-05 presents FLAN End=1 -> RIGID End=2 with the SAME source
+        # physical reference. The approved mass belongs to the existing
+        # rigid end, never the separately displayed flange witness.
+        xml=(
+            '<PipeStressExport><Pipe><Branch><Branchname>PAIR</Branchname>'
+            '<Node><NodeNumber>10</NodeNumber><ComponentType>PIPE</ComponentType>'
+            '<Position>0 0 0</Position></Node>'
+            '<Node><NodeNumber>20</NodeNumber><ComponentType>FLAN</ComponentType>'
+            '<ComponentRefNo>=F-1</ComponentRefNo><Endpoint>1</Endpoint>'
+            '<Rigid>1</Rigid><Position>10 0 0</Position></Node>'
+            '<Node><NodeNumber>30</NodeNumber><ComponentType>RIGID</ComponentType>'
+            '<ComponentRefNo>=F-1</ComponentRefNo><Endpoint>2</Endpoint>'
+            '<Rigid>2</Rigid><Position>122 0 0</Position><Weight>0</Weight></Node>'
+            '</Branch></Pipe></PipeStressExport>')
+        def oid(ordinal,kind,endpoint):
+            signature=json.dumps([kind,'=F-1',endpoint,''],separators=(',',':'))
+            return json.dumps(['SOURCE',0,ordinal,signature],separators=(',',':'))
+        with TemporaryDirectory() as td:
+            folder=Path(td);original=folder/'source.xml'
+            manifest=folder/'approved.json';output=folder/'actual.cii'
+            proof=folder/'proof.json'
+            original.write_text(xml)
+            approved=packet(xml,kg=27.5)
+            approved['sourceGenerationId']='cross-family-original-part'
+            approved['components'][0]['occurrenceId']=oid(2,'RIGID','2')
+            part={
+                'branchOccurrenceIndex':0,
+                'componentType':'FLAN',
+                'componentRefNo':'F-1',
+                'firstOccurrenceId':oid(1,'FLAN','1'),
+                'secondOccurrenceId':oid(2,'RIGID','2'),
+                'firstIsWeightOwner':False,'secondIsWeightOwner':True,
+            }
+            approved['finalizedGeometry']={
+                'schema':'XML229.FinalizedWeightGeometry.v1',
+                'basisId':approved['basisId'],
+                'sourceXmlSha256':approved['sourceXmlSha256'],
+                'xmlText':xml,'sha256':hashlib.sha256(xml.encode()).hexdigest(),
+                'originalNodeCount':3,'retainedSourceOrdinalsByBranch':[[0,1,2]],
+                'assignedNodeNumbers':[],'rigidEdgePromotions':[],
+                'physicalOwnerCardinality':{
+                    'schema':'XML229.PreAcceptancePhysicalPartCardinality.v1',
+                    'sourcePhysicalNodeOccurrences':2,
+                    'reviewedPhysicalNodeOccurrences':1,
+                    'pairedEndpointPhysicalParts':1,
+                    'distinctPhysicalPartCandidates':1,
+                    'weightsAccepted':False,'endpointPairs':[part],
+                },
+            }
+            manifest.write_text(json.dumps(approved))
+            runner=(Path(__file__).resolve().parents[1]/
+                    'converters'/'scripts'/'xml_to_cii2019_runtime_custody.py')
+            cmd=[sys.executable,str(runner),'--input',str(original),
+                 '--output',str(output),'--weight-scale','10',
+                 '--xml229-native-final-packet',str(manifest),
+                 '--xml229-native-mass-proof',str(proof)]
+            result=subprocess.run(cmd,capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stderr)
+            diag=json.loads(proof.read_text())
+            self.assertEqual(diag['sourcePhysicalCount'],1)
+            self.assertEqual(diag['claims'][0]['massKg'],27.5)
+            self.assertEqual(diag['claims'][0]['emittedForceN'],275)
+            self.assertEqual(float(diag['claims'][0]['ciiFromNode']),20)
+            self.assertEqual(float(diag['claims'][0]['ciiToNode']),30)
+            output.unlink();proof.unlink()
+            approved['physicalCount']=2
+            approved['components'].append({
+                'occurrenceId':oid(1,'FLAN','1'),'effectiveKg':27.5})
+            manifest.write_text(json.dumps(approved))
+            rejected=subprocess.run(cmd,capture_output=True,text=True)
+            self.assertNotEqual(rejected.returncode,0)
+            self.assertIn('NATIVE_DOUBLE_ENDPOINT_MASS_OWNER',rejected.stderr)
+            self.assertFalse(output.exists())
+
     def test_real_ef05_endpoint_aliases_are_not_423_independent_parts(self):
         # Real source geometry, no fabricated acceptance decisions or CII.
         import xml.etree.ElementTree as ET
