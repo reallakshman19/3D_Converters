@@ -208,6 +208,7 @@ class NativeFinalMassTests(unittest.TestCase):
             proof=directory/'proof.json'
             source.write_text(xml)
             p=packet(xml,kg=35.5,signature=['VALV','V-1','2',''])
+            p['components'][0]['occurrenceId']=oid(2,'2')
             p['sourceGenerationId']='preweight-physical-part-1'
             root=ET.fromstring(xml)
             branch=next(n for n in root.iter() if n.tag=='Branch')
