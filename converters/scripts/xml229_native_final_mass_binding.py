@@ -305,7 +305,7 @@ def _validate_finalized_geometry(packet, source):
             typ = txt(left, "ComponentType").upper()
             ref = "".join(txt(left, "ComponentRefNo").lstrip("=").split()).upper()
             other_ref = "".join(txt(right, "ComponentRefNo").lstrip("=").split()).upper()
-            if (typ not in ("VALV", "FLAN", "INST") or not ref or
+            if (typ not in ("VALV", "FLAN") or not ref or
                     typ != txt(right, "ComponentType").upper() or
                     ref != other_ref or
                     (txt(left, "Endpoint"), txt(right, "Endpoint")) != ("1", "2") or
