@@ -184,6 +184,77 @@ class NativeFinalMassTests(unittest.TestCase):
             self.assertIn("NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT",
                           wrong_source.stderr)
 
+    def test_negative_source_nodes_are_normalized_before_final_mass(self):
+        # NodeNumber=-1 is not a usable shared native connected-node identity.
+        # The verified preacceptance snapshot can allocate its number, but the
+        # independent source-ordinal checker must reject every alternate map.
+        for negative_owner in (False, True):
+            with self.subTest(negative_owner=negative_owner):
+                with TemporaryDirectory() as td:
+                    d=Path(td)
+                    original=d/'source.xml'
+                    packet_file=d/'packet.json'
+                    cii=d/'result.cii'
+                    proof=d/'proof.json'
+                    source=input_xml()
+                    previous='20' if negative_owner else '10'
+                    source=source.replace(f'<NodeNumber>{previous}</NodeNumber>',
+                                          '<NodeNumber>-1</NodeNumber>')
+                    original.write_text(source)
+                    current=packet(source)
+                    current['sourceGenerationId']='preaccept-node-id-normalized'
+                    # Original max positive is 10 or 20, respectively.
+                    assigned=20 if negative_owner else 30
+                    final_xml=source.replace('<NodeNumber>-1</NodeNumber>',
+                                            f'<NodeNumber>{assigned}</NodeNumber>')
+                    current['finalizedGeometry']={
+                        'schema':'XML229.FinalizedWeightGeometry.v1',
+                        'basisId':current['basisId'],
+                        'sourceXmlSha256':current['sourceXmlSha256'],
+                        'xmlText':final_xml,
+                        'sha256':hashlib.sha256(final_xml.encode()).hexdigest(),
+                        'originalNodeCount':2,
+                        'retainedSourceOrdinalsByBranch':[[0,1]],
+                        'assignedNodeNumbers':[{
+                            'branchOccurrenceIndex':0,
+                            'sourceNodeOrdinal':1 if negative_owner else 0,
+                            'sourceNodeNumber':'-1',
+                            'finalNodeNumber':assigned,
+                        }],
+                    }
+                    packet_file.write_text(json.dumps(current))
+                    runner=(Path(__file__).resolve().parents[1]/
+                            'converters'/'scripts'/
+                            'xml_to_cii2019_runtime_custody.py')
+                    command=[sys.executable,str(runner),'--input',str(original),
+                             '--output',str(cii),'--weight-scale','10',
+                             '--xml229-native-final-packet',str(packet_file),
+                             '--xml229-native-mass-proof',str(proof)]
+                    result=subprocess.run(command,capture_output=True,text=True)
+                    self.assertEqual(result.returncode,0,result.stderr)
+                    attested=json.loads(proof.read_text())
+                    self.assertEqual(attested['sourcePhysicalCount'],1)
+                    self.assertEqual(attested['claims'][0]['massKg'],12.5)
+                    self.assertEqual(attested['finalizedGeometrySha256'],
+                        current['finalizedGeometry']['sha256'])
+                    cii.unlink()
+                    proof.unlink()
+                    # An internally consistent forged mapping still fails
+                    # independent deterministic preaccepted ID allocation.
+                    current['finalizedGeometry']['assignedNodeNumbers'][0][
+                        'finalNodeNumber']=assigned+10
+                    current['finalizedGeometry']['xmlText']=final_xml.replace(
+                        f'<NodeNumber>{assigned}</NodeNumber>',
+                        f'<NodeNumber>{assigned+10}</NodeNumber>')
+                    current['finalizedGeometry']['sha256']=hashlib.sha256(
+                        current['finalizedGeometry']['xmlText'].encode()).hexdigest()
+                    packet_file.write_text(json.dumps(current))
+                    refused=subprocess.run(command,capture_output=True,text=True)
+                    self.assertNotEqual(refused.returncode,0)
+                    self.assertIn('NATIVE_FINALIZED_NODE_ID_MAP_DRIFT',
+                                  refused.stderr)
+                    self.assertFalse(cii.exists())
+
     def test_two_accepted_endpoint_weights_must_not_double_count_one_part(self):
         # The same VALV physical component is described by the two adjacent
         # Endpoints. The source review must be normalized BEFORE Final:
