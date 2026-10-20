@@ -210,6 +210,18 @@ def read_packet(path, xml_path):
     return packet, parse_bytes(original_bytes)
 
 
+def _semantic_xml(element):
+    """Canonical semantic XML: ignore formatting whitespace, not XML fields.
+
+    A finalized geometry can only REMOVE reviewed-irrelevant Node elements.
+    It may not rewrite wall thickness, material, restraints, positions or any
+    other original source facts while retaining the same physical IDs.
+    """
+    return (tag(element), tuple(sorted(element.attrib.items())),
+            (element.text or "").strip(),
+            tuple(_semantic_xml(c) for c in element if isinstance(c.tag, str)))
+
+
 def _validate_finalized_geometry(packet, source):
     """Challenge the exact pre-acceptance Worker XML and original ordinal map.
 
@@ -262,6 +274,16 @@ def _validate_finalized_geometry(packet, source):
             last = source_index
     require(total == final.get("originalNodeCount"),
             "NATIVE_FINALIZED_GEOMETRY_CENSUS_DRIFT")
+    # Compare the ENTIRE cleaned source XML, not a small geometry field list.
+    # No other pre-acceptance material, restraints or XML node fields can drift.
+    expected = parse_bytes(ET.tostring(source, encoding="utf-8"))
+    for branch, ordinals in zip(branches(expected), retained):
+        keep = set(ordinals)
+        for original_index, node in enumerate(nodes(branch)):
+            if original_index not in keep:
+                branch.remove(node)
+    require(_semantic_xml(expected) == _semantic_xml(snapshot),
+            "NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT")
     require(child(snapshot, LINEAGE_STAGE) is None and
             not any(child(n, LINEAGE_TAG) is not None
                     for branch in selected for n in nodes(branch)),
