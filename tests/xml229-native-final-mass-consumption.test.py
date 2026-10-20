@@ -277,6 +277,14 @@ class NativeFinalMassTests(unittest.TestCase):
             self.assertIn('NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT',
                           invalid.stderr)
             self.assertFalse(output.exists())
+            p['finalizedGeometry']['rigidEdgePromotions'][0]['distanceMm']=290
+            p['components'][0]['occurrenceId']=oid(1,'1')
+            manifest.write_text(json.dumps(p))
+            wrong_endpoint=subprocess.run(cmd,capture_output=True,text=True)
+            self.assertNotEqual(wrong_endpoint.returncode,0)
+            self.assertIn('NATIVE_NONCANONICAL_ENDPOINT_OWNER',
+                          wrong_endpoint.stderr)
+            self.assertFalse(output.exists())
 
     def test_negative_source_nodes_are_normalized_before_final_mass(self):
         # NodeNumber=-1 is not a usable shared native connected-node identity.
