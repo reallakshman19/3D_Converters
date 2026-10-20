@@ -4,7 +4,7 @@ export const SCHEMA_VERSION = 'gc-pw/1.0';
 const HEX256 = /^[a-f0-9]{64}$/i;
 const AUTHORITY = new Set(['source', 'exact-master', 'derived', 'proposed', 'manual', 'unresolved', 'conflict']);
 const STAGES = new Set(['preview', 'RigidMatch1', 'Rigidmatch2']);
-const ACTIONS = new Set(['accept-proposal', 'enter-manual', 'reject', 'defer', 'final-override']);
+const ACTIONS = new Set(['accept-proposal', 'enter-manual', 'reject', 'defer', 'final-override', 'set-zero-mass']);
 const EVENTS = new Set(['progress', 'completed', 'failed', 'cancelled']);
 export class ContractError extends Error {
   constructor(code, path) {
@@ -181,6 +181,13 @@ export function validateDecisionCommand(value) {
   if (value.action === 'enter-manual' || value.action === 'final-override') {
     if (!Number.isFinite(value.value) || value.value <= 0) reject('INVALID_MANUAL_VALUE', '$.value');
     str(value.unit, '$.unit');
+  }
+  if (value.action === 'set-zero-mass') {
+    if (value.value !== 0 || value.unit !== 'kg' ||
+        value.zeroMassConfirmed !== true ||
+        typeof value.reason !== 'string' ||
+        !value.reason.startsWith('Owner-confirmed explicit zero kg: '))
+      reject('ZERO_WEIGHT_CONFIRMATION_REQUIRED', '$.value');
   }
   canonicalJson(value);
   return value;
