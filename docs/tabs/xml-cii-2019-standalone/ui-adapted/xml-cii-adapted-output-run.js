@@ -530,9 +530,16 @@ function renderRunControls(parent, stateRef, state, report, render) {
     verifyBtn.addEventListener('click',async()=>{
       if(verifyBtn.disabled)return;
       verifyBtn.disabled=true;
-      const session=getXml229CurrentWorkerHeldReview(stateRef.current);
-      const isCurrent=()=>getXml229CurrentWorkerHeldReview(stateRef.current)===session &&
-        stateRef.current?.xml229StagedSourceReceipt===state.xml229StagedSourceReceipt;
+      // Verified GC-PW sessions belong to the stable mode-A state REF, not
+      // its mutable current snapshot. Require the identical live source receipt.
+      const session=getXml229CurrentWorkerHeldReview(stateRef);
+      const sourceReceipt=stateRef.current?.xml229StagedSourceReceipt;
+      const isCurrent=()=>!!session&&!session.closed&&
+        typeof sourceReceipt?.sha256==='string'&&
+        typeof sourceReceipt?.generationId==='string'&&
+        getXml229CurrentWorkerHeldReview(stateRef)===session&&
+        stateRef.current?.xml229StagedSourceReceipt?.sha256===sourceReceipt.sha256&&
+        stateRef.current?.xml229StagedSourceReceipt?.generationId===sourceReceipt.generationId;
       verificationStatus.textContent='Generating native candidate and reconciling actual CII RIGID records…';
       try{
         const diagnosis=await runXml229NativeCiiMassCandidate({
