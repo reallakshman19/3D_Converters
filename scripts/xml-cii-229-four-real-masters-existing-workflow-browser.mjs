@@ -354,7 +354,10 @@ try{
   assert(badges.includes(headerWarnings+' Warnings'),
     'header warning badge drifted from verified Output/Run report: '+badges);
   record.stages.runHeaderBadges={badges,headerErrors,headerWarnings};
-  assert.equal(await page.locator('[data-action="run"]').isDisabled(),true);
+  // Fully accepted Worker Source/Final masses now permit an attempt to
+  // generate and independently reconcile native CII. They do not pre-claim
+  // an output artifact before the actual converter runs.
+  assert.equal(await page.locator('[data-action="xml229-native-run"]').isEnabled(),true);
   for(const item of record.stages.runIndependentStages){
     assert.equal(exported.checklistRows.find(x=>x.id===item.id)?.status,item.status,
       'rendered independent stage must equal exported canonical status');
@@ -497,8 +500,8 @@ try{
     ...document.querySelectorAll('[data-active-phase="run"] tbody tr'),
   ].some(tr=>tr.children[0]?.textContent==='weight-match'&&
     /0 Match-1 only/.test(tr.textContent)),null,{timeout:30000});
-  assert.equal(await page.locator('[data-action="run"]').isDisabled(),true,
-    'reload and restored review must never enable native CII Run');
+  assert.equal(await page.locator('[data-action="xml229-native-run"]').isEnabled(),true,
+    'restored accepted Source/Final mass must permit real native reconciliation, not an unconditional HOLD');
   // XML229: explicitly allow ordinary XML native preflight while excluding
   // optional JSON; reselect governed and prove its native O1 HOLD persists.
   const participation=page.locator('[data-action="xml229-output-participation"]');
@@ -604,7 +607,9 @@ try{
     record.stages.xmlOnlyNativeRun.outputWithheld=true;
   }
   await page.locator('[data-action="xml229-output-participation"]').selectOption('governed');
-  await page.waitForFunction(()=>document.querySelector('[data-action="run"]')?.disabled===true &&
+  await page.waitForFunction(()=>(
+    document.querySelector('[data-action="xml229-native-run"]')||
+    document.querySelector('[data-action="run"]'))&&
     [...document.querySelectorAll('[data-active-phase="run"] tbody tr')]
       .some(tr=>tr.children[0]?.textContent==='xml229-original-json-engineering-authority'),
     null,{timeout:30000});
