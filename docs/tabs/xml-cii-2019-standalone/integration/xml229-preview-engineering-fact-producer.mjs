@@ -294,7 +294,7 @@ export async function openXml229EngineeringFactModel({
       const type=field(left,'ComponentType').toUpperCase();
       const ref=field(left,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
       const otherRef=field(right,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
-      if(!['VALV','FLAN','INST'].includes(type)||!ref||
+      if(!['VALV','FLAN'].includes(type)||!ref||
          type!==field(right,'ComponentType').toUpperCase()||ref!==otherRef||
          field(left,'Endpoint')!=='1'||field(right,'Endpoint')!=='2'||
          !isXmlCiiWeightReviewNode(left)||!isXmlCiiWeightReviewNode(right)||
