@@ -11,6 +11,8 @@ export async function applyXml229SourceWideSuggestionDrafts({
     typeof showFirst!=='function'||typeof render!=='function')
    deny('SUGGESTION_SOURCE_BOUND_WORKSPACE_REQUIRED');
  say('Filling Applied Weight from source-linked suggestions ≥'+minScorePercent+'%...');
+ const beforeFinal=typeof session.readCompletion==='function'
+  ?(await session.readCompletion())?.counts?.final:null;
  const plan=await session.planQualifiedBlankFill({minScorePercent});
  if(!Number.isSafeInteger(plan?.qualified)||!Array.isArray(plan.qualifiedSuggestions)||
     plan.qualifiedSuggestions.length!==plan.qualified)
@@ -29,9 +31,17 @@ export async function applyXml229SourceWideSuggestionDrafts({
  if(planned.counts.prepared>0&&!(visiblePopulated>0))
    deny('SUGGESTION_VISIBLE_INPUT_NOT_APPLIED',
      'No actual proposed kilograms were populated on the selected page');
- if(visiblePopulated>0&&!revealXml229PreparedWeightInput(table))
-   deny('SUGGESTION_INPUT_OUTSIDE_VIEWPORT',
-     'Applied kg could not be revealed horizontally');
+ if(visiblePopulated>0&&!revealXml229PreparedWeightInput(table)){
+   // Once a selected input is accepted as Final during render, a blank-only
+   // filter may remove that row. A real Worker Final-count increase is a
+   // stronger proof of successful application than a stale draft DOM marker.
+   const afterFinal=typeof session.readCompletion==='function'
+    ?(await session.readCompletion())?.counts?.final:null;
+   if(!Number.isSafeInteger(beforeFinal)||!Number.isSafeInteger(afterFinal)||
+      afterFinal<=beforeFinal)
+    deny('SUGGESTION_INPUT_OUTSIDE_VIEWPORT',
+      'Applied kg could not be revealed or attested as Worker Final');
+ }
  detail.hidden=true;detail.textContent='';
  const confirm=table.querySelector('[data-p4-bulk-confirm]');
  if(confirm){confirm.disabled=!plan.qualified;
