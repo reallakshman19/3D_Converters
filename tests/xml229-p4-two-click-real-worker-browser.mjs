@@ -117,29 +117,26 @@ try{
  assert.equal(headers.length,13,'the table must have one mass column, not separate recorded and applied fields');
  assert.equal(headers.includes('Recorded Weight'),false);
  assert.equal(headers[12],'Applied Weight');
- assert.equal(await page.locator('[data-p4-skip-weight]').count(),1);
+ assert.equal(await page.locator('[data-p4-skip-weight],[data-p4-reason],[data-p4-review-match1],[data-p4-review-final],[data-p4-confirm-single]').count(),0,
+  'the simplified Weight panel exposes one editable kg field only');
+ assert.equal(await page.locator('tr[data-p4-row] [data-p4-applied-weight]').count(),1);
  assert.equal(await page.locator('[data-p4-bulk-confirm],[data-p4-candidate],[data-p4-accept-match1],[data-p4-accept-final]').count(),0);
- assert.equal(await page.locator('[data-p4-reason]').count(),1);
- assert.equal(await page.locator('[data-p4-review-match1]').count(),1);
- assert.equal(await page.locator('[data-p4-review-final]').count(),1);
- assert.equal(await page.locator('[data-p4-confirm-single]').isHidden(),true,
-   'no review is prepared before an explicit first click');
- await page.locator('[data-p4-skip-weight]').click();
- await page.waitForFunction(()=>/Skip Weight: 1 blank eligible/.test(
-   document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:30000});
  const input=page.locator('tr[data-p4-row] [data-p4-applied-weight]').first();
- assert.equal(await input.inputValue(),'0');
- assert.match(await page.locator('tr[data-p4-row] [data-p4-draft-marker]').first().textContent(),
-  /Skipped: 0 kg draft/);
- const afterZero=await page.evaluate(async()=>{
+ await page.waitForFunction(()=>document.querySelector(
+   'tr[data-p4-row] [data-p4-applied-weight]')?.value==='35',null,{timeout:30000});
+ assert.equal(await input.inputValue(),'35',
+  'real Worker rank-1 candidate should automatically prefill the one kg input');
+ const proposed=await page.evaluate(async()=>{
   const {getXml229CurrentWorkerHeldReview}=await import(
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
-  return (await getXml229CurrentWorkerHeldReview(window.__stateRef).readCompletion()).counts;
+  const s=getXml229CurrentWorkerHeldReview(window.__stateRef);
+  const evidence=(await s.readCompletion()).counts;
+  const rows=(await s.readPage({offset:0,limit:25,filter:'all'})).rows;
+  return {counts:evidence,proposals:rows.map(r=>r.proposals.map(p=>p.value))};
  });
- assert.equal(afterZero.match1,0);
- assert.equal(afterZero.final,0);
- await page.locator('tr[data-p4-row] [data-p4-pick]').first().click();
- assert.equal(await input.inputValue(),'35');
+ assert.equal(proposed.counts.match1,0);
+ assert.equal(proposed.counts.final,0);
+ assert.deepEqual(proposed.proposals,[[35]],'prefill must be traceable to real Worker proposal');
  await input.fill('35.5');
  await page.locator('[data-p4-scope="all"]').click();
  await page.waitForFunction(()=>document.querySelector(
@@ -150,49 +147,18 @@ try{
   const {getXml229CurrentWorkerHeldReview}=await import(
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
   const s=getXml229CurrentWorkerHeldReview(window.__stateRef);
-  const p=await s.readCompletion();
-  return {counts:p.counts,nativeRelease:p.ciiReleaseAuthorized};
- });
- assert.equal(after.counts.match1,0);
- assert.equal(after.counts.final,0);
- assert.equal(after.nativeRelease,false);
- // Real Worker acceptance is never driven by candidate chips or editing.
- // The first explicit review click obtains a current CAS view, but cannot
- // mutate Match-1. Only the second click may record the reviewed 35.5 kg.
- await page.locator('tr[data-p4-row] [data-p4-reason]').first()
-  .fill('Synthetic regression fixture: manually reviewed 35.5 kg');
- await page.locator('tr[data-p4-row] [data-p4-review-match1]').first().click();
- await page.locator('[data-p4-confirm-single]:visible').waitFor({timeout:30000});
- const prepared=await page.evaluate(async()=>{
-  const {getXml229CurrentWorkerHeldReview}=await import(
-   '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
-  return (await getXml229CurrentWorkerHeldReview(window.__stateRef).readCompletion()).counts;
- });
- assert.equal(prepared.match1,0,'first click cannot commit Match-1');
- assert.equal(prepared.final,0,'first click cannot commit Final');
- await page.locator('[data-p4-confirm-single]').click();
- await page.waitForFunction(()=>/Match-1 explicitly committed/.test(
-  document.querySelector('[data-p4-weight-status]')?.textContent||''),
-  null,{timeout:30000});
- const reviewed=await page.evaluate(async()=>{
-  const {getXml229CurrentWorkerHeldReview}=await import(
-   '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
-  const proof=await getXml229CurrentWorkerHeldReview(window.__stateRef).readCompletion();
+  const proof=await s.readCompletion();
   return {counts:proof.counts,nativeRelease:proof.ciiReleaseAuthorized};
  });
- assert.equal(reviewed.counts.match1,1,'only explicit confirmation commits Match-1');
- assert.equal(reviewed.counts.final,0,'no independent Final approval implied');
- assert.equal(reviewed.nativeRelease,false,'no native CII release implied');
- assert.equal(await page.locator('tr[data-p4-row] [data-p4-applied-weight]').first().inputValue(),'35.5',
-  'accepted Worker Match-1 mass is displayed in the same Applied Weight field');
- assert.match(await page.locator('tr[data-p4-row] [data-p4-match1-mass]').first().textContent(),/35\.5 kg/);
- assert.equal(await page.locator('[data-p4-confirm-single]').isHidden(),true,
-  'confirmation must disarm after a committed decision');
+ assert.equal(after.counts.match1,0,'prefill and edit never accept Match-1');
+ assert.equal(after.counts.final,0,'prefill and edit never accept Final');
+ assert.equal(after.nativeRelease,false,'prefill and edit never authorize native CII');
+ assert.equal(await page.locator('[data-p4-reason],[data-p4-review-match1],[data-p4-review-final],[data-p4-confirm-single]').count(),0);
  assert.deepEqual(pageErrors,[]);
  console.log(JSON.stringify({schema:'XML229.SimpleAppliedWeightChromium.v1',
-  before,after,skippedZeroDraft:true,editableDraftPersisted:true,
-  reviewControlsVisibleWithoutAutomaticAcceptance:true,reviewedMatch1AfterConfirm:reviewed.counts.match1,
-  reviewedFinalAfterConfirm:reviewed.counts.final,nativeCiiReleaseAuthorized:false}));
+  before,after,suggestionPrefilled:true,oneKgInput:true,editableDraftPersisted:true,
+  match1NotAccepted:after.counts.match1===0,finalNotAccepted:after.counts.final===0,
+  nativeCiiReleaseAuthorized:false}));
  await page.evaluate(async()=>{
   const {getXml229CurrentWorkerHeldReview}=await import(
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
