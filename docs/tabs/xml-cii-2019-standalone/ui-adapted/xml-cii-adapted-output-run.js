@@ -537,7 +537,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
     color:'#fff',border:'none',fontWeight:'700'});
   finalizeBtn.disabled=!!blocked;
   // Mode-A legacy handler must not accidentally execute unweighted XML.
-  finalizeBtn.dataset.action=governed?'xml229-native-run':'run';
+  finalizeBtn.dataset.action=governed&&weightsReady?'xml229-native-run':'run';
   if(governed)finalizeBtn.addEventListener('click',async()=>{
     if(finalizeBtn.disabled)return;
     const session=getXml229CurrentWorkerHeldReview(stateRef);
