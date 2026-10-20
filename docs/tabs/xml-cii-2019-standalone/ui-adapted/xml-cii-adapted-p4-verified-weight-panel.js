@@ -215,6 +215,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  if(!container)throw new Error('Weight review container required');
  container.innerHTML=renderXml229VerifiedPanelShell(existingWorkflow);
  const root=container.querySelector('[data-p4-weight-root]');
+ root.dataset.p4ReadReady='false';
  const status=root.querySelector('[data-p4-weight-status]');
  const bulkDetail=root.querySelector('[data-p4-bulk-detail]');
  const table=root.querySelector('[data-p4-weight-table]');
@@ -258,6 +259,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  };
  const live=()=>getXml229CurrentWorkerHeldReview(stateRef),applyQueue=createXml229BulkApplyQueue(root,live,say);
  const requireRebuild=()=>{
+   root.dataset.p4ReadReady='false';
    active=null;pendingBulk=null;clearDrafts();root.__p4VisibleRows=[];
    table.replaceChildren();
    say('Verified original-source Worker ended. Return to 4 Preview → Build Preview '+
@@ -424,6 +426,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  build?.addEventListener('click',async()=>{
    if(busy)return;busy=true;build.disabled=true;
    const prev=active;
+   root.dataset.p4ReadReady='false';
    try{
      prev?.cancel();active=null;clearDrafts();
      say('Checking original source/master custody and starting isolated Workers…');
@@ -431,6 +434,8 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        resolveInputs,onProgress:stage=>say('GC-PW Worker: '+stage),
      });
      offset=0;clearDrafts();await render();
+     root.dataset.p4ReadReady='true';
+     applyQueue.drain(active);
      say('Verified source facts ready. Applied Weight suggestions are available.');
      // Nonmodal offer scans independently; never block established status.
      void zeroPopup.offer(active);
@@ -440,7 +445,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    }finally{busy=false;build.disabled=false;}
  });
  root.addEventListener('click',async event=>{
-   if(!active||applyQueue.defer(event,active,busy))return;
+   if(!active||applyQueue.defer(event,active,busy||root.dataset.p4ReadReady!=='true'))return;
    const confirmZero=event.target.closest?.('[data-p4-confirm-zero]');
    const dismissZero=event.target.closest?.('[data-p4-dismiss-zero]');
    const prev=event.target.closest?.('[data-p4-prev]');
@@ -581,6 +586,8 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    await render();
    const proof=await session.readCompletion();
    if(root.isConnected===false||live()!==session||active!==session)return;
+   root.dataset.p4ReadReady='true';
+   applyQueue.drain(session);
    const counts=proof?.counts||{};
    say('Existing verified Preview facts loaded. Weight decisions: '+
      (counts.source??0)+' original source masses, '+
