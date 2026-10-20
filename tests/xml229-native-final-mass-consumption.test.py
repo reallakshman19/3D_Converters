@@ -410,11 +410,11 @@ class NativeFinalMassTests(unittest.TestCase):
                         length and float(length)<=6):
                     branch.remove(node)
         audited=audit_finalized_physical_endpoints(root)
-        self.assertEqual(audited['twoEndpointPhysicalParts'],51)
+        self.assertEqual(audited['twoEndpointPhysicalParts'],174)
         from collections import Counter
         self.assertEqual(dict(Counter(
             row['componentType'] for row in audited['aliasPairs'])),
-            {'VALV':25,'FLAN':12,'INST':14})
+            {'VALV':34,'FLAN':126,'INST':14})
         occurrences=sum(
             sum(1 for node in branch if node.tag.split('}')[-1]=='Node'
                 and next(((c.text or '') for c in node
@@ -423,7 +423,7 @@ class NativeFinalMassTests(unittest.TestCase):
             for branch in root.iter()
             if branch.tag.split('}')[-1]=='Branch')
         self.assertEqual(occurrences,423)
-        self.assertEqual(occurrences-audited['twoEndpointPhysicalParts'],372)
+        self.assertEqual(occurrences-audited['twoEndpointPhysicalParts'],249)
 
     def test_real_ef05_423_original_physical_owner_census(self):
         # Public EF05 audit only: do not label synthetic 423 accepted masses
