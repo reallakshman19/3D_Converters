@@ -250,6 +250,45 @@ def _validate_finalized_geometry(packet, source):
     require(isinstance(retained, list) and len(originals) == len(selected)
             and len(retained) == len(originals),
             "NATIVE_FINALIZED_GEOMETRY_CENSUS_DRIFT")
+    # Verify the Worker-assigned IDs by recomputing their exact deterministic
+    # original-ordinal mapping. Only nonpositive source placeholders can change.
+    # Never merge an original positive connected node or invent a new one.
+    assigned = final.get("assignedNodeNumbers", [])
+    require(isinstance(assigned, list),
+            "NATIVE_FINALIZED_NODE_ID_MAP_INVALID")
+    originals_all = [node for branch in originals for node in nodes(branch)]
+    raw_numbers = [txt(node, "NodeNumber") for node in originals_all]
+    try:
+        integer_ids = [int(v) for v in raw_numbers]
+    except ValueError:
+        raise NativeMassError("NATIVE_FINALIZED_NODE_ID_MAP_INVALID") from None
+    require(all(str(i) == raw or
+                raw.strip().lstrip("+").lstrip("0") == str(i)
+                for i, raw in zip(integer_ids, raw_numbers)),
+            "NATIVE_FINALIZED_NODE_ID_MAP_INVALID")
+    next_id = max([0, *(i for i in integer_ids if i > 0)]) + 10
+    expected_assignments = []
+    normalized = {}
+    for bi, (src, ordinals) in enumerate(zip(originals, retained)):
+        src_nodes = nodes(src)
+        for original_index in ordinals:
+            require(type(original_index) is int and
+                    0 <= original_index < len(src_nodes),
+                    "NATIVE_FINALIZED_GEOMETRY_ORDINAL_DRIFT")
+            raw = txt(src_nodes[original_index], "NodeNumber")
+            if int(raw) <= 0:
+                require(next_id <= 2**31-1,
+                        "NATIVE_FINALIZED_NODE_ID_MAP_INVALID")
+                expected_assignments.append({
+                    "branchOccurrenceIndex": bi,
+                    "sourceNodeOrdinal": original_index,
+                    "sourceNodeNumber": raw,
+                    "finalNodeNumber": next_id,
+                })
+                normalized[(bi, original_index)] = next_id
+                next_id += 10
+    require(assigned == expected_assignments,
+            "NATIVE_FINALIZED_NODE_ID_MAP_DRIFT")
     lookup = {}
     total = 0
     for bi, (src, dst, ordinals) in enumerate(zip(originals, selected, retained)):
@@ -265,10 +304,13 @@ def _validate_finalized_geometry(packet, source):
                     "NATIVE_FINALIZED_GEOMETRY_ORDINAL_DRIFT")
             original = old_nodes[source_index]
             immutable = ("ComponentType", "ComponentRefNo", "Endpoint",
-                         "NodeName", "NodeNumber", "Position", "Rigid",
+                         "NodeName", "Position", "Rigid",
                          "ElementLengthMm", "Weight", "ConnectionType")
             require(all(txt(original, key) == txt(final_node, key)
-                        for key in immutable),
+                        for key in immutable) and
+                    txt(final_node, "NodeNumber") ==
+                    str(normalized.get((bi, source_index),
+                                       txt(original, "NodeNumber"))),
                     "NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT")
             lookup[(bi, source_index)] = final_node
             last = source_index
@@ -277,11 +319,14 @@ def _validate_finalized_geometry(packet, source):
     # Compare the ENTIRE cleaned source XML, not a small geometry field list.
     # No other pre-acceptance material, restraints or XML node fields can drift.
     expected = parse_bytes(ET.tostring(source, encoding="utf-8"))
-    for branch, ordinals in zip(branches(expected), retained):
+    for bi, (branch, ordinals) in enumerate(zip(branches(expected), retained)):
         keep = set(ordinals)
         for original_index, node in enumerate(nodes(branch)):
             if original_index not in keep:
                 branch.remove(node)
+            elif (bi, original_index) in normalized:
+                child(node, "NodeNumber").text = str(
+                    normalized[(bi, original_index)])
     require(_semantic_xml(expected) == _semantic_xml(snapshot),
             "NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT")
     require(child(snapshot, LINEAGE_STAGE) is None and
