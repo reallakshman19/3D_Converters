@@ -97,12 +97,24 @@ export async function reconcileXml229ActualCiiAgainstFinal({
   fail('NATIVE_FINAL_PACKET_INVALID');
  if(typeof originalXmlText!=='string'||typeof ciiText!=='string')
   fail('NATIVE_ARTIFACT_BYTES_REQUIRED');
+ // Independently attest the Worker-committed cleaned XML bytes before
+ // trusting any converter-owned mass proof or output.
+ const final=packet.finalizedGeometry;
+ if(packet.sourceGenerationId){
+  if(final?.schema!=='XML229.FinalizedWeightGeometry.v1'||
+     final?.basisId!==packet.basisId||
+     final?.sourceXmlSha256!==packet.sourceXmlSha256||
+     !digest(final?.sha256)||typeof final?.xmlText!=='string'||
+     await digestUtf8(final.xmlText)!==final.sha256)
+   fail('NATIVE_FINALIZED_GEOMETRY_SHA_DRIFT');
+ }
  if(await digestUtf8(originalXmlText)!==packet.sourceXmlSha256)
   fail('NATIVE_SOURCE_XML_SHA_DRIFT');
  const ciiSha=await digestUtf8(ciiText);
  if(writerDiagnostic?.schema!=='XML229.NativeRigidConsumptionDiagnostic.v1'||
     writerDiagnostic?.nativeCiiReleaseAuthorized!==false||
     writerDiagnostic?.actualCiiSha256!==ciiSha||
+    (final?.sha256&&writerDiagnostic?.finalizedGeometrySha256!==final.sha256)||
     writerDiagnostic?.massesConsumedInNativeRigid!==true||
     writerDiagnostic?.sourcePhysicalCount!==packet.physicalCount||
     writerDiagnostic?.claimedNativeRigidCount!==packet.physicalCount||
