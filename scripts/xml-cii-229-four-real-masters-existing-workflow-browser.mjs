@@ -151,10 +151,10 @@ try{
   assert.ok(record.stages.weightRows>0);
   record.stages.weightText=await page.locator('[data-p4-weight-status]').textContent();
   assert.match(record.stages.weightText,/Existing verified Preview facts/);
-  // New source-bound presentation retains the existing 7-column review
-  // contract and styling, while every review still RPCs into the GC-PW Worker.
+  // Source-bound presentation now has exactly one Applied Weight mass column.
+  // Explicit reviews still RPC to the protected GC-PW Worker.
   assert.equal(await page.locator('.mc-rigid-review-table-wrap').count(),1);
-  assert.equal(await page.locator('tr[data-p4-row]').first().locator('td').count(),14);
+  assert.equal(await page.locator('tr[data-p4-row]').first().locator('td').count(),13);
   record.stages.historicalColumns=await page.locator('.mc-rigid-review-table th').allTextContents();
   assert.equal(record.stages.historicalColumns.some(x=>x.trim()==='Recorded Weight'),false);
   assert.deepEqual(record.stages.historicalColumns.map(x=>x.trim()),[
