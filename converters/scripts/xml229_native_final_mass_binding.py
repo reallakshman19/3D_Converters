@@ -230,6 +230,7 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
     edges = model.rigid_edges
     require(len(edges) == len(emitted), "CII_GRAPH_RIGID_COUNT_DRIFT")
     used = set()
+    claims = []
     for row in owners:
         matches = []
         for idx, edge in enumerate(edges):
@@ -255,6 +256,13 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
         require(math.isclose(edges[index].to_node.weight, row["kg"],
                              abs_tol=1e-8, rel_tol=1e-9),
                 "CII_NATIVE_MODEL_MASS_MISMATCH")
+        element, from_node, to_node = slots[index]
+        claims.append({"occurrenceId": row["occurrenceId"],
+                       "rigidRecordIndex": index, "nativeElementIndex": element,
+                       "ciiFromNode": from_node, "ciiToNode": to_node,
+                       "massKg": row["kg"], "emittedForceN": emitted[index],
+                       "branchOccurrenceIndex": row["branchOccurrenceIndex"],
+                       "engineNodeOrdinal": row["engineNodeOrdinal"]})
     require(len(used) == len(owners), "CII_NATIVE_CENSUS_INCOMPLETE")
     for i, edge in enumerate(edges):
         if i not in used:
@@ -266,5 +274,6 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
             "outputRigidCount": len(emitted),
             "actualCiiSha256": hashlib.sha256(cii_text.encode("utf-8")).hexdigest(),
             "massesConsumedInNativeRigid": True,
+            "claims": sorted(claims, key=lambda c: c["occurrenceId"]),
             "independentNativeChildLineageVerified": False,
             "nativeCiiReleaseAuthorized": False}
