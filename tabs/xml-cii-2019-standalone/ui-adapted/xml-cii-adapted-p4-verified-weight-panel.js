@@ -531,7 +531,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        await applyXml229SourceWideSuggestionDrafts({
          session,drafts:draftValues,minScorePercent,saveDrafts:persistDrafts,
          isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
-         showFirst:index=>{mode='blank-rigid';query='';offset=Math.floor(index/25)*25;},
+         showFirst:index=>{mode='all';query='';offset=0;},
          render,table,detail:bulkDetail,say,
        });
        // "Apply all" applies ALL current source-bound selected positive kg,
