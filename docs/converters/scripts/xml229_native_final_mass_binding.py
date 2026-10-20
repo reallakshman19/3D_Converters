@@ -291,6 +291,65 @@ def _validate_finalized_geometry(packet, source):
     return snapshot, lookup
 
 
+def _physical_component_key(node):
+    """Physical item identity requires a real reference, type and endpoint."""
+    kind = txt(node, "ComponentType").upper()
+    ref = txt(node, "ComponentRefNo").strip().lstrip("=").replace(" ", "").upper()
+    endpoint = txt(node, "Endpoint")
+    return (kind, ref, endpoint) if kind in {
+        "RIGID", "FLAN", "VALV", "INST"} and ref else None
+
+
+def audit_finalized_physical_endpoints(final_root, packet_components=None):
+    """Read-only distinction between XML physical *nodes* and components.
+
+    A consecutive Endpoint=1 -> Endpoint=2 pair with the same reference and
+    family is a single physical part with two geometry witnesses, not proof
+    of two independently weighted components. No mass is redistributed.
+
+    If packet_components is passed, restrict alias detection to separately
+    accepted source occurrences already stamped on the finalized XML.
+    """
+    records = []
+    double_accepted = []
+    for bi, branch in enumerate(branches(final_root)):
+        entries = nodes(branch)
+        candidates = []
+        for ni, node in enumerate(entries):
+            key = _physical_component_key(node)
+            if key:
+                candidates.append((ni, node, key))
+        consumed = set()
+        for (ni, left, key), (nj, right, other) in zip(
+                candidates, candidates[1:]):
+            if nj != ni + 1 or key[:2] != other[:2] or (
+                    key[2], other[2]) != ("1", "2"):
+                continue
+            require(ni not in consumed and nj not in consumed,
+                    "NATIVE_ENDPOINT_ALIAS_OVERLAP")
+            consumed.update((ni, nj))
+            row = {
+                "branchOccurrenceIndex": bi,
+                "componentType": key[0],
+                "componentRefNo": key[1],
+                "startNodeNumber": txt(left, "NodeNumber"),
+                "endNodeNumber": txt(right, "NodeNumber"),
+                "firstEngineNodeOrdinal": ni,
+                "secondEngineNodeOrdinal": nj,
+            }
+            records.append(row)
+            if packet_components is not None:
+                a, b = txt(left, LINEAGE_TAG), txt(right, LINEAGE_TAG)
+                if a in packet_components and b in packet_components:
+                    double_accepted.append(row)
+    return {
+        "schema": "XML229.FinalizedPhysicalEndpointAudit.v1",
+        "twoEndpointPhysicalParts": len(records),
+        "aliasPairs": records,
+        "doubleAcceptedPairs": double_accepted,
+    }
+
+
 def stage_native_original_lineage(original_path, packet_path):
     """Annotate exact original source occurrences BEFORE staged-JSON enrichment.
 
@@ -335,6 +394,13 @@ def stage_native_original_lineage(original_path, packet_path):
                 "NATIVE_ACCEPTED_PHYSICAL_NOT_IN_FINAL_GEOMETRY")
         ns = target.tag.rsplit("}", 1)[0] + "}" if "}" in target.tag else ""
         ET.SubElement(target, ns + LINEAGE_TAG).text = oid
+    # Final decisions apply to complete physical *components*, not to each
+    # end of the same VALV/FLAN/INST occurrence. Never consume two accepted
+    # masses into one paired component or silently choose one of them.
+    endpoint_audit = audit_finalized_physical_endpoints(
+        final_source, {row["occurrenceId"] for row in packet["components"]})
+    require(not endpoint_audit["doubleAcceptedPairs"],
+            "NATIVE_DOUBLE_ENDPOINT_MASS_OWNER")
     ns = final_source.tag.rsplit("}", 1)[0] + "}" if "}" in final_source.tag else ""
     ET.SubElement(final_source, ns + LINEAGE_STAGE).text = packet["basisId"]
     output = Path(original_path).with_name(
