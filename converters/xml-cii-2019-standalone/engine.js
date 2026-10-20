@@ -11,6 +11,7 @@ const SCRIPT_FILE_NAMES = Object.freeze([
   'xml_to_cii2019_bend_radius_policy.py',
   'xml_to_cii2019_runtime_custody.py',
   'xml_cii_weight_output_custody.py',
+  'xml229_native_final_mass_binding.py',
   'xml_cii_weighted_geometry.py',
   'xml_to_cii2019_master_addon.py',
   'master_customization.py',
@@ -161,7 +162,19 @@ export async function runXmlCii2019StandaloneEngine(job) {
     pyodide.FS.mkdirTree(jobDir);
     const inputPath = writeTextFile(pyodide, jobDir, normalizedJob.sourceName || (sourceKind === 'inputxml' ? 'input.input.xml' : 'input.xml'), normalizedJob.sourceText);
     const stagedJsonPath = normalizedJob.stagedJsonText ? writeTextFile(pyodide, jobDir, `${outputStem(normalizedJob.sourceName)}_staged.json`, normalizedJob.stagedJsonText) : null;
-    const paths = { inputPath, stagedJsonPath };
+    // The packet is private transient Worker evidence; never a cached
+    // override or a front-end candidate. Native Python checks source SHA,
+    // original physical ordinal/signature and every actual CII RIGID record.
+    const massPacket = normalizedJob.xml229NativeFinalPacket || null;
+    if (massPacket && (sourceKind !== 'xml' || outputMode === 'enriched-only'))
+      throw new Error('XML229_NATIVE_PACKET_REQUIRES_XML_AND_CII');
+    const xml229NativeFinalPacketPath = massPacket
+      ? writeTextFile(pyodide, jobDir, 'xml229-native-final-packet.json',
+          JSON.stringify(massPacket)) : null;
+    const xml229NativeMassProofPath = massPacket
+      ? `${jobDir}/xml229-native-mass-proof.json` : null;
+    const paths = { inputPath, stagedJsonPath,
+      xml229NativeFinalPacketPath,xml229NativeMassProofPath };
     let enrichedText = '';
     let enrichedName = '';
     let ciiText = null;
@@ -198,6 +211,16 @@ export async function runXmlCii2019StandaloneEngine(job) {
       const cii = await runCii(pyodide, normalizedJob, ciiPaths, jobDir, stdout, stderr);
       ciiText = cii.ciiText;
       ciiName = cii.ciiName;
+      if (massPacket) {
+        const diagnostic=JSON.parse(pyodide.FS.readFile(xml229NativeMassProofPath,
+          {encoding:'utf8'}));
+        if (diagnostic?.massesConsumedInNativeRigid !== true||
+            diagnostic?.sourcePhysicalCount !== massPacket.physicalCount||
+            diagnostic?.actualCiiSha256?.length !== 64||
+            diagnostic?.nativeCiiReleaseAuthorized !== false)
+          throw new Error('XML229_NATIVE_CII_MASS_RECONCILIATION_FAILED');
+        partial.xml229NativeMassDiagnostic=diagnostic;
+      }
       postprocess.push({ branch: `${sourceKind}-cii`, outputName: ciiName, argv: cii.argv, inputSource: topology.ciiInputSource || 'original' });
     }
     const warnings = [];
@@ -209,6 +232,8 @@ export async function runXmlCii2019StandaloneEngine(job) {
       enrichedName,
       ciiText,
       ciiName,
+      ...(partial.xml229NativeMassDiagnostic
+        ?{xml229NativeMassDiagnostic:partial.xml229NativeMassDiagnostic}:{}),
       ...topology,
       diagnostics: diagnostics(normalizedJob, { postprocess, warnings, topology: topology.topologySummary }),
       logs: [...logs(stdout), ...logs(stderr).map((line) => `stderr: ${line}`)],
