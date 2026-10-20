@@ -104,6 +104,41 @@ test('actual XML Preview computation is independently assessed into COMPLETE sou
  assert.equal(row300.find(x=>x.fieldId==='mass.kg').value,null);
  assert.equal(positive.workerResult.branchRows.length,1);
 });
+test('physical endpoint pairs are identified before accepting weights, without merging facts',async()=>{
+ const pairedXml=XML
+  .replace('<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>2</Endpoint>',
+           '<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>1</Endpoint>')
+  .replace('<ComponentType>INST</ComponentType>',
+           '<ComponentType>VALV</ComponentType>')
+  .replace('<ComponentRefNo>1006649732/119369</ComponentRefNo>',
+           '<ComponentRefNo>1006649732/119367</ComponentRefNo>');
+ assert.notEqual(pairedXml,XML);
+ const basis=await createPreviewBasis({domainId:'xml-cii/2019',
+   sources:[{sourceId:SOURCE_ID,mediaType:'application/xml',text:pairedXml}],
+   masters,selection,config,overrides:{},sha256:digestUtf8});
+ const original=projectXmlCiiOccurrences({xmlText:pairedXml,sourceId:SOURCE_ID});
+ const preview=xmlCiiDryRunPreview(pairedXml,config,'');
+ const opened=await openXml229EngineeringFactModel({
+  basis,live:{...live,sources:{[SOURCE_ID]:pairedXml}},
+  xmlText:pairedXml,sourceId:SOURCE_ID,
+  previewResult:{...preview,sourceOccurrences:original,
+   engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},
+  expectedOriginalCount:original.branchCount+original.nodeCount,
+ });
+ const topology=opened.finalizedGeometry.physicalOwnerCardinality;
+ assert.equal(topology.weightsAccepted,false);
+ assert.equal(topology.reviewedPhysicalNodeOccurrences,3);
+ assert.equal(opened.physicalOccurrences.length,3);
+ assert.equal(topology.pairedEndpointPhysicalParts,1);
+ assert.equal(topology.distinctPhysicalPartCandidates,2);
+ assert.equal(topology.endpointPairs[0].componentType,'VALV');
+ assert.equal(topology.endpointPairs[0].componentRefNo,'1006649732/119367');
+ assert.notEqual(topology.endpointPairs[0].firstOccurrenceId,
+                 topology.endpointPairs[0].secondOccurrenceId);
+ assert.equal(opened.finalizedGeometry.sha256,
+              await digestUtf8(opened.finalizedGeometry.xmlText));
+});
+
 test('actual verified Preview result enters GC-PW Weight session via the EXISTING strict port',async()=>{
  const f=await fixture();
  const prepared=await openXml229EngineeringFactModel({
