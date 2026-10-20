@@ -29,6 +29,9 @@ test('native Run surfaces post-acceptance geometry changes as actionable blocker
  assert.ok(ui.includes('native?.error'));
  assert.match(ui,/NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE/);
  assert.match(ui,/NATIVE_DOUBLE_ENDPOINT_MASS_OWNER/);
+ assert.match(ui,/NATIVE_NONCANONICAL_ENDPOINT_OWNER/);
+ assert.match(ui,/NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT/);
+ assert.match(ui,/NATIVE_FINALIZED_NODE_ID_MAP_DRIFT/);
  assert.match(ui,/NATIVE_RIGID_OWNER_UNSUPPORTED/);
 });
 
