@@ -311,7 +311,7 @@ def _validate_finalized_geometry(packet, source):
                     typ != txt(right, "ComponentType").upper() or
                     ref != other_ref or
                     (txt(left, "Endpoint"), txt(right, "Endpoint")) != ("1", "2") or
-                    txt(left, "Rigid") or txt(right, "Rigid") or
+                    txt(right, "Rigid") or
                     txt(left, "ConnectionType") or txt(right, "ConnectionType")):
                 continue
             start = _normalized_position(txt(left, "Position"))
