@@ -120,8 +120,13 @@ def bind_native_final_xml(original_path, enriched_path, packet_path):
                 json.dumps(decoded, separators=(",", ":"), ensure_ascii=False) == oid,
                 "NATIVE_OCCURRENCE_INVALID")
         kg = item.get("effectiveKg")
-        require(type(kg) in (int, float) and math.isfinite(kg) and kg > 0,
+        require(type(kg) in (int, float) and math.isfinite(kg) and kg >= 0,
                 "NATIVE_FINAL_MASS_REQUIRED")
+        # Zero is an accepted engineering disposition, but a massless physical
+        # has no proven unique ELEMENTS -> RIGID mass slot. A missing mass must
+        # never be inferred from an omitted CII RIGID record. Fail closed until
+        # independent non-RIGID/child-lineage evidence can represent it.
+        require(kg > 0, "NATIVE_ZERO_MASS_LINEAGE_UNVERIFIED")
         bi, ni = decoded[1], decoded[2]
         require(bi < len(source_branches), "NATIVE_BRANCH_OUT_OF_RANGE")
         src, dest = source_branches[bi], engine_branches[bi]
