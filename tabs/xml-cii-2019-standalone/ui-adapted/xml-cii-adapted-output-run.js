@@ -424,7 +424,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
   routeSelect.dataset.action='xml229-output-participation';
   const approved=isXml229XmlOnlyApproved(state);
   routeSelect.append(
-    createOption('governed','JSON + governed engineering weights (HELD pending Final)',!approved),
+    createOption('governed','JSON + accepted engineering weights (native CII after Run reconciliation)',!approved),
     createOption('xml-only','XML-only test conversion (no draft weights)',approved),
   );
   routeSelect.disabled=actualSourceKind(state)!=='xml'||!!state.running;
@@ -451,7 +451,9 @@ function renderRunControls(parent, stateRef, state, report, render) {
   ctrlCard.append(routeLabel,createElement('div',
     approved
       ?'XML-only selected for this exact XML, branch selection, config and master basis. Staged JSON, Preview, GC-PW and accepted Weight/Final decisions are excluded from native conversion; source or master changes require new explicit selection.'
-      :'This hold applies to the CURRENT loaded XML when staged JSON is attached: indexing is not Final approval. XML-only testing is an explicit, independent route and will not apply editable/zero weight drafts.',
+      :(report.raw.xml229NativeOutputVerified
+        ?'Current accepted engineering weights are consumed by verified native CII output. Download is permitted while this Worker source and Final intent remain unchanged.'
+        :'The original JSON index is not a conversion result. Finalise and Run Conversion will use the accepted Source/Final weights, verify actual emitted CII mass records, then download only if reconciliation succeeds. XML-only testing excludes these weights.'),
     'model-converters-workflow-detail-note'));
   const actionDiv = createElement('div');
   if (actionDiv.style) Object.assign(actionDiv.style, { marginTop: '12px', display: 'flex', gap: '8px', flexDirection: 'column' });
