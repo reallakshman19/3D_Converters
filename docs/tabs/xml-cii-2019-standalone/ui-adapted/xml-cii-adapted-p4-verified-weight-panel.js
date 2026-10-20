@@ -4,24 +4,26 @@
  * weights. Large original staged JSON remains INSIDE its GC-PW Worker.
  */
 import {openXml229WorkerHeldOriginalWeightReview} from '../integration/xml229-original-blob-gcpw-client.mjs';
+import {renderXml229VerifiedPanelShell} from './xml229-p4-panel-shell.mjs';
 import {resolveXml229CurrentPreviewBlob} from './xml-cii-adapted-lfj-o1-intake.js';
 import {xmlCiiEnrichedConfigFromState} from './xml-cii-adapted-state.js';
 import {materializeXmlCiiDatasetBackedConfig} from '../xml-cii-dataset-backed-config.js';
 import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-custody.mjs';
 import {digestCanonical,canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-scope.js';
-import {renderXml229WeightReviewPage,formatXml229DecisionAuditSummary} from './xml229-p4-weight-review-presentation.mjs';
-import {planXml229RigidWeightDrafts,planXml229UnqualifiedDrafts,formatXml229Match1Exclusions,hydrateXml229WeightDraftInputs} from './xml229-p4-unqualified-drafts.mjs';
+import {renderXml229WeightReviewPage} from './xml229-p4-weight-review-presentation.mjs';
+import {prepareXml229ExplicitMassReview,commitXml229ExplicitMassReview,xml229VisibleSingleReviewSnapshot}
+ from './xml229-p4-explicit-mass-review.mjs';
+import {hydrateXml229WeightDraftInputs} from './xml229-p4-unqualified-drafts.mjs';
+import {applyXml229SourceWideSuggestionDrafts,applyXml229BlankWeightDrafts} from './xml229-p4-source-wide-suggestion-action.mjs';
 import {disarmXml229EditedDraft} from './xml229-p4-two-click-confirmation.mjs';
-import {revealXml229PreparedWeightInput} from './xml229-p4-reveal-applied-weight.mjs';
 import {createXml229BulkApplyQueue} from './xml229-p4-busy-apply-queue.mjs';
-import {planXml229SkipWeightDrafts} from './xml229-p4-skip-weight-drafts.mjs';
 import {openXml229WeightDraftWorkspace} from './xml229-p4-weight-draft-workspace.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
-import {prepareXml229G3G4LocalAggregateExport} from './xml229-g3g4-local-aggregate-export.mjs';
+import {exportXml229WeightEvidence} from './xml229-p4-private-weight-evidence.mjs';
 import {downloadXml229FullSourceSafety} from './xml229-full-source-safety-download.mjs';
 import {downloadXml229OwnerBasisCustody} from './xml229-owner-basis-custody-download.mjs';
-import {beginXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace} from './xml229-flow-trace-registry.mjs';
+import {beginXml229FlowTrace} from './xml229-flow-trace-registry.mjs';
 import {getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,
  publishXml229VerifiedEngineeringBuild,revokeXml229VerifiedEngineeringBasis}
  from '../integration/xml229-engineering-basis-authority.mjs';
@@ -219,42 +221,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  existingWorkflow=false,
 }={}){
  if(!container)throw new Error('Weight review container required');
- container.innerHTML=`<section data-p4-weight-root
-  style="border:1px solid #64748b;border-radius:8px;padding:12px;margin:12px 0;">
-  <strong>${existingWorkflow?'Weight Match — verified original physical facts':'Original-source Weight review (GC-PW)'}</strong>
-  <p style="font-size:12px;color:#94a3b8;">Independent original XML census + full staged JSON Blob verification in separate Workers.
-  Applied Weight is an editable source-bound draft saved locally. Suggestion and Skip Weight actions
-  never accept Match-1/Final or change native CII Run authorization.</p>
-  ${existingWorkflow?'':'<button type="button" data-p4-weight-build>Build verified original-source Weight review</button>'}
-  <span role="status" data-p4-weight-status style="margin-left:8px;"></span>
-  <pre data-p4-bulk-detail role="status" hidden
-   style="white-space:pre-wrap;font-size:12px;color:#cbd5e1;background:#101e32;padding:8px;border-radius:6px;"></pre>
-  <div style="margin:10px 0"><button type="button" data-p4-export-flow-trace
-   class="model-converters-download-btn">Download Worker/UI causal flow trace (private)</button>
-   <small style="display:block;color:#94a3b8">Read-only session/Worker transitions, typed failures, fact/review counts and native gate. No source or master rows.</small></div>
-  <div style="margin:10px 0"><button type="button" data-p4-export-candidate-readiness
-   class="model-converters-download-btn">Download candidate coverage + readiness (private)</button>
-   <small style="display:block;color:#94a3b8">Same verified Worker, read-only aggregate counts; keep file private. Does not authorize native CII.</small></div>
-  <div style="margin:10px 0"><button type="button" data-p4-full-source-safety class="model-converters-download-btn">Download full-source Weight safety precheck (private)</button><small style="display:block;color:#94a3b8">Requires empty review ledger; no source rows, approval or native CII release.</small></div>
-  <div><button type="button" data-p4-export-effective-basis class="model-converters-download-btn">Download current effective 4-master custody (OWNER PRIVATE)</button><small>Includes private config and normalized master rows. Keep local; no source XML/JSON or approvals.</small></div>
-  <div style="margin:10px 0"><button type="button" data-p4-audit-decisions
-   class="model-converters-download-btn">Download verified decision provenance JSON</button>
-   <small style="display:block;color:#94a3b8">Read-only source-bound Match-1/Final audit. Bulk command IDs alone do not prove an earlier confirmation click. No native CII release.</small></div>
-   <div style="margin:8px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-    <button type="button" data-p4-save-review class="model-converters-download-btn">Save GC-PW review file</button>
-    <button type="button" data-p4-choose-review class="model-converters-download-btn">Restore GC-PW review file</button>
-    <input type="file" data-p4-import-review accept=".json,application/json"
-      aria-label="Select an Owner-controlled GC-PW review file" hidden>
-    <small style="color:#94a3b8">Accepted review ledger only. It does NOT contain Applied Weight drafts; restoring does not approve Final or native CII Run.</small>
-   </div>
-   <div style="margin:8px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-    <button type="button" data-p4-save-drafts class="model-converters-download-btn">Save Applied Weight drafts</button>
-    <button type="button" data-p4-choose-drafts class="model-converters-download-btn">Restore Applied Weight drafts</button>
-    <input type="file" data-p4-import-drafts accept=".json,application/json"
-      aria-label="Select source-bound Applied Weight draft backup" hidden>
-    <small style="color:#94a3b8">Drafts are locally checkpointed by exact verified InputBasis for reload and navigation. The separate private backup permits recovery if browser storage is cleared. No review or native CII approval.</small>
-   </div>
-  <div data-p4-weight-table></div></section>`;
+ container.innerHTML=renderXml229VerifiedPanelShell(existingWorkflow);
  const root=container.querySelector('[data-p4-weight-root]');
  const status=root.querySelector('[data-p4-weight-status]');
  const bulkDetail=root.querySelector('[data-p4-bulk-detail]');
@@ -262,7 +229,12 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const build=root.querySelector('[data-p4-weight-build]');
  const key=stateRef?.modeABaseRef||stateRef;
  let active=getXml229CurrentWorkerHeldReview(stateRef),offset=0,busy=false;
- let mode='rigid',query='',pendingBulk=null,searchTimer=null,renderSequence=0,minScorePercent=80;
+ let mode='rigid',query='',pendingBulk=null,pendingReview=null,searchTimer=null,renderSequence=0,minScorePercent=80;
+ const disarmReview=()=>{
+   pendingReview=null;
+   const confirm=root.querySelector('[data-p4-confirm-single]');
+   if(confirm)confirm.hidden=true;
+ };
  let draftOwner=null,draftValues=new Map(),draftWorkspace=null;
  // A verified Worker receipt, never the panel instance, owns draft identity.
  const bindDrafts=session=>{
@@ -277,6 +249,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    return 0;
  };
  const clearDrafts=()=>{
+   disarmReview();
    // Never destroy source-bound drafts merely because the panel was rebuilt.
    draftOwner=null;draftWorkspace=null;draftValues=new Map();
    bulkDetail.hidden=true;bulkDetail.textContent='';
@@ -288,6 +261,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      pendingBulk=null;
      say('Applied Weight edited; the previous suggestion plan was invalidated. No mass approved.');
    }
+   if(pendingReview){disarmReview();say('Draft edited: prepared review cancelled. No decision accepted.');}
    try{persistDrafts();}
    catch(error){say('Draft is in memory but local checkpoint failed ['+
      String(error.code||'WEIGHT_DRAFT_STORAGE_WRITE_FAILED')+
@@ -305,6 +279,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      'No Match-1/Final decisions were restored or accepted automatically.',true);
  };
  const render=async()=>{
+   disarmReview();
    if(!active)return;
    const session=active,token=++renderSequence;
    const page=mode==='all'&&!query
@@ -439,6 +414,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const skipButton=event.target.closest?.('[data-p4-skip-weight]');
       const saveButton=event.target.closest?.('[data-p4-save-review]');
    const restoreButton=event.target.closest?.('[data-p4-choose-review]');
+   const reviewMatch1=event.target.closest?.('[data-p4-review-match1]');
+   const reviewFinal=event.target.closest?.('[data-p4-review-final]');
+   const confirmReview=event.target.closest?.('[data-p4-confirm-single]');
    const saveDraftButton=event.target.closest?.('[data-p4-save-drafts]');
    const restoreDraftButton=event.target.closest?.('[data-p4-choose-drafts]');
    const safetyButton=event.target.closest?.('[data-p4-full-source-safety]'),auditButton=event.target.closest?.('[data-p4-audit-decisions]');
@@ -446,9 +424,26 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const coverageButton=event.target.closest?.('[data-p4-export-candidate-readiness]');
    const traceButton=event.target.closest?.('[data-p4-export-flow-trace]');
    const candidateChip=event.target.closest?.('[data-p4-pick]');
-      if(!prev&&!next&&!scope&&!planButton&&!skipButton&&!draftFillButton&&!candidateChip&&!auditButton&&!safetyButton&&!custodyButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton&&!saveDraftButton&&!restoreDraftButton)return;
+      if(!prev&&!next&&!scope&&!planButton&&!skipButton&&!draftFillButton&&!candidateChip&&!auditButton&&!safetyButton&&!custodyButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton&&!saveDraftButton&&!restoreDraftButton&&!reviewMatch1&&!reviewFinal&&!confirmReview)return;
    busy=true;root.dataset.p4Busy='true';
    try{
+     if(confirmReview){
+       const prepared=pendingReview;disarmReview();
+       const tr=[...table.querySelectorAll('tr[data-p4-row]')].find(
+         x=>x.dataset.p4Occurrence===prepared?.occurrenceId);
+       if(!tr)err('WEIGHT_REVIEW_VISIBLE_ROW_STALE');
+       await commitXml229ExplicitMassReview({
+         prepared,session:active,draft:draftValues.get(prepared.occurrenceId),
+         readVisible:()=>xml229VisibleSingleReviewSnapshot(tr),
+         isCurrent:()=>active===prepared.session&&live()===active&&
+           tr.isConnected!==false&&table.contains(tr),
+       });
+       draftValues.delete(prepared.occurrenceId);persistDrafts();
+       pendingBulk=null;await render();
+       say(prepared.stageLabel+' explicitly committed through verified Worker CAS for original occurrence '+
+         prepared.occurrenceId+'. Engineering and native CII release remain HELD.');
+       return;
+     }
      if(restoreDraftButton){
        root.querySelector('[data-p4-import-drafts]')?.click();
        return;
@@ -480,38 +475,11 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
          ' unresolved. Keep this private file to restore only after verified 4 Preview rebuild.');
        return;
      }
-     if(traceButton){
-       const session=active,trace=getXml229FlowTrace(stateRef);
-       if(!trace||live()!==session||root.isConnected===false)
-         err('FLOW_TRACE_SESSION_STALE','Current Worker flow trace unavailable');
-       const proof=await session.readCompletion();
-       if(live()!==session||active!==session||root.isConnected===false)
-         err('FLOW_TRACE_SESSION_STALE','Source changed during trace collection');
-       recordXml229FlowTrace(stateRef,{kind:'WEIGHT_UI_RENDERED',actor:'weight-ui',
-         counts:{physical:proof.verifiedPhysicalCount,facts:proof.verifiedFactCount,
-           sourceMass:proof.counts?.source,match1:proof.counts?.match1,
-           final:proof.counts?.final,unresolved:proof.counts?.unresolved}});
-       const json=JSON.stringify(trace.snapshot(),null,2);
-       if(json.length>131072)err('FLOW_TRACE_EXPORT_TOO_LARGE','Trace exceeds private export budget');
-       downloadTextFile('xml229-cross-worker-flow-trace.json',json,'application/json;charset=utf-8');
-       say('Private Worker/UI trace exported; native CII remains HELD.');
-       return;
-     }
-     if(coverageButton){
+     if(traceButton||coverageButton||auditButton){
        const session=active;
-       if(live()!==session||root.isConnected===false)
-         err('G3_G4_AGGREGATE_EXPORT_HELD','Current original source review is stale');
-       const pair=await session.readCandidateReadinessPair();
-       if(live()!==session||active!==session||root.isConnected===false)
-         err('G3_G4_AGGREGATE_EXPORT_HELD','Original source changed during aggregate export');
-       const receipt=prepareXml229G3G4LocalAggregateExport({
-         pair,receipt:session.receipt,
-       });
-       downloadTextFile(receipt.filename,receipt.text,'application/json;charset=utf-8');
-       say('Private G3/G4 aggregate exported: '+
-         pair.coverage.physicalCount+' original physicals, '+
-         pair.coverage.counts.occurrencesWithQualifiedCandidates+
-         ' with qualified proposals; native CII remains HELD.');
+       const kind=traceButton?'trace':coverageButton?'coverage':'audit';
+       say(await exportXml229WeightEvidence({kind,session,stateRef,
+         isCurrent:()=>live()===session&&active===session&&root.isConnected!==false}));
        return;
      }
      if(safetyButton){await downloadXml229FullSourceSafety({session:active,isCurrent:()=>live()===active&&root.isConnected!==false,say});return;}
@@ -521,108 +489,28 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
          isCurrent:()=>getXml229CurrentWorkerHeldReview(stateRef)===active&&root.isConnected!==false});
        say('Private effective config and exact four-master custody saved locally. No Match-1, Final or native CII authority granted.');return;
      }
-     if(auditButton){
-       const live=getXml229CurrentWorkerHeldReview(stateRef);
-       if(live!==active)err('PROVENANCE_SESSION_STALE',
-         'Current verified source changed before decision provenance audit');
-       const report=await active.readDecisionProvenance();
-       if(getXml229CurrentWorkerHeldReview(stateRef)!==active||
-          report?.basisId!==active.receipt?.basisId)
-         err('PROVENANCE_SESSION_STALE','Original source changed during decision audit');
-       downloadTextFile('xml229-weight-decision-provenance.json',
-         JSON.stringify({...report,exportedAt:new Date().toISOString()},null,2),
-         'application/json;charset=utf-8');
-       say(formatXml229DecisionAuditSummary(report));
-       return;
-     }
      if(scope){
        mode=scope.getAttribute('data-p4-scope')||'all';
        offset=0;pendingBulk=null;await render();return;
      }
-     if(planButton){say('Preparing ≥'+minScorePercent+'% drafts across verified source...');const session=active;
-       const plan=await session.planQualifiedBlankFill({minScorePercent});
-       if(!Number.isSafeInteger(plan?.qualified)||!Array.isArray(plan.qualifiedSuggestions)||
-          plan.qualifiedSuggestions.length!==plan.qualified)
-         err('SUGGESTION_WORKER_PLAN_INCOMPLETE',
-           'Worker qualified-count and source-proposal evidence do not match');
-       const planned=await planXml229RigidWeightDrafts(session,{
-         existingDrafts:draftValues,minScorePercent,
-         qualifiedSuggestions:plan.qualifiedSuggestions,
+     if(planButton){
+       const session=active;pendingBulk=null;
+       await applyXml229SourceWideSuggestionDrafts({
+         session,drafts:draftValues,minScorePercent,saveDrafts:persistDrafts,
          isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
+         showFirst:index=>{mode='blank-rigid';query='';offset=Math.floor(index/25)*25;},
+         render,table,detail:bulkDetail,say,
        });
-       if(active!==session||live()!==session)
-         err('STALE_WEIGHT_AUTO_FILL_SOURCE','Verified source changed during suggestion preparation');
-       for(const [id,draft] of planned.drafts)
-         if(!draftValues.has(id))draftValues.set(id,draft);
-       persistDrafts();
-       pendingBulk=null; // Suggestions populate drafts, not a Match-1 commit.
-       // Show the first actual populated input. The formerly selected 25 rows
-       // may contain zero eligible suggestions even for a source-wide plan.
-       if(planned.firstPreparedIndex!==null){
-         mode='blank-rigid';query='';
-         offset=Math.floor(planned.firstPreparedIndex/25)*25;
-       }
-       const visiblePopulated=await render();
-       if(planned.counts.prepared>0&&!(visiblePopulated>0))
-         err('SUGGESTION_VISIBLE_INPUT_NOT_APPLIED',
-           'No actual proposed kilograms were populated on the selected page');
-       if(visiblePopulated>0&&!revealXml229PreparedWeightInput(table))
-         err('SUGGESTION_INPUT_OUTSIDE_VIEWPORT','Applied kg could not be revealed horizontally');
-       bulkDetail.hidden=true;
-       bulkDetail.textContent='';
-       const confirm=table.querySelector('[data-p4-bulk-confirm]');
-       if(confirm){
-         confirm.disabled=!plan.qualified;
-         confirm.textContent='Apply all Match-1 ('+plan.qualified+')';
-       }
-       const c=planned.counts;
-       say('Apply all suggestions ≥'+minScorePercent+'%: '+c.prepared+
-         ' editable draft(s) prepared across the verified source. '+
-         visiblePopulated+' actual kg input(s) populated on this page; first input revealed. '+
-         c.workerQualified+' source-qualified candidate(s) reconciled ('+
-         c.workerQualifiedPrepared+' newly filled, '+
-         c.workerQualifiedAlreadyDrafted+' existing drafts kept, '+
-         c.manualConflictsPreserved+' manual edit conflicts preserved); '+
-         c.preparedUnqualified+' review-only drafts. '+
-         c.withoutProposal+' no proposal, '+c.belowThreshold+
-         ' below threshold. Applied Weight drafts are not accepted; governed CII remains HELD.');
        return;
      }
-     if(skipButton){
-        const session=active;
-        const planned=await planXml229SkipWeightDrafts(session,{
-          existingDrafts:draftValues,
-          isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
-        });
-        if(active!==session||live()!==session)err('SKIP_WEIGHT_SOURCE_STALE');
-        for(const [id,draft] of planned.drafts)
-          if(!draftValues.has(id))draftValues.set(id,draft);
-        persistDrafts();
-        pendingBulk=null;bulkDetail.hidden=true;bulkDetail.textContent='';
-        mode='blank-rigid';query='';offset=0;
-        await render();
-        say('Skip Weight: '+planned.counts.skipped+
-          ' blank eligible weight row(s) filled with 0 kg DRAFT. '+
-          planned.counts.alreadyEdited+' existing drafts kept; '+
-          planned.counts.existingReview+' reviewed rows untouched. '+
-          '0 kg is not verified engineering mass and does not enter CII/Final automatically.');
-        return;
-      }
-      if(draftFillButton){
-       const session=active;
-       const planned=await planXml229UnqualifiedDrafts(session,{
-         existingDrafts:draftValues,
+     if(skipButton||draftFillButton){
+       const session=active;pendingBulk=null;
+       say(await applyXml229BlankWeightDrafts({
+         kind:skipButton?'skip':'unqualified',session,drafts:draftValues,
          isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
-       });
-       for(const [id,draft] of planned.drafts)if(!draftValues.has(id))
-         draftValues.set(id,draft);
-       persistDrafts();
-       pendingBulk=null;mode='blank-rigid';offset=0;await render();
-       const c=planned.counts;
-       say(c.prepared+' new unqualified editable draft(s) across '+c.blankRigid+
-         ' blank RIGIDs; '+c.withoutProposal+' have no proposal, '+
-         c.qualifiedPresent+' have qualified candidates and '+c.alreadyDrafted+
-         ' already had local drafts. Zero decisions accepted. Drafts are InputBasis-bound.');
+         saveDrafts:persistDrafts,render,detail:bulkDetail,
+         resetView:kind=>{mode='blank-rigid';offset=0;if(kind==='skip')query='';},
+       }));
        return;
      }
      if(prev||next){
@@ -634,6 +522,34 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        err('STALE_PHYSICAL_ROW','Original physical source row changed');
      const draft=tr.querySelector('[data-p4-proposal]');
      const selection=tr.querySelector('[data-p4-candidate]');
+     if(reviewMatch1||reviewFinal){
+       // First click is read-only. A separately verified confirmation owns
+       // the only Worker review write, with actual DOM/edit drift checks.
+       captureDraft(tr);
+       const session=active;
+       const draftBefore=draftValues.get(row.occurrenceId);
+       const draftJson=JSON.stringify(draftBefore||null);
+       const prepared=await prepareXml229ExplicitMassReview({
+         session,row,stage:reviewFinal?'final':'match1',draft:draftBefore,
+         typed:tr.querySelector('[data-p4-proposal]')?.value||'',
+         reason:tr.querySelector('[data-p4-reason]')?.value?.trim()||'',
+         readVisible:()=>xml229VisibleSingleReviewSnapshot(tr),
+         isCurrent:()=>active===session&&live()===session&&
+           tr.isConnected!==false&&table.contains(tr),
+       });
+       if(JSON.stringify(draftValues.get(row.occurrenceId)||null)!==draftJson)
+         err('WEIGHT_REVIEW_DRAFT_CHANGED_DURING_PREPARE');
+       pendingReview=prepared;
+       const confirm=root.querySelector('[data-p4-confirm-single]');
+       confirm.hidden=false;
+       confirm.textContent='Confirm '+prepared.stageLabel+' · '+prepared.value+' kg (source reviewed)';
+       bulkDetail.hidden=false;
+       bulkDetail.textContent='Prepared '+prepared.stageLabel+' for original occurrence '+
+         row.occurrenceId+' at '+prepared.value+' kg. Engineering reason: '+
+         prepared.reason+'. NOT a decision until Confirm. Native CII remains HELD.';
+       say('Review prepared. Confirm explicitly above the table. No mass accepted yet.');
+       return;
+     }
      if(candidateChip){
        const proposalId=candidateChip.getAttribute('data-p4-pick')||'';
        const candidate=(row.proposals||[]).find(p=>p.proposalId===proposalId);
