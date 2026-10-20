@@ -12,7 +12,7 @@
 import {
   attestLiveBasis,physicalOccurrenceId,
 } from '../../../contracts/gc-pw-v1/occurrence-bridge.mjs';
-import {assertBasisDigest,canonicalJson,digestCanonical,validateFactRecord,validatePage}
+import {assertBasisDigest,canonicalJson,digestCanonical,digestUtf8,validateFactRecord,validatePage}
   from '../../../contracts/gc-pw-v1/contract.mjs';
 import {isolatedOriginalPreviewWorkConfig} from './xml229-original-preview-work-config.mjs';
 import {projectXmlCiiOccurrences}
@@ -212,6 +212,20 @@ export async function openXml229EngineeringFactModel({
   });
   if(!model.info.engineeringReady||model.info.computationStage!=='engineering-verified')
     fail('ENGINEERING_NOT_VERIFIED','Independent original/physical population verification did not succeed');
+  // The exact cleaned XML inspected by verified Weight Match is the immutable
+  // geometry artifact for native Run. Original source ordinals stay in the
+  // retained-by-branch ledger; the Worker binds it to the GC-PW source basis.
+  if(typeof XMLSerializer!=='function')
+    fail('FINALIZED_GEOMETRY_SERIALIZER_REQUIRED','XML serializer unavailable');
+  const finalXmlText=new XMLSerializer().serializeToString(prepared.document);
+  const finalizedGeometry=Object.freeze({
+    schema:'XML229.FinalizedWeightGeometry.v1',
+    basisId:basis.basisId,sourceXmlSha256:basis.sourceRefs[0].sha256,
+    xmlText:finalXmlText,sha256:await digestUtf8(finalXmlText),
+    originalNodeCount:prepared.ledger.originalCount,
+    retainedSourceOrdinalsByBranch:prepared.ledger.retainedByBranch.map(
+      rows=>rows.map(row=>row.sourceNodeOrdinal)),
+  });
   const workerResult=Object.freeze({
     ...previewResult,
     coverage:{
@@ -228,7 +242,7 @@ export async function openXml229EngineeringFactModel({
     engineeringFactSnapshotId:model.info.snapshotId,
     engineeringFactCount:records.length,
   });
-  return Object.freeze({model,workerResult,
+  return Object.freeze({model,workerResult,finalizedGeometry,
     sourceOccurrenceCensus:sourceOriginals,
     workerOriginalCount:sourceOriginals.length,
     originalOccurrences:projection.nodes.map(({sourceId,branchOccurrenceIndex,nodeOrdinal})=>({
