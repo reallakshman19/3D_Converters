@@ -533,6 +533,36 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
          showFirst:index=>{mode='blank-rigid';query='';offset=Math.floor(index/25)*25;},
          render,table,detail:bulkDetail,say,
        });
+       // "Apply all" applies ALL current source-bound selected positive kg,
+       // not only whichever physicals happen to be visible in the table.
+       // Each row receives a fresh guarded Final CAS view before acceptance.
+       let accepted=0,scanned=0;
+       for(let start=0;;start+=25){
+         if(active!==session||live()!==session||root.isConnected===false)
+           err('APPLIED_WEIGHT_SOURCE_STALE','The original source changed during Apply all');
+         const full=await session.readPage({offset:start,limit:25,filter:'all'});
+         if(!full||!Array.isArray(full.rows)||!Number.isSafeInteger(full.totalCount))
+           err('APPLIED_WEIGHT_ALL_SOURCE_PAGE_INVALID');
+         for(const item of full.rows){
+           scanned++;
+           const selected=draftValues.get(item.occurrenceId);
+           const value=Number(selected?.value);
+           if(!selected||selected.skippedWeight||!Number.isFinite(value)||value<=0||
+              item.finalKg!==null||item.sourceKg!==null)continue;
+           await commitXml229SelectedAppliedWeight({
+             session,row:item,value,proposalId:selected.proposalId||'',
+             origin:selected.autoFilled?'prefill':'manual',
+             isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
+           });
+           draftValues.delete(item.occurrenceId);accepted++;
+         }
+         persistDrafts();
+         if(start+full.rows.length>=full.totalCount)break;
+         if(!full.rows.length)err('APPLIED_WEIGHT_ALL_SOURCE_PAGE_TRUNCATED');
+         say('Applied Weight: '+accepted+' selected Final mass(es) accepted; checking original physicals '+scanned+'/'+full.totalCount+'.');
+       }
+       await render();
+       say('Apply all suggestions complete: '+accepted+' additional selected positive kg masses recorded as Owner-designated GC-PW Final. Missing/0 kg physicals remain unresolved. Native CII output remains separately HELD.');
        return;
      }
      if(draftFillButton){
