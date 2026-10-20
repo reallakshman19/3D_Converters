@@ -200,8 +200,10 @@ class NativeFinalMassTests(unittest.TestCase):
                                     "<Position>5 1 0</Position>"),
                 input_xml().replace("<ComponentType>RIGID</ComponentType>",
                                     "<ComponentType>VALV</ComponentType>"),
-                input_xml().replace("<NodeNumber>20</NodeNumber>",
-                                    "<NodeNumber>20</NodeNumber><Node><NodeNumber>30</NodeNumber><ComponentType>PIPE</ComponentType><Position>8 0 0</Position></Node>"),
+                input_xml().replace("</Node></Branch>",
+                    "</Node><Node><NodeNumber>30</NodeNumber>"
+                    "<ComponentType>PIPE</ComponentType>"
+                    "<Position>8 0 0</Position></Node></Branch>"),
             ]
             for mutated in changed:
                 engine.write_text(mutated)
