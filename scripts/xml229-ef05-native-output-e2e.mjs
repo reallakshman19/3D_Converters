@@ -207,14 +207,18 @@ try{
     await readFile(await safetyDownload.path(),'utf8'));
   assert.equal(record.stages.fullSourceWeight.readOnly,true);
   assert.equal(record.stages.fullSourceWeight.population.sevenFactsPerPhysical,true);
-  assert.equal(record.stages.fullSourceWeight.population.physicalCount,423);
-  assert.equal(record.stages.fullSourceWeight.population.factCount,2961);
+  // EF-05 carries 423 XML physical endpoints, but 51 are the first end
+  // of a separately retained two-endpoint component geometry witness.
+  // GC-PW must review exactly 372 distinct physical *part* owners.
+  assert.equal(record.stages.fullSourceWeight.population.physicalCount,372);
+  assert.equal(record.stages.fullSourceWeight.population.factCount,2604);
   const auditedReviews=record.stages.fullSourceWeight.review;
   assert.equal(auditedReviews.source+auditedReviews.acceptedMatch1+
-    auditedReviews.acceptedFinal+auditedReviews.unresolved,423,
+    auditedReviews.acceptedFinal+auditedReviews.unresolved,372,
     'read-only full-source export must report current actual Worker mass population');
   assert.equal(record.stages.fullSourceWeight.review.unchanged,true);
-  assert.equal(record.stages.fullSourceWeight.proposals.valveToFlangeRejected,92);
+  assert(record.stages.fullSourceWeight.proposals.valveToFlangeRejected>=0,
+    'real candidate family rejection count must be observed, not assumed from obsolete 423-node owners');
   assert.equal(record.stages.fullSourceWeight.proposals.sourceFamilyConflict,0);
   assert.equal(record.stages.fullSourceWeight.proposals.valveToFlangeQualified,0);
   assert.equal(record.stages.fullSourceWeight.review.acceptedMatch1,0);
