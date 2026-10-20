@@ -4,8 +4,8 @@ export function renderXml229VerifiedPanelShell(existingWorkflow=false){
   style="border:1px solid #64748b;border-radius:8px;padding:12px;margin:12px 0;">
   <strong>${existingWorkflow?'Weight Match — verified original physical facts':'Original-source Weight review (GC-PW)'}</strong>
   <p style="font-size:12px;color:#94a3b8;">Independent original XML census + full staged JSON Blob verification in separate Workers.
-  Applied Weight is one editable source-bound field prefilled from the verified Worker suggestion when available.
-  Suggestions and edits never authorize engineering mass or native CII Run.</p>
+  Applied Weight is one editable kg field, automatically filled from the verified source-linked suggestions.
+  Click any suggestion or enter kg directly. Native CII output release is independently governed.</p>
   ${existingWorkflow?'':'<button type="button" data-p4-weight-build>Build verified original-source Weight review</button>'}
   <span role="status" data-p4-weight-status style="margin-left:8px;"></span>
   <pre data-p4-bulk-detail role="status" hidden
@@ -29,11 +29,11 @@ export function renderXml229VerifiedPanelShell(existingWorkflow=false){
     <small style="color:#94a3b8">Accepted review ledger only. It does NOT contain Applied Weight drafts; restoring does not approve Final or native CII Run.</small>
    </div>
    <div style="margin:8px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-    <button type="button" data-p4-save-drafts class="model-converters-download-btn">Save Applied Weight drafts</button>
-    <button type="button" data-p4-choose-drafts class="model-converters-download-btn">Restore Applied Weight drafts</button>
+    <button type="button" data-p4-save-drafts class="model-converters-download-btn">Save Applied Weight</button>
+    <button type="button" data-p4-choose-drafts class="model-converters-download-btn">Restore Applied Weight</button>
     <input type="file" data-p4-import-drafts accept=".json,application/json"
-      aria-label="Select source-bound Applied Weight draft backup" hidden>
-    <small style="color:#94a3b8">Drafts are locally checkpointed by exact verified InputBasis for reload and navigation. The separate private backup permits recovery if browser storage is cleared. No review or native CII approval.</small>
+      aria-label="Select saved Applied Weight values" hidden>
+    <small style="color:#94a3b8">Selected Applied Weight values are retained across navigation for the same verified source. Save a private backup for recovery. Native CII release requires separate authority.</small>
    </div>
   <div data-p4-weight-table></div></section>`;
 }
