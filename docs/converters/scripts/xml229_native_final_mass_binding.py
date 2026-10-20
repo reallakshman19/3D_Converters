@@ -289,6 +289,62 @@ def _validate_finalized_geometry(packet, source):
                 next_id += 10
     require(assigned == expected_assignments,
             "NATIVE_FINALIZED_NODE_ID_MAP_DRIFT")
+    # Independently regenerate the only supported non-original rigid
+    # classifications: an EXISTING positive-span 1->2 element, with the same
+    # VALV/FLAN/INST reference. The source must have no Rigid authority on
+    # the endpoint; post-Final classifications are forbidden.
+    expected_promotions = []
+    promoted = set()
+    expected_rigid_source = parse_bytes(ET.tostring(source, encoding="utf-8"))
+    for bi, (orig_branch, approved_branch, ordinals) in enumerate(
+            zip(originals, selected, retained)):
+        source_nodes = nodes(orig_branch)
+        source_copy_nodes = nodes(branches(expected_rigid_source)[bi])
+        final_nodes = nodes(approved_branch)
+        for i in range(len(final_nodes) - 1):
+            oi, oj = ordinals[i:i+2]
+            left, right = source_nodes[oi], source_nodes[oj]
+            typ = txt(left, "ComponentType").upper()
+            ref = "".join(txt(left, "ComponentRefNo").lstrip("=").split()).upper()
+            other_ref = "".join(txt(right, "ComponentRefNo").lstrip("=").split()).upper()
+            if (typ not in ("VALV", "FLAN", "INST") or not ref or
+                    typ != txt(right, "ComponentType").upper() or
+                    ref != other_ref or
+                    (txt(left, "Endpoint"), txt(right, "Endpoint")) != ("1", "2") or
+                    txt(right, "Rigid") or
+                    txt(left, "ConnectionType") or txt(right, "ConnectionType")):
+                continue
+            start = _normalized_position(txt(left, "Position"))
+            end = _normalized_position(txt(right, "Position"))
+            length = math.dist(start, end)
+            if length <= 6:
+                continue
+            expected_promotions.append({
+                "branchOccurrenceIndex": bi,
+                "firstSourceNodeOrdinal": oi,
+                "secondSourceNodeOrdinal": oj,
+                "componentType": typ,
+                "componentRefNo": ref,
+                "distanceMm": length,
+            })
+            promoted.add((bi, oj))
+            namespace = (source_copy_nodes[oj].tag.rsplit("}", 1)[0] + "}"
+                         if "}" in source_copy_nodes[oj].tag else "")
+            ET.SubElement(source_copy_nodes[oj], namespace + "Rigid").text = "2"
+    claimed_promotions = final.get("rigidEdgePromotions", [])
+    require(isinstance(claimed_promotions, list) and
+            len(claimed_promotions) == len(expected_promotions),
+            "NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT")
+    for claimed, expected in zip(claimed_promotions, expected_promotions):
+        require(isinstance(claimed, dict) and
+                claimed.keys() == expected.keys() and
+                all(claimed[k] == v for k, v in expected.items()
+                    if k != "distanceMm") and
+                type(claimed["distanceMm"]) in (int, float) and
+                math.isfinite(claimed["distanceMm"]) and
+                math.isclose(claimed["distanceMm"], expected["distanceMm"],
+                             rel_tol=1e-12, abs_tol=1e-8),
+                "NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT")
     lookup = {}
     total = 0
     for bi, (src, dst, ordinals) in enumerate(zip(originals, selected, retained)):
@@ -304,10 +360,13 @@ def _validate_finalized_geometry(packet, source):
                     "NATIVE_FINALIZED_GEOMETRY_ORDINAL_DRIFT")
             original = old_nodes[source_index]
             immutable = ("ComponentType", "ComponentRefNo", "Endpoint",
-                         "NodeName", "Position", "Rigid",
+                         "NodeName", "Position",
                          "ElementLengthMm", "Weight", "ConnectionType")
+            expected_rigid = ("2" if (bi, source_index) in promoted
+                              else txt(original, "Rigid"))
             require(all(txt(original, key) == txt(final_node, key)
                         for key in immutable) and
+                    txt(final_node, "Rigid") == expected_rigid and
                     txt(final_node, "NodeNumber") ==
                     str(normalized.get((bi, source_index),
                                        txt(original, "NodeNumber"))),
@@ -324,9 +383,14 @@ def _validate_finalized_geometry(packet, source):
         for original_index, node in enumerate(nodes(branch)):
             if original_index not in keep:
                 branch.remove(node)
-            elif (bi, original_index) in normalized:
-                child(node, "NodeNumber").text = str(
-                    normalized[(bi, original_index)])
+            else:
+                if (bi, original_index) in normalized:
+                    child(node, "NodeNumber").text = str(
+                        normalized[(bi, original_index)])
+                if (bi, original_index) in promoted:
+                    namespace = (node.tag.rsplit("}", 1)[0] + "}"
+                                 if "}" in node.tag else "")
+                    ET.SubElement(node, namespace + "Rigid").text = "2"
     require(_semantic_xml(expected) == _semantic_xml(snapshot),
             "NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT")
     require(child(snapshot, LINEAGE_STAGE) is None and
