@@ -368,7 +368,7 @@ try{
   const sourceRow=page.locator('tr[data-p4-row]').first();
   const saveOccurrence=await sourceRow.getAttribute('data-p4-occurrence');
   await sourceRow.locator('[data-p4-applied-weight]').fill('35');
-  // No Match-1/Final review created; backup records the unchanged ledger.
+  // No separate review button is needed; backup captures the Owner-selected Final ledger.
   const [backupFile]=await Promise.all([
     page.waitForEvent('download'),page.locator('[data-p4-save-review]').click(),
   ]);
@@ -378,7 +378,7 @@ try{
   assert.equal(backup.schema,'XML229.SourceBoundGC-PWReviewBackup.v1');
   assert.equal(backup.basisId,firstBasis);
   assert.equal(backup.counts.match1,0);
-  assert.equal(backup.counts.final,0);
+  assert.equal(backup.counts.final,1,'Owner-selected Applied Weight must persist as Final in portable backup');
   assert.equal(backup.counts.source,31-backup.counts.match1-backup.counts.final);
   assert.equal(backup.nativeCiiReleaseAuthorized,false);
 
@@ -484,7 +484,7 @@ try{
   const afterRestore=JSON.parse(await readFile(await restoredExport.path(),'utf8'));
   assert.equal(afterRestore.counts.match1,0);
   assert.equal(afterRestore.counts.source,31-afterRestore.counts.match1-afterRestore.counts.final);
-  assert.equal(afterRestore.counts.final,0);
+  assert.equal(afterRestore.counts.final,1,'restored Owner-selected Final value must survive Worker rebuild');
   assert.deepEqual(afterRestore.reviewState,backup.reviewState,
     'restored portable command ledger differs from original saved review');
   record.stages.explicitReviewReloadRestore={
