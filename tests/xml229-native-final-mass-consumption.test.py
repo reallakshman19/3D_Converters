@@ -118,6 +118,103 @@ class NativeFinalMassTests(unittest.TestCase):
             self.assertEqual(json.loads(proof.read_text())["claims"][0]["massKg"],0)
             self.assertIn("0",output.read_text().split("#$ RIGID",1)[1].split("#$",1)[0])
 
+    def test_worker_finalized_geometry_is_the_exact_native_input(self):
+        # The review Worker dropped a gasket BEFORE any accepted mass.
+        # Governed Run consumes that same XML, not the original + a different
+        # native distance-based cleanup after mass acceptance.
+        with TemporaryDirectory() as td:
+            directory=Path(td)
+            source=directory/"original.xml"
+            manifest=directory/"packet.json"
+            output=directory/"result.cii"
+            proof=directory/"proof.json"
+            final_xml=input_xml()
+            gasket=("<Node><NodeNumber>30</NodeNumber>"
+                    "<ComponentType>GASK</ComponentType>"
+                    "<Position>5.2 0 0</Position>"
+                    "<ElementLengthMm>2</ElementLengthMm></Node>")
+            original_xml=final_xml.replace(
+                "\n</Branch>", "\n"+gasket+"\n</Branch>")
+            self.assertNotEqual(original_xml,final_xml)
+            source.write_text(original_xml)
+            current=packet(original_xml)
+            current["sourceGenerationId"]="generation-1"
+            current["finalizedGeometry"]={
+                "schema":"XML229.FinalizedWeightGeometry.v1",
+                "basisId":current["basisId"],
+                "sourceXmlSha256":current["sourceXmlSha256"],
+                "xmlText":final_xml,
+                "sha256":hashlib.sha256(final_xml.encode()).hexdigest(),
+                "originalNodeCount":3,
+                "retainedSourceOrdinalsByBranch":[[0,1]],
+            }
+            manifest.write_text(json.dumps(current))
+            staged=stage_native_original_lineage(source,manifest)
+            self.assertNotIn("<ComponentType>GASK</ComponentType>",staged.read_text())
+            self.assertIn("XML229OriginalPhysicalId",staged.read_text())
+            runner=Path(__file__).resolve().parents[1]/"converters"/"scripts"/"xml_to_cii2019_runtime_custody.py"
+            def run():
+                return subprocess.run([sys.executable,str(runner),
+                    "--input",str(source),"--output",str(output),
+                    "--weight-scale","10","--xml229-native-final-packet",
+                    str(manifest),"--xml229-native-mass-proof",str(proof)],
+                    capture_output=True,text=True)
+            result=run()
+            self.assertEqual(result.returncode,0,result.stderr)
+            native=json.loads(proof.read_text())
+            self.assertEqual(native["finalizedGeometrySha256"],
+                             current["finalizedGeometry"]["sha256"])
+            self.assertEqual(native["sourcePhysicalCount"],1)
+            self.assertEqual(native["claims"][0]["massKg"],12.5)
+            output.unlink()
+            proof.unlink()
+            # Same declared digest but mutated XML is never usable.
+            current["finalizedGeometry"]["xmlText"]=final_xml.replace(
+                "<Position>5 0 0</Position>","<Position>5 1 0</Position>")
+            manifest.write_text(json.dumps(current))
+            bad=run()
+            self.assertNotEqual(bad.returncode,0)
+            self.assertIn("NATIVE_FINALIZED_GEOMETRY_SHA_DRIFT",bad.stderr)
+            self.assertFalse(output.exists())
+            current["finalizedGeometry"]["sha256"]=hashlib.sha256(
+                current["finalizedGeometry"]["xmlText"].encode()).hexdigest()
+            manifest.write_text(json.dumps(current))
+            wrong_source=run()
+            self.assertNotEqual(wrong_source.returncode,0)
+            self.assertIn("NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT",
+                          wrong_source.stderr)
+
+    def test_accepted_owner_cannot_be_removed_from_finalized_geometry(self):
+        with TemporaryDirectory() as td:
+            directory=Path(td)
+            original=directory/"source.xml"
+            manifest=directory/"packet.json"
+            xml=input_xml()
+            original.write_text(xml)
+            # Deliberately drop the accepted RIGID; no mass distribution or
+            # remapping to the remaining ordinary PIPE is permissible.
+            cleaned=xml.replace(
+                '<Node><NodeNumber>20</NodeNumber><NodeName>WGT</NodeName>\n'
+                '<ComponentType>RIGID</ComponentType><ComponentRefNo>REF-1</ComponentRefNo>\n'
+                '<Endpoint>2</Endpoint><Position>5 0 0</Position><Rigid>2</Rigid>\n'
+                '<Weight>0</Weight></Node>', '')
+            self.assertNotEqual(cleaned,xml)
+            p=packet(xml)
+            p["sourceGenerationId"]="generation-2"
+            p["finalizedGeometry"]={
+                "schema":"XML229.FinalizedWeightGeometry.v1",
+                "basisId":p["basisId"],"sourceXmlSha256":p["sourceXmlSha256"],
+                "xmlText":cleaned,
+                "sha256":hashlib.sha256(cleaned.encode()).hexdigest(),
+                "originalNodeCount":2,
+                "retainedSourceOrdinalsByBranch":[[0]],
+            }
+            manifest.write_text(json.dumps(p))
+            with self.assertRaises(NativeMassError) as ctx:
+                stage_native_original_lineage(original,manifest)
+            self.assertEqual(ctx.exception.code,
+                             "NATIVE_ACCEPTED_PHYSICAL_NOT_IN_FINAL_GEOMETRY")
+
     def test_altered_source_or_duplicate_owner_never_applies_mass(self):
         with TemporaryDirectory() as td:
             original=Path(td)/"source.xml"
