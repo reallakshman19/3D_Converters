@@ -260,13 +260,13 @@ try{
   await page.locator('[data-p4-bulk-plan]').click();
   // The prior loaded-status also contains the word "qualified" in its
   // help text. Wait for the *new* plan result, not a stale pre-click label.
-  await page.waitForFunction(()=>/Apply all suggestions ≥\d+%:/.test(
+  await page.waitForFunction(()=>/Apply all suggestions ≥\d+%: complete\./.test(
     document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:120000});
   record.stages.bulkPlanMessage=await page.locator('[data-p4-weight-status]').textContent();
-  assert.match(record.stages.bulkPlanMessage,/Apply all suggestions ≥\d+%:/);
+  assert.match(record.stages.bulkPlanMessage,/Apply all suggestions ≥\d+%: complete\./);
   assert.equal(await page.locator('[data-p4-bulk-confirm]').count(),0);
-  // "Apply all suggestions" never commits any engineering review decision.
-  record.stages.bulkAccepted=0;
+  // Apply all now commits selected positive kg as protected Worker Final.
+  record.stages.bulkAccepted='Worker Final';
   // Source-basis-pinned GC-PW provenance audit is inspectable even with
   // native Run HELD. The Firstpass public fixture has original source masses.
   const auditButton=page.locator('[data-p4-audit-decisions]');
