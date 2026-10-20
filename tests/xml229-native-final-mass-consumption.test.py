@@ -200,7 +200,7 @@ class NativeFinalMassTests(unittest.TestCase):
                                     "<Position>5 1 0</Position>"),
                 input_xml().replace("<ComponentType>RIGID</ComponentType>",
                                     "<ComponentType>VALV</ComponentType>"),
-                input_xml().replace("</Node></Branch>",
+                input_xml().replace("</Node>\n</Branch>",
                     "</Node><Node><NodeNumber>30</NodeNumber>"
                     "<ComponentType>PIPE</ComponentType>"
                     "<Position>8 0 0</Position></Node></Branch>"),
@@ -223,7 +223,7 @@ class NativeFinalMassTests(unittest.TestCase):
             output=directory/"native.cii"
             proof=directory/"proof.json"
             xml=input_xml().replace(
-                "</Node></Branch>",
+                "</Node>\n</Branch>",
                 "</Node><Node><NodeNumber>30</NodeNumber>"
                 "<ComponentType>PIPE</ComponentType>"
                 "<Position>5.1 0 0</Position></Node></Branch>")
