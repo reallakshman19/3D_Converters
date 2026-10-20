@@ -44,3 +44,30 @@ export async function commitXml229AllSelectedFinal({
  if(scanned!==total)fail('APPLIED_WEIGHT_ALL_SOURCE_CENSUS_DRIFT');
  return {accepted,scanned,total};
 }
+
+/** Auto-accept only selected positive values on the current visible page.
+ * On one failed review the selection remains available and no further rows
+ * are submitted, mirroring the view's original fail-closed behavior.
+ */
+export async function commitXml229VisibleSelectedFinal({
+ session,rows,drafts,isCurrent,onError=()=>{},
+}={}){
+ if(!session||!Array.isArray(rows)||!(drafts instanceof Map)||
+    typeof isCurrent!=='function'||typeof onError!=='function')
+  fail('APPLIED_WEIGHT_VISIBLE_SOURCE_REQUIRED');
+ let committed=0;
+ for(const row of rows){
+   const selected=drafts.get(row?.occurrenceId),value=Number(selected?.value);
+   if(!selected||selected.skippedWeight||!Number.isFinite(value)||value<=0||
+      row.finalKg!==null||row.sourceKg!==null)continue;
+   if(!isCurrent())return {committed,stale:true};
+   try{
+     await commitXml229SelectedAppliedWeight({
+       session,row,value,proposalId:selected.proposalId||'',
+       origin:selected.autoFilled?'prefill':'manual',isCurrent,
+     });
+     drafts.delete(row.occurrenceId);committed++;
+   }catch(error){onError(error);return {committed,error};}
+ }
+ return {committed};
+}
