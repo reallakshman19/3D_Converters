@@ -196,6 +196,10 @@ class NativeFinalMassTests(unittest.TestCase):
                 self.assertTrue(assert_preaccepted_geometry_unchanged(original,engine),
                     "Renumbering alone must not change finalized physical ownership")
             changed=[
+                # A collision of node IDs changes the topology even if
+                # neither the node count nor any coordinates were altered.
+                input_xml().replace("<NodeNumber>20</NodeNumber>",
+                                    "<NodeNumber>10</NodeNumber>"),
                 input_xml().replace("<Position>5 0 0</Position>",
                                     "<Position>5 1 0</Position>"),
                 input_xml().replace("<ComponentType>RIGID</ComponentType>",

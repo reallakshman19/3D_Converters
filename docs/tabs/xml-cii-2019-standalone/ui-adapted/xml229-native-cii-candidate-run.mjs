@@ -49,8 +49,15 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
  if(!isCurrent())fail('NATIVE_CANDIDATE_BASIS_STALE');
  const native=await runXmlCii2019StandaloneEngineJob(job);
  if(!isCurrent())fail('NATIVE_CANDIDATE_BASIS_STALE');
- if(native?.ok!==true||!native.ciiText||!native.xml229NativeMassDiagnostic)
+ if(native?.ok!==true||!native.ciiText||!native.xml229NativeMassDiagnostic){
+  // Preserve the actual native basis guard instead of masking it behind a
+  // generic converter failure. The user must finalize geometry upstream,
+  // then accept weights against that new source basis.
+  const diagnosis=[native?.error,...(native?.logs||[])].filter(Boolean).join('\n');
+  if(diagnosis.includes('NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE'))
+   fail('NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE');
   fail('NATIVE_CANDIDATE_CONVERTER_FAILED');
+ }
  const independent=await reconcileXml229ActualCiiAgainstFinal({
   originalXmlText:sourceText,packet,ciiText:native.ciiText,
   writerDiagnostic:native.xml229NativeMassDiagnostic,

@@ -22,6 +22,14 @@ const packet={schema:'XML229.NativeFinalPhysicalPacket.v1',
  sourceId:'SOURCE',basisId:'a'.repeat(64),finalIntentSha256:'b'.repeat(64),
  sourceXmlSha256:sha(source),physicalCount:1,nativeCiiReleaseAuthorized:false,
  components:[{occurrenceId,effectiveKg:12.5}]};
+test('native Run surfaces post-acceptance geometry changes as actionable blocker',()=>{
+ const ui=readFileSync(fileURLToPath(new URL(
+  '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs',
+  import.meta.url)),'utf8');
+ assert.match(ui,/native\\?\.error/);
+ assert.match(ui,/NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE/);
+});
+
 test('Run diagnostic binds to stable live GC-PW authority, not mutable state.current',()=>{
  const ui=readFileSync(fileURLToPath(new URL(
   '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',

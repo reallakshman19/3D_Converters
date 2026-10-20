@@ -79,6 +79,29 @@ def _normalized_position(text):
     return values
 
 
+def _assert_preserved_node_connectivity(original_groups, native_groups):
+    """Verify node-number remapping is a bijection across branch occurrences.
+
+    Connected repeated source IDs stay connected. Separate source IDs must
+    not be accidentally merged by post-acceptance renumbering.
+    """
+    old_to_new, new_to_old = {}, {}
+    for before, after in zip(original_groups, native_groups):
+        require(len(before) == len(after),
+                "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+        for old, new in zip(before, after):
+            require(bool(old) and bool(new),
+                    "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+            if old in old_to_new:
+                require(old_to_new[old] == new,
+                        "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+            if new in new_to_old:
+                require(new_to_old[new] == old,
+                        "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+            old_to_new[old] = new
+            new_to_old[new] = old
+
+
 def _xml_geometry_row(node):
     """Only topology/ownership fields; process and mass fields may vary.
 
@@ -105,15 +128,19 @@ def assert_preaccepted_geometry_unchanged(original_path, engine_input_path):
     expected, actual = branches(original), branches(engine)
     require(len(expected) == len(actual),
             "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+    source_numbers, engine_numbers = [], []
     for src, dst in zip(expected, actual):
         require(txt(src, "Branchname") == txt(dst, "Branchname"),
                 "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
         before, after = nodes(src), nodes(dst)
         require(len(before) == len(after),
                 "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+        source_numbers.append([txt(row, "NodeNumber") for row in before])
+        engine_numbers.append([txt(row, "NodeNumber") for row in after])
         for first, second in zip(before, after):
             require(_xml_geometry_row(first) == _xml_geometry_row(second),
                     "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+    _assert_preserved_node_connectivity(source_numbers, engine_numbers)
     return True
 
 
@@ -129,12 +156,15 @@ def assert_native_model_geometry_unchanged(original_path, document, model):
     require(len(src_branches) == len(document.branches),
             "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
     expected_edges = 0
+    source_numbers, model_numbers = [], []
     for original, native in zip(src_branches, document.branches):
         before = nodes(original)
         require(txt(original, "Branchname") == native.branch_name and
                 len(before) == len(native.nodes),
                 "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
         expected_edges += max(0, len(before) - 1)
+        source_numbers.append([txt(row, "NodeNumber") for row in before])
+        model_numbers.append([str(row.node_number) for row in native.nodes])
         for old, new in zip(before, native.nodes):
             old_shape = _xml_geometry_row(old)
             new_shape = (new.component_type, new.component_ref_no,
@@ -144,7 +174,16 @@ def assert_native_model_geometry_unchanged(original_path, document, model):
                          tuple(new.position), txt(old, "ElementLengthMm"))
             require(old_shape == new_shape,
                     "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+    _assert_preserved_node_connectivity(source_numbers, model_numbers)
     require(len(model.edges) == expected_edges,
+            "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+    # Native graph edges must remain in the same per-branch source order.
+    intended = [(branch.branch_name, left.node_number, right.node_number)
+                for branch in document.branches
+                for left, right in zip(branch.nodes, branch.nodes[1:])]
+    actual = [(edge.branch_name, edge.from_node.node_number,
+               edge.to_node.node_number) for edge in model.edges]
+    require(intended == actual,
             "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
     return True
 
