@@ -129,7 +129,7 @@ test('P0 table labels accepted family mismatch HOLD and compatible only is not F
  assert.match(html,/Engineering HOLD/);
  assert.match(html,/data-p4-family-audit="FAMILY_COMPATIBLE_ONLY"/);
  assert.match(html,/independent kg verification required/);
- assert.match(html,/Native CII Run remains HELD/);
+ assert.match(html,/Native CII output authorization remains a separate gate and is currently HELD/);
 });
 test('P0 Worker exports accepted audit through the read-only provenance endpoint',async()=>{
  const worker=await readFile(new URL(
