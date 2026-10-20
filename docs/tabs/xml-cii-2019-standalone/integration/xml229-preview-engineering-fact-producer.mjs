@@ -226,7 +226,11 @@ export async function openXml229EngineeringFactModel({
   const physicalSet=new Set(physical.map(row=>
     JSON.stringify([row.branchOccurrenceIndex,row.nodeOrdinal])));
   for(const key of weightRows.keys()){
-    if(!physicalSet.has(key))
+    // Preview still computes source-bound engineering facts for the first
+    // endpoint witness of a two-ended part. It is deliberately NOT a
+    // second accepted mass owner after the geometry is finalized.
+    // Reject every other unselected candidate (e.g. removed GASK).
+    if(!physicalSet.has(key)&&!nonOwnerEndpointStarts.has(key))
       fail('UNSELECTED_WEIGHT_COMPUTATION','Preview computed a candidate for a dropped or ineligible physical component');
   }
   // Input may contain components with no ranked suggestions: still emit a
