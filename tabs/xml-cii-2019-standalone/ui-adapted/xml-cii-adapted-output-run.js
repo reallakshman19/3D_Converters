@@ -115,7 +115,7 @@ function renderSummary(parent, report) {
       (Number.isSafeInteger(bytes)?' · '+bytes+' source bytes':'')+
       '. JSON-governed CII remains held because Final/output authority is not verified, and a staged JSON receipt is present. If that JSON belonged to a different XML, re-index the matching JSON for this XML, or choose XML-only testing. '+
       'For conversion testing without JSON-derived engineering weights, select XML-only below and refresh the checklist. '+
-      'Applied Weight drafts and 0 kg skips are not injected into native CII.';
+      'Applied Weight selections are recorded as Owner-designated GC-PW Final masses. Native CII remains HELD until the converter independently proves exact physical-mass consumption; zero kg is never accepted.';
     panel.appendChild(note);
   }
   return panel;
@@ -457,7 +457,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
   if (runReviewBtn.style) Object.assign(runReviewBtn.style, { width: '100%', padding: '12px' });
   runReviewBtn.addEventListener('click', () => { stateRef.current = updateWorkflowState(stateRef.current, { activePhaseId: 'weight-match' }); if (typeof render === 'function') render(); });
   const noteDiv = createElement('div', '', 'model-converters-workflow-detail-note');
-  noteDiv.innerHTML = approved ? 'XML-only mode excludes JSON-derived Weight/Final from native output; independent XML preflight remains mandatory.' : 'Opens <strong>4A Weight Match</strong> to edit Applied Weight drafts. Drafts do not unlock governed native CII; use XML-only for independent conversion testing.';
+  noteDiv.innerHTML = approved ? 'XML-only mode excludes JSON-derived Weight/Final from native output; independent XML preflight remains mandatory.' : 'Opens <strong>4A Weight Match</strong> to select and directly record Owner-designated Applied Weight in GC-PW Final. Native CII release still needs independently reconciled output consumption; XML-only testing excludes these weights.';
   const refreshBtn = button('refresh-output-run', 'Refresh readiness / checklist');
   refreshBtn.style.cssText = 'cursor:pointer;padding:12px;border-radius:6px;background:#1e293b;color:#cbd5e1;border:1px solid #334155;font-size:12px;width:100%;text-align:center;font-weight:700;';
   refreshBtn.addEventListener('click', () => { stateRef.current = applyStandaloneOutputRunReadiness(stateRef.current, buildStandaloneOutputRunReadiness(stateRef.current)); if (typeof render === 'function') render(); });
