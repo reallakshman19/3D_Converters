@@ -71,6 +71,17 @@ test('actual XML Preview computation is independently assessed into COMPLETE sou
  assert.equal(positive.expectedOriginalCount,4);
  assert.equal(positive.physicalOccurrences.length,3); // GASK is not a physical weight owner
  assert.equal(positive.expectedPhysicalFactCount,3*XML229_ENGINEERING_FIELDS.length);
+ // Native must consume this exact finalized PRE-acceptance geometry.
+ assert.equal(positive.finalizedGeometry.schema,'XML229.FinalizedWeightGeometry.v1');
+ assert.equal(positive.finalizedGeometry.basisId,f.basis.basisId);
+ assert.equal(positive.finalizedGeometry.sourceXmlSha256,f.basis.sourceRefs[0].sha256);
+ assert.equal(positive.finalizedGeometry.sha256,
+   await digestUtf8(positive.finalizedGeometry.xmlText));
+ assert.deepEqual(positive.finalizedGeometry.retainedSourceOrdinalsByBranch,
+   [[1,2,3]],'Worker removes original GASK but retains physical source ordinals');
+ assert.equal(positive.finalizedGeometry.originalNodeCount,4);
+ assert.doesNotMatch(positive.finalizedGeometry.xmlText,/<ComponentType>GASK<\\/ComponentType>/);
+ assert.match(positive.finalizedGeometry.xmlText,/<ComponentType>RIGID<\\/ComponentType>/);
  assert.equal(positive.physicalOccurrences[0].nodeOrdinal,1);
  assert.equal(positive.physicalOccurrences[1].nodeOrdinal,2);
  assert.equal(positive.physicalOccurrences[2].nodeOrdinal,3);
