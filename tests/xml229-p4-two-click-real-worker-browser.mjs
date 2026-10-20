@@ -96,11 +96,16 @@ try{
  });
  await page.waitForFunction(()=>document.querySelectorAll('tr[data-p4-row]').length===1,
   null,{timeout:20000});
+ await page.waitForFunction(async()=>{
+   const {getXml229CurrentWorkerHeldReview}=await import(
+    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   return (await getXml229CurrentWorkerHeldReview(window.__stateRef)?.readCompletion())?.counts?.final===1;
+ },null,{timeout:30000});
  const before=await page.evaluate(async()=>{
   const {getXml229CurrentWorkerHeldReview}=await import(
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
   const session=getXml229CurrentWorkerHeldReview(window.__stateRef);
-  const page=await session.readPage({offset:0,limit:25,filter:'blank-rigid',query:''});
+  const page=await session.readPage({offset:0,limit:25,filter:'all',query:''});
   const proof=await session.readCompletion();
   return {counts:proof.counts,population:proof.verifiedPhysicalCount,
    rows:page.rows.map(r=>({nodeName:r.nodeName,componentType:r.componentType,
@@ -110,6 +115,7 @@ try{
  });
  assert.equal(before.population,1); // GASK is in original XML, not a GC-PW physical weight owner
  assert.equal(before.counts.match1,0);
+ assert.equal(before.counts.final,1,'automatic Applied Weight prefill must directly commit Worker Final');
  const eligible=before.rows.flatMap(r=>r.proposals).filter(p=>p.qualified===true);
  assert.equal(eligible.length,1,'Expected exact source family-qualified gate candidate: '+JSON.stringify(before));
  assert.equal(await page.locator('[data-p4-applied-weight]').count(),1);
@@ -135,9 +141,17 @@ try{
   return {counts:evidence,proposals:rows.map(r=>r.proposals.map(p=>p.value))};
  });
  assert.equal(proposed.counts.match1,0);
- assert.equal(proposed.counts.final,0);
+ assert.equal(proposed.counts.final,1);
  assert.deepEqual(proposed.proposals,[[35]],'prefill must be traceable to real Worker proposal');
  await input.fill('35.5');
+ await input.press('Tab'); // one-step direct Worker Final on edit completion
+ await page.waitForFunction(async()=>{
+   const {getXml229CurrentWorkerHeldReview}=await import(
+    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   const s=getXml229CurrentWorkerHeldReview(window.__stateRef);
+   const rows=(await s.readPage({offset:0,limit:25,filter:'all'})).rows;
+   return rows[0]?.finalKg===35.5;
+ },null,{timeout:30000});
  await page.locator('[data-p4-scope="all"]').click();
  await page.waitForFunction(()=>document.querySelector(
    'tr[data-p4-row] [data-p4-applied-weight]')?.value==='35.5',null,{timeout:30000});
@@ -151,13 +165,13 @@ try{
   return {counts:proof.counts,nativeRelease:proof.ciiReleaseAuthorized};
  });
  assert.equal(after.counts.match1,0,'prefill and edit never accept Match-1');
- assert.equal(after.counts.final,0,'prefill and edit never accept Final');
+ assert.equal(after.counts.final,1,'selected positive Applied Weight is accepted as owner-designated Worker Final');
  assert.equal(after.nativeRelease,false,'prefill and edit never authorize native CII');
  assert.equal(await page.locator('[data-p4-reason],[data-p4-review-match1],[data-p4-review-final],[data-p4-confirm-single]').count(),0);
  assert.deepEqual(pageErrors,[]);
  console.log(JSON.stringify({schema:'XML229.SimpleAppliedWeightChromium.v1',
-  before,after,suggestionPrefilled:true,oneKgInput:true,editableDraftPersisted:true,
-  match1NotAccepted:after.counts.match1===0,finalNotAccepted:after.counts.final===0,
+  before,after,suggestionPrefilled:true,oneKgInput:true,appliedWeightEditedAndCommitted:true,
+  match1NotNeeded:after.counts.match1===0,ownerSelectedFinalAccepted:after.counts.final===1,
   nativeCiiReleaseAuthorized:false}));
  await page.evaluate(async()=>{
   const {getXml229CurrentWorkerHeldReview}=await import(
