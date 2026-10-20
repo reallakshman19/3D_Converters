@@ -80,8 +80,8 @@ test('actual XML Preview computation is independently assessed into COMPLETE sou
  assert.deepEqual(positive.finalizedGeometry.retainedSourceOrdinalsByBranch,
    [[1,2,3]],'Worker removes original GASK but retains physical source ordinals');
  assert.equal(positive.finalizedGeometry.originalNodeCount,4);
- assert.doesNotMatch(positive.finalizedGeometry.xmlText,/<ComponentType>GASK<\\/ComponentType>/);
- assert.match(positive.finalizedGeometry.xmlText,/<ComponentType>RIGID<\\/ComponentType>/);
+ assert.ok(!positive.finalizedGeometry.xmlText.includes('<ComponentType>GASK</ComponentType>'));
+ assert.ok(positive.finalizedGeometry.xmlText.includes('<ComponentType>RIGID</ComponentType>'));
  assert.equal(positive.physicalOccurrences[0].nodeOrdinal,1);
  assert.equal(positive.physicalOccurrences[1].nodeOrdinal,2);
  assert.equal(positive.physicalOccurrences[2].nodeOrdinal,3);
