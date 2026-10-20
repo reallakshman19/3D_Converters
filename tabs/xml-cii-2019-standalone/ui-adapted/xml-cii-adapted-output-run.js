@@ -555,6 +555,10 @@ function renderRunControls(parent, stateRef, state, report, render) {
       stateRef.current?.sourceText===initial.sourceText&&
       stateRef.current?.stagedJsonFile===initial.stagedJsonFile&&
       stateRef.current?.stagedJsonText===initial.stagedJsonText&&
+      stateRef.current?.supportConfigJson===initial.supportConfigJson&&
+      stateRef.current?.masterContext===initial.masterContext&&
+      stateRef.current?.branchSelection===initial.branchSelection&&
+      stateRef.current?.options===initial.options&&
       xmlCiiProcessingMode(stateRef.current)!=='mode-b'&&
       (!singleSource||singleSource.length===1);
     if(!current())return;
