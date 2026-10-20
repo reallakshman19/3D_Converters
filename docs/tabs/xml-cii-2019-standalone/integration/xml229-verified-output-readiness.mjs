@@ -106,14 +106,14 @@ export function projectXml229RunChecklist(input,rows,verifiedEngineering=null) {
         message:failure
           ? 'Current GC-PW Weight/Final verification is HELD ['+failure+
             ']. Review is not accepted; reverify 4 Preview, then inspect 6 Weight Match.'
-          : 'Current source-bound GC-PW Weight/Final review is not verified. Open 6 Weight Match; proposals are not decisions.',
+          : 'Current GC-PW source/Final review is not verified. Open 6 Weight Match to select a positive Applied Weight for the verified Worker.',
       });
       return rowUpdated(row,{
         label:'Weight Match / Final review (GC-PW)',
         status:reviewed?'ready':'pending',severity:reviewed?'ok':'warning',blocking:false,
         message:'Verified GC-PW: '+c.final+' Final, '+c.match1+' Match-1 only, '+
           c.source+' original source masses, '+c.unresolved+
-          ' unresolved. Final review and native CII release remain independent.',
+          ' unresolved. Selected positive Applied Weight records Worker Final; native CII output consumption still requires independent verification.',
       });
     }
     const independent=optional[row.id];
