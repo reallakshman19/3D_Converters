@@ -184,6 +184,72 @@ class NativeFinalMassTests(unittest.TestCase):
             self.assertIn("NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT",
                           wrong_source.stderr)
 
+    def test_423_synthetic_accepted_owners_reconcile_actual_native_cii(self):
+        # Capacity/lineage regression, NOT a claim that the Owner's 423 EF05
+        # physicals have accepted engineering masses or valid native RIGIDs.
+        count=423
+        nodes=['<Node><NodeNumber>10</NodeNumber>'
+               '<ComponentType>PIPE</ComponentType>'
+               '<Position>0 0 0</Position><Weight>0</Weight></Node>']
+        components=[]
+        for i in range(1,count+1):
+            name=f'W{i:04d}'
+            ref=f'REF-{i:04d}'
+            nodes.append(f'<Node><NodeNumber>{10*(i+1)}</NodeNumber>'
+                         f'<ComponentType>RIGID</ComponentType>'
+                         f'<ComponentRefNo>{ref}</ComponentRefNo>'
+                         f'<NodeName>{name}</NodeName><Endpoint>2</Endpoint>'
+                         f'<Position>{i*100} 0 0</Position>'
+                         '<Rigid>2</Rigid><Weight>0</Weight></Node>')
+            signature=json.dumps(["RIGID",ref,"2",name],separators=(",",":"))
+            oid=json.dumps(["SYNTHETIC-423",0,i,signature],separators=(",",":"))
+            kg=0 if i%7==0 else i
+            components.append({"occurrenceId":oid,"effectiveKg":kg})
+        xml=('<PipeStressExport><Pipe><Branch><Branchname>BR-1</Branchname>'
+             +''.join(nodes)+'</Branch></Pipe></PipeStressExport>')
+        with TemporaryDirectory() as td:
+            directory=Path(td)
+            source=directory/'source.xml'
+            manifest=directory/'packet.json'
+            output=directory/'output.cii'
+            proof=directory/'proof.json'
+            source.write_text(xml)
+            p={"schema":"XML229.NativeFinalPhysicalPacket.v1",
+               "basisId":"a"*64,"finalIntentSha256":"b"*64,
+               "sourceId":"SYNTHETIC-423",
+               "sourceGenerationId":"synthetic-only-capacity-test",
+               "sourceXmlSha256":hashlib.sha256(xml.encode()).hexdigest(),
+               "physicalCount":count,"components":components}
+            p["finalizedGeometry"]={
+                "schema":"XML229.FinalizedWeightGeometry.v1",
+                "basisId":p["basisId"],
+                "sourceXmlSha256":p["sourceXmlSha256"],
+                "xmlText":xml,"sha256":p["sourceXmlSha256"],
+                "originalNodeCount":count+1,
+                "retainedSourceOrdinalsByBranch":[list(range(count+1))]}
+            manifest.write_text(json.dumps(p))
+            runner=Path(__file__).resolve().parents[1]/'converters'/'scripts'/'xml_to_cii2019_runtime_custody.py'
+            result=subprocess.run([
+                sys.executable,str(runner),'--input',str(source),
+                '--output',str(output),'--weight-scale','10',
+                '--xml229-native-final-packet',str(manifest),
+                '--xml229-native-mass-proof',str(proof),
+            ],capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stderr[-5000:])
+            report=json.loads(proof.read_text())
+            self.assertEqual(report["sourcePhysicalCount"],count)
+            self.assertEqual(report["claimedNativeRigidCount"],count)
+            self.assertEqual(len(report["claims"]),count)
+            self.assertEqual(
+                [row["massKg"] for row in report["claims"]],
+                [c["effectiveKg"] for c in components])
+            self.assertEqual(report["finalizedGeometrySha256"],
+                             p["finalizedGeometry"]["sha256"])
+            self.assertTrue(report["massesConsumedInNativeRigid"])
+            self.assertFalse(report["nativeCiiReleaseAuthorized"])
+            self.assertEqual(report["actualCiiSha256"],
+                             hashlib.sha256(output.read_bytes()).hexdigest())
+
     def test_existing_rigid_to_flange_edge_consumes_flange_weight(self):
         with TemporaryDirectory() as td:
             directory=Path(td)
