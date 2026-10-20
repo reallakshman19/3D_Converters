@@ -379,7 +379,16 @@ def main() -> None:
     support_config.setdefault("defaultTeeSifType", 0)
     _PUBLISH_BEND_RADIUS_1_5D = publish_one_point_five_d(support_config)
 
-    input_xml = patched._maybe_enrich_from_staged_json(args.input, args.staged_json, support_config)
+    # Stage exact original occurrence identities before ANY enrichment,
+    # renumbering, or short-element cleanup. Original packet SHA is checked
+    # against untouched args.input by the stage and again by the binder.
+    staged_original = args.input
+    if args.xml229_native_final_packet is not None:
+        from xml229_native_final_mass_binding import stage_native_original_lineage
+        staged_original = stage_native_original_lineage(
+            args.input, args.xml229_native_final_packet)
+    input_xml = patched._maybe_enrich_from_staged_json(
+        staged_original, args.staged_json, support_config)
     input_xml = patched._apply_process_data_to_xml(input_xml, support_config)
     input_xml, bend_policy = apply_bend_radius_policy(input_xml, support_config)
     # The *actual* converter input receives accepted Final masses here, not
@@ -390,7 +399,8 @@ def main() -> None:
             raise ValueError("XML229_NATIVE_MASS_PROOF_AND_KG_TO_N_REQUIRED")
         from xml229_native_final_mass_binding import bind_native_final_xml
         input_xml, xml229_native_owners = bind_native_final_xml(
-            args.input, input_xml, args.xml229_native_final_packet)
+            args.input, input_xml, args.xml229_native_final_packet,
+            require_staged_lineage=True)
     elif args.xml229_native_mass_proof is not None:
         raise ValueError("XML229_NATIVE_FINAL_PACKET_REQUIRED")
     for row in bend_policy.get("rows", []):

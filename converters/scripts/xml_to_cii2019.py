@@ -101,6 +101,7 @@ class XmlNode:
     restraint_specs: tuple[RestraintSpec, ...]
     source_node_number: int | None = None
     weighted_component_start: bool = False
+    xml229_original_physical_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -607,6 +608,8 @@ def _parse_xml_document(path: Path, *, preserve_rigid_weight_owners: bool = Fals
                     restraint_specs=_parse_restraints(node_element, namespace),
                     source_node_number=source_numbers.get(id(node_element), node_number) if preserve_rigid_weight_owners else None,
                     weighted_component_start=id(node_element) in weighted_starts,
+                    xml229_original_physical_id=_child_text(
+                        node_element, namespace, "XML229OriginalPhysicalId"),
                 )
             )
 

@@ -11,6 +11,9 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 SCHEMA = "XML229.NativeFinalPhysicalPacket.v1"
+LINEAGE_TAG = "XML229OriginalPhysicalId"
+LINEAGE_STAGE = "XML229NativeLineageBasis"
+
 
 
 class NativeMassError(ValueError):
@@ -86,19 +89,67 @@ def read_packet(path, xml_path):
     return packet, parse_bytes(original_bytes)
 
 
-def bind_native_final_xml(original_path, enriched_path, packet_path):
-    """Write positive Owner-designated masses to exact enriched XML owners.
+def stage_native_original_lineage(original_path, packet_path):
+    """Annotate exact original source occurrences BEFORE staged-JSON enrichment.
 
-    Works only when every original physical has precisely ONE unchanged
-    signature + NodeNumber + Position owner in the same branch occurrence.
-    Splits, lost nodes, renumbers and scope changes require another attested
-    lineage implementation, not an ordinal guess.
+    These temporary private markers are carried by the XML converter's ET
+    transformations and parsed into native nodes. They do not authorize any
+    geometry split or invent a mass owner.
+    """
+    packet, source = read_packet(packet_path, original_path)
+    require(child(source, LINEAGE_STAGE) is None and
+            not any(child(node, LINEAGE_TAG) is not None
+                    for branch in branches(source) for node in nodes(branch)),
+            "NATIVE_UNTRUSTED_LINEAGE_TAG")
+    source_branches = branches(source)
+    seen = set()
+    for item in packet["components"]:
+        require(isinstance(item, dict), "NATIVE_MASS_ROW_INVALID")
+        oid = item.get("occurrenceId")
+        try:
+            decoded = json.loads(oid)
+        except (ValueError, TypeError):
+            raise NativeMassError("NATIVE_OCCURRENCE_INVALID") from None
+        require(isinstance(decoded, list) and len(decoded) == 4 and
+                decoded[0] == packet.get("sourceId") and
+                type(decoded[1]) is int and type(decoded[2]) is int and
+                decoded[1] >= 0 and decoded[2] >= 0 and
+                isinstance(decoded[3], str) and
+                json.dumps(decoded, separators=(",", ":"), ensure_ascii=False) == oid,
+                "NATIVE_OCCURRENCE_INVALID")
+        bi, ni = decoded[1:3]
+        require(bi < len(source_branches), "NATIVE_BRANCH_OUT_OF_RANGE")
+        source_nodes = nodes(source_branches[bi])
+        require(ni < len(source_nodes), "NATIVE_NODE_ORDINAL_OUT_OF_RANGE")
+        require((bi, ni) not in seen, "NATIVE_OWNER_DUPLICATED")
+        seen.add((bi, ni))
+        original = source_nodes[ni]
+        require(signature(original) == decoded[3],
+                "NATIVE_PHYSICAL_SIGNATURE_DRIFT")
+        ET.SubElement(original, LINEAGE_TAG).text = oid
+    ET.SubElement(source, LINEAGE_STAGE).text = packet["basisId"]
+    output = Path(original_path).with_name(
+        Path(original_path).stem + "_xml229_lineaged.xml")
+    ET.ElementTree(source).write(output, encoding="utf-8", xml_declaration=True)
+    return output
+
+
+def bind_native_final_xml(original_path, enriched_path, packet_path,
+                          require_staged_lineage=False):
+    """Transfer accepted masses from exact original physicals to native owners.
+
+    Governed Runs use an occurrence marker placed BEFORE enrichment, not a
+    guess from post-enrichment node numbers. The legacy unmarked path is kept
+    only for standalone strict one-to-one unit callers.
     """
     packet, source = read_packet(packet_path, original_path)
     source_branches = branches(source)
     enriched_path = Path(enriched_path)
     enriched = parse_bytes(enriched_path.read_bytes())
     engine_branches = branches(enriched)
+    if require_staged_lineage:
+        require(txt(enriched, LINEAGE_STAGE) == packet["basisId"],
+                "NATIVE_LINEAGE_STAGE_LOST")
     require(len(source_branches) == len(engine_branches),
             "NATIVE_BRANCH_OCCURRENCE_DRIFT")
     used = set()
@@ -136,10 +187,19 @@ def bind_native_final_xml(original_path, enriched_path, packet_path):
         require(signature(original) == decoded[3],
                 "NATIVE_PHYSICAL_SIGNATURE_DRIFT")
         witness = identity(original)
-        matches = [(j, node) for j, node in enumerate(nodes(dest))
-                   if identity(node) == witness]
-        require(len(matches) == 1, "NATIVE_OWNER_LINEAGE_AMBIGUOUS")
-        j, owner = matches[0]
+        if require_staged_lineage:
+            matches = [(j, node) for j, node in enumerate(nodes(dest))
+                       if txt(node, LINEAGE_TAG) == oid]
+            require(len(matches) == 1, "NATIVE_CHILD_LINEAGE_MISSING_OR_SPLIT")
+            j, owner = matches[0]
+            require(signature(owner) == signature(original) and
+                    txt(owner, "Position") == txt(original, "Position"),
+                    "NATIVE_CHILD_GEOMETRY_DRIFT")
+        else:
+            matches = [(j, node) for j, node in enumerate(nodes(dest))
+                       if identity(node) == witness]
+            require(len(matches) == 1, "NATIVE_OWNER_LINEAGE_AMBIGUOUS")
+            j, owner = matches[0]
         key = (bi, j)
         require(key not in used, "NATIVE_OWNER_DUPLICATED")
         used.add(key)
@@ -159,6 +219,7 @@ def bind_native_final_xml(original_path, enriched_path, packet_path):
             "componentRefNo": txt(owner, "ComponentRefNo"),
             "endpoint": txt(owner, "Endpoint"),
             "position": txt(owner, "Position"), "kg": float(kg),
+            "stagedLineage": bool(require_staged_lineage),
         })
     require(len(used) == packet["physicalCount"],
             "NATIVE_ORIGINAL_POPULATION_DRIFT")
@@ -240,7 +301,10 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
             node = edge.to_node
             n = (node.source_node_number if node.source_node_number is not None
                  else node.node_number)
-            if (edge.branch_name == row["branchName"] and str(n) == row["nodeNumber"]
+            if (edge.branch_name == row["branchName"] and
+                    (getattr(node, "xml229_original_physical_id", "") ==
+                     row["occurrenceId"] if row.get("stagedLineage")
+                     else str(n) == row["nodeNumber"])
                     and node.component_type == row["componentType"]
                     and node.component_ref_no == row["componentRefNo"]
                     and str(node.endpoint or "") == row["endpoint"]

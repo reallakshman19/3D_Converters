@@ -10,7 +10,8 @@ import unittest
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"converters"/"scripts"))
 from xml229_native_final_mass_binding import (
-    NativeMassError, bind_native_final_xml, verify_emitted_native_masses,
+    NativeMassError, bind_native_final_xml, stage_native_original_lineage,
+    verify_emitted_native_masses,
 )
 
 def input_xml(weight="0"):
@@ -149,6 +150,62 @@ class NativeFinalMassTests(unittest.TestCase):
             with self.assertRaises(NativeMassError) as e:
                 verify_emitted_native_masses(cii(force="1"),owners,model(0))
             self.assertEqual(e.exception.code,"CII_NATIVE_APPLIED_MASS_MISMATCH")
+
+
+    def test_staged_original_occurrence_survives_native_renumbering(self):
+        with TemporaryDirectory() as td:
+            original=Path(td)/"source.xml"
+            transformed=Path(td)/"enriched.xml"
+            packet_path=Path(td)/"packet.json"
+            xml=input_xml()
+            original.write_text(xml)
+            packet_path.write_text(json.dumps(packet(xml)))
+            staged=stage_native_original_lineage(original,packet_path)
+            self.assertIn("XML229OriginalPhysicalId",staged.read_text())
+            transformed.write_text(
+                staged.read_text().replace(
+                    "<NodeNumber>20</NodeNumber>","<NodeNumber>120</NodeNumber>"))
+            bound,owners=bind_native_final_xml(
+                original,transformed,packet_path,require_staged_lineage=True)
+            self.assertEqual(owners[0]["nodeNumber"],"120")
+            self.assertEqual(owners[0]["kg"],12.5)
+            self.assertTrue(owners[0]["stagedLineage"])
+            self.assertIn("<Weight>12.5</Weight>",bound.read_text())
+
+    def test_staged_lineage_fail_closed_on_split_lost_and_spoofed_markers(self):
+        with TemporaryDirectory() as td:
+            original=Path(td)/"source.xml"
+            transformed=Path(td)/"enriched.xml"
+            packet_path=Path(td)/"packet.json"
+            xml=input_xml()
+            original.write_text(xml)
+            packet_path.write_text(json.dumps(packet(xml)))
+            staged=stage_native_original_lineage(original,packet_path)
+            import xml.etree.ElementTree as ET
+            tree=ET.parse(staged)
+            branch=next(el for el in tree.getroot().iter()
+                        if el.tag=="Branch")
+            owner=next(node for node in branch if node.tag=="Node"
+                       and node.find("XML229OriginalPhysicalId") is not None)
+            import copy
+            branch.append(copy.deepcopy(owner))
+            tree.write(transformed,encoding="utf-8")
+            with self.assertRaises(NativeMassError) as e:
+                bind_native_final_xml(
+                    original,transformed,packet_path,require_staged_lineage=True)
+            self.assertEqual(e.exception.code,"NATIVE_CHILD_LINEAGE_MISSING_OR_SPLIT")
+            transformed.write_text(xml)
+            with self.assertRaises(NativeMassError) as e:
+                bind_native_final_xml(
+                    original,transformed,packet_path,require_staged_lineage=True)
+            self.assertEqual(e.exception.code,"NATIVE_LINEAGE_STAGE_LOST")
+            spoof=xml.replace("<Rigid>2</Rigid>",
+                "<XML229OriginalPhysicalId>forged</XML229OriginalPhysicalId><Rigid>2</Rigid>")
+            original.write_text(spoof)
+            packet_path.write_text(json.dumps(packet(spoof)))
+            with self.assertRaises(NativeMassError) as e:
+                stage_native_original_lineage(original,packet_path)
+            self.assertEqual(e.exception.code,"NATIVE_UNTRUSTED_LINEAGE_TAG")
 
 if __name__=="__main__":
     unittest.main()
