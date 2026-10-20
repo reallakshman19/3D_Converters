@@ -54,8 +54,14 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   // generic converter failure. The user must finalize geometry upstream,
   // then accept weights against that new source basis.
   const diagnosis=[native?.error,...(native?.logs||[])].filter(Boolean).join('\n');
-  if(diagnosis.includes('NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE'))
-   fail('NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE');
+  for(const code of [
+    'NATIVE_DOUBLE_ENDPOINT_MASS_OWNER',
+    'NATIVE_RIGID_OWNER_UNSUPPORTED',
+    'NATIVE_ACCEPTED_PHYSICAL_NOT_IN_FINAL_GEOMETRY',
+    'NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT',
+    'NATIVE_FINALIZED_GEOMETRY_SHA_DRIFT',
+    'NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE',
+  ])if(diagnosis.includes(code))fail(code);
   fail('NATIVE_CANDIDATE_CONVERTER_FAILED');
  }
  const independent=await reconcileXml229ActualCiiAgainstFinal({
