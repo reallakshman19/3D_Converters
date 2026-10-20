@@ -5,6 +5,7 @@ import { updateWorkflowOptions, applyStandaloneOutputRunReadiness, updateWorkflo
 import { deriveLineKeyFromBranchName } from '../../../converters/xml-cii2019-core/regex-line-key.js';
 import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
 import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
+import {runXml229NativeCiiMassCandidate} from './xml229-native-cii-candidate-run.mjs';
 import {ensureXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace,getXml229CandidateAttempt} from './xml229-flow-trace-registry.mjs';
 import {buildXml229RunHoldAudit} from '../integration/xml229-run-hold-audit.mjs';
 import {inspectXml229EngineeringLease} from '../integration/xml229-engineering-basis-authority.mjs';
@@ -517,6 +518,37 @@ function renderRunControls(parent, stateRef, state, report, render) {
     });
     auditPanel.appendChild(auditBtn);
     actionDiv.appendChild(auditPanel);
+  }
+  if(!approved&&report.runHoldAudit?.gateStatus==='HELD'){
+    const verifyBtn=button('xml229-native-mass-candidate',
+      'Generate native CII and verify selected masses (diagnostic only)');
+    verifyBtn.style.cssText='cursor:pointer;padding:12px;border-radius:6px;background:#253a55;color:#e2e8f0;border:1px solid #64748b;width:100%;';
+    const verificationStatus=createElement('div',
+      'Requires all original physicals to have positive accepted GC-PW Source/Final kilograms. Unsupported split/lineage cases are rejected.',
+      'model-converters-workflow-detail-note');
+    verificationStatus.dataset.xml229NativeMassStatus='true';
+    verifyBtn.addEventListener('click',async()=>{
+      if(verifyBtn.disabled)return;
+      verifyBtn.disabled=true;
+      const session=getXml229CurrentWorkerHeldReview(stateRef.current);
+      const isCurrent=()=>getXml229CurrentWorkerHeldReview(stateRef.current)===session &&
+        stateRef.current?.xml229StagedSourceReceipt===state.xml229StagedSourceReceipt;
+      verificationStatus.textContent='Generating native candidate and reconciling actual CII RIGID records…';
+      try{
+        const diagnosis=await runXml229NativeCiiMassCandidate({
+          state:stateRef.current,session,isCurrent,
+        });
+        verificationStatus.textContent='Native mass output verified for '+
+          diagnosis.physicalCount+' original physicals against '+diagnosis.nativeRigidCount+
+          ' RIGID records; CII SHA '+diagnosis.actualCiiSha256.slice(0,16)+
+          '…. Native CII release remains HELD pending independently authored split/geometry lineage.';
+      }catch(error){
+        verificationStatus.textContent='Native mass diagnostic HELD ['+
+          String(error?.code||'NATIVE_CII_MASS_DIAGNOSTIC_FAILED')+
+          ']. No unverified CII output was released.';
+      }finally{verifyBtn.disabled=false;}
+    });
+    actionDiv.append(verifyBtn,verificationStatus);
   }
   const finalizeBtn = createElement('button', state.running ? 'Running...' : 'Finalise and Run Conversion', 'model-converters-download-btn');
   if (finalizeBtn.style) Object.assign(finalizeBtn.style, { width: '100%', padding: '12px', background: (state.running || report.summary.blockingCount > 0) ? '#334155' : '#1e4ed8', color: '#fff', border: 'none', fontWeight: '700' });
