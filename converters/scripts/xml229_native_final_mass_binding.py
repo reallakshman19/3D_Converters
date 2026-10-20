@@ -390,9 +390,19 @@ def bind_native_final_xml(original_path, enriched_path, packet_path,
         key = (bi, j)
         require(key not in used, "NATIVE_OWNER_DUPLICATED")
         used.add(key)
-        # Native RIGID emission must claim this owner in the actual converter
-        # graph. Never set Rigid=2 on non-rigid valve/flange/instrument geometry.
-        require(txt(owner, "Rigid") == "2", "NATIVE_RIGID_OWNER_UNSUPPORTED")
+        # Reuse ONLY an existing native CII RIGID edge: a to-node with
+        # Rigid=2, or CAESAR's existing Rigid=2 predecessor -> same-ref FLAN
+        # rule. Never manufacture a Rigid=2 marker for unsupported geometry.
+        prior = nodes(dest)[j-1] if j else None
+        normalize_ref = lambda value: value.strip().lstrip("=").replace(" ", "").upper()
+        ref = normalize_ref(txt(owner, "ComponentRefNo"))
+        flange_rigid_edge = (txt(owner, "ComponentType").upper() == "FLAN"
+                            and prior is not None and
+                            txt(prior, "Rigid") == "2" and
+                            bool(ref) and
+                            ref == normalize_ref(txt(prior, "ComponentRefNo")))
+        require(txt(owner, "Rigid") == "2" or flange_rigid_edge,
+                "NATIVE_RIGID_OWNER_UNSUPPORTED")
         weight = child(owner, "Weight")
         if weight is None:
             weight = ET.SubElement(owner, owner.tag.rsplit("}", 1)[0] + "}Weight"
