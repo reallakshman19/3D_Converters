@@ -15,6 +15,10 @@ import {commitXml229SelectedAppliedWeight}
 import {eligibleXml229UnassignedZero,visitXml229UnassignedZero,
  applyXml229OwnerConfirmedZero}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-confirmed-zero-source-wide.mjs';
+import {createXml229ZeroMassPopup}
+ from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-zero-mass-popup.mjs';
+import {renderXml229VerifiedPanelShell}
+ from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-panel-shell.mjs';
 
 const digest=x=>createHash('sha256').update(String(x)).digest('hex');
 const sourceId='SRC',basisId=digest('owner-confirmed-zero');
@@ -141,6 +145,52 @@ test('nonintrusive offer never writes; confirmed source-wide 0 skips positive/qu
  assert.equal(drafts.has('old-zero-skip'),false);
  assert.equal((await visitXml229UnassignedZero({session,drafts,isCurrent:live})).eligible,0);
  assert.equal(result.nativeCiiReleaseAuthorized,false);
+});
+test('small dismissible corner popup is opt-in, one-shot per Worker and never modal',async()=>{
+ const html=renderXml229VerifiedPanelShell(true);
+ assert.match(html,/data-p4-confirm-zero-notice/);
+ assert.match(html,/data-p4-confirm-zero-text/);
+ assert.match(html,/data-p4-confirm-zero/);
+ assert.match(html,/data-p4-dismiss-zero/);
+ assert.match(html,/position:fixed/);
+ assert.match(html,/right:16px;bottom:16px/);
+ assert.doesNotMatch(html,/role="dialog"|window\\.confirm/);
+ const notice={hidden:true},message={textContent:''};
+ const root={isConnected:true,querySelector(key){
+  if(key==='[data-p4-confirm-zero-notice]')return notice;
+  if(key==='[data-p4-confirm-zero-text]')return message;
+  return null;
+ }};
+ const session=mockSource(),drafts=new Map([['manual',{
+  value:'25',skippedWeight:false,proposalId:'',autoFilled:false,
+ }]]);
+ let renders=0;
+ const popup=createXml229ZeroMassPopup({
+  root,live:()=>session,getDrafts:()=>drafts,
+  saveDrafts:()=>{},render:async()=>{renders++;return 0;},say:()=>{},
+ });
+ await popup.offer(session);
+ assert.equal(notice.hidden,false);
+ assert.match(message.textContent,/2 unresolved original physical/);
+ assert.equal(session.decisions.size,0);
+ await popup.handle('dismiss',session);
+ assert.equal(notice.hidden,true);
+ await popup.offer(session);
+ assert.equal(notice.hidden,true,'never nag after dismissal on same Worker');
+ assert.equal(session.decisions.size,0);
+ // Same modal-free component can perform a separately selected Apply click.
+ const second=mockSource(),secondRoot={...root};
+ const apply=createXml229ZeroMassPopup({
+  root:secondRoot,live:()=>second,getDrafts:()=>drafts,
+  saveDrafts:()=>{},render:async()=>{renders++;return 0;},say:()=>{},
+ });
+ await apply.offer(second);
+ assert.equal(notice.hidden,false);
+ const decision=await apply.handle('apply',second);
+ assert.equal(decision.accepted,2);
+ assert.equal(renders,1);
+ assert.equal(notice.hidden,true);
+ assert.deepEqual([...second.decisions.keys()],['unresolved','old-zero-skip']);
 });
 test('stale source and checked-positive input do not accept zero',async()=>{
  const session=mockSource(),row={sourceId,occurrenceId:'source',sourceKg:18,
