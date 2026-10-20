@@ -57,7 +57,7 @@ function fixture(){
   session:{basis:{basisId},review},sourceId};
 }
 
-test('new 14-column Applied Weight draft UI is fed by exact original physical census, not legacy node keys',()=>{
+test('single 13-column Applied Weight review UI is fed by exact original physical census, not legacy node keys',()=>{
  const args=fixture();
  const projection=buildXml229VerifiedWeightRowProjection(args);
  assert.equal(projection.count,2);
@@ -84,7 +84,7 @@ test('new 14-column Applied Weight draft UI is fed by exact original physical ce
  assert.deepEqual(ps.get(b.occurrenceId),[]);
  const html=renderXml229WeightReviewPage({totalCount:2,populationCount:2,
   rows:[{...a,sourceKg:null,match1Kg:null,finalKg:null,proposals:ps.get(a.occurrenceId)}]},0);
- assert.equal((html.match(/<th style=/g)||[]).length,14);
+ assert.equal((html.match(/<th style=/g)||[]).length,13);
  for(const field of ['Line Key','ComponentRefNo_Endpoint','DTXR','Valve Hint','Nearest Suggestions','Applied Weight'])assert.match(html,new RegExp(field));
  assert.match(html,/CONTROL VALVE/);
  assert.match(html,/96%/);
