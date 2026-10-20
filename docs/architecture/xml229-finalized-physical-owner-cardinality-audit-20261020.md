@@ -1,48 +1,36 @@
-# XML229 EF-05 native mass-owner cardinality: source audit (2026-10-20)
+# XML229 EF-05: pre-Weight Match canonical physical ownership (2026-10-20)
 
-## Scope and authority
+## Scope
 
-This is a **read-only source-geometry diagnostic** for `Benchmarks/EF-05-PRO.TEST.xml`, using the normal Preview removal of `GASK` nodes and explicit `ElementLengthMm <= 6` cleanup. It is NOT evidence of accepted mass, authorization of the native CII model, or an instruction to assign source weights to different components. The Worker continues to preserve all original node facts and original source ordinals.
+This audit uses the original source `Benchmarks/EF-05-PRO.TEST.xml` and the Preview's documented gasket/short-element cleanup. Source facts, geometry, component-reference signatures, branch occurrences, and original ordinals remain immutable. **The geometry census does not approve a mass.** The real EF-05 has no independently confirmed, fully accepted 249-component Final review.
 
-An original XML **node occurrence** is not necessarily a distinct physical **component**. A consecutive `Endpoint=1` / `Endpoint=2` pair with the same component type and reference identifies two source witnesses of a candidate single physical part. The proper physical owner of a mass must be determined **before** the Weight Match decision. No accepted masses may be summed, duplicated, split, migrated, or otherwise reassigned by Run.
+## Corrected physical ownership
 
-| Reviewed source type | XML physical node occurrences | Contiguous same-reference endpoint pairs | Distinct component *candidates* |
-| --- | ---: | ---: | ---: |
-| RIGID | 198 | 0 | 198 |
-| FLAN | 138 | 12 | 126 |
-| VALV | 59 | 25 | 34 |
-| INST | 28 | 14 | 14 |
-| **Total** | **423** | **51** | **372** |
+The raw source contains **423 weight-eligible XML node occurrences**, but they are not 423 independent physical parts:
 
-A count of 372 is a **grouping hypothesis based on the existing source topology**, not an independently signed component identity census or an approval to rewrite current review decisions. Other source cases may require splits or different physical interpretations.
+| Source relation | Left-end witnesses excluded from mass-owner population | Canonical right-end physical owners |
+| --- | ---: | ---: |
+| VALV Endpoint 1 → VALV Endpoint 2 (same reference) | 25 | 25 |
+| FLAN Endpoint 1 → FLAN Endpoint 2 (same reference) | 12 | 12 |
+| INST Endpoint 1 → INST Endpoint 2 (same reference) | 14 | 14 |
+| FLAN Endpoint 1 → existing RIGID Endpoint 2 (same reference, `Rigid=2`) | 114 | 114 existing RIGID owners |
+| VALV Endpoint 1 → existing RIGID Endpoint 2 (same reference, `Rigid=2`) | 9 | 9 existing RIGID owners |
+| Remaining standalone source RIGID endpoints | 0 | 75 |
+| **Total** | **174** | **249 distinct candidate physical parts** |
 
-## Native encoding blockers
+The corrected source-bound Weight Match population is therefore **249 canonical physical owners × 7 facts = 1,743 fact records**. The independent original-source census checks the same selected original ordinals. Both end nodes remain in the finalized geometry. The first endpoint remains original geometry evidence and cannot receive another Final mass. An old 423-node or 372-node accepted-weight review is NOT silently migrated; review export/import is bound to the finalized geometry SHA.
 
-* The existing writer emits accepted discrete component mass through actual CII `ELEMENTS -> RIGID` pointers. The unmodified EF-05 source carries explicit `Rigid=2` on 198 physical occurrences only. The other **225** node occurrences (138 FLAN, 59 VALV and 28 INST) have no matching source-authorized rigid mass owner under the current converter rules. The existing rigid-to-same-reference-FLAN exception does not resolve these 225 occurrences in this fixture.
-* 168 of the reviewed physical occurrences have nonpositive node numbers, primarily repeated `-1` placeholders. Such placeholders are not stable, unique connected-node identities and cannot be treated as one shared structural node. Their geometry-normalized node IDs must be established **before Weight Match**.
-* Some successive original node positions coincide. Automatically creating a positive-length CII element to carry their mass, or moving the mass to a neighboring pipe edge, would change the mechanical model and is not authorized by weight acceptance.
-* CAESAR II models real valves and flanges with appropriate rigid elements and uses the `RIGID` auxiliary entry for their weight, but that **does not authorize** inferring which element represents each reviewed EF-05 physical component without a validated component-to-element mapping. Manufacturer data and actual geometry remain authoritative.
+The native Python mass binder independently recomputes the same 174 pairs from the exact finalized XML. It rejects duplicate accepted endpoints, a noncanonical first-end owner, forged ordinal mappings, unexpected mass owners, or any changed emitted CII rigid pointer/mass.
 
-## Implementation on PR #320
+## Native geometry and mass support
 
-1. The verified Preview produces a source-bound, hashed cleaned-XML geometry snapshot and now includes a **pre-acceptance endpoint-pair cardinality manifest**. It does not automatically collapse, weight or reclassify either endpoint.
-2. Native staging independently detects consecutive, same-type, same-reference `1 -> 2` physical endpoints and blocks `NATIVE_DOUBLE_ENDPOINT_MASS_OWNER` if both source occurrences have separately accepted masses, **including two accepted zeros**.
-3. Regression tests check the public EF-05 423/51/372 population and the two-endpoint duplicate-owner refusal.
-4. Existing strict one-to-one native CII mass and emitted-byte reconciliation remains mandatory for every supported owner.
+* **198** source RIGID nodes already have explicit `Rigid=2`, including the 123 cross-type FLAN/VALV → RIGID continuations above.
+* **37** same-family 1→2 physical spans (25 VALV, 12 FLAN) have finite positive lengths of 86–419 mm. The source-bound Worker records a pre-acceptance `Rigid=2` classification on their EXISTING second endpoint, with the original reference/positions/ordinal and measured span, and the Python binder independently recomputes its proof.
+* Thus **235/249** candidate parts can be mapped to actual native RIGID auxiliary records, subject to a genuine, explicit Final weight for *each* part and independently reconciled emitted-CII bytes. No new geometry edges are created, no mass is duplicated or redistributed, and explicit approved 0 kg remains zero.
+* The remaining **14 candidate instrument parts** appear as same-reference INST 1→2 pairs, but the original XML does not authorize treating them as infinitely stiff RIGID elements. They stay **unsupported** until their stiffness/element classification is established by an explicit engineering-approved pre-weight geometry source. Merely recognizing an instrument's length is insufficient to assign `Rigid=2`.
 
+For instrument parts the safe alternatives are to provide signed/source-attested engineering classification and re-open Weight Match against the finalized source basis, or continue with governed Run blocked. Do **not** assign instrument masses to adjacent pipe edges or reinterpret mass as structural stiffness without an approved model.
 
-## Implemented pre-acceptance correction on PR #320
+## Validation boundary
 
-The source-bound Worker now distinguishes **423 source XML node occurrences** from **372 canonical physical part weight owners**. The exact 51 consecutive matching 1->2 endpoint pairs retain both geometry nodes, but only the second endpoint is the GC-PW mass owner. The independent original-source census recomputes the same selection; no two masses are distributed or combined after acceptance. Historical 423-row reviews are **not** proof of an accepted 372-component Final population; any affected weight decisions need the new verified review basis.
-
-All retained nonpositive `NodeNumber` placeholders get deterministic globally unique positive IDs **before** the Worker opens Weight Match. The Worker packet includes the exact original source ordinals, before/after node IDs, and finalized XML SHA. The Python stage re-derives every assigned ID from the untouched original source and refuses unauthorized renumbering or invented edges. This is a node **identifier** normalization, not a change to coordinates, materials or pipe lengths.
-
-For a same-reference **valve or flange** with two adjacent endpoints, a finite existing 1->2 segment longer than 6 mm, and no original rigid classification on endpoint 2, the Worker records an explicit pre-Final `Rigid=2` classification on that existing element. Python separately verifies the exact source endpoints, distance, component type/reference, and serialized geometry. The native CII then uses that element's own `RIGID` auxiliary slot to consume the accepted component mass. This follows Hexagon's CAESAR II guidance that valves and flanges can be modeled as rigid elements with weights associated with their from/to node segment: https://docs.hexagonppm.com/r/en-US/CAESAR-II-Users-Guide/15/1428346 and https://docs.hexagonppm.com/r/en-US/CAESAR-II-Users-Guide/15/927201.
-
-On the EF-05 candidate topology, **25 paired valves and 12 paired flanges** qualify for this existing-edge classification. Combined with the 198 source-rigid nodes, that is at most **235 candidates with a supported native RIGID mass owner** once each has an actually accepted Final mass. **137 candidate physical components remain unresolved**: 114 single-ended flanges, 9 single-ended valves, and 14 paired instruments. The source does not independently establish a safe isolated rigid segment for the single-ended parts; instrument stiffness and mass-element classification are not inferred. They remain fail-closed pending source-authoritative pre-weight geometry or a separately verified engineering rule. No production 372-part governed CII download is authorized by this audit alone.
-
-## Next required engineering work
-
-Establish the **finalized physical-component identity and actual CII element topology before Weight Match**: decide which paired endpoints witness one part, ensure unique positive engine node IDs and valid connecting element geometry, and explicitly validate CAESAR II rigid classification for each valve/flange/instrument. Carry a verifiable source-to-finalized-part manifest into the Worker basis. Then open or rebuild the Weight Match review against **those final component owners**. Previously accepted per-node masses may only be adopted into a new basis with independently demonstrated identical physical ownership and explicit approved review policy; never silently transfer them.
-
-Do not lift the governed output HOLD or call the 423-physical source reviewed merely because a synthetic 423-mass capacity test passes. The actual Owner source has unresolved weights and unresolved geometry ownership.
+Tests include a genuine accepted Worker Final → native Python CII → independent emitted mass path, synthetic 423-owner capacity, source-based 423/174/249 cardinality, negative ID remapping, actual rigid valve/flange edge consumption, tampered-geometry refusal, and no duplicate endpoint acceptance. CI must pass on the final exact PR head, including real EF-05 master variants. Even those focused tests do not constitute an engineer-approved 249-part mass dataset. The PR remains draft and nonreleasing until real accepted Final, CII element ownership and independent emitted-byte mass reconciliation cover all 249 canonical physical parts.
