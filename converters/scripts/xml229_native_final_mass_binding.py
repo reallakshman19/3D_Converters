@@ -295,11 +295,9 @@ def _validate_finalized_geometry(packet, source):
     # the endpoint; post-Final classifications are forbidden.
     expected_promotions = []
     promoted = set()
-    expected_rigid_source = parse_bytes(ET.tostring(source, encoding="utf-8"))
     for bi, (orig_branch, approved_branch, ordinals) in enumerate(
             zip(originals, selected, retained)):
         source_nodes = nodes(orig_branch)
-        source_copy_nodes = nodes(branches(expected_rigid_source)[bi])
         final_nodes = nodes(approved_branch)
         for i in range(len(final_nodes) - 1):
             oi, oj = ordinals[i:i+2]
@@ -328,9 +326,6 @@ def _validate_finalized_geometry(packet, source):
                 "distanceMm": length,
             })
             promoted.add((bi, oj))
-            namespace = (source_copy_nodes[oj].tag.rsplit("}", 1)[0] + "}"
-                         if "}" in source_copy_nodes[oj].tag else "")
-            ET.SubElement(source_copy_nodes[oj], namespace + "Rigid").text = "2"
     claimed_promotions = final.get("rigidEdgePromotions", [])
     require(isinstance(claimed_promotions, list) and
             len(claimed_promotions) == len(expected_promotions),
