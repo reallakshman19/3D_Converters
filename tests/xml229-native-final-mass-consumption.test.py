@@ -12,7 +12,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"converters"/"scripts"
 from xml229_native_final_mass_binding import (
     NativeMassError, bind_native_final_xml, stage_native_original_lineage,
     assert_preaccepted_geometry_unchanged, assert_native_model_geometry_unchanged,
-    verify_emitted_native_masses,
+    verify_emitted_native_masses, audit_finalized_physical_endpoints,
 )
 
 def input_xml(weight="0"):
@@ -183,6 +183,74 @@ class NativeFinalMassTests(unittest.TestCase):
             self.assertNotEqual(wrong_source.returncode,0)
             self.assertIn("NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT",
                           wrong_source.stderr)
+
+    def test_two_accepted_endpoint_weights_must_not_double_count_one_part(self):
+        # The same VALV physical component is described by the two adjacent
+        # Endpoints. The source review must be normalized BEFORE Final:
+        # an accepted mass on both witnesses is NOT two physical weights.
+        xml=(
+            '<PipeStressExport><Pipe><Branch><Branchname>B</Branchname>'
+            '<Node><NodeNumber>10</NodeNumber><ComponentType>PIPE</ComponentType>'
+            '<Position>0 0 0</Position></Node>'
+            '<Node><NodeNumber>20</NodeNumber><ComponentType>VALV</ComponentType>'
+            '<ComponentRefNo>=PART-1</ComponentRefNo><Endpoint>1</Endpoint>'
+            '<Position>10 0 0</Position></Node>'
+            '<Node><NodeNumber>30</NodeNumber><ComponentType>VALV</ComponentType>'
+            '<ComponentRefNo>=PART-1</ComponentRefNo><Endpoint>2</Endpoint>'
+            '<Position>200 0 0</Position></Node>'
+            '</Branch></Pipe></PipeStressExport>')
+        with TemporaryDirectory() as td:
+            source=Path(td)/'source.xml'
+            packet_file=Path(td)/'accepted.json'
+            source.write_text(xml)
+            p=packet(xml)
+            p['physicalCount']=2
+            p['components']=[]
+            for ordinal,endpoint in ((1,'1'),(2,'2')):
+                sig=json.dumps(['VALV','=PART-1',endpoint,''],
+                               separators=(',',':'))
+                oid=json.dumps(['SOURCE',0,ordinal,sig],separators=(',',':'))
+                p['components'].append({'occurrenceId':oid,'effectiveKg':0})
+            packet_file.write_text(json.dumps(p))
+            with self.assertRaises(NativeMassError) as error:
+                stage_native_original_lineage(source,packet_file)
+            self.assertEqual(error.exception.code,
+                'NATIVE_DOUBLE_ENDPOINT_MASS_OWNER')
+            self.assertFalse((Path(td)/'source_xml229_lineaged.xml').exists())
+
+    def test_real_ef05_endpoint_aliases_are_not_423_independent_parts(self):
+        # Real source geometry, no fabricated acceptance decisions or CII.
+        import xml.etree.ElementTree as ET
+        source=Path(__file__).resolve().parents[1]/'Benchmarks'/'EF-05-PRO.TEST.xml'
+        root=ET.parse(source).getroot()
+        for branch in root.iter():
+            if branch.tag.split('}')[-1]!='Branch':
+                continue
+            for node in list(branch):
+                if node.tag.split('}')[-1]!='Node':
+                    continue
+                def val(key):
+                    return next(((c.text or '').strip() for c in node
+                                 if c.tag.split('}')[-1]==key),'')
+                length=val('ElementLengthMm')
+                if val('ComponentType')=='GASK' or (
+                        length and float(length)<=6):
+                    branch.remove(node)
+        audited=audit_finalized_physical_endpoints(root)
+        self.assertEqual(audited['twoEndpointPhysicalParts'],51)
+        from collections import Counter
+        self.assertEqual(dict(Counter(
+            row['componentType'] for row in audited['aliasPairs'])),
+            {'VALV':25,'FLAN':12,'INST':14})
+        occurrences=sum(
+            sum(1 for node in branch if node.tag.split('}')[-1]=='Node'
+                and next(((c.text or '') for c in node
+                          if c.tag.split('}')[-1]=='ComponentType'),'')
+                in ('RIGID','FLAN','VALV','INST'))
+            for branch in root.iter()
+            if branch.tag.split('}')[-1]=='Branch')
+        self.assertEqual(occurrences,423)
+        self.assertEqual(occurrences-audited['twoEndpointPhysicalParts'],372)
 
     def test_real_ef05_423_original_physical_owner_census(self):
         # Public EF05 audit only: do not label synthetic 423 accepted masses
