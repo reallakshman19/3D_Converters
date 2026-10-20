@@ -51,7 +51,22 @@ self.addEventListener('message',({data:req})=>{
      const retained=clean.ledger.retainedByBranch[branchIndex];
      if(!retained||retained.length!==cleaned.length)
        fail('RETAINED_CENSUS_DRIFT','Unexpected cleaned physical count');
+     // Independent source-only check of the same physical part cardinality:
+     // the first end of an adjacent 1->2 matching reference is geometry
+     // evidence, not a second weight owner. The second endpoint remains.
      for(const [ordinal,node] of cleaned.entries()){
+       const right=cleaned[ordinal+1];
+       const type=field(node,'ComponentType').toUpperCase();
+       const ref=field(node,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
+       const rightRef=field(right,'ComponentRefNo').trim().replace(/^=/,'').replace(/\\s+/g,'').toUpperCase();
+       const paired=right&&['RIGID','FLAN','VALV','INST'].includes(type)&&
+         ref&&type===field(right,'ComponentType').toUpperCase()&&
+         ref===rightRef&&field(node,'Endpoint')==='1'&&
+         field(right,'Endpoint')==='2'&&
+         isXmlCiiWeightReviewNode(node)&&isXmlCiiWeightReviewNode(right)&&
+         isXmlCiiWeightReviewConnectionEligible(node)&&
+         isXmlCiiWeightReviewConnectionEligible(right);
+       if(paired)continue;
        if(!isXmlCiiWeightReviewNode(node)||
           !isXmlCiiWeightReviewConnectionEligible(node))continue;
        const physical=nodes.get(JSON.stringify([branchIndex,retained[ordinal].sourceNodeOrdinal]));
