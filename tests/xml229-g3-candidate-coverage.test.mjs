@@ -135,3 +135,18 @@ test('large census is bounded and proposals are always requested by at most 64 I
  assert.deepEqual(batches,[64,64,1]);
  assert.equal(r.counts.zeroCandidateOccurrences,129);
 });
+
+test('read-only coverage accepts only explicit Owner-confirmed zero Final as assigned mass',()=>{
+ const x=fixture();
+ x.stages.Rigidmatch2.decisions={A:{
+  state:'accepted',action:'set-zero-mass',value:0,unit:'kg',
+  reason:'Owner-confirmed explicit zero kg: blank physical',
+ }};
+ x.stages.Rigidmatch2.decisionRevision='F2';
+ const coverage=buildXml229CandidateCoverageReport(x.input);
+ assert.equal(coverage.counts.acceptedFinalCount,1);
+ assert.equal(coverage.nativeCiiReleaseAuthorized,false);
+ x.stages.Rigidmatch2.decisions.A.action='final-override';
+ assert.throws(()=>buildXml229CandidateCoverageReport(x.input),
+  err('COVERAGE_ACCEPTED_NONPOSITIVE_KG'));
+});
