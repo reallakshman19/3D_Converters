@@ -427,8 +427,14 @@ def main() -> None:
     hydro_pressure_map = patched._branch_hydro_pressure_map(input_xml)
     # The Worker-finalized XML is already cleaned. Skip the second
     # coordinate-based cleanup which was previously applied AFTER Final.
-    _XML229_FINALIZED_GEOMETRY_ACTIVE = (
-        xml229_native_owners is not None and staged_original != args.input)
+    if args.xml229_native_final_packet is not None:
+        from xml229_native_final_mass_binding import read_packet
+        active_packet, _ = read_packet(
+            args.xml229_native_final_packet, args.input)
+        _XML229_FINALIZED_GEOMETRY_ACTIVE = bool(
+            active_packet.get("finalizedGeometry"))
+    else:
+        _XML229_FINALIZED_GEOMETRY_ACTIVE = False
     document = base._parse_xml_document(input_xml)
     component_specs = direction._component_type_restraint_specs(document, support_config)
     dtxr_specs, node_number_kind_map = patched._build_keyword_restraint_specs(input_xml, support_config)
