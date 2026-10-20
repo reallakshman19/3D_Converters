@@ -50,7 +50,7 @@ test('simple source-bound Weight UI shows Applied Weight, three adjacent filters
   assert.match(html,/data-p4-min-score/);
   assert.match(html,/423 components/);
   assert.match(html,/showing 1–1/);
-  assert.match(html,/saved draft, not an engineering acceptance/);
+  assert.match(html,/no separate Match-1 or Final action is required/);
   assert.equal(xml229WeightReviewPageModel(page,0).counts.unresolved,1);
 });
 
