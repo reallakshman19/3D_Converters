@@ -55,6 +55,11 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   // then accept weights against that new source basis.
   const diagnosis=[native?.error,...(native?.logs||[])].filter(Boolean).join('\n');
   for(const code of [
+    'NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT',
+    'NATIVE_PREACCEPTANCE_OWNER_CARDINALITY_DRIFT',
+    'NATIVE_NONCANONICAL_ENDPOINT_OWNER',
+    'NATIVE_FINALIZED_NODE_ID_MAP_INVALID',
+    'NATIVE_FINALIZED_NODE_ID_MAP_DRIFT',
     'NATIVE_DOUBLE_ENDPOINT_MASS_OWNER',
     'NATIVE_RIGID_OWNER_UNSUPPORTED',
     'NATIVE_ACCEPTED_PHYSICAL_NOT_IN_FINAL_GEOMETRY',
