@@ -1,4 +1,4 @@
-"""Approval-gated instrument source revision, with no real engineering approval fabricated."""
+"""Optional instrument modeling suggestions; source and accepted mass remain separate."""
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import hashlib
@@ -48,7 +48,7 @@ class SourceInstrumentClassificationTests(unittest.TestCase):
         self.assertEqual(review["sourceXmlSha256"],
                          hashlib.sha256(benchmark.read_bytes()).hexdigest())
 
-    def test_missing_approvals_refuse_any_output(self):
+    def test_no_selection_preserves_source_without_approval(self):
         with TemporaryDirectory() as tmp:
             d = Path(tmp)
             source, approval = d / "source.xml", d / "review.json"
@@ -56,15 +56,16 @@ class SourceInstrumentClassificationTests(unittest.TestCase):
             xml = fixture()
             source.write_text(xml)
             approval.write_text(json.dumps(inspect(source)))
-            with self.assertRaises(ClassificationRefused) as err:
-                approve(source, approval, output, receipt)
-            self.assertEqual(str(err.exception),
-                             "INSTRUMENT_ENGINEERING_CLASSIFICATION_REQUIRED")
-            self.assertFalse(output.exists())
-            self.assertFalse(receipt.exists())
+            outcome = approve(source, approval, output, receipt)
+            self.assertEqual(outcome["selectedCount"], 0)
+            self.assertEqual(outcome["remainingSuggestions"], 1)
+            self.assertFalse(outcome["sourceChanged"])
+            self.assertFalse(outcome["approvalRequired"])
+            self.assertEqual(output.read_bytes(), source.read_bytes())
             self.assertEqual(source.read_text(), xml)
+            self.assertEqual(outcome, json.loads(receipt.read_text()))
 
-    def test_complete_synthetic_approval_writes_new_source_not_accepted_kg(self):
+    def test_explicit_synthetic_choice_revises_source_not_accepted_kg(self):
         # Synthetic evidence tests gate mechanics; never real EF05 approval.
         with TemporaryDirectory() as tmp:
             d = Path(tmp)
@@ -84,9 +85,10 @@ class SourceInstrumentClassificationTests(unittest.TestCase):
                 evidenceCitation="Synthetic fixture, rev 1, not EF05")
             approval.write_text(json.dumps(review))
             result = approve(source, approval, output, receipt)
-            self.assertEqual(result["classifiedCount"], 1)
+            self.assertEqual(result["selectedCount"], 1)
             self.assertFalse(result["kilogramsAccepted"])
-            self.assertFalse(result["governedCiiReleaseAuthorized"])
+            self.assertFalse(result["approvalRequired"])
+            self.assertFalse(result["engineeringApprovalVerified"])
             self.assertFalse(result["reusablePreviousWeightReview"])
             self.assertNotEqual(result["oldSourceXmlSha256"],
                                 result["newSourceXmlSha256"])
@@ -118,16 +120,16 @@ class SourceInstrumentClassificationTests(unittest.TestCase):
             self.assertEqual(str(err.exception),
                              "INSTRUMENT_OUTPUT_MUST_BE_NEW_REVISION")
 
-    def test_unpaired_instrument_source_refuses_classification(self):
+    def test_unpaired_instrument_is_not_suggested(self):
         with TemporaryDirectory() as tmp:
             d = Path(tmp)
             source = d / "invalid.xml"
             source.write_text(fixture().replace(
                 '<ComponentRefNo>=INS-1</ComponentRefNo><Endpoint>2</Endpoint>',
                 '<ComponentRefNo>=DIFFERENT</ComponentRefNo><Endpoint>2</Endpoint>'))
-            with self.assertRaises(ClassificationRefused) as error:
-                inspect(source)
-            self.assertEqual(str(error.exception), "INSTRUMENT_UNPAIRED_SOURCE_OWNER")
+            result = inspect(source)
+            self.assertEqual(result["components"], [])
+            self.assertFalse(result["approvalRequired"])
 
     def test_stale_source_or_unverifiable_evidence_never_changes_source(self):
         with TemporaryDirectory() as tmp:
