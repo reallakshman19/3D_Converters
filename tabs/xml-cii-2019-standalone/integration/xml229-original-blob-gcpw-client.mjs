@@ -9,6 +9,7 @@
  */
 import {physicalOccurrenceId}
  from '../../../contracts/gc-pw-v1/occurrence-bridge.mjs';
+import {attestXml229IndexedJsonForNative} from './xml229-native-indexed-json-handoff.mjs';
 
 const PROTOCOL='XML229.P4.WorkerHeldOriginalJsonGC-PW.v1';
 const CENSUS='XML229.P4.OriginalWeightCensus.v1';
