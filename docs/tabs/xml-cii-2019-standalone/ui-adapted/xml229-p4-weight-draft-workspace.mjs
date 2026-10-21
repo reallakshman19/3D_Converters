@@ -8,6 +8,7 @@
  */
 const SCHEMA='XML229.SourceBoundWeightDraftWorkspace.v1';
 const PREFIX='xml229-weight-drafts-v1:';
+const QUARANTINE_PREFIX='xml229-weight-drafts-quarantine-v1:';
 const MAX=10000;
 const MAX_BYTES=1500000;
 const live=new Map();
@@ -80,7 +81,9 @@ function stored(storage,key,identityValue,{reattestedCensus=false}={}){
   {allowReattestedGeneration:reattestedCensus});}
  catch(error){if(error.code)throw error;fail('WEIGHT_DRAFT_STORAGE_INVALID');}
 }
-export function openXml229WeightDraftWorkspace(receipt,{storage,occurrenceIds}={}){
+export function openXml229WeightDraftWorkspace(receipt,{
+ storage,occurrenceIds,recoverUnknownCensus=false,
+}={}){
  const id=identity(receipt),key=PREFIX+id.basisId;
  const census=occurrenceIds===undefined?null:new Set(occurrenceIds);
  if(census&&(census.size!==occurrenceIds.length||census.size>MAX||
@@ -96,26 +99,47 @@ export function openXml229WeightDraftWorkspace(receipt,{storage,occurrenceIds}={
  if(storage!==null&&(!storage||typeof storage.getItem!=='function'||
    typeof storage.setItem!=='function'))fail('WEIGHT_DRAFT_STORAGE_INVALID');
  const existing=live.get(key);
- if(existing?.isFor(receipt)){
-  // Same attested generation: reuse the exact Map across panel installations.
-  if(census)ensureCensus(existing.drafts);
-  return existing;
- }
- if(existing&&(!census||!existing.isSameVerifiedBasis(receipt)))
+ const sameGeneration=existing?.isFor(receipt)===true;
+ if(existing&&(!census||!existing.isSameVerifiedBasis(receipt))&&!sameGeneration)
    fail('WEIGHT_DRAFT_BASIS_COLLISION');
- // Newly verified same content + physical census permits an ephemeral source
- // generation rebind without accepting any ledger decision. Never reuse a
- // cached draft if source/master basis, original JSON SHA or census changed.
- const drafts=existing?new Map(existing.drafts):stored(storage,key,id,
-  {reattestedCensus:!!census});
+ // Strict by default: only verified-panel automatic drafts may be recovered.
+ if(sameGeneration&&(!recoverUnknownCensus||!census)){
+   if(census)ensureCensus(existing.drafts);
+   return existing;
+ }
+ if(sameGeneration&&[...existing.drafts.keys()].every(x=>census.has(x)))
+   return existing;
+ const drafts=sameGeneration?existing.drafts:existing
+   ?new Map(existing.drafts):stored(storage,key,id,{reattestedCensus:!!census});
+ const rejected=census?[...drafts.keys()].filter(x=>!census.has(x)):[];
+ if(rejected.length&&!recoverUnknownCensus)
+   fail('WEIGHT_DRAFT_UNKNOWN_ORIGINAL_OCCURRENCE');
+ let recovery=null,quarantinedBackup=null;
+ if(rejected.length){
+   // Preserve old private drafts before excluding IDs absent from this source.
+   // No unknown draft may be remapped or written to Match-1 / Final.
+   quarantinedBackup=existing?existing.exportBackup():snapshotFor(id,drafts);
+   const quarantineKey=QUARANTINE_PREFIX+id.basisId+':'+id.sourceGenerationId;
+   let backupStored=false;
+   if(storage){
+     try{storage.setItem(quarantineKey,JSON.stringify(quarantinedBackup));
+       backupStored=true;}catch{/* Private in-memory export stays available. */}
+   }
+   for(const unknown of rejected)drafts.delete(unknown);
+   recovery=Object.freeze({rejectedCount:rejected.length,
+     retainedCount:drafts.size,backupStored});
+ }
  ensureCensus(drafts);
  const workspace=Object.freeze({
-  drafts,storageAvailable:!!storage,
+  drafts,storageAvailable:!!storage,recovery,
+  exportQuarantinedBackup(){return quarantinedBackup;},
   isFor(other){try{return same(id,identity(other));}catch{return false;}},
   isSameVerifiedBasis(other){try{return sameStable(id,identity(other));}catch{return false;}},
   exportBackup(){return snapshotFor(id,drafts);},
   save(){
    ensureCensus(drafts);
+   if(recovery?.rejectedCount&&storage&&!recovery.backupStored)
+     fail('WEIGHT_DRAFT_QUARANTINE_SAVE_REQUIRED');
    const snapshot=snapshotFor(id,drafts);
    const json=JSON.stringify(snapshot);
    if(json.length>MAX_BYTES)fail('WEIGHT_DRAFT_STORAGE_LIMIT');

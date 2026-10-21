@@ -91,6 +91,82 @@ test('generation rebind never accepts unknown physicals, other SHA or an uncheck
  assert.equal(first.isFor(changed),false);
  assert.equal(updated.reviewDecisionsAuthorized,undefined);
 });
+test('reopening with 85 existing Final decisions is not blocked by a stale browser draft ID',async()=>{
+ const store=storage(),previous=receipt('q');
+ const saved=openXml229WeightDraftWorkspace(previous,{storage:store});
+ saved.drafts.set('still-original',{value:'18.5',proposalId:'',reason:'Owner pending draft'});
+ saved.drafts.set('obsolete-original',{value:'0',skippedWeight:true});
+ saved.save();
+ const fresh=await import('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-draft-workspace.mjs?reopen-safe=1');
+ const verified={...previous,sourceGenerationId:'NEW-GENERATION-q'};
+ assert.throws(()=>fresh.openXml229WeightDraftWorkspace(verified,{
+   storage:store,occurrenceIds:['still-original','new-original']}),
+   {code:'WEIGHT_DRAFT_UNKNOWN_ORIGINAL_OCCURRENCE'});
+ const recovered=fresh.openXml229WeightDraftWorkspace(verified,{
+   storage:store,occurrenceIds:['still-original','new-original'],recoverUnknownCensus:true});
+ assert.deepEqual(recovered.recovery,{rejectedCount:1,retainedCount:1,backupStored:true});
+ assert.equal(recovered.drafts.get('still-original').value,'18.5');
+ assert.equal(recovered.drafts.has('obsolete-original'),false);
+ assert.equal(recovered.exportQuarantinedBackup().entries.some(([id])=>id==='obsolete-original'),true);
+ assert.equal([...store.items.keys()].filter(x=>x.includes('quarantine-v1')).length,1);
+ assert.equal(recovered.save(),1);
+ assert.equal(JSON.parse([...store.items.values()][0]).entries.length,1);
+ assert.equal(recovered.exportBackup().reviewDecisionsAuthorized,false);
+ assert.equal(recovered.exportBackup().nativeCiiReleaseAuthorized,false);
+ assert.throws(()=>recovered.restoreBackup({
+   ...recovered.exportBackup(),entries:[['obsolete-original',{value:'30'}]]}),
+   {code:'WEIGHT_DRAFT_UNKNOWN_ORIGINAL_OCCURRENCE'});
+});
+test('same-generation local drafts recover without remapping other physicals',()=>{
+ const store=storage(),r=receipt('w');
+ const before=openXml229WeightDraftWorkspace(r,{storage:store});
+ before.drafts.set('valid',{value:'22'});
+ before.drafts.set('ghost',{value:'99'});
+ before.save();
+ assert.throws(()=>openXml229WeightDraftWorkspace(r,{
+   storage:store,occurrenceIds:['valid','new']}),
+   {code:'WEIGHT_DRAFT_UNKNOWN_ORIGINAL_OCCURRENCE'});
+ const after=openXml229WeightDraftWorkspace(r,{
+   storage:store,occurrenceIds:['valid','new'],recoverUnknownCensus:true});
+ assert.equal(after.drafts,before.drafts);
+ assert.equal(after.drafts.get('valid').value,'22');
+ assert.equal(after.drafts.has('ghost'),false);
+ assert.equal(after.recovery.rejectedCount,1);
+ assert.equal(after.save(),1);
+ assert.equal(openXml229WeightDraftWorkspace(r,{
+   storage:store,occurrenceIds:['valid','new']}),after);
+});
+test('quarantine storage failure cannot overwrite the only old draft checkpoint',()=>{
+ const store=storage(),r=receipt('x');
+ const old=openXml229WeightDraftWorkspace(r,{storage:store});
+ old.drafts.set('ghost',{value:'36'});old.save();
+ const [key,original]=[...store.items.entries()][0],realSet=store.setItem;
+ store.setItem=(k,v)=>{if(k.includes('quarantine-v1'))throw Error('quota');realSet(k,v);};
+ const current=openXml229WeightDraftWorkspace(r,{
+   storage:store,occurrenceIds:['right'],recoverUnknownCensus:true});
+ assert.deepEqual(current.recovery,{rejectedCount:1,retainedCount:0,backupStored:false});
+ assert.equal(current.drafts.size,0);
+ assert.equal(current.exportQuarantinedBackup().entries[0][0],'ghost');
+ assert.throws(()=>current.save(),{code:'WEIGHT_DRAFT_QUARANTINE_SAVE_REQUIRED'});
+ assert.equal(store.getItem(key),original);
+});
+test('live Weight panel shows a private recovery warning while preserving strict backup rules',async()=>{
+ const dir='tabs/xml-cii-2019-standalone/ui-adapted/';
+ const panel=await readFile(new URL('../'+dir+'xml-cii-adapted-p4-verified-weight-panel.js',import.meta.url),'utf8');
+ const notice=await readFile(new URL('../'+dir+'xml229-p4-draft-recovery-notice.mjs',import.meta.url),'utf8');
+ assert.match(panel,/recoverUnknownCensus:true/);
+ assert.match(panel,/showXml229DraftRecoveryNotice/);
+ assert.match(panel,/saveXml229RecoveryDrafts/);
+ assert.match(notice,/Download excluded draft backup/);
+ assert.match(notice,/Existing accepted Final masses are unchanged/);
+ for(const name of ['xml229-p4-draft-recovery-notice.mjs','xml229-p4-weight-draft-workspace.mjs']){
+   const [root,served]=await Promise.all([
+     readFile(new URL('../'+dir+name,import.meta.url),'utf8'),
+     readFile(new URL('../docs/'+dir+name,import.meta.url),'utf8')]);
+   assert.equal(root,served,name);
+ }
+});
+
 test('private backup restore requires exact basis and never mixes reviewed ledgers',()=>{
  const store=storage();
  const source=openXml229WeightDraftWorkspace(receipt('d'),{storage:store});

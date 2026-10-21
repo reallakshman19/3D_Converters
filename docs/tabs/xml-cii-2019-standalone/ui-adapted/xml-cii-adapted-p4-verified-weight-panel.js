@@ -19,6 +19,7 @@ import {applyXml229SourceWideSuggestionDrafts,applyXml229BlankWeightDrafts} from
 import {disarmXml229EditedDraft} from './xml229-p4-two-click-confirmation.mjs';
 import {createXml229BulkApplyQueue} from './xml229-p4-busy-apply-queue.mjs';
 import {openXml229WeightDraftWorkspace} from './xml229-p4-weight-draft-workspace.mjs';
+import {showXml229DraftRecoveryNotice,saveXml229RecoveryDrafts} from './xml229-p4-draft-recovery-notice.mjs';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 import {exportXml229WeightEvidence} from './xml229-p4-private-weight-evidence.mjs';
 import {downloadXml229FullSourceSafety} from './xml229-full-source-safety-download.mjs';
@@ -224,23 +225,23 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  let active=getXml229CurrentWorkerHeldReview(stateRef),offset=0,busy=false;
  let mode='rigid',query='',pendingBulk=null,searchTimer=null,renderSequence=0,minScorePercent=80;
  let draftOwner=null,draftValues=new Map(),draftWorkspace=null,zeroPopup=null;
- // A verified Worker receipt, never the panel instance, owns draft identity.
  const bindDrafts=session=>{
    draftWorkspace=openXml229WeightDraftWorkspace(session.receipt,{
-     occurrenceIds:session.originalPhysicalOccurrences.map(x=>x.occurrenceId),
+     occurrenceIds:session.originalPhysicalOccurrences.map(x=>x.occurrenceId),recoverUnknownCensus:true,
    });
    draftOwner=session;draftValues=draftWorkspace.drafts;
+   showXml229DraftRecoveryNotice(root,draftWorkspace,downloadTextFile);
  };
  const persistDrafts=()=>{
    if(draftWorkspace&&draftOwner===active&&live()===active)
-     return draftWorkspace.save();
+     return saveXml229RecoveryDrafts(draftWorkspace);
    return 0;
  };
  const clearDrafts=()=>{
-   // Never destroy source-bound drafts merely because the panel was rebuilt.
    draftOwner=null;draftWorkspace=null;draftValues=new Map();
    bulkDetail.hidden=true;bulkDetail.textContent='';
    zeroPopup?.dismiss();
+   root.querySelector('[data-xml229-draft-recovery]')?.remove();
  };
  const captureDraft=tr=>{
    if(!tr||!active||draftOwner!==active||live()!==active)return;
@@ -434,7 +435,6 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      root.dataset.p4ReadReady='true';
      applyQueue.drain(active);
      say('Verified source facts ready. Applied Weight suggestions are available.');
-     // Nonmodal offer scans independently; never block established status.
      void zeroPopup.offer(active);
    }catch(error){
      say('Weight verification held: '+String(error?.message||error)+
