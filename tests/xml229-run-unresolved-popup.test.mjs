@@ -106,7 +106,10 @@ test('root and served popup/UI byte-identical; Run uses a separate explicit popu
  const output=await readFile(new URL(dir+'xml-cii-adapted-output-run.js',import.meta.url),'utf8');
  const popup=await readFile(new URL(dir+'xml229-run-unresolved-mass-popup.mjs',import.meta.url),'utf8');
  assert.match(output,/createXml229RunMassReviewButton/);
- assert.match(output,/Review unresolved physicals \(0 kg defaults\)/);
+ const action=await readFile(new URL(dir+'xml229-run-mass-review-button.mjs',import.meta.url),'utf8');
+ assert.match(action,/Review unresolved physicals \\(0 kg defaults\\)/);
+ assert.match(popup,/runZeroSuggestion/);
+ assert.match(popup,/input\\.value=str\\(p\\.value\\)/);
  assert.match(popup,/submit\.addEventListener\('click',async\(\)=>/);
  assert.match(popup,/origin:kg===0\?'confirmed-zero':'manual'/);
  assert.doesNotMatch(popup,/nativeCiiReleaseAuthorized:true/);
