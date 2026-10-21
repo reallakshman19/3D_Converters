@@ -37,7 +37,6 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
  const options={
   ...workflowOptionsFromState(state),
   outputMode:'cii-only',kgToNewton:true,
-  ...(stagedJsonText?{}:{useRestraintTypeBasedOnJson:false}),
   analyzeTopology:false,generateTopoFix:false,useTopoFixForCii:false,
   topologyActionIds:[],
  };

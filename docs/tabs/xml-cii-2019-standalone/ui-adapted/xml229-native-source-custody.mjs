@@ -32,6 +32,10 @@ export async function resolveXml229NativeCandidateSource({state,packet,readFile}
  if(stagedFileText&&stagedStateText&&stagedFileText!==stagedStateText)
    fail('NATIVE_CANDIDATE_STAGED_JSON_CONFLICT');
  const stagedJsonText=stagedFileText||stagedStateText;
+ // Default native behavior uses staged JSON for restraint semantics.
+ // Never silently opt out merely because O1 keeps the original blob private.
+ if(!stagedJsonText&&state.options?.useRestraintTypeBasedOnJson!==false)
+   fail('NATIVE_CANDIDATE_JSON_RESTRAINT_SOURCE_REQUIRED');
  if(stagedJsonText&&await digestUtf8(stagedJsonText)!==packet.originalJsonSha256)
    fail('NATIVE_CANDIDATE_STAGED_JSON_SHA_DRIFT');
  return Object.freeze({sourceText,stagedJsonText});

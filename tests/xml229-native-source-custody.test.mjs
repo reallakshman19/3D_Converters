@@ -14,7 +14,8 @@ const loadFile=async file=>file.bytes;
 
 test('Worker O1 packet can supply governed custody when browser has no raw JSON',async()=>{
  const resolved=await resolveXml229NativeCandidateSource({
-  state:{sourceText:xml,stagedJsonText:'',stagedJsonFile:null},
+  state:{sourceText:xml,stagedJsonText:'',stagedJsonFile:null,
+   options:{useRestraintTypeBasedOnJson:false}},
   packet,readFile:loadFile,
  });
  assert.equal(resolved.sourceText,xml);
@@ -22,6 +23,16 @@ test('Worker O1 packet can supply governed custody when browser has no raw JSON'
  assert.equal(packet.originalJsonSha256,digest(json));
  assert.equal(resolved.nativeCiiReleaseAuthorized,undefined);
 });
+test('default JSON-restraint participation refuses absent browser JSON rather than silently opting out',async()=>{
+ await assert.rejects(resolveXml229NativeCandidateSource({
+  state:{sourceText:xml,options:{useRestraintTypeBasedOnJson:true}},
+  packet,readFile:loadFile,
+ }),{code:'NATIVE_CANDIDATE_JSON_RESTRAINT_SOURCE_REQUIRED'});
+ await assert.rejects(resolveXml229NativeCandidateSource({
+  state:{sourceText:xml},packet,readFile:loadFile,
+ }),{code:'NATIVE_CANDIDATE_JSON_RESTRAINT_SOURCE_REQUIRED'});
+});
+
 test('matching staged browser source is optional but mismatched JSON cannot ride Worker receipt',async()=>{
  const exact=await resolveXml229NativeCandidateSource({
   state:{sourceText:xml,stagedJsonText:json},packet,readFile:loadFile});
@@ -63,6 +74,7 @@ test('native candidate remains guarded by independent mass output and no staged-
  const candidate=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs',import.meta.url),'utf8');
  assert.match(candidate,/session\.readNativeFinalPacket\(\)/);
  assert.match(candidate,/resolveXml229NativeCandidateSource/);
+ assert.doesNotMatch(candidate,/stagedJsonText\\?\\{\\}:\\{useRestraintTypeBasedOnJson:false\\}/);
  assert.match(candidate,/reconcileXml229ActualCiiAgainstFinal/);
  assert.match(candidate,/nativeCiiReleaseAuthorized!==true/);
  assert.doesNotMatch(candidate,/NATIVE_CANDIDATE_ORIGINAL_SOURCE_REQUIRED/);
