@@ -27,6 +27,34 @@ For an approved **rigid** choice, supply an updated **original source XML revisi
 
 For a **nonrigid** choice, keep governed output HOLD until there is an independently validated CII-native mass mechanism with exact physical ownership; do not silently add a rigid marker or transfer mass to a neighboring pipe. If the evidence is missing, remain **Not approved**.
 
+## Implemented evidence-gated source revision (PR #320)
+
+The repository now provides `converters/scripts/xml229_instrument_source_revision.py`. It is a **pre-Weight Match operator tool**, not a Run-stage converter and not an approval service.
+
+```bash
+# Create a source-SHA-bound, PENDING approval manifest for all 14 instruments.
+python3 converters/scripts/xml229_instrument_source_revision.py inspect \
+  --source Benchmarks/EF-05-PRO.TEST.xml \
+  --manifest /work/ef05-instrument-review.json
+
+# After separately obtaining real engineering classification documents,
+# fill EVERY original instrument row with:
+# classification: RIGID (only if engineering explicitly approves RIGID)
+# approvedBy; approvedAtUtc; evidenceCitation;
+# evidencePath; evidenceSha256 (real SHA256 of that local evidence file).
+python3 converters/scripts/xml229_instrument_source_revision.py apply \
+  --source Benchmarks/EF-05-PRO.TEST.xml \
+  --manifest /work/ef05-instrument-review.json \
+  --revised-source /work/EF-05-PRO.eng-reviewed.xml \
+  --receipt /work/EF-05-PRO.eng-reviewed.receipt.json
+```
+
+The `apply` operation verifies the original XML SHA, **all** unresolved source INST 1→2 pairs (not merely a subset), exact branch/node/reference/coordinate identities, recorded approval fields, each local evidence file's SHA-256, and positive finite spans. It refuses unpaired instruments, absent evidence, stale source, unsupported nonrigid classification, partial review, and overwriting the original. Its only XML change is appending `Rigid=2` to the **already existing** second endpoint of each individually approved source instrument. The receipt includes both source hashes, the approval-manifest hash, evidence digests, and explicit `kilogramsAccepted=false` / `governedCiiReleaseAuthorized=false`.
+
+**Important: supplying an approver's name and document file does not cryptographically authenticate their engineering authority or establish that the document supports the claimed stiffness.** This decision must be independently reviewed by the responsible stress engineer. No authentic approvals have been supplied for this EF-05 source; the repository does not contain an approved revised EF-05 XML.
+
+The operator must load the revised XML as a **new original source**, then reopen the entire **249-part** Weight Match population. Existing per-node accepted kg packets cannot pass the revised original SHA check, and the prior review backup cannot be reused on a new finalized-geometry SHA. Each component still requires a real engineering-approved Final mass (including any explicitly accepted 0 kg). Run never invents approvals, masses, or rigid edges.
+
 ## Important boundaries
 
 - No engineering approval, instrument stiffness, or accepted mass was supplied in this change. The source `Weight=0` is not proof that 0 kg was intentionally accepted.
