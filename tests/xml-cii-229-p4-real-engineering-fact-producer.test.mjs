@@ -524,9 +524,19 @@ test('real 41-branch EF-05 Python 0/1/3/14 selections reconcile with JavaScript 
    assert.deepEqual(observed,expected);
    // Instrument source Weight 0 is not an accepted mass; extracting the
    // originating physical facts is not a Final decision or CII release.
-   const records=await opened.model.getFacts({basisId:newBasis.basisId,
-    subjectType:'physical-component',limit:3000});
-   const mass=records.items.filter(x=>x.fieldId==='mass.kg');
+   // The fact-read contract caps each page at 200; verify the complete
+   // full-source population through authenticated opaque-cursor paging.
+   let cursor=null,pages=0;
+   const mass=[];
+   do{
+    const page=await opened.model.getFacts({basisId:newBasis.basisId,
+     subjectType:'physical-component',fieldId:'mass.kg',limit:200,cursor});
+    assert.equal(page.complete,true);
+    mass.push(...page.items);
+    cursor=page.nextCursor;
+    pages++;
+    assert(pages<=10,'Full-source mass pages did not terminate');
+   }while(cursor!==null);
    assert.equal(mass.length,g.physicalOwnerCardinality.distinctPhysicalPartCandidates);
    assert(mass.every(x=>x.authority==='source'||x.authority==='unresolved'));
   }
