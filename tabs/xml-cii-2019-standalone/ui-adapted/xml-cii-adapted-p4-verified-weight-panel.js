@@ -11,6 +11,7 @@ import {renderXml229WeightReviewPage} from './xml229-p4-weight-review-presentati
 import {commitXml229SelectedAppliedWeight}
  from './xml229-p4-applied-weight-owner-selection.mjs';
 import {createXml229ZeroMassPopup} from './xml229-p4-zero-mass-popup.mjs';
+import {renderXml229InstrumentSuggestions} from './xml229-p4-optional-instrument-advisory.mjs';
 import {commitXml229AllSelectedFinal,commitXml229VisibleSelectedFinal}
  from './xml229-p4-source-wide-final-commit.mjs';
 import {hydrateXml229WeightDraftInputs,seedXml229VisibleSuggestedWeightDrafts}
@@ -584,20 +585,8 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const proof=await session.readCompletion();
    if(root.isConnected===false||live()!==session||active!==session)return;
    root.dataset.p4ReadReady='true';
-   // Read-only suggestions never gate review or set stiffness/accepted kg.
-   let advisory=null;
-   try{advisory=await session.readInstrumentModelingSuggestions?.();}
-   catch{/* optional suggestions cannot interrupt Weight Match */}
-   if(root.isConnected===false||active!==session||live()!==session)return;
-   root.querySelector('[data-p4-instrument-advisory]')?.remove();
-   if(advisory?.items?.length){
-     const note=document.createElement('p');
-     note.dataset.p4InstrumentAdvisory='true';
-     note.textContent=advisory.items.length+
-       ' instrument modeling suggestions (optional; no approval required). '+
-       'No rigid classification or kg was applied automatically.';
-     root.insertBefore(note,root.firstChild);
-   }
+   void renderXml229InstrumentSuggestions(root,session,
+     ()=>root.isConnected!==false&&active===session&&live()===session);
    applyQueue.drain(session);
    const counts=proof?.counts||{};
    say('Existing verified Preview facts loaded. Weight decisions: '+
