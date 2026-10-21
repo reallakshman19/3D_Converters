@@ -41,6 +41,16 @@ except Exception:
 exit_code
 `;
 
+// Every native wrapper run monkey-patches the imported base module in Pyodide.
+// Reset only that in-memory module before EACH engine job. The Python source,
+// Writer implementation, native Final ledger and CII reconciliation are intact.
+const RESET_NATIVE_BASE_SNIPPET = `
+import importlib, sys
+if "xml_to_cii2019" in sys.modules:
+    importlib.reload(sys.modules["xml_to_cii2019"])
+None
+`;
+
 const ENRICH_XML_SNIPPET = `
 from pathlib import Path
 import xml_to_cii2019_patched as patched
@@ -146,7 +156,15 @@ async function runCii(pyodide, job, paths, jobDir, stdout, stderr) {
   return { ciiText: pyodide.FS.readFile(invocation.outputPath, { encoding: 'utf8' }), ciiName: invocation.outputName, argv: invocation.argv.slice(1) };
 }
 
-export async function runXmlCii2019StandaloneEngine(job) {
+// Pyodide globals (stdout, sys.argv and imported Python modules) are shared.
+// A new auto Run must never race a manually requested conversion.
+let engineQueue=Promise.resolve();
+export function runXmlCii2019StandaloneEngine(job){
+ const next=engineQueue.then(()=>runSerializedXmlCii2019Engine(job));
+ engineQueue=next.then(()=>undefined,()=>undefined);
+ return next;
+}
+async function runSerializedXmlCii2019Engine(job) {
   const sourceKind = job.sourceKind === 'inputxml' ? 'inputxml' : 'xml';
   const outputMode = ['cii-only', 'both'].includes(job.options?.outputMode) ? job.options.outputMode : 'enriched-only';
   const normalizedJob = { ...job, sourceKind, options: { ...(job.options || {}), outputMode } };
@@ -156,6 +174,7 @@ export async function runXmlCii2019StandaloneEngine(job) {
   try {
     const pyodide = await getPyodide();
     await ensureScripts(pyodide);
+    await pyodide.runPythonAsync(RESET_NATIVE_BASE_SNIPPET);
     pyodide.setStdout({ batched: (line) => stdout.push(line) });
     pyodide.setStderr({ batched: (line) => stderr.push(line) });
     const jobDir = `/work/xml_cii_standalone_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
