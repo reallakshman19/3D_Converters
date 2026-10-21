@@ -460,9 +460,9 @@ function renderRunControls(parent, stateRef, state, report, render) {
   if (actionDiv.style) Object.assign(actionDiv.style, { marginTop: '12px', display: 'flex', gap: '8px', flexDirection: 'column' });
   const noteDiv = createElement('div', '', 'model-converters-workflow-detail-note');
   const runReviewBtn=createXml229RunMassReviewButton({
-    stateRef,render,approved,createElement,updateWorkflowState,noteDiv,
+    stateRef,render,approved,report,createElement,updateWorkflowState,noteDiv,
   });
-  noteDiv.innerHTML = approved ? 'XML-only mode excludes JSON-derived Weight/Final from native output; independent XML preflight remains mandatory.' : 'Opens a <strong>second Weight-style popup</strong> listing every unresolved source physical. Applied Weight starts at 0 kg but is not recorded until explicit confirmation. Existing Final weights remain untouched. Native CII still requires independent reconciliation. If none remain, opens 4A Weight Match.';
+  noteDiv.innerHTML = approved ? 'XML-only mode excludes JSON-derived Weight/Final from native output; independent XML preflight remains mandatory.' : 'Verified unresolved masses automatically open a second Weight-style review popup. If dismissed, use the button above to reopen it. Each Applied Weight starts at an uncommitted 0 kg default; Final decisions are recorded only on explicit confirmation. Native CII remains independently governed.';
   const refreshBtn = button('refresh-output-run', 'Refresh readiness / checklist');
   refreshBtn.style.cssText = 'cursor:pointer;padding:12px;border-radius:6px;background:#1e293b;color:#cbd5e1;border:1px solid #334155;font-size:12px;width:100%;text-align:center;font-weight:700;';
   refreshBtn.addEventListener('click', () => { stateRef.current = applyStandaloneOutputRunReadiness(stateRef.current, buildStandaloneOutputRunReadiness(stateRef.current)); if (typeof render === 'function') render(); });
