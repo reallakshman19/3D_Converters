@@ -1,12 +1,7 @@
 /** Source-wide 80%-threshold Weight Match oracle on the real Worker UI. */
 import assert from 'node:assert/strict';
 
-export async function verifyEf05Apply80(page,record){
- // Source-independent of Apply: read every current verified Worker presentation
- // page and derive the 80% kg oracle BEFORE requesting draft population.
- const waitWeightIdle=()=>page.waitForFunction(()=>
-   document.querySelector('[data-p4-weight-root]')?.dataset.p4Busy==='false',
-   null,{timeout:90000});
+async function captureOriginal80Oracle(page,record,waitWeightIdle){
  await page.locator('[data-p4-scope="blank-rigid"]').click();
  await waitWeightIdle();
  await page.locator('[data-p4-scope="blank-rigid"][aria-pressed="true"]')
@@ -61,8 +56,10 @@ export async function verifyEf05Apply80(page,record){
  // Exercise the no-op bulk path, then continue to the REAL XML-only native
  // CII download and governed HOLD instead of stopping prematurely.
  record.stages.apply80Precheck={...proposalAudit,pages:pageCount};
- if(applyOracle.size>0){
+ return {applyOracle,pageCount};
+}
 
+async function stageManualWeightEdit(page,applyOracle,pageCount,waitWeightIdle){
  // Introduce one user-entered kg before Apply: the Worker may score a
  // different master weight but must not discard the human edit or abort.
  await page.locator('[data-p4-scope="blank-rigid"]').click();
@@ -92,6 +89,10 @@ export async function verifyEf05Apply80(page,record){
    }
  }
  assert(manualId,'unable to select existing-edit fixture occurrence');
+ return {manualId,manualKg};
+}
+
+async function executeVisible80Apply(page,record){
  const applyStartMs=Date.now();
  await page.locator('[data-p4-bulk-plan]').click();
  try{
@@ -130,6 +131,10 @@ export async function verifyEf05Apply80(page,record){
  assert(firstVisibility.inHorizontalViewport,
    'production Applied Weight populated but still hidden horizontally');
 
+ return {applyElapsedMs,firstVisibility};
+}
+
+async function verifyAllAppliedPages(page,applyOracle,manualId,manualKg,waitWeightIdle){
  await page.locator('[data-p4-scope="all"]').click();
  await waitWeightIdle();
  const seen=new Set(),mismatches=[];
@@ -154,6 +159,22 @@ export async function verifyEf05Apply80(page,record){
  assert.equal(seen.size,applyOracle.size);
  assert.deepEqual(mismatches,[],
    'one-click production source-wide 80% Apply differed from independent Worker oracle');
+ return {seen,mismatches};
+}
+
+export async function verifyEf05Apply80(page,record){
+ // Source-independent of Apply: read every current verified Worker presentation
+ // page and derive the 80% kg oracle BEFORE requesting draft population.
+ const waitWeightIdle=()=>page.waitForFunction(()=>
+   document.querySelector('[data-p4-weight-root]')?.dataset.p4Busy==='false',
+   null,{timeout:90000});
+ const {applyOracle,pageCount}=await captureOriginal80Oracle(page,record,waitWeightIdle);
+ if(applyOracle.size>0){
+   const {manualId,manualKg}=await stageManualWeightEdit(
+     page,applyOracle,pageCount,waitWeightIdle);
+   const {applyElapsedMs,firstVisibility}=await executeVisible80Apply(page,record);
+   const {seen,mismatches}=await verifyAllAppliedPages(
+     page,applyOracle,manualId,manualKg,waitWeightIdle);
  record.stages.apply80={
    sourceBoundFixture:true,workerBacked:true,threshold:80,
    pageCount,eligibleRank1:applyOracle.size,applyElapsedMs,
