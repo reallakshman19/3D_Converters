@@ -1,8 +1,4 @@
-/**
- * XML229 P4-D opt-in, source-attested one-flow Weight Match-1 / Final review.
- * Does not replace legacy Weight(kg), native CII Run, or persist issue.key
- * weights. Large original staged JSON remains INSIDE its GC-PW Worker.
- */
+/** XML229 source-attested Weight Match. Original JSON remains in the GC-PW Worker. */
 import {openXml229WorkerHeldOriginalWeightReview} from '../integration/xml229-original-blob-gcpw-client.mjs';
 import {renderXml229VerifiedPanelShell} from './xml229-p4-panel-shell.mjs';
 import {resolveXml229CurrentPreviewBlob} from './xml-cii-adapted-lfj-o1-intake.js';
@@ -12,8 +8,9 @@ import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-
 import {digestCanonical,canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-scope.js';
 import {renderXml229WeightReviewPage} from './xml229-p4-weight-review-presentation.mjs';
-import {commitXml229SelectedAppliedWeight}
- from './xml229-p4-applied-weight-owner-selection.mjs';
+import {commitXml229SelectedAppliedWeight} from './xml229-p4-applied-weight-owner-selection.mjs';
+import {createXml229ZeroMassPopup} from './xml229-p4-zero-mass-popup.mjs';
+import {renderXml229InstrumentSuggestions} from './xml229-p4-optional-instrument-advisory.mjs';
 import {commitXml229AllSelectedFinal,commitXml229VisibleSelectedFinal}
  from './xml229-p4-source-wide-final-commit.mjs';
 import {hydrateXml229WeightDraftInputs,seedXml229VisibleSuggestedWeightDrafts}
@@ -33,14 +30,8 @@ import {getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,
 const err=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
 const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
  .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
-const labelKg=n=>typeof n==='number'&&Number.isFinite(n)&&n>0?n+' kg':'—';
-/**
- * The Worker InputBasis is source bytes + committed original Blob generation +
- * effective config/master revisions + physical selection. UI-only revision
- * bookkeeping and a new File wrapper around the same XML are NOT changes to
- * the verified source/master basis. These were false-staling the live Weight
- * Review after ordinary phase navigation and background UI hydration.
- */
+const labelKg=n=>typeof n==='number'&&Number.isFinite(n)&&n>=0?n+' kg':'—';
+/** InputBasis tracks real XML/JSON/master changes, not UI navigation or File wrapper churn. */
 const ownerScope=value=>{
  const s=String(value??'').trim();
  return !s||s==='ALL'||s==='__ALL__'?'__ALL__':s;
@@ -69,8 +60,7 @@ export function compareXml229P4LiveSourceSnapshot(basis,current,{
  const activeId=String(current?.modeASourceId||current?.sourceBatch?.activeSourceId||basis.sourceId);
  if(activeId!==basis.sourceId)return false;
  const latest=captureXml229P4LiveSourceSnapshot(current,basis.sourceId);
- // A normalized/expanded "all branches" representation has the same
- // physical identity. A genuine partial/stale selection still fails closed.
+ // Accept equivalent full-branch selections, never a partial/stale source.
  if(basis.scope!==latest.scope){
    try{if(!verifyFullSelection(current))return false;}
    catch{return false;}
@@ -196,8 +186,7 @@ export async function openXml229P4VerifiedSession(stateRef,{
    }
    catch{/* genuinely stale/cancelled prior session cannot be reused */}
  }
- // One source-bound authority per stable baseRef, independent of DOM
- // ownership. A newer build invalidates an in-flight predecessor (CAS).
+ // One source authority per baseRef; newer Preview builds supersede old Workers.
  const ticket=beginXml229VerifiedEngineeringBuild(key);
  const session=await openXml229WorkerHeldOriginalWeightReview({...inputs,onProgress,signal,
    onFlowTrace:event=>{try{trace.record(event)}catch{}}});
@@ -226,6 +215,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  if(!container)throw new Error('Weight review container required');
  container.innerHTML=renderXml229VerifiedPanelShell(existingWorkflow);
  const root=container.querySelector('[data-p4-weight-root]');
+ root.dataset.p4ReadReady='false';
  const status=root.querySelector('[data-p4-weight-status]');
  const bulkDetail=root.querySelector('[data-p4-bulk-detail]');
  const table=root.querySelector('[data-p4-weight-table]');
@@ -233,7 +223,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const key=stateRef?.modeABaseRef||stateRef;
  let active=getXml229CurrentWorkerHeldReview(stateRef),offset=0,busy=false;
  let mode='rigid',query='',pendingBulk=null,searchTimer=null,renderSequence=0,minScorePercent=80;
- let draftOwner=null,draftValues=new Map(),draftWorkspace=null;
+ let draftOwner=null,draftValues=new Map(),draftWorkspace=null,zeroPopup=null;
  // A verified Worker receipt, never the panel instance, owns draft identity.
  const bindDrafts=session=>{
    draftWorkspace=openXml229WeightDraftWorkspace(session.receipt,{
@@ -250,6 +240,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    // Never destroy source-bound drafts merely because the panel was rebuilt.
    draftOwner=null;draftWorkspace=null;draftValues=new Map();
    bulkDetail.hidden=true;bulkDetail.textContent='';
+   zeroPopup?.dismiss();
  };
  const captureDraft=tr=>{
    if(!tr||!active||draftOwner!==active||live()!==active)return;
@@ -268,6 +259,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  };
  const live=()=>getXml229CurrentWorkerHeldReview(stateRef),applyQueue=createXml229BulkApplyQueue(root,live,say);
  const requireRebuild=()=>{
+   root.dataset.p4ReadReady='false';
    active=null;pendingBulk=null;clearDrafts();root.__p4VisibleRows=[];
    table.replaceChildren();
    say('Verified original-source Worker ended. Return to 4 Preview → Build Preview '+
@@ -280,21 +272,15 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const page=mode==='all'&&!query
      ?await session.readPage({offset,limit:25})
      :await session.readPage({offset,limit:25,filter:mode,query});
-   // A late response from a cancelled/replaced Worker cannot paint rows that
-   // appear current, even when a new Worker carries a different InputBasis.
    if(token!==renderSequence||session!==active||
       root.isConnected===false||live()!==session)return;
    if(draftOwner!==session)bindDrafts(session);
    table.innerHTML=renderXml229WeightReviewPage(page,offset,{filter:mode,query,minScorePercent});
    root.__p4VisibleRows=page.rows;
-   // A verified Worker rank-1 proposal fills the single input as a DRAFT.
-   // Never overwrite a positive manual edit or any accepted source/ledger mass.
    seedXml229VisibleSuggestedWeightDrafts(page.rows,draftValues,{minScorePercent});
    const count=hydrateXml229WeightDraftInputs(table,page.rows,draftValues);
    persistDrafts(); // Source-basis-bound backup before any authoritative write.
-   // Owner policy: the selected positive Applied Weight is the engineering
-   // decision. Use protected Worker Final CAS directly (no second UI gate).
-   // Prefills apply to this visible page only; no invisible/unselected rows.
+   // Visible source-ranked selections go directly through protected Final CAS.
    const {committed,stale}=await commitXml229VisibleSelectedFinal({
      session,rows:page.rows,drafts:draftValues,
      isCurrent:()=>token===renderSequence&&active===session&&live()===session,
@@ -310,6 +296,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    }
    return count;
  };
+ zeroPopup=createXml229ZeroMassPopup({
+   root,live,getDrafts:()=>draftValues,saveDrafts:persistDrafts,render,say,
+ });
  root.addEventListener('input',event=>{
    if(event.target.closest?.('[data-p4-proposal]')){
      const tr=event.target.closest('tr[data-p4-row]');
@@ -336,8 +325,8 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      const selected=draftValues.get(row?.occurrenceId);
      const value=Number(applied.value);
      if(!row||tr.dataset.p4Occurrence!==row.occurrenceId||
-        !applied.value.trim()||!Number.isFinite(value)||value<=0){
-       say('Applied Weight requires positive kg; no engineering decision recorded.',true);
+        !applied.value.trim()||!Number.isFinite(value)||value<0){
+       say('Applied Weight requires a nonnegative kg value; 0 kg is valid only for a blank occurrence.',true);
        return;
      }
      const session=active;
@@ -345,8 +334,8 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      busy=true;
      try{
        await commitXml229SelectedAppliedWeight({
-         session,row,value,proposalId:selected?.proposalId||'',
-         origin:'manual',isCurrent:()=>active===session&&live()===session&&table.contains(tr),
+         session,row,value,proposalId:value===0?'':(selected?.proposalId||''),
+         origin:value===0?'confirmed-zero':'manual',isCurrent:()=>active===session&&live()===session&&table.contains(tr),
        });
        draftValues.delete(row.occurrenceId);persistDrafts();
        await render();
@@ -434,6 +423,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  build?.addEventListener('click',async()=>{
    if(busy)return;busy=true;build.disabled=true;
    const prev=active;
+   root.dataset.p4ReadReady='false';
    try{
      prev?.cancel();active=null;clearDrafts();
      say('Checking original source/master custody and starting isolated Workers…');
@@ -441,14 +431,20 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        resolveInputs,onProgress:stage=>say('GC-PW Worker: '+stage),
      });
      offset=0;clearDrafts();await render();
+     root.dataset.p4ReadReady='true';
+     applyQueue.drain(active);
      say('Verified source facts ready. Applied Weight suggestions are available.');
+     // Nonmodal offer scans independently; never block established status.
+     void zeroPopup.offer(active);
    }catch(error){
      say('Weight verification held: '+String(error?.message||error)+
        (error?.code?' ['+error.code+']':''),true);
    }finally{busy=false;build.disabled=false;}
  });
  root.addEventListener('click',async event=>{
-   if(!active||applyQueue.defer(event,active,busy))return;
+   if(!active||applyQueue.defer(event,active,busy||root.dataset.p4ReadReady!=='true'))return;
+   const confirmZero=event.target.closest?.('[data-p4-confirm-zero]');
+   const dismissZero=event.target.closest?.('[data-p4-dismiss-zero]');
    const prev=event.target.closest?.('[data-p4-prev]');
    const next=event.target.closest?.('[data-p4-next]');
    const scope=event.target.closest?.('[data-p4-scope]');
@@ -463,9 +459,14 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const coverageButton=event.target.closest?.('[data-p4-export-candidate-readiness]');
    const traceButton=event.target.closest?.('[data-p4-export-flow-trace]');
    const candidateChip=event.target.closest?.('[data-p4-pick]');
-      if(!prev&&!next&&!scope&&!planButton&&!draftFillButton&&!candidateChip&&!auditButton&&!safetyButton&&!custodyButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton&&!saveDraftButton&&!restoreDraftButton)return;
+      if(!confirmZero&&!dismissZero&&!prev&&!next&&!scope&&!planButton&&!draftFillButton&&!candidateChip&&!auditButton&&!safetyButton&&!custodyButton&&!coverageButton&&!traceButton&&!saveButton&&!restoreButton&&!saveDraftButton&&!restoreDraftButton)return;
    busy=true;root.dataset.p4Busy='true';
    try{
+     if(confirmZero||dismissZero){
+       pendingBulk=null;
+       await zeroPopup.handle(confirmZero?'apply':'dismiss',active);
+       return;
+     }
      if(restoreDraftButton){
        root.querySelector('[data-p4-import-drafts]')?.click();
        return;
@@ -523,9 +524,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
          showFirst:index=>{mode='all';query='';offset=0;},
          render,table,detail:bulkDetail,say,
        });
-       // "Apply all" applies ALL current source-bound selected positive kg,
-       // not only whichever physicals happen to be visible in the table.
-       // Each row receives a fresh guarded Final CAS view before acceptance.
+       // Apply all traverses every source physical using fresh Final CAS.
        const {accepted}=await commitXml229AllSelectedFinal({
          session,drafts:draftValues,
          isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
@@ -584,6 +583,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    await render();
    const proof=await session.readCompletion();
    if(root.isConnected===false||live()!==session||active!==session)return;
+   root.dataset.p4ReadReady='true';
+   void renderXml229InstrumentSuggestions(root,session,()=>root.isConnected!==false&&active===session&&live()===session);
+   applyQueue.drain(session);
    const counts=proof?.counts||{};
    say('Existing verified Preview facts loaded. Weight decisions: '+
      (counts.source??0)+' original source masses, '+
@@ -591,15 +593,14 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      (counts.final??0)+' accepted Final, '+
      (counts.unresolved??0)+' unresolved. '+
      'Applied Weight selections are saved for this source. Native CII output release remains HELD.');
+   void zeroPopup.offer(session);
  };
  if(active){
    const initial=active;
    void attach(initial).catch(async error=>{
      if(root.isConnected===false)return;
      const latest=live();
-     // A second valid Preview build can replace an in-flight Worker read.
-     // Reattach only to that already attested Worker; never manufacture
-     // source facts, replay decisions, or silently build against old inputs.
+     // Reattach only to a newer independently verified Preview Worker.
      if(latest&&latest!==initial){
        active=latest;pendingBulk=null;clearDrafts();offset=0;
        try{await attach(latest);return;}
@@ -613,7 +614,6 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        String(error?.code||'VERIFICATION_UNAVAILABLE')+']',true);
    });
  }
- // Removing the panel is not Worker disposal; explicit revocation is separate.
  return {dispose:()=>{if(searchTimer!==null)clearTimeout(searchTimer);},
    cancel:()=>revokeXml229VerifiedEngineeringBasis(key,{expectedSession:active})};
 }

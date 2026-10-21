@@ -12,9 +12,10 @@
 import {
   attestLiveBasis,physicalOccurrenceId,
 } from '../../../contracts/gc-pw-v1/occurrence-bridge.mjs';
-import {assertBasisDigest,canonicalJson,digestCanonical,validateFactRecord,validatePage}
+import {assertBasisDigest,canonicalJson,digestCanonical,digestUtf8,validateFactRecord,validatePage}
   from '../../../contracts/gc-pw-v1/contract.mjs';
 import {isolatedOriginalPreviewWorkConfig} from './xml229-original-preview-work-config.mjs';
+import {finalizeXml229WeightGeometry} from './xml229-finalized-weight-geometry.mjs';
 import {projectXmlCiiOccurrences}
   from '../ui-adapted/xml-cii-adapted-preview-facts-xml-source.js';
 import {preparePreviewNodeOccurrenceDocument}
@@ -116,6 +117,41 @@ export async function openXml229EngineeringFactModel({
       fail('PREVIEW_SOURCE_JOIN_DRIFT','Computed weight row does not match original physical component');
     weightRows.set(key,row);
   }
+  // This physical component selection is part of the final geometry basis,
+  // not a post-Final mass transformation. An adjacent same-ref 1 -> 2 pair
+  // has ONE mass owner at its second endpoint; its first source occurrence
+  // remains fully represented among original facts and final XML geometry.
+  const nonOwnerEndpointStarts=new Set();
+  const canonicalEndpointPairs=[];
+  for(const [bi,branch] of branches.entries()){
+    const effective=children(branch,'Node');
+    const retained=prepared.ledger.retainedByBranch[bi];
+    for(let i=0;i+1<effective.length;i++){
+      const a=effective[i],b=effective[i+1];
+      const kind=field(a,'ComponentType').toUpperCase();
+      const ref=field(a,'ComponentRefNo').trim().replace(/^=/,'').replace(/\s+/g,'').toUpperCase();
+      const otherRef=field(b,'ComponentRefNo').trim().replace(/^=/,'').replace(/\s+/g,'').toUpperCase();
+      const nextType=field(b,'ComponentType').toUpperCase();
+      const sameFamily=kind===nextType&&['RIGID','VALV','FLAN','INST'].includes(kind);
+      // Existing FLAN/VALV -> RIGID, same-reference, 1->2 is one
+      // source component with a native mass-bearing end, NOT two masses.
+      const rigidContinuation=['FLAN','VALV'].includes(kind)&&
+        nextType==='RIGID'&&field(b,'Rigid')==='2';
+      if(!ref||!(sameFamily||rigidContinuation)||ref!==otherRef||
+         field(a,'Endpoint')!=='1'||field(b,'Endpoint')!=='2'||
+         !isXmlCiiWeightReviewNode(a)||!isXmlCiiWeightReviewNode(b)||
+         !isXmlCiiWeightReviewConnectionEligible(a)||
+         !isXmlCiiWeightReviewConnectionEligible(b))continue;
+      const left=retained[i].sourceNodeOrdinal,right=retained[i+1].sourceNodeOrdinal;
+      const key=JSON.stringify([bi,left]);
+      if(nonOwnerEndpointStarts.has(key))
+        fail('PHYSICAL_OWNER_ENDPOINT_OVERLAP','Conflicting physical source endpoint groups');
+      nonOwnerEndpointStarts.add(key);
+      canonicalEndpointPairs.push({branchOccurrenceIndex:bi,
+        componentType:kind,componentRefNo:ref,
+        firstSourceNodeOrdinal:left,secondSourceNodeOrdinal:right});
+    }
+  }
   const originalCensus=[],physical=[],expected=[];
   const records=[];
   const add=(occ,fieldId,val,authority,unit,detail)=>records.push(
@@ -145,6 +181,8 @@ export async function openXml229EngineeringFactModel({
       fail('RETAINED_NODE_CENSUS_DRIFT','Effective cleaned source/ledger mismatch');
     for(const [effectiveIndex,node] of effectiveNodes.entries()){
       const origin=ledger[effectiveIndex];
+      if(nonOwnerEndpointStarts.has(
+        JSON.stringify([branchIndex,origin.sourceNodeOrdinal])))continue;
       if(!isXmlCiiWeightReviewNode(node)||
         !isXmlCiiWeightReviewConnectionEligible(node))continue;
       if(physical.length>=maxPhysical)
@@ -189,7 +227,11 @@ export async function openXml229EngineeringFactModel({
   const physicalSet=new Set(physical.map(row=>
     JSON.stringify([row.branchOccurrenceIndex,row.nodeOrdinal])));
   for(const key of weightRows.keys()){
-    if(!physicalSet.has(key))
+    // Preview still computes source-bound engineering facts for the first
+    // endpoint witness of a two-ended part. It is deliberately NOT a
+    // second accepted mass owner after the geometry is finalized.
+    // Reject every other unselected candidate (e.g. removed GASK).
+    if(!physicalSet.has(key)&&!nonOwnerEndpointStarts.has(key))
       fail('UNSELECTED_WEIGHT_COMPUTATION','Preview computed a candidate for a dropped or ineligible physical component');
   }
   // Input may contain components with no ranked suggestions: still emit a
@@ -212,6 +254,15 @@ export async function openXml229EngineeringFactModel({
   });
   if(!model.info.engineeringReady||model.info.computationStage!=='engineering-verified')
     fail('ENGINEERING_NOT_VERIFIED','Independent original/physical population verification did not succeed');
+  // The exact cleaned XML inspected by verified Weight Match is the immutable
+  // geometry artifact for native Run. Original source ordinals stay in the
+  // retained-by-branch ledger; the Worker binds it to the GC-PW source basis.
+  if(typeof XMLSerializer!=='function')
+    fail('FINALIZED_GEOMETRY_SERIALIZER_REQUIRED','XML serializer unavailable');
+  const finalizedGeometry=await finalizeXml229WeightGeometry({
+    basis,projection,branches,prepared,physical,sourceNodeByOrdinal,
+    nonOwnerEndpointStarts,sourceId,
+  },{children,field,fail,canonicalJson});
   const workerResult=Object.freeze({
     ...previewResult,
     coverage:{
@@ -228,7 +279,7 @@ export async function openXml229EngineeringFactModel({
     engineeringFactSnapshotId:model.info.snapshotId,
     engineeringFactCount:records.length,
   });
-  return Object.freeze({model,workerResult,
+  return Object.freeze({model,workerResult,finalizedGeometry,
     sourceOccurrenceCensus:sourceOriginals,
     workerOriginalCount:sourceOriginals.length,
     originalOccurrences:projection.nodes.map(({sourceId,branchOccurrenceIndex,nodeOrdinal})=>({

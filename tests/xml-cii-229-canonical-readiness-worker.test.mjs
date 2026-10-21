@@ -77,7 +77,8 @@ test('Match-1 alone is pending; independently Final-reviewed population marks we
  assert.equal(by(final,'weight-match').status,'ready');
  assert.equal(by(final,'xml229-original-json-engineering-authority').blocking,true);
  assert.equal(final.summary.blockingCount,1);
- assert.equal(final.diagnostics.filter(x=>x.level==='error').length,1);
+ assert.equal(final.diagnostics.filter(x=>x.level==='error').length,0);
+  assert.equal(final.diagnostics.filter(x=>x.level==='warning'&&x.type==='xml229-original-json-engineering-authority').length,1);
  assert.equal(final.logRows.some(x=>x.message.startsWith('Weight Match status:')),false);
 });
 test('corrupt, stale, cross-source, forged and incomplete Worker completion cannot make rows ready',()=>{
@@ -123,7 +124,7 @@ test('un-governed XML remains legacy-compatible; no new release hold on ordinary
 test('visible Output/Run builds canonical report and never patches checklist cell text after async proof',async()=>{
  const path='../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js';
  const src=await readFile(new URL(path,import.meta.url),'utf8');
- assert.match(src,/verifiedEngineering:\{sessionReceipt:session\.receipt,proof\}/);
+ assert.match(src,/verifiedEngineering:\{sessionReceipt:session\.receipt,proof,finalIntent/);
  assert.match(src,/paint\(verifiedReport,latest\)/);
  assert.match(src,/readError:\{code:error\?\.code\}/);
  assert.match(src,/paint\(held,latest\)/);
@@ -148,9 +149,9 @@ test('root and served docs implementation and tests compile byte-for-byte',async
 test('header badges count the exact Output/Run diagnostics instead of stale shell or runtime log totals',()=>{
  const r=buildStandaloneOutputRunReadiness(input(),{verifiedEngineering:engineering()});
  const actual=xml229CanonicalOutputBadgeCounts(r);
- assert.equal(actual.errors,1,'native CII native release HOLD is an error');
+ assert.equal(actual.errors,0,'native CII release HOLD is a policy warning, not runtime error');
  assert.equal(actual.warnings,r.diagnostics.filter(x=>x.level==='warning').length);
- assert.equal(actual.warnings,r.summary.warningCount);
+ assert.equal(actual.warnings,r.summary.warningCount+1,'blocking HOLD contributes one warning diagnostic');
  const synthetic={diagnostics:[{level:'error'},{level:'warning'},{level:'info'},{level:'warning'}],
   logRows:[{level:'error'},{level:'error'}]};
  assert.deepEqual(xml229CanonicalOutputBadgeCounts(synthetic),{errors:1,warnings:2});

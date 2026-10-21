@@ -4,15 +4,15 @@
  * source-row labels or a cache. The Python writer's physical-to-native claim
  * is only a locator to challenge against emitted CONTROL/ELEMENTS/RIGID bytes.
  *
- * This proves a strict 1:1 positive-mass binding, NOT a general presplit/
- * child geometry lineage certificate or permission to release governed CII.
+ * Supports positive and explicitly confirmed zero kg on a strict 1:1
+ * physical-to-native RIGID mapping. Splits/ambiguous owners fail closed.
  */
 import {decodePhysicalOccurrenceId} from '../../contracts/gc-pw-v1/occurrence-bridge.mjs';
 import {digestUtf8} from '../../contracts/gc-pw-v1/contract.mjs';
 
 const fail=(code,msg=code)=>{const e=new Error(msg);e.code=code;throw e;};
 const int=n=>Number.isSafeInteger(n)&&n>=0;
-const positive=n=>typeof n==='number'&&Number.isFinite(n)&&n>0;
+const mass=n=>typeof n==='number'&&Number.isFinite(n)&&n>=0;
 const digest=n=>typeof n==='string'&&/^[a-f0-9]{64}$/i.test(n);
 function sections(cii){
  const byName=new Map();let current=null;
@@ -68,11 +68,16 @@ function parseNativeCii(cii){
  }
  return {slots,weights,elementCount,rigidCount};
 }
-function sameFormattedSixDigit(expected,actual){
- if(!positive(expected)||!Number.isFinite(actual))return false;
- // The CAESAR CII RIGID numeric writer emits six significant digits.
- return Math.abs(actual-Number(expected.toPrecision(6)))<=
-   Math.max(1e-6,Math.abs(expected)*1e-9);
+function sameNativeFormattedMass(expected,actual){
+ if(!mass(expected)||!Number.isFinite(actual))return false;
+ // Mirror xml_to_cii2019.py::_format_auto_float exactly by magnitude:
+ // .6E = seven significant digits, #.6G = six; <1e-12 emits zero.
+ const magnitude=Math.abs(expected);
+ const output=magnitude<1e-12?0:
+   magnitude>=1e9||magnitude<0.1
+     ?Number(expected.toExponential(6)):Number(expected.toPrecision(6));
+ // A tiny positive approved mass must not disappear as a zero output.
+ return !(expected>0&&output===0)&&actual===output;
 }
 /**
  * @param {Object} input
@@ -92,12 +97,24 @@ export async function reconcileXml229ActualCiiAgainstFinal({
   fail('NATIVE_FINAL_PACKET_INVALID');
  if(typeof originalXmlText!=='string'||typeof ciiText!=='string')
   fail('NATIVE_ARTIFACT_BYTES_REQUIRED');
+ // Independently attest the Worker-committed cleaned XML bytes before
+ // trusting any converter-owned mass proof or output.
+ const final=packet.finalizedGeometry;
+ if(packet.sourceGenerationId){
+  if(final?.schema!=='XML229.FinalizedWeightGeometry.v1'||
+     final?.basisId!==packet.basisId||
+     final?.sourceXmlSha256!==packet.sourceXmlSha256||
+     !digest(final?.sha256)||typeof final?.xmlText!=='string'||
+     await digestUtf8(final.xmlText)!==final.sha256)
+   fail('NATIVE_FINALIZED_GEOMETRY_SHA_DRIFT');
+ }
  if(await digestUtf8(originalXmlText)!==packet.sourceXmlSha256)
   fail('NATIVE_SOURCE_XML_SHA_DRIFT');
  const ciiSha=await digestUtf8(ciiText);
  if(writerDiagnostic?.schema!=='XML229.NativeRigidConsumptionDiagnostic.v1'||
     writerDiagnostic?.nativeCiiReleaseAuthorized!==false||
     writerDiagnostic?.actualCiiSha256!==ciiSha||
+    (final?.sha256&&writerDiagnostic?.finalizedGeometrySha256!==final.sha256)||
     writerDiagnostic?.massesConsumedInNativeRigid!==true||
     writerDiagnostic?.sourcePhysicalCount!==packet.physicalCount||
     writerDiagnostic?.claimedNativeRigidCount!==packet.physicalCount||
@@ -110,14 +127,14 @@ export async function reconcileXml229ActualCiiAgainstFinal({
   if(!claim||typeof claim.occurrenceId!=='string'||claims.has(claim.occurrenceId)||
      !int(claim.rigidRecordIndex)||!int(claim.nativeElementIndex)||
      !int(claim.branchOccurrenceIndex)||!int(claim.engineNodeOrdinal)||
-     !positive(claim.massKg)||typeof claim.ciiFromNode!=='string'||
+     !mass(claim.massKg)||typeof claim.ciiFromNode!=='string'||
      typeof claim.ciiToNode!=='string')
    fail('NATIVE_CII_LINEAGE_CLAIM_INVALID');
   claims.set(claim.occurrenceId,claim);
  }
  const seen=new Set();
  for(const original of packet.components){
-  if(!original||typeof original.occurrenceId!=='string'||!positive(original.effectiveKg)||
+  if(!original||typeof original.occurrenceId!=='string'||!mass(original.effectiveKg)||
      seen.has(original.occurrenceId))
    fail('NATIVE_FINAL_COMPONENT_INVALID');
   seen.add(original.occurrenceId);
@@ -137,7 +154,7 @@ export async function reconcileXml229ActualCiiAgainstFinal({
   if(!actual||actual.element!==claim.nativeElementIndex||
      actual.from!==claim.ciiFromNode||actual.to!==claim.ciiToNode)
    fail('NATIVE_CII_ELEMENT_RIGID_LINEAGE_MISMATCH');
-  if(!sameFormattedSixDigit(original.effectiveKg*10,
+  if(!sameNativeFormattedMass(original.effectiveKg*10,
      parsed.weights[claim.rigidRecordIndex]))
    fail('NATIVE_CII_MASS_CONSUMPTION_MISMATCH');
  }
@@ -155,7 +172,10 @@ export async function reconcileXml229ActualCiiAgainstFinal({
   massConsumptionVerified:true,
   strictOneToOneOwnerMatch:true,
   splitGeometryIndependentlyVerified:false,
-  nativeCiiReleaseAuthorized:false,
-  status:'STRICT_NATIVE_RIGID_MASS_RECONCILED_NONRELEASING',
+  // Every original physical has exactly one verified retained native owner,
+  // a unique ELEMENTS pointer and a CII mass matching the accepted Final kg.
+  // Unsupported split and non-RIGID owners are rejected before this point.
+  nativeCiiReleaseAuthorized:true,
+  status:'STRICT_ONE_TO_ONE_NATIVE_CII_RECONCILED',
  });
 }

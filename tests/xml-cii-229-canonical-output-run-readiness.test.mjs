@@ -135,10 +135,50 @@ test('Run result errors and readiness blockers are separate counters (#275 inves
  state.result={error:'Independent Run error',logs:['Error: first','Error: second']};
  const r=buildStandaloneOutputRunReadiness(state);
  assert.equal(r.summary.blockingCount,1,'only source-only CII release is blocking');
- assert.equal(r.logRows.filter(x=>x.level==='error').length,4,
-  'one checklist held row, two error log entries and one result.error are distinct');
+ assert.equal(r.logRows.filter(x=>x.level==='error').length,3,
+  'only actual result/error logs are errors; policy HELD is a warning');
+ assert.equal(r.logRows.filter(x=>x.level==='warning'&&x.source==='readiness').length>0,true,
+  'governed native HOLD is still blocking but not a runtime error');
+ assert.equal(r.diagnostics.find(x=>x.type==='xml229-original-json-engineering-authority').level,'warning');
  // This reproduces a counter-vs-log mismatch; it does not identify the
  // Owner's two private, unprovided error strings.
+});
+
+test('actual native CII release follows matching live Final-intent and cannot reuse stale output',()=>{
+ const inputState=input();
+ const cii='native CII bytes';
+ const native={schema:'XML229.GovernedNativeCandidateResult.v1',
+   basisId:basis,sourceId,sourceGenerationId:'GEN-1',
+   originalJsonSha256:sha,sourceXmlSha256:'e'.repeat(64),
+   finalIntentSha256:'c'.repeat(64),physicalCount:3,nativeRigidCount:3,
+   actualCiiSha256:'d'.repeat(64),massConsumptionVerified:true,
+   strictOneToOneOwnerMatch:true,nativeCiiReleaseAuthorized:true,
+   ciiText:cii};
+ inputState.result={ok:true,ciiText:cii,
+   xml229ActualCiiSha256:native.actualCiiSha256,xml229NativeOutput:native};
+ const context={verifiedEngineering:{sessionReceipt,proof:proof(),
+   finalIntent:{intentSha256:native.finalIntentSha256},nativeOutput:native}};
+ const current=buildStandaloneOutputRunReadiness(inputState,context);
+ assert.equal(find(current,'xml229-original-json-engineering-authority').status,'ready');
+ assert.equal(find(current,'xml229-original-json-engineering-authority').blocking,false);
+ assert.equal(current.summary.blockingCount,0);
+ assert.equal(current.raw.xml229NativeOutputVerified,true);
+ assert.equal(current.artifactRows.find(x=>x.kind==='cii').available,true);
+ const altered=[
+  {finalIntent:{intentSha256:'f'.repeat(64)}},
+  {nativeOutput:{...native,physicalCount:2}},
+  {nativeOutput:{...native,nativeCiiReleaseAuthorized:false}},
+ ];
+ for(const diff of altered){
+  const stale=buildStandaloneOutputRunReadiness(inputState,{
+    verifiedEngineering:{...context.verifiedEngineering,...diff}});
+  assert.equal(find(stale,'xml229-original-json-engineering-authority').status,'held');
+  assert.equal(stale.raw.xml229NativeOutputVerified,false);
+  assert.equal(stale.artifactRows.find(x=>x.kind==='cii').available,false);
+ }
+ inputState.result.xml229ActualCiiSha256='f'.repeat(64);
+ const tampered=buildStandaloneOutputRunReadiness(inputState,context);
+ assert.equal(tampered.raw.xml229NativeOutputVerified,false);
 });
 
 test('root and served production modules have exact byte parity',async()=>{

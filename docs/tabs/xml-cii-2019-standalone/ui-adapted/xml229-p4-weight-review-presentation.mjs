@@ -13,9 +13,10 @@ export const escapeXml229WeightHtml=x=>txt(x).replaceAll('&','&amp;')
  .replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const e=escapeXml229WeightHtml;
 const positive=x=>typeof x==='number'&&Number.isFinite(x)&&x>0;
+const assigned=x=>typeof x==='number'&&Number.isFinite(x)&&x>=0;
 const kg=x=>positive(x)?e(x)+' kg':'—';
 export const xml229WeightReviewStatus=row=>{
- if(positive(row?.finalKg))return {label:'Final reviewed',kind:'final',mass:row.finalKg};
+ if(assigned(row?.finalKg))return {label:row.finalKg===0?'Final 0 kg (confirmed)':'Final reviewed',kind:'final',mass:row.finalKg};
  if(positive(row?.match1Kg))return {label:'Match-1 reviewed',kind:'match1',mass:row.match1Kg};
  if(positive(row?.sourceKg))return {label:'Original XML mass',kind:'source',mass:row.sourceKg};
  return {label:'No recorded mass',kind:'unresolved',mass:null};
@@ -54,7 +55,7 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
   const tooltip=[r.dtxrSource,r.dtxrMatchedKey,
     r.dtxrSourcePath].filter(Boolean).join(' · ')||
     'DTXR metadata not independently available for this original physical occurrence';
-  const accepted=positive(r.finalKg)?r.finalKg:positive(r.match1Kg)?r.match1Kg:r.sourceKg;
+  const accepted=assigned(r.finalKg)?r.finalKg:positive(r.match1Kg)?r.match1Kg:r.sourceKg;
   const statusColor=auditHold?'#fca5a5':
     state.kind==='final'?'#86efac':state.kind==='match1'?'#fde68a':'#fca5a5';
   return `<tr data-p4-row="${i}" data-p4-occurrence="${e(r.occurrenceId)}"
@@ -87,7 +88,7 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
     <td style="min-width:164px" title="Applied Weight (kg), selected from the source-linked suggestions or entered directly. Native CII release has a separate gate.">
       <input data-p4-proposal data-p4-applied-weight class="mc-rigid-review-input"
         type="number" min="0" step="any" inputmode="decimal" placeholder="kg"
-        value="${positive(accepted)?e(String(accepted)):''}"
+        value="${assigned(accepted)?e(String(accepted)):''}"
         aria-label="Applied Weight (kg)"
         style="width:130px;padding:6px;background:#243b5d;color:#fff;border:1px solid #818cf8;font-weight:700">
     </td>

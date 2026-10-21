@@ -223,6 +223,9 @@ export async function openXml229WorkerHeldOriginalWeightReview({
          'Preview rows do not belong to current original engineering session');
      return result;
    },
+   async readInstrumentModelingSuggestions(){
+     return rpc({kind:'read',what:'instrument-suggestions',sourceId});
+   },
    async readNativeFinalIntent(){
      return rpc({kind:'read',what:'native-final-intent',sourceId});
    },

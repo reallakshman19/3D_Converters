@@ -16,7 +16,7 @@ export function renderXml229VerifiedPanelShell(existingWorkflow=false){
   <div style="margin:10px 0"><button type="button" data-p4-export-candidate-readiness
    class="model-converters-download-btn">Download candidate coverage + readiness (private)</button>
    <small style="display:block;color:#94a3b8">Same verified Worker, read-only aggregate counts; keep file private. Does not authorize native CII.</small></div>
-  <div style="margin:10px 0"><button type="button" data-p4-full-source-safety class="model-converters-download-btn">Download full-source Weight safety precheck (private)</button><small style="display:block;color:#94a3b8">Requires empty review ledger; no source rows, approval or native CII release.</small></div>
+  <div style="margin:10px 0"><button type="button" data-p4-full-source-safety class="model-converters-download-btn">Download full-source Weight safety precheck (private)</button><small style="display:block;color:#94a3b8">Read-only audit of the current verified Worker, including existing Final decisions; never changes weight or authorizes native CII.</small></div>
   <div><button type="button" data-p4-export-effective-basis class="model-converters-download-btn">Download current effective 4-master custody (OWNER PRIVATE)</button><small>Includes private config and normalized master rows. Keep local; no source XML/JSON or approvals.</small></div>
   <div style="margin:10px 0"><button type="button" data-p4-audit-decisions
    class="model-converters-download-btn">Download verified decision provenance JSON</button>
@@ -35,5 +35,24 @@ export function renderXml229VerifiedPanelShell(existingWorkflow=false){
       aria-label="Select saved Applied Weight values" hidden>
     <small style="color:#94a3b8">Selected Applied Weight values are retained across navigation for the same verified source. Save a private backup for recovery. Native CII release requires separate authority.</small>
    </div>
-  <div data-p4-weight-table></div></section>`;
+  <div data-p4-weight-table></div>
+  <aside data-p4-confirm-zero-notice role="region" aria-label="Blank Applied Weight decision" hidden
+    style="position:fixed;right:16px;bottom:16px;z-index:1200;max-width:345px;
+    padding:12px;background:#14243a;color:#e5eefc;border:1px solid #7384a0;
+    border-radius:10px;box-shadow:0 5px 18px #0008;font-size:12px">
+    <strong>Blank Applied Weight rows</strong>
+    <p data-p4-confirm-zero-text style="margin:7px 0;line-height:1.4"></p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+     <button type="button" data-p4-confirm-zero
+       style="background:#1d4ed8;border:1px solid #60a5fa;border-radius:5px;
+       color:white;padding:6px 9px;cursor:pointer">Apply 0 kg to blanks</button>
+     <button type="button" data-p4-dismiss-zero
+       style="background:transparent;border:1px solid #64748b;border-radius:5px;
+       color:#e2e8f0;padding:6px 9px;cursor:pointer">Keep blanks</button>
+    </div>
+    <small style="display:block;color:#bac6d8;margin-top:6px">
+     Only an explicit click records 0 kg as a source-bound Final decision.
+     Existing weights and source-qualified suggestions are kept.
+    </small>
+  </aside></section>`;
 }

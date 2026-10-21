@@ -2,6 +2,7 @@
 // This module renders no UI and never turns legacy review rows into identities.
 import { decodePhysicalOccurrenceId } from '../../contracts/gc-pw-v1/occurrence-bridge.mjs';
 const positive=v=>typeof v==='number'&&Number.isFinite(v)&&v>0;
+const assigned=v=>typeof v==='number'&&Number.isFinite(v)&&v>=0;
 function fail(code,message){const e=new Error(message);e.code=code;e.retryable=false;throw e;}
 export function readVerifiedModeAFinalRows(session) {
   const basis=session?.basis,review=session?.review;
@@ -57,13 +58,13 @@ export function readVerifiedModeAFinalRows(session) {
       const final=f.decisions[occurrenceId];
       const match1Kg=match1?.state==='accepted'?match1.value:null;
       const finalKg=final?.state==='accepted'?final.value:null;
-      const effectiveKg=positive(finalKg)?finalKg:positive(match1Kg)?match1Kg:sourceKg;
+      const effectiveKg=assigned(finalKg)?finalKg:positive(match1Kg)?match1Kg:sourceKg;
       const original=decodePhysicalOccurrenceId(occurrenceId);
       rows.push({sourceId,occurrenceId,
         branchOccurrenceIndex:original.branchOccurrenceIndex,nodeOrdinal:original.nodeOrdinal,
         componentSignature:original.componentSignature,
         sourceKg,match1Kg,finalKg,effectiveKg,
-        status:positive(finalKg)?'Final':positive(match1Kg)?'Match-1':positive(sourceKg)?'Source':'Needs review'});
+        status:assigned(finalKg)?'Final':positive(match1Kg)?'Match-1':positive(sourceKg)?'Source':'Needs review'});
     }
   }
   if(factCount!==session.openedFacts||!rows.length)
@@ -73,5 +74,5 @@ export function readVerifiedModeAFinalRows(session) {
     a.componentSignature.localeCompare(b.componentSignature));
   return {basisId:basis.basisId,stage:'Rigidmatch2',sources,revisionBySource,
     physicalCount:rows.length,verifiedFactCount:factCount,
-    unresolved:rows.filter(x=>!positive(x.effectiveKg)).length,rows};
+    unresolved:rows.filter(x=>!assigned(x.effectiveKg)).length,rows};
 }

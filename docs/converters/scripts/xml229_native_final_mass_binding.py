@@ -11,6 +11,9 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 SCHEMA = "XML229.NativeFinalPhysicalPacket.v1"
+LINEAGE_TAG = "XML229OriginalPhysicalId"
+LINEAGE_STAGE = "XML229NativeLineageBasis"
+
 
 
 class NativeMassError(ValueError):
@@ -64,6 +67,127 @@ def parse_bytes(data):
     return root
 
 
+
+def _normalized_position(text):
+    """A geometry coordinate is a finite numeric triple, not formatted text."""
+    try:
+        values = tuple(float(v) for v in text.split())
+    except ValueError:
+        raise NativeMassError("NATIVE_GEOMETRY_POSITION_INVALID") from None
+    require(len(values) == 3 and all(math.isfinite(v) for v in values),
+            "NATIVE_GEOMETRY_POSITION_INVALID")
+    return values
+
+
+def _assert_preserved_node_connectivity(original_groups, native_groups):
+    """Verify node-number remapping is a bijection across branch occurrences.
+
+    Connected repeated source IDs stay connected. Separate source IDs must
+    not be accidentally merged by post-acceptance renumbering.
+    """
+    old_to_new, new_to_old = {}, {}
+    for before, after in zip(original_groups, native_groups):
+        require(len(before) == len(after),
+                "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+        for old, new in zip(before, after):
+            require(bool(old) and bool(new),
+                    "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+            if old in old_to_new:
+                require(old_to_new[old] == new,
+                        "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+            if new in new_to_old:
+                require(new_to_old[new] == old,
+                        "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+            old_to_new[old] = new
+            new_to_old[new] = old
+
+
+def _xml_geometry_row(node):
+    """Only topology/ownership fields; process and mass fields may vary.
+
+    NodeNumber is a label, not an ownership key: provenance survives
+    topology-neutral renumbering. Bend radius and process values are also
+    permitted to be enriched; creation, deletion, relocation or retyping
+    of native physical nodes is not.
+    """
+    return (txt(node, "ComponentType").upper(), txt(node, "ComponentRefNo"),
+            txt(node, "Endpoint"), txt(node, "NodeName"),
+            txt(node, "Rigid"), _normalized_position(txt(node, "Position")),
+            txt(node, "ElementLengthMm"))
+
+
+def assert_preaccepted_geometry_unchanged(original_path, engine_input_path):
+    """Every geometric split/cleanup must precede source-bound Final weights.
+
+    This check is before accepted masses are written. The original XML hash
+    is already part of the immutable Worker InputBasis. No child mass
+    allocation, source owner interpolation or automatically relaxed HOLD.
+    """
+    original = parse_bytes(Path(original_path).read_bytes())
+    engine = parse_bytes(Path(engine_input_path).read_bytes())
+    expected, actual = branches(original), branches(engine)
+    require(len(expected) == len(actual),
+            "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+    source_numbers, engine_numbers = [], []
+    for src, dst in zip(expected, actual):
+        require(txt(src, "Branchname") == txt(dst, "Branchname"),
+                "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+        before, after = nodes(src), nodes(dst)
+        require(len(before) == len(after),
+                "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+        source_numbers.append([txt(row, "NodeNumber") for row in before])
+        engine_numbers.append([txt(row, "NodeNumber") for row in after])
+        for first, second in zip(before, after):
+            require(_xml_geometry_row(first) == _xml_geometry_row(second),
+                    "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+    _assert_preserved_node_connectivity(source_numbers, engine_numbers)
+    return True
+
+
+def assert_native_model_geometry_unchanged(original_path, document, model):
+    """The parsed native graph must also match the preapproved XML geometry.
+
+    The engine parser may collapse small segments or exclude invalid node
+    numbers AFTER the XML input check. Those are likewise not allowed after
+    weights were accepted; validation must inspect the actual graph.
+    """
+    source = parse_bytes(Path(original_path).read_bytes())
+    src_branches = branches(source)
+    require(len(src_branches) == len(document.branches),
+            "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+    expected_edges = 0
+    source_numbers, model_numbers = [], []
+    for original, native in zip(src_branches, document.branches):
+        before = nodes(original)
+        require(txt(original, "Branchname") == native.branch_name and
+                len(before) == len(native.nodes),
+                "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+        expected_edges += max(0, len(before) - 1)
+        source_numbers.append([txt(row, "NodeNumber") for row in before])
+        model_numbers.append([str(row.node_number) for row in native.nodes])
+        for old, new in zip(before, native.nodes):
+            old_shape = _xml_geometry_row(old)
+            new_shape = (new.component_type, new.component_ref_no,
+                         str(new.endpoint) if new.endpoint is not None else "",
+                         new.node_name,
+                         str(new.rigid) if new.rigid is not None else "",
+                         tuple(new.position), txt(old, "ElementLengthMm"))
+            require(old_shape == new_shape,
+                    "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+    _assert_preserved_node_connectivity(source_numbers, model_numbers)
+    require(len(model.edges) == expected_edges,
+            "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+    # Native graph edges must remain in the same per-branch source order.
+    intended = [(branch.branch_name, left.node_number, right.node_number)
+                for branch in document.branches
+                for left, right in zip(branch.nodes, branch.nodes[1:])]
+    actual = [(edge.branch_name, edge.from_node.node_number,
+               edge.to_node.node_number) for edge in model.edges]
+    require(intended == actual,
+            "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+    return True
+
+
 def read_packet(path, xml_path):
     try:
         packet = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -86,19 +210,379 @@ def read_packet(path, xml_path):
     return packet, parse_bytes(original_bytes)
 
 
-def bind_native_final_xml(original_path, enriched_path, packet_path):
-    """Write positive Owner-designated masses to exact enriched XML owners.
+def _semantic_xml(element):
+    """Canonical semantic XML: ignore formatting whitespace, not XML fields.
 
-    Works only when every original physical has precisely ONE unchanged
-    signature + NodeNumber + Position owner in the same branch occurrence.
-    Splits, lost nodes, renumbers and scope changes require another attested
-    lineage implementation, not an ordinal guess.
+    A finalized geometry can only REMOVE reviewed-irrelevant Node elements.
+    It may not rewrite wall thickness, material, restraints, positions or any
+    other original source facts while retaining the same physical IDs.
+    """
+    return (tag(element), tuple(sorted(element.attrib.items())),
+            (element.text or "").strip(),
+            tuple(_semantic_xml(c) for c in element if isinstance(c.tag, str)))
+
+
+def _validate_finalized_geometry(packet, source):
+    """Challenge the exact pre-acceptance Worker XML and original ordinal map.
+
+    A finalized snapshot may REMOVE original nodes, but may not change any
+    retained source component or invent new geometry. Accepted weights are
+    indexed by original ordinals and must all survive this reduction.
+    """
+    final = packet.get("finalizedGeometry")
+    if final is None:
+        require(not packet.get("sourceGenerationId"),
+                "NATIVE_FINALIZED_GEOMETRY_REQUIRED")
+        return source, None
+    require(isinstance(final, dict) and
+            final.get("schema") == "XML229.FinalizedWeightGeometry.v1" and
+            final.get("basisId") == packet.get("basisId") and
+            final.get("sourceXmlSha256") == packet.get("sourceXmlSha256") and
+            isinstance(final.get("xmlText"), str) and
+            len(final["xmlText"]) <= 32 * 1024 * 1024 and
+            isinstance(final.get("sha256"), str) and
+            final["sha256"] == hashlib.sha256(
+                final["xmlText"].encode("utf-8")).hexdigest(),
+            "NATIVE_FINALIZED_GEOMETRY_SHA_DRIFT")
+    snapshot = parse_bytes(final["xmlText"].encode("utf-8"))
+    originals, selected = branches(source), branches(snapshot)
+    retained = final.get("retainedSourceOrdinalsByBranch")
+    require(isinstance(retained, list) and len(originals) == len(selected)
+            and len(retained) == len(originals),
+            "NATIVE_FINALIZED_GEOMETRY_CENSUS_DRIFT")
+    # Verify the Worker-assigned IDs by recomputing their exact deterministic
+    # original-ordinal mapping. Only nonpositive source placeholders can change.
+    # Never merge an original positive connected node or invent a new one.
+    assigned = final.get("assignedNodeNumbers", [])
+    require(isinstance(assigned, list),
+            "NATIVE_FINALIZED_NODE_ID_MAP_INVALID")
+    originals_all = [node for branch in originals for node in nodes(branch)]
+    raw_numbers = [txt(node, "NodeNumber") for node in originals_all]
+    try:
+        integer_ids = [int(v) for v in raw_numbers]
+    except ValueError:
+        raise NativeMassError("NATIVE_FINALIZED_NODE_ID_MAP_INVALID") from None
+    require(all(str(i) == raw or
+                raw.strip().lstrip("+").lstrip("0") == str(i)
+                for i, raw in zip(integer_ids, raw_numbers)),
+            "NATIVE_FINALIZED_NODE_ID_MAP_INVALID")
+    next_id = max([0, *(i for i in integer_ids if i > 0)]) + 10
+    expected_assignments = []
+    normalized = {}
+    for bi, (src, ordinals) in enumerate(zip(originals, retained)):
+        src_nodes = nodes(src)
+        for original_index in ordinals:
+            require(type(original_index) is int and
+                    0 <= original_index < len(src_nodes),
+                    "NATIVE_FINALIZED_GEOMETRY_ORDINAL_DRIFT")
+            raw = txt(src_nodes[original_index], "NodeNumber")
+            if int(raw) <= 0:
+                require(next_id <= 2**31-1,
+                        "NATIVE_FINALIZED_NODE_ID_MAP_INVALID")
+                expected_assignments.append({
+                    "branchOccurrenceIndex": bi,
+                    "sourceNodeOrdinal": original_index,
+                    "sourceNodeNumber": raw,
+                    "finalNodeNumber": next_id,
+                })
+                normalized[(bi, original_index)] = next_id
+                next_id += 10
+    require(assigned == expected_assignments,
+            "NATIVE_FINALIZED_NODE_ID_MAP_DRIFT")
+    # Independently regenerate the only supported non-original rigid
+    # classifications: an EXISTING positive-span 1->2 element, with the same
+    # VALV/FLAN/INST reference. The source must have no Rigid authority on
+    # the endpoint; post-Final classifications are forbidden.
+    expected_promotions = []
+    promoted = set()
+    for bi, (orig_branch, approved_branch, ordinals) in enumerate(
+            zip(originals, selected, retained)):
+        source_nodes = nodes(orig_branch)
+        final_nodes = nodes(approved_branch)
+        for i in range(len(final_nodes) - 1):
+            oi, oj = ordinals[i:i+2]
+            left, right = source_nodes[oi], source_nodes[oj]
+            typ = txt(left, "ComponentType").upper()
+            ref = "".join(txt(left, "ComponentRefNo").lstrip("=").split()).upper()
+            other_ref = "".join(txt(right, "ComponentRefNo").lstrip("=").split()).upper()
+            if (typ not in ("VALV", "FLAN") or not ref or
+                    typ != txt(right, "ComponentType").upper() or
+                    ref != other_ref or
+                    (txt(left, "Endpoint"), txt(right, "Endpoint")) != ("1", "2") or
+                    txt(right, "Rigid") or
+                    txt(left, "ConnectionType") or txt(right, "ConnectionType")):
+                continue
+            start = _normalized_position(txt(left, "Position"))
+            end = _normalized_position(txt(right, "Position"))
+            length = math.dist(start, end)
+            if length <= 6:
+                continue
+            expected_promotions.append({
+                "branchOccurrenceIndex": bi,
+                "firstSourceNodeOrdinal": oi,
+                "secondSourceNodeOrdinal": oj,
+                "componentType": typ,
+                "componentRefNo": ref,
+                "distanceMm": length,
+            })
+            promoted.add((bi, oj))
+    claimed_promotions = final.get("rigidEdgePromotions", [])
+    require(isinstance(claimed_promotions, list) and
+            len(claimed_promotions) == len(expected_promotions),
+            "NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT")
+    for claimed, expected in zip(claimed_promotions, expected_promotions):
+        require(isinstance(claimed, dict) and
+                claimed.keys() == expected.keys() and
+                all(claimed[k] == v for k, v in expected.items()
+                    if k != "distanceMm") and
+                type(claimed["distanceMm"]) in (int, float) and
+                math.isfinite(claimed["distanceMm"]) and
+                math.isclose(claimed["distanceMm"], expected["distanceMm"],
+                             rel_tol=1e-12, abs_tol=1e-8),
+                "NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT")
+    lookup = {}
+    total = 0
+    for bi, (src, dst, ordinals) in enumerate(zip(originals, selected, retained)):
+        old_nodes, final_nodes = nodes(src), nodes(dst)
+        total += len(old_nodes)
+        require(txt(src, "Branchname") == txt(dst, "Branchname") and
+                isinstance(ordinals, list) and len(ordinals) == len(final_nodes),
+                "NATIVE_FINALIZED_GEOMETRY_CENSUS_DRIFT")
+        last = -1
+        for source_index, final_node in zip(ordinals, final_nodes):
+            require(type(source_index) is int and
+                    last < source_index < len(old_nodes),
+                    "NATIVE_FINALIZED_GEOMETRY_ORDINAL_DRIFT")
+            original = old_nodes[source_index]
+            immutable = ("ComponentType", "ComponentRefNo", "Endpoint",
+                         "NodeName", "Position",
+                         "ElementLengthMm", "Weight", "ConnectionType")
+            expected_rigid = ("2" if (bi, source_index) in promoted
+                              else txt(original, "Rigid"))
+            require(all(txt(original, key) == txt(final_node, key)
+                        for key in immutable) and
+                    txt(final_node, "Rigid") == expected_rigid and
+                    txt(final_node, "NodeNumber") ==
+                    str(normalized.get((bi, source_index),
+                                       txt(original, "NodeNumber"))),
+                    "NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT")
+            lookup[(bi, source_index)] = final_node
+            last = source_index
+    require(total == final.get("originalNodeCount"),
+            "NATIVE_FINALIZED_GEOMETRY_CENSUS_DRIFT")
+    # Compare the ENTIRE cleaned source XML, not a small geometry field list.
+    # No other pre-acceptance material, restraints or XML node fields can drift.
+    expected = parse_bytes(ET.tostring(source, encoding="utf-8"))
+    for bi, (branch, ordinals) in enumerate(zip(branches(expected), retained)):
+        keep = set(ordinals)
+        for original_index, node in enumerate(nodes(branch)):
+            if original_index not in keep:
+                branch.remove(node)
+            else:
+                if (bi, original_index) in normalized:
+                    child(node, "NodeNumber").text = str(
+                        normalized[(bi, original_index)])
+                if (bi, original_index) in promoted:
+                    namespace = (node.tag.rsplit("}", 1)[0] + "}"
+                                 if "}" in node.tag else "")
+                    ET.SubElement(node, namespace + "Rigid").text = "2"
+    require(_semantic_xml(expected) == _semantic_xml(snapshot),
+            "NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT")
+    require(child(snapshot, LINEAGE_STAGE) is None and
+            not any(child(n, LINEAGE_TAG) is not None
+                    for branch in selected for n in nodes(branch)),
+            "NATIVE_UNTRUSTED_LINEAGE_TAG")
+    return snapshot, lookup
+
+
+def _physical_component_key(node):
+    """Physical item identity requires a real reference, type and endpoint."""
+    kind = txt(node, "ComponentType").upper()
+    ref = txt(node, "ComponentRefNo").strip().lstrip("=").replace(" ", "").upper()
+    endpoint = txt(node, "Endpoint")
+    return (kind, ref, endpoint) if kind in {
+        "RIGID", "FLAN", "VALV", "INST"} and ref else None
+
+
+def audit_finalized_physical_endpoints(final_root, packet_components=None):
+    """Read-only distinction between XML physical *nodes* and components.
+
+    A consecutive Endpoint=1 -> Endpoint=2 pair with the same reference and
+    family is a single physical part with two geometry witnesses, not proof
+    of two independently weighted components. No mass is redistributed.
+
+    If packet_components is passed, restrict alias detection to separately
+    accepted source occurrences already stamped on the finalized XML.
+    """
+    records = []
+    double_accepted = []
+    for bi, branch in enumerate(branches(final_root)):
+        entries = nodes(branch)
+        candidates = []
+        for ni, node in enumerate(entries):
+            key = _physical_component_key(node)
+            if key:
+                candidates.append((ni, node, key))
+        consumed = set()
+        for (ni, left, key), (nj, right, other) in zip(
+                candidates, candidates[1:]):
+            same_family = key[:2] == other[:2]
+            rigid_continuation = (
+                key[0] in ("FLAN", "VALV") and other[0] == "RIGID" and
+                key[1] == other[1] and txt(right, "Rigid") == "2")
+            if (nj != ni + 1 or not (same_family or rigid_continuation) or
+                    (key[2], other[2]) != ("1", "2")):
+                continue
+            require(ni not in consumed and nj not in consumed,
+                    "NATIVE_ENDPOINT_ALIAS_OVERLAP")
+            consumed.update((ni, nj))
+            row = {
+                "branchOccurrenceIndex": bi,
+                "componentType": key[0],
+                "componentRefNo": key[1],
+                "startNodeNumber": txt(left, "NodeNumber"),
+                "endNodeNumber": txt(right, "NodeNumber"),
+                "firstEngineNodeOrdinal": ni,
+                "secondEngineNodeOrdinal": nj,
+            }
+            records.append(row)
+            if packet_components is not None:
+                a, b = txt(left, LINEAGE_TAG), txt(right, LINEAGE_TAG)
+                if a in packet_components and b in packet_components:
+                    double_accepted.append(row)
+    return {
+        "schema": "XML229.FinalizedPhysicalEndpointAudit.v1",
+        "twoEndpointPhysicalParts": len(records),
+        "aliasPairs": records,
+        "doubleAcceptedPairs": double_accepted,
+    }
+
+
+def stage_native_original_lineage(original_path, packet_path):
+    """Annotate exact original source occurrences BEFORE staged-JSON enrichment.
+
+    These temporary private markers are carried by the XML converter's ET
+    transformations and parsed into native nodes. They do not authorize any
+    geometry split or invent a mass owner.
+    """
+    packet, source = read_packet(packet_path, original_path)
+    require(child(source, LINEAGE_STAGE) is None and
+            not any(child(node, LINEAGE_TAG) is not None
+                    for branch in branches(source) for node in nodes(branch)),
+            "NATIVE_UNTRUSTED_LINEAGE_TAG")
+    final_source, retained_by_original = _validate_finalized_geometry(packet, source)
+    source_branches = branches(source)
+    seen = set()
+    for item in packet["components"]:
+        require(isinstance(item, dict), "NATIVE_MASS_ROW_INVALID")
+        oid = item.get("occurrenceId")
+        try:
+            decoded = json.loads(oid)
+        except (ValueError, TypeError):
+            raise NativeMassError("NATIVE_OCCURRENCE_INVALID") from None
+        require(isinstance(decoded, list) and len(decoded) == 4 and
+                decoded[0] == packet.get("sourceId") and
+                type(decoded[1]) is int and type(decoded[2]) is int and
+                decoded[1] >= 0 and decoded[2] >= 0 and
+                isinstance(decoded[3], str) and
+                json.dumps(decoded, separators=(",", ":"), ensure_ascii=False) == oid,
+                "NATIVE_OCCURRENCE_INVALID")
+        bi, ni = decoded[1:3]
+        require(bi < len(source_branches), "NATIVE_BRANCH_OUT_OF_RANGE")
+        source_nodes = nodes(source_branches[bi])
+        require(ni < len(source_nodes), "NATIVE_NODE_ORDINAL_OUT_OF_RANGE")
+        require((bi, ni) not in seen, "NATIVE_OWNER_DUPLICATED")
+        seen.add((bi, ni))
+        original = source_nodes[ni]
+        require(signature(original) == decoded[3],
+                "NATIVE_PHYSICAL_SIGNATURE_DRIFT")
+        target = (retained_by_original.get((bi, ni))
+                  if retained_by_original is not None else original)
+        require(target is not None,
+                "NATIVE_ACCEPTED_PHYSICAL_NOT_IN_FINAL_GEOMETRY")
+        ns = target.tag.rsplit("}", 1)[0] + "}" if "}" in target.tag else ""
+        ET.SubElement(target, ns + LINEAGE_TAG).text = oid
+    # Final decisions apply to complete physical *components*, not to each
+    # end of the same VALV/FLAN/INST occurrence. Never consume two accepted
+    # masses into one paired component or silently choose one of them.
+    endpoint_audit = audit_finalized_physical_endpoints(
+        final_source, {row["occurrenceId"] for row in packet["components"]})
+    require(not endpoint_audit["doubleAcceptedPairs"],
+            "NATIVE_DOUBLE_ENDPOINT_MASS_OWNER")
+    card = (packet.get("finalizedGeometry") or {}).get(
+        "physicalOwnerCardinality")
+    if card is not None:
+        require(isinstance(card, dict) and
+                card.get("schema") ==
+                "XML229.PreAcceptancePhysicalPartCardinality.v1" and
+                card.get("weightsAccepted") is False and
+                card.get("pairedEndpointPhysicalParts") ==
+                endpoint_audit["twoEndpointPhysicalParts"] and
+                card.get("reviewedPhysicalNodeOccurrences") ==
+                packet["physicalCount"] and
+                card.get("distinctPhysicalPartCandidates") ==
+                packet["physicalCount"] and
+                card.get("sourcePhysicalNodeOccurrences") ==
+                packet["physicalCount"] +
+                endpoint_audit["twoEndpointPhysicalParts"],
+                "NATIVE_PREACCEPTANCE_OWNER_CARDINALITY_DRIFT")
+        retained = packet["finalizedGeometry"][
+            "retainedSourceOrdinalsByBranch"]
+        expected_pairs = []
+        for pair in endpoint_audit["aliasPairs"]:
+            bi = pair["branchOccurrenceIndex"]
+            old_nodes = nodes(source_branches[bi])
+            left_source_ordinal = retained[bi][
+                pair["firstEngineNodeOrdinal"]]
+            right_source_ordinal = retained[bi][
+                pair["secondEngineNodeOrdinal"]]
+            left_oid = json.dumps([
+                packet["sourceId"], bi, left_source_ordinal,
+                signature(old_nodes[left_source_ordinal])],
+                separators=(",", ":"), ensure_ascii=False)
+            right_oid = json.dumps([
+                packet["sourceId"], bi, right_source_ordinal,
+                signature(old_nodes[right_source_ordinal])],
+                separators=(",", ":"), ensure_ascii=False)
+            expected_pairs.append({
+                "componentType": pair["componentType"],
+                "componentRefNo": pair["componentRefNo"],
+                "branchOccurrenceIndex": bi,
+                "firstOccurrenceId": left_oid,
+                "secondOccurrenceId": right_oid,
+                "firstIsWeightOwner": False,
+                "secondIsWeightOwner": True,
+            })
+        require(card.get("endpointPairs") == expected_pairs,
+                "NATIVE_PREACCEPTANCE_OWNER_CARDINALITY_DRIFT")
+        accepted = {row["occurrenceId"] for row in packet["components"]}
+        require(all(pair["firstOccurrenceId"] not in accepted
+                    for pair in expected_pairs),
+                "NATIVE_NONCANONICAL_ENDPOINT_OWNER")
+    ns = final_source.tag.rsplit("}", 1)[0] + "}" if "}" in final_source.tag else ""
+    ET.SubElement(final_source, ns + LINEAGE_STAGE).text = packet["basisId"]
+    output = Path(original_path).with_name(
+        Path(original_path).stem + "_xml229_lineaged.xml")
+    ET.ElementTree(final_source).write(output, encoding="utf-8", xml_declaration=True)
+    return output
+
+
+def bind_native_final_xml(original_path, enriched_path, packet_path,
+                          require_staged_lineage=False):
+    """Transfer accepted masses from exact original physicals to native owners.
+
+    Governed Runs use an occurrence marker placed BEFORE enrichment, not a
+    guess from post-enrichment node numbers. The legacy unmarked path is kept
+    only for standalone strict one-to-one unit callers.
     """
     packet, source = read_packet(packet_path, original_path)
     source_branches = branches(source)
     enriched_path = Path(enriched_path)
     enriched = parse_bytes(enriched_path.read_bytes())
     engine_branches = branches(enriched)
+    if require_staged_lineage:
+        require(txt(enriched, LINEAGE_STAGE) == packet["basisId"],
+                "NATIVE_LINEAGE_STAGE_LOST")
     require(len(source_branches) == len(engine_branches),
             "NATIVE_BRANCH_OCCURRENCE_DRIFT")
     used = set()
@@ -120,8 +604,11 @@ def bind_native_final_xml(original_path, enriched_path, packet_path):
                 json.dumps(decoded, separators=(",", ":"), ensure_ascii=False) == oid,
                 "NATIVE_OCCURRENCE_INVALID")
         kg = item.get("effectiveKg")
-        require(type(kg) in (int, float) and math.isfinite(kg) and kg > 0,
+        require(type(kg) in (int, float) and math.isfinite(kg) and kg >= 0,
                 "NATIVE_FINAL_MASS_REQUIRED")
+        # An explicit zero is a mass decision, not a missing mass. Bind it
+        # only to the same proven unique RIGID owner required for positive kg;
+        # the emitted RIGID row and its ELEMENTS pointer must still exist.
         bi, ni = decoded[1], decoded[2]
         require(bi < len(source_branches), "NATIVE_BRANCH_OUT_OF_RANGE")
         src, dest = source_branches[bi], engine_branches[bi]
@@ -133,16 +620,35 @@ def bind_native_final_xml(original_path, enriched_path, packet_path):
         require(signature(original) == decoded[3],
                 "NATIVE_PHYSICAL_SIGNATURE_DRIFT")
         witness = identity(original)
-        matches = [(j, node) for j, node in enumerate(nodes(dest))
-                   if identity(node) == witness]
-        require(len(matches) == 1, "NATIVE_OWNER_LINEAGE_AMBIGUOUS")
-        j, owner = matches[0]
+        if require_staged_lineage:
+            matches = [(j, node) for j, node in enumerate(nodes(dest))
+                       if txt(node, LINEAGE_TAG) == oid]
+            require(len(matches) == 1, "NATIVE_CHILD_LINEAGE_MISSING_OR_SPLIT")
+            j, owner = matches[0]
+            require(signature(owner) == signature(original) and
+                    txt(owner, "Position") == txt(original, "Position"),
+                    "NATIVE_CHILD_GEOMETRY_DRIFT")
+        else:
+            matches = [(j, node) for j, node in enumerate(nodes(dest))
+                       if identity(node) == witness]
+            require(len(matches) == 1, "NATIVE_OWNER_LINEAGE_AMBIGUOUS")
+            j, owner = matches[0]
         key = (bi, j)
         require(key not in used, "NATIVE_OWNER_DUPLICATED")
         used.add(key)
-        # Native RIGID emission must claim this owner in the actual converter
-        # graph. Never set Rigid=2 on non-rigid valve/flange/instrument geometry.
-        require(txt(owner, "Rigid") == "2", "NATIVE_RIGID_OWNER_UNSUPPORTED")
+        # Reuse ONLY an existing native CII RIGID edge: a to-node with
+        # Rigid=2, or CAESAR's existing Rigid=2 predecessor -> same-ref FLAN
+        # rule. Never manufacture a Rigid=2 marker for unsupported geometry.
+        prior = nodes(dest)[j-1] if j else None
+        normalize_ref = lambda value: value.strip().lstrip("=").replace(" ", "").upper()
+        ref = normalize_ref(txt(owner, "ComponentRefNo"))
+        flange_rigid_edge = (txt(owner, "ComponentType").upper() == "FLAN"
+                            and prior is not None and
+                            txt(prior, "Rigid") == "2" and
+                            bool(ref) and
+                            ref == normalize_ref(txt(prior, "ComponentRefNo")))
+        require(txt(owner, "Rigid") == "2" or flange_rigid_edge,
+                "NATIVE_RIGID_OWNER_UNSUPPORTED")
         weight = child(owner, "Weight")
         if weight is None:
             weight = ET.SubElement(owner, owner.tag.rsplit("}", 1)[0] + "}Weight"
@@ -156,6 +662,9 @@ def bind_native_final_xml(original_path, enriched_path, packet_path):
             "componentRefNo": txt(owner, "ComponentRefNo"),
             "endpoint": txt(owner, "Endpoint"),
             "position": txt(owner, "Position"), "kg": float(kg),
+            "stagedLineage": bool(require_staged_lineage),
+            "finalizedGeometrySha256": (
+                packet.get("finalizedGeometry") or {}).get("sha256"),
         })
     require(len(used) == packet["physicalCount"],
             "NATIVE_ORIGINAL_POPULATION_DRIFT")
@@ -237,7 +746,10 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
             node = edge.to_node
             n = (node.source_node_number if node.source_node_number is not None
                  else node.node_number)
-            if (edge.branch_name == row["branchName"] and str(n) == row["nodeNumber"]
+            if (edge.branch_name == row["branchName"] and
+                    (getattr(node, "xml229_original_physical_id", "") ==
+                     row["occurrenceId"] if row.get("stagedLineage")
+                     else str(n) == row["nodeNumber"])
                     and node.component_type == row["componentType"]
                     and node.component_ref_no == row["componentRefNo"]
                     and str(node.endpoint or "") == row["endpoint"]
@@ -248,10 +760,21 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
         require(index not in used and index in slots,
                 "CII_NATIVE_PHYSICAL_RIGID_POINTER_UNVERIFIED")
         used.add(index)
-        # Native CII formatter emits 6 significant digits; compare to the
-        # independently calculated expected rounded number.
-        expected = float(format(row["kg"]*scale, ".6g"))
-        require(math.isclose(emitted[index], expected, abs_tol=1e-6, rel_tol=1e-9),
+        # Compare the ACTUAL CII formatter's emitted numeric value, rather
+        # than a blanket six-significant-digit approximation. It emits six
+        # fractional scientific digits (SEVEN significant digits) for small
+        # or huge values, and six significant digits otherwise.
+        force = row["kg"] * scale
+        require(math.isfinite(force), "CII_NATIVE_MASS_OUT_OF_RANGE")
+        if abs(force) < 1e-12:
+            expected = 0.0
+        elif abs(force) >= 1e9 or abs(force) < 0.1:
+            expected = float(f"{force:.6E}")
+        else:
+            expected = float(f"{force:#.6G}")
+        require(not (row["kg"] > 0 and expected == 0),
+                "CII_NATIVE_MASS_UNREPRESENTABLE")
+        require(emitted[index] == expected,
                 "CII_NATIVE_APPLIED_MASS_MISMATCH")
         require(math.isclose(edges[index].to_node.weight, row["kg"],
                              abs_tol=1e-8, rel_tol=1e-9),
@@ -273,6 +796,8 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
             "claimedNativeRigidCount": len(used),
             "outputRigidCount": len(emitted),
             "actualCiiSha256": hashlib.sha256(cii_text.encode("utf-8")).hexdigest(),
+            "finalizedGeometrySha256": (
+                owners[0].get("finalizedGeometrySha256") if owners else None),
             "massesConsumedInNativeRigid": True,
             "claims": sorted(claims, key=lambda c: c["occurrenceId"]),
             "independentNativeChildLineageVerified": False,

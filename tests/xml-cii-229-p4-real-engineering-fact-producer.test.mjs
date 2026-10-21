@@ -8,6 +8,8 @@ import './xml-cii-229-independent-preview-worker.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
+import {registerXml229ProducerIntegrityTests} from './xml229-p4-producer-integrity-cases.mjs';
+import {registerXml229PythonWorkerRevisionTests} from './xml229-instrument-python-worker-cases.mjs';
 import {readFile} from 'node:fs/promises';
 import {installWeightBasisXmlDom} from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
 import {xmlCiiDryRunPreview} from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js';
@@ -71,6 +73,17 @@ test('actual XML Preview computation is independently assessed into COMPLETE sou
  assert.equal(positive.expectedOriginalCount,4);
  assert.equal(positive.physicalOccurrences.length,3); // GASK is not a physical weight owner
  assert.equal(positive.expectedPhysicalFactCount,3*XML229_ENGINEERING_FIELDS.length);
+ // Native must consume this exact finalized PRE-acceptance geometry.
+ assert.equal(positive.finalizedGeometry.schema,'XML229.FinalizedWeightGeometry.v1');
+ assert.equal(positive.finalizedGeometry.basisId,f.basis.basisId);
+ assert.equal(positive.finalizedGeometry.sourceXmlSha256,f.basis.sourceRefs[0].sha256);
+ assert.equal(positive.finalizedGeometry.sha256,
+   await digestUtf8(positive.finalizedGeometry.xmlText));
+ assert.deepEqual(positive.finalizedGeometry.retainedSourceOrdinalsByBranch,
+   [[1,2,3]],'Worker removes original GASK but retains physical source ordinals');
+ assert.equal(positive.finalizedGeometry.originalNodeCount,4);
+ assert.ok(!positive.finalizedGeometry.xmlText.includes('<ComponentType>GASK</ComponentType>'));
+ assert.ok(positive.finalizedGeometry.xmlText.includes('<ComponentType>RIGID</ComponentType>'));
  assert.equal(positive.physicalOccurrences[0].nodeOrdinal,1);
  assert.equal(positive.physicalOccurrences[1].nodeOrdinal,2);
  assert.equal(positive.physicalOccurrences[2].nodeOrdinal,3);
@@ -93,6 +106,135 @@ test('actual XML Preview computation is independently assessed into COMPLETE sou
  assert.equal(row300.find(x=>x.fieldId==='mass.kg').value,null);
  assert.equal(positive.workerResult.branchRows.length,1);
 });
+test('nonpositive original node IDs receive source-ordinal-attested positive IDs before Final',async()=>{
+ const xml=XML.replace('<NodeNumber>309</NodeNumber>','<NodeNumber>-1</NodeNumber>');
+ const basis=await createPreviewBasis({domainId:'xml-cii/2019',
+  sources:[{sourceId:SOURCE_ID,mediaType:'application/xml',text:xml}],
+  masters,selection,config,overrides:{},sha256:digestUtf8});
+ const orig=projectXmlCiiOccurrences({xmlText:xml,sourceId:SOURCE_ID});
+ const preview=xmlCiiDryRunPreview(xml,config,'');
+ const open=await openXml229EngineeringFactModel({
+  basis,live:{...live,sources:{[SOURCE_ID]:xml}},
+  xmlText:xml,sourceId:SOURCE_ID,
+  previewResult:{...preview,sourceOccurrences:orig,
+    engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},
+  expectedOriginalCount:orig.branchCount+orig.nodeCount,
+ });
+ assert.deepEqual(open.finalizedGeometry.assignedNodeNumbers,[{
+   branchOccurrenceIndex:0,sourceNodeOrdinal:2,
+   sourceNodeNumber:'-1',finalNodeNumber:330,
+ }]);
+ assert.match(open.finalizedGeometry.xmlText,/<NodeNumber>330<\/NodeNumber>/);
+ assert.equal(open.physicalOccurrences[1].nodeOrdinal,2,
+   'mass owner retains the ORIGINAL ordinal, not the new engine NodeNumber');
+ assert.equal(open.finalizedGeometry.sha256,
+   await digestUtf8(open.finalizedGeometry.xmlText));
+});
+
+test('physical endpoint pairs are identified before accepting weights, without merging facts',async()=>{
+ const pairedXml=XML
+  .replace('<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>2</Endpoint>',
+           '<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>1</Endpoint>')
+  .replace('<ComponentType>INST</ComponentType>',
+           '<ComponentType>VALV</ComponentType>')
+  .replace('<ComponentRefNo>1006649732/119369</ComponentRefNo>',
+           '<ComponentRefNo>1006649732/119367</ComponentRefNo>');
+ assert.notEqual(pairedXml,XML);
+ const basis=await createPreviewBasis({domainId:'xml-cii/2019',
+   sources:[{sourceId:SOURCE_ID,mediaType:'application/xml',text:pairedXml}],
+   masters,selection,config,overrides:{},sha256:digestUtf8});
+ const original=projectXmlCiiOccurrences({xmlText:pairedXml,sourceId:SOURCE_ID});
+ const preview=xmlCiiDryRunPreview(pairedXml,config,'');
+ const opened=await openXml229EngineeringFactModel({
+  basis,live:{...live,sources:{[SOURCE_ID]:pairedXml}},
+  xmlText:pairedXml,sourceId:SOURCE_ID,
+  previewResult:{...preview,sourceOccurrences:original,
+   engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},
+  expectedOriginalCount:original.branchCount+original.nodeCount,
+ });
+ const topology=opened.finalizedGeometry.physicalOwnerCardinality;
+ assert.equal(topology.weightsAccepted,false);
+ assert.equal(topology.sourcePhysicalNodeOccurrences,3);
+ assert.equal(topology.reviewedPhysicalNodeOccurrences,2);
+ assert.equal(opened.physicalOccurrences.length,2);
+ assert.equal(topology.pairedEndpointPhysicalParts,1);
+ assert.equal(topology.distinctPhysicalPartCandidates,2);
+ assert.equal(topology.endpointPairs[0].firstIsWeightOwner,false);
+ assert.equal(topology.endpointPairs[0].secondIsWeightOwner,true);
+ assert.equal(topology.endpointPairs[0].componentType,'VALV');
+ assert.equal(opened.finalizedGeometry.rigidEdgePromotions.length,1);
+ assert.equal(opened.finalizedGeometry.rigidEdgePromotions[0].componentType,'VALV');
+ assert(opened.finalizedGeometry.rigidEdgePromotions[0].distanceMm>6);
+ assert.equal(topology.endpointPairs[0].componentRefNo,'1006649732/119367');
+ assert.notEqual(topology.endpointPairs[0].firstOccurrenceId,
+                 topology.endpointPairs[0].secondOccurrenceId);
+ assert.equal(opened.finalizedGeometry.sha256,
+              await digestUtf8(opened.finalizedGeometry.xmlText));
+});
+
+test('instrument pair suggests but never requires classification or modifies Rigid',async()=>{
+ const xml=XML.replace('<ComponentType>VALV</ComponentType>',
+                       '<ComponentType>INST</ComponentType>')
+  .replace('<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>2</Endpoint>',
+           '<ComponentRefNo>1006649732/119369</ComponentRefNo><Endpoint>1</Endpoint>');
+ const basis=await createPreviewBasis({domainId:'xml-cii/2019',
+  sources:[{sourceId:SOURCE_ID,mediaType:'application/xml',text:xml}],
+  masters,selection,config,overrides:{},sha256:digestUtf8});
+ const original=projectXmlCiiOccurrences({xmlText:xml,sourceId:SOURCE_ID});
+ const preview=xmlCiiDryRunPreview(xml,config,'');
+ const opened=await openXml229EngineeringFactModel({
+  basis,live:{...live,sources:{[SOURCE_ID]:xml}},xmlText:xml,
+  sourceId:SOURCE_ID,
+  previewResult:{...preview,sourceOccurrences:original,
+   engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},
+  expectedOriginalCount:original.branchCount+original.nodeCount,
+ });
+ const final=opened.finalizedGeometry;
+ assert.equal(final.instrumentModelingSuggestions.length,1);
+ assert.equal(final.instrumentModelingSuggestions[0].status,'OPTIONAL_REVIEW');
+ assert.equal(final.instrumentModelingSuggestions[0].approvalRequiredToView,false);
+ assert.equal(final.instrumentModelingSuggestions[0].automaticClassificationApplied,false);
+ assert.equal(final.instrumentModelingSuggestions[0].sourceWeightIsAccepted,false);
+ assert.equal(final.rigidEdgePromotions.length,0);
+ assert.equal(final.physicalOwnerCardinality.distinctPhysicalPartCandidates,2);
+ assert.equal(opened.physicalOccurrences.length,2);
+ assert.match(final.xmlText,/<ComponentType>INST<\/ComponentType>/);
+ assert.equal(await digestUtf8(final.xmlText),final.sha256);
+});
+
+test('FLAN/VALV first-end witness delegates to existing same-ref RIGID mass owner before review',async()=>{
+ const xml=XML.replace(
+  '<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>2</Endpoint>',
+  '<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>1</Endpoint>')
+  .replace('<ComponentType>INST</ComponentType>','<ComponentType>RIGID</ComponentType>')
+  .replace('<ComponentRefNo>1006649732/119369</ComponentRefNo>',
+   '<ComponentRefNo>1006649732/119367</ComponentRefNo>')
+  .replace('<Position>650 0 0</Position><Weight>0</Weight>',
+   '<Position>650 0 0</Position><Rigid>2</Rigid><Weight>0</Weight>');
+ const basis=await createPreviewBasis({domainId:'xml-cii/2019',
+   sources:[{sourceId:SOURCE_ID,mediaType:'application/xml',text:xml}],
+   masters,selection,config,overrides:{},sha256:digestUtf8});
+ const original=projectXmlCiiOccurrences({xmlText:xml,sourceId:SOURCE_ID});
+ const preview=xmlCiiDryRunPreview(xml,config,'');
+ const opened=await openXml229EngineeringFactModel({
+  basis,live:{...live,sources:{[SOURCE_ID]:xml}},xmlText:xml,
+  sourceId:SOURCE_ID,previewResult:{...preview,sourceOccurrences:original,
+   engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},
+  expectedOriginalCount:original.branchCount+original.nodeCount,
+ });
+ const card=opened.finalizedGeometry.physicalOwnerCardinality;
+ assert.equal(card.sourcePhysicalNodeOccurrences,3);
+ assert.equal(card.reviewedPhysicalNodeOccurrences,2);
+ assert.equal(card.pairedEndpointPhysicalParts,1);
+ assert.equal(card.endpointPairs[0].componentType,'VALV');
+ assert.equal(card.endpointPairs[0].firstIsWeightOwner,false);
+ assert.equal(card.endpointPairs[0].secondIsWeightOwner,true);
+ assert.equal(opened.physicalOccurrences.length,2);
+ assert.deepEqual(opened.physicalOccurrences.map(x=>x.nodeOrdinal),[1,3]);
+ assert.equal(opened.finalizedGeometry.rigidEdgePromotions.length,0,
+   'the source RIGID is already the mass-bearing CII edge; no new marker');
+});
+
 test('actual verified Preview result enters GC-PW Weight session via the EXISTING strict port',async()=>{
  const f=await fixture();
  const prepared=await openXml229EngineeringFactModel({
@@ -123,76 +265,8 @@ test('actual verified Preview result enters GC-PW Weight session via the EXISTIN
  assert.equal(ready.review.getDecisionState({basisId:ready.basis.basisId,scopeId:SOURCE_ID,
   stage:'Rigidmatch2'}).decisionRevision,null);
 });
-test('no fact population promotion if original source branch/node identities drift',async()=>{
- const f=await fixture();
- const wrong=structuredClone(f.result);wrong.sourceOccurrences.nodes[1].occurrenceId='fake-node';
- await assert.rejects(openXml229EngineeringFactModel({basis:f.basis,live:f.live,
-  xmlText:XML,sourceId:SOURCE_ID,previewResult:wrong,expectedOriginalCount:5}),
-  getCode('ORIGINAL_OCCURRENCE_ID_DRIFT'));
-});
-test('changed master bytes with same cardinality cannot claim VERIFIED',async()=>{
- const f=await fixture();
- const changed=structuredClone(masters);changed.weight.rows[0]['RF/RTJ KG']=88;
- await assert.rejects(openXml229EngineeringFactModel({basis:f.basis,
-  live:{...f.live,masters:changed},xmlText:XML,sourceId:SOURCE_ID,
-  previewResult:f.result,expectedOriginalCount:5}));
-});
-test('wrong original selection, out-of-scope source and omitted physical node fail closed',async()=>{
- const f=await fixture();
- const input={basis:f.basis,live:f.live,xmlText:XML,sourceId:SOURCE_ID,
-  previewResult:f.result,expectedOriginalCount:5};
- await assert.rejects(openXml229EngineeringFactModel({...input,expectedOriginalCount:4}),
-  getCode('INDEPENDENT_CENSUS_MISMATCH'));
- await assert.rejects(openXml229EngineeringFactModel({...input,maxPhysical:2}),
-  getCode('PHYSICAL_POPULATION_LIMIT'));
- const bad=structuredClone(f.result);bad.branchRows=[];
- await assert.rejects(openXml229EngineeringFactModel({...input,previewResult:bad}),
-  getCode('PREVIEW_COMPUTATION_INCOMPLETE'));
- const bad2=structuredClone(f.result);bad2.nodeRows.push({...bad2.nodeRows[0],sourceNodeOrdinal:3,
-  componentType:'GASK'});
- await assert.rejects(openXml229EngineeringFactModel({...input,previewResult:bad2}));
-});
-test('source-only status remains unverified if purported Preview is already promoted without custody',async()=>{
- const f=await fixture();
- await assert.rejects(openXml229EngineeringFactModel({basis:f.basis,live:f.live,xmlText:XML,
-  sourceId:SOURCE_ID,expectedOriginalCount:5,
-  previewResult:{...f.result,engineeringAcceptance:'VERIFIED'}}),
- getCode('PREVIEW_INPUT_AUTHORITY_DRIFT'));
-});
-test('authentic repository Firstpass XML + staged JSON retains all original physical occurrences without inventing accepted mass',async()=>{
- const xmlText=await readFile(new URL('../Benchmarks/1885Sjson/FirstpassXML',import.meta.url),'utf8');
- const stagedSource=await readFile(new URL('../Benchmarks/1885Sjson/Sjson.json',import.meta.url),'utf8');
- assert(xmlText.length>100000);
- assert(stagedSource.length>500000);
- const sourceId='FIRSTPASS-AUTHENTIC';
- const selection=[{sourceId,selectionRef:'all'}];
- const actualMasters=structuredClone(masters);
- const actualConfig=structuredClone(config);
- const basis=await createPreviewBasis({domainId:'xml-cii/2019',
-  sources:[{sourceId,mediaType:'application/xml',text:xmlText}],
-  masters:actualMasters,selection,stagedSource,
-  config:actualConfig,overrides:{},sha256:digestUtf8});
- const projection=projectXmlCiiOccurrences({xmlText,sourceId});
- const derived=xmlCiiDryRunPreview(xmlText,actualConfig,stagedSource);
- const result={...derived,sourceOccurrences:projection,
-  engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false};
- const opened=await openXml229EngineeringFactModel({
-  basis,live:{sources:{[sourceId]:xmlText},masters:actualMasters,
-   selection,stagedSource,config:actualConfig,overrides:{}},
-  xmlText,sourceId,previewResult:result,
-  expectedOriginalCount:projection.branchCount+projection.nodeCount,
- });
- assert.equal(opened.workerResult.engineeringAcceptance,'VERIFIED');
- assert.equal(opened.expectedOriginalCount,projection.nodeCount);
- assert(opened.physicalOccurrences.length>0);
- assert.equal(opened.expectedPhysicalFactCount,
-  opened.physicalOccurrences.length*XML229_ENGINEERING_FIELDS.length);
- const snap=await opened.model.getFacts({basisId:basis.basisId,
-  subjectType:'physical-component',limit:100});
- assert.equal(snap.complete,true);
- assert.equal(snap.totalCount,opened.expectedPhysicalFactCount);
- assert(snap.items.every(item=>item.sourceId===sourceId));
-});
+registerXml229ProducerIntegrityTests({XML,SOURCE_ID,masters,selection,config,live,fixture,projectXmlCiiOccurrences,createPreviewBasis,digestUtf8,xmlCiiDryRunPreview,openXml229EngineeringFactModel,getCode,XML229_ENGINEERING_FIELDS});
+registerXml229PythonWorkerRevisionTests({XML,SOURCE_ID,masters,selection,config,live,fixture,projectXmlCiiOccurrences,createPreviewBasis,digestUtf8,xmlCiiDryRunPreview,openXml229EngineeringFactModel});
 
 test('root and served docs producer are byte-for-byte identical',async()=>{
  const p='tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs';

@@ -72,7 +72,10 @@ export function buildXml229CandidateCoverageReport({
     ensure(['accepted','rejected','deferred'].includes(d?.state),
       'COVERAGE_INVALID_REVIEW_DECISION');
     if(d.state==='accepted'){
-      ensure(positive(d.value),'COVERAGE_ACCEPTED_NONPOSITIVE_KG');
+      ensure(positive(d.value) || (prefix==='final' && d.action==='set-zero-mass' &&
+        d.value===0 && typeof d.reason==='string' &&
+        d.reason.startsWith('Owner-confirmed explicit zero kg: ')),
+        'COVERAGE_ACCEPTED_NONPOSITIVE_KG');
       c[prefix==='match1'?'acceptedMatch1Count':'acceptedFinalCount']++;
     }else if(d.state==='rejected'){
       c[prefix==='match1'?'rejectedMatch1Count':'rejectedFinalCount']++;

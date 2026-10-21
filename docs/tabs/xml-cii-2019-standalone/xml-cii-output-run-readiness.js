@@ -117,7 +117,7 @@ function originalJsonAuthorityRows(input) {
     false,
     'Original JSON O1 source indexing (' + phaseCounts.join(', ') +
     ') is source-only. Even a verified engineering Preview and reviewed GC-PW Weight/Final session do not establish independent native CII Final/output consumption. Run is HELD until native output authority is verified; configured branch identity (whatever its verified occurrence count) and legacy cached rows never authorize it.',
-    {blocking:true,severity:'error',status:'held'})];
+    {blocking:true,severity:'warning',status:'held'})];
 }
 
 function inputXmlRows(input) {
@@ -238,7 +238,10 @@ function logRows(input, checklistRows) {
 }
 
 function readinessDiagnostics(checklistRows) {
-  return checklistRows.filter((item) => item.blocking || item.severity === 'warning').map((item) => ({ level: item.blocking ? 'error' : 'warning', source: 'output-run', type: item.id, message: item.message }));
+  return checklistRows.filter((item) => item.blocking || item.severity === 'warning')
+    .map((item) => ({ level: item.status === 'held' ? 'warning'
+      : item.blocking ? 'error' : 'warning',
+      source: 'output-run', type: item.id, message: item.message }));
 }
 
 export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineering = null,sessionState = 'UNKNOWN',leaseDiagnosis = null} = {}) {
@@ -246,24 +249,65 @@ export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineeri
   // diagnostics and the Run button all see identical source-bound status.
   const projection = projectXml229RunChecklist(
     input,buildOutputRunChecklist(input),verifiedEngineering);
+  const completion=verifiedEngineering?.proof;
+  const native=verifiedEngineering?.nativeOutput;
+  // After running, re-attest the result to the live original Worker Final.
+  // Neither a cached CII nor a forged release flag alone unlocks the gate.
+  const nativeVerified=projection.verified===true&&
+    completion?.counts?.unresolved===0&&completion?.counts?.match1===0&&
+    native?.schema==='XML229.GovernedNativeCandidateResult.v1'&&
+    native.nativeCiiReleaseAuthorized===true&&
+    native.massConsumptionVerified===true&&
+    native.strictOneToOneOwnerMatch===true&&
+    native.basisId===completion.basisId&&
+    native.sourceId===completion.sourceId&&
+    native.sourceGenerationId===completion.sourceGenerationId&&
+    native.originalJsonSha256===completion.originalJsonSha256&&
+    native.physicalCount===completion.verifiedPhysicalCount&&
+    native.finalIntentSha256===verifiedEngineering?.finalIntent?.intentSha256&&
+    native.actualCiiSha256===input.result?.xml229ActualCiiSha256&&
+    input.result?.ok===true&&input.result?.ciiText===native.ciiText;
+  const releaseRows=projection.rows.map(item=>
+    nativeVerified&&item.id==='xml229-original-json-engineering-authority'
+      ?{...item,status:'ready',severity:'ok',blocking:false,
+        message:'Current accepted masses were consumed by generated native CII (including confirmed 0 kg). Every original physical maps to one native ELEMENTS → RIGID pointer and a matching emitted mass. CII SHA '+native.actualCiiSha256+'.'}
+      :item);
   // The native-release HOLD is a policy boundary, not a diagnosis that
   // Weight is missing. Attach a separately derived first-unverified boundary
   // to the exact same canonical report, never to a DOM-only replacement row.
   const holdAudit = buildXml229RunHoldAudit({
-    input,report:{checklistRows:projection.rows},sessionState,leaseDiagnosis,
+    input,report:{checklistRows:releaseRows},sessionState,leaseDiagnosis,
     sessionReceipt:verifiedEngineering?.sessionReceipt,
     completion:verifiedEngineering?.proof,
     readError:verifiedEngineering?.readError,
   });
-  const checklistRows = projection.rows.map(item=>
+  const verifiedMass=verifiedEngineering?.proof?.counts;
+  const massMessage=verifiedEngineering?.proof?.schema==='XML229.P4.RunAdvisory.v1'&&
+    verifiedEngineering.proof.basisId===verifiedEngineering.sessionReceipt?.basisId&&
+    verifiedMass&&Number.isSafeInteger(verifiedMass.unresolved)&&
+    Number.isSafeInteger(verifiedMass.match1)&&Number.isSafeInteger(verifiedMass.final)
+    ?verifiedMass.unresolved>0
+      ?verifiedMass.unresolved+' original physical(s) still need Applied Weight. '+
+        'Assign a positive kg or explicitly confirm zero in Weight Match. '
+      :verifiedMass.match1>0
+        ?verifiedMass.match1+' physical(s) have Match-1 only; an Owner Final is required. '
+        :'Current Worker reports accepted Final masses; no missing mass is implied. '
+    :'Current original-source engineering completion is not verified. ';
+  const checklistRows = releaseRows.map(item=>
     item.id==='xml229-original-json-engineering-authority'&&item.blocking
-      ?{...item,message:item.message+' Audit diagnosis: '+
-          holdAudit.diagnosisCode+'. See Run HOLD audit trail below.',
+      ?{...item,message:massMessage+item.message+' '+
+          'Governed native CII release is HELD pending independent full output/child-lineage proof. '+
+          'This is a release-policy HOLD, not an exception from the converter. '+
+          'Diagnosis: '+holdAudit.diagnosisCode+'. See Run HOLD audit.',
         detail:JSON.stringify({schema:holdAudit.schema,diagnosisCode:holdAudit.diagnosisCode,
           firstUnverifiedBoundary:holdAudit.firstUnverifiedBoundary})}
       :item);
   const manifest = buildRunManifest(input);
-  const artifactRows = buildOutputArtifactRows(input, manifest);
+  // Do not advertise stale governed CII bytes before a new current-Worker
+  // Final-intent check approves the exact generated output.
+  const artifactRows = buildOutputArtifactRows(
+    hasOriginalJsonSourceOnlyRunHold(input)&&!nativeVerified
+      ?{...input,result:null}:input,manifest);
   const blockingCount = checklistRows.filter((item) => item.blocking).length;
   return {
     summary: {
@@ -281,6 +325,7 @@ export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineeri
     runHoldAudit:holdAudit,
     raw: { resultOk: input.result?.ok === true, sourceKind: input.sourceKind || 'auto',
       xml229VerifiedEngineering: projection.verified,
+      xml229NativeOutputVerified: nativeVerified,
       xml229XmlOnlyOutput: isXml229XmlOnlyApproved(input) },
   };
 }

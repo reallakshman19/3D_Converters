@@ -2,7 +2,7 @@
 export const WEIGHT_SCHEMA = 'gc-pw/1.0';
 const AUTHORITIES = new Set(['source', 'exact-master', 'derived', 'proposed', 'manual', 'unresolved', 'conflict']);
 const STAGES = new Set(['preview', 'RigidMatch1', 'Rigidmatch2']);
-const DECISIONS = new Set(['accept-proposal', 'enter-manual', 'reject', 'defer', 'final-override']);
+const DECISIONS = new Set(['accept-proposal', 'enter-manual', 'reject', 'defer', 'final-override', 'set-zero-mass']);
 const sha = (x) => typeof x === 'string' && /^[a-f\d]{64}$/i.test(x);
 function plainJson(value, seen = new Set()) {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
@@ -211,7 +211,8 @@ export function createWeightReviewService({ score, digestReview = null } = {}) {
           continue;
         }
         required(before.revision === expectedDecisionRevision, 'STALE_DECISION', 'Optimistic revision conflict');
-        const final = cmd.action === 'final-override';
+        const zero = cmd.action === 'set-zero-mass';
+        const final = cmd.action === 'final-override' || zero;
         required(stage === (final ? 'Rigidmatch2' : 'RigidMatch1') || (stage === 'Rigidmatch2' && ['reject','defer'].includes(cmd.action)), 'STAGE_CONFLICT', 'Wrong stage/action');
         let value = null, evidence = [];
         if (cmd.action === 'accept-proposal') {
@@ -221,6 +222,15 @@ export function createWeightReviewService({ score, digestReview = null } = {}) {
             'UNQUALIFIED_PROPOSAL', 'Inferred or fallback proposal requires an explicit engineering review reason');
           value = proposal.value;
           evidence = proposal.evidenceRefs;
+        } else if (zero) {
+          required(cmd.unit === 'kg' && cmd.value === 0 &&
+            cmd.zeroMassConfirmed === true &&
+            typeof cmd.reason === 'string' &&
+            cmd.reason.startsWith('Owner-confirmed explicit zero kg: '),
+            'ZERO_WEIGHT_CONFIRMATION_REQUIRED',
+            'Zero Final needs explicit owner confirmation; never use a Skip draft');
+          value = 0;
+          evidence = ['owner-confirmed-zero:' + cmd.commandId];
         } else if (cmd.action === 'enter-manual' || final) {
           required(cmd.unit === 'kg' && finitePositive(cmd.value), 'INVALID_WEIGHT', 'Explicit positive kg required');
           value = cmd.value;
@@ -296,10 +306,15 @@ export function createWeightReviewService({ score, digestReview = null } = {}) {
           'INVALID_REVIEW_STATE', 'Accepted commands require a decision revision');
         for (const [occurrenceId, decision] of Object.entries(decisions)) {
           required(opened.identities.get(occurrenceId) === scopeId && decision && ['accepted', 'rejected', 'deferred'].includes(decision.state)
-            && (!decision.value || finitePositive(decision.value)) && Array.isArray(decision.evidenceRefs),
+            && (decision.value == null || finitePositive(decision.value) ||
+              (decision.value === 0 && decision.action === 'set-zero-mass')) && Array.isArray(decision.evidenceRefs),
             'STALE_REVIEW_IDENTITY', 'Persisted decision does not match physical source occurrence');
           if (decision.state === 'accepted') {
-            required(finitePositive(decision.value) && decision.unit === 'kg', 'INVALID_REVIEW_WEIGHT', 'Accepted persisted mass must be kg');
+            required((finitePositive(decision.value) ||
+                (decision.action === 'set-zero-mass' && decision.value === 0 &&
+                 typeof decision.reason === 'string' &&
+                 decision.reason.startsWith('Owner-confirmed explicit zero kg: '))) &&
+                decision.unit === 'kg', 'INVALID_REVIEW_WEIGHT', 'Accepted persisted mass must be positive kg or explicitly confirmed zero');
             if (decision.action === 'accept-proposal') {
               const currentProposal = makeProposals(opened, occurrenceId).find((p) => p.proposalId === decision.proposalId);
               required(currentProposal && currentProposal.value === decision.value, 'STALE_PROPOSAL', 'Persisted proposal no longer ranks on the pinned basis');
@@ -374,7 +389,9 @@ export function createWeightReviewService({ score, digestReview = null } = {}) {
         const final = review.get(c.sourceId + '|Rigidmatch2')?.decisions[c.occurrenceId];
         const match1 = review.get(c.sourceId + '|RigidMatch1')?.decisions[c.occurrenceId];
         const accepted = final?.state === 'accepted' ? final.value : (match1?.state === 'accepted' ? match1.value : source?.value);
-        required(finitePositive(accepted), 'UNRESOLVED_WEIGHT', 'No accepted engineering weight for ' + c.occurrenceId);
+        required(finitePositive(accepted) ||
+          (final?.state === 'accepted' && final.action === 'set-zero-mass' && accepted === 0),
+          'UNRESOLVED_WEIGHT', 'No accepted engineering weight for ' + c.occurrenceId);
         required(Array.isArray(c.children) && c.children.length, 'INVALID_RUN', 'Physical component children required');
         const children = new Set();
         let total = 0;

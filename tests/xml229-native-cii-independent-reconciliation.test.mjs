@@ -32,11 +32,11 @@ function bundle(text=cii()){
     branchOccurrenceIndex:0,engineNodeOrdinal:0}]};
  return {originalXmlText:xml,packet,ciiText:text,writerDiagnostic};
 }
-test('independent byte parser reconciles accepted kg and native pointers without releasing output',async()=>{
+test('independent byte parser reconciles accepted kg and authorizes strict native output',async()=>{
  const proof=await reconcileXml229ActualCiiAgainstFinal(bundle());
  assert.equal(proof.massConsumptionVerified,true);
  assert.equal(proof.strictOneToOneOwnerMatch,true);
- assert.equal(proof.nativeCiiReleaseAuthorized,false);
+ assert.equal(proof.nativeCiiReleaseAuthorized,true);
  assert.equal(proof.nativeRigidCount,1);
  assert.equal(proof.physicalCount,1);
  assert.equal(proof.actualCiiSha256,sha(cii()));
@@ -62,9 +62,36 @@ test('tampered emitted mass, pointer, force units, or native element ancestry fa
  await assert.rejects(reconcileXml229ActualCiiAgainstFinal(raw),
   {code:'NATIVE_SOURCE_XML_SHA_DRIFT'});
 });
-test('unresolved, duplicate claims, forged release and mismatched basis evidence reject',async()=>{
+test('scientific formatter matches seven significant digits and rejects nearby wrong output',async()=>{
+ const tiny=bundle(cii({mass:'1.234567E-07'}));
+ tiny.packet.components[0].effectiveKg=0.00000001234567;
+ tiny.writerDiagnostic.claims[0].massKg=tiny.packet.components[0].effectiveKg;
+ const proof=await reconcileXml229ActualCiiAgainstFinal(tiny);
+ assert.equal(proof.nativeCiiReleaseAuthorized,true);
+ const altered=bundle(cii({mass:'1.234568E-07'}));
+ altered.packet.components[0].effectiveKg=tiny.packet.components[0].effectiveKg;
+ altered.writerDiagnostic.claims[0].massKg=tiny.packet.components[0].effectiveKg;
+ await assert.rejects(reconcileXml229ActualCiiAgainstFinal(altered),
+   {code:'NATIVE_CII_MASS_CONSUMPTION_MISMATCH'});
+ const huge=bundle(cii({mass:'1.234568E+09'}));
+ huge.packet.components[0].effectiveKg=123456780;
+ huge.writerDiagnostic.claims[0].massKg=123456780;
+ assert.equal((await reconcileXml229ActualCiiAgainstFinal(huge)).nativeCiiReleaseAuthorized,true);
+});
+
+test('accepted zero consumes real pointed CII RIGID; absent and mismatched masses reject',async()=>{
+ const zero=bundle(cii({mass:'0'}));
+ zero.packet.components[0].effectiveKg=0;
+ zero.writerDiagnostic.claims[0].massKg=0;
+ const proof=await reconcileXml229ActualCiiAgainstFinal(zero);
+ assert.equal(proof.nativeCiiReleaseAuthorized,true);
+ const changed=bundle(cii({mass:'1'}));
+ changed.packet.components[0].effectiveKg=0;
+ changed.writerDiagnostic.claims[0].massKg=0;
+ await assert.rejects(reconcileXml229ActualCiiAgainstFinal(changed),
+  {code:'NATIVE_CII_MASS_CONSUMPTION_MISMATCH'});
  const missing=bundle();
- missing.packet.components[0].effectiveKg=0;
+ missing.packet.components[0].effectiveKg=null;
  await assert.rejects(reconcileXml229ActualCiiAgainstFinal(missing),
   {code:'NATIVE_FINAL_COMPONENT_INVALID'});
  const forged=bundle();

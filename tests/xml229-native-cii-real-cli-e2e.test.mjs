@@ -22,14 +22,27 @@ const packet={schema:'XML229.NativeFinalPhysicalPacket.v1',
  sourceId:'SOURCE',basisId:'a'.repeat(64),finalIntentSha256:'b'.repeat(64),
  sourceXmlSha256:sha(source),physicalCount:1,nativeCiiReleaseAuthorized:false,
  components:[{occurrenceId,effectiveKg:12.5}]};
+test('native Run surfaces post-acceptance geometry changes as actionable blocker',()=>{
+ const ui=readFileSync(fileURLToPath(new URL(
+  '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs',
+  import.meta.url)),'utf8');
+ assert.ok(ui.includes('native?.error'));
+ assert.match(ui,/NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE/);
+ assert.match(ui,/NATIVE_DOUBLE_ENDPOINT_MASS_OWNER/);
+ assert.match(ui,/NATIVE_NONCANONICAL_ENDPOINT_OWNER/);
+ assert.match(ui,/NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT/);
+ assert.match(ui,/NATIVE_FINALIZED_NODE_ID_MAP_DRIFT/);
+ assert.match(ui,/NATIVE_RIGID_OWNER_UNSUPPORTED/);
+});
+
 test('Run diagnostic binds to stable live GC-PW authority, not mutable state.current',()=>{
  const ui=readFileSync(fileURLToPath(new URL(
   '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',
   import.meta.url)),'utf8');
  assert.match(ui,/const session=getXml229CurrentWorkerHeldReview\(stateRef\);/);
  assert.doesNotMatch(ui,/getXml229CurrentWorkerHeldReview\(stateRef\.current\)/);
- assert.match(ui,/sourceReceipt\.generationId/);
- assert.match(ui,/nativeCiiReleaseAuthorized:false|native CII release remains HELD|Native CII release remains HELD/i);
+ assert.match(ui,/receipt\.generationId/);
+ assert.match(ui,/runXml229NativeCiiMassCandidate/);
 });
 test('REAL Python native converter CII independently reconciles against exact source Final kg',async()=>{
  const folder=mkdtempSync(join(tmpdir(),'xml229-custody-'));
@@ -51,7 +64,7 @@ test('REAL Python native converter CII independently reconciles against exact so
   assert.equal(independent.massConsumptionVerified,true);
   assert.equal(independent.physicalCount,1);
   assert.equal(independent.actualCiiSha256,sha(ciiText));
-  assert.equal(independent.nativeCiiReleaseAuthorized,false);
+  assert.equal(independent.nativeCiiReleaseAuthorized,true);
   // Native-owned claims cannot hide a modified mass record in actual CII.
   const tampered=ciiText.replace(/(#\$ RIGID\r?\n)([^\r\n]+)/,
    (_all,prefix,row)=>prefix+row.replace(/^\s*\S+/, '126'));

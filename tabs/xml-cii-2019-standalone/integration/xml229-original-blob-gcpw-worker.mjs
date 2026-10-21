@@ -52,7 +52,7 @@ const hash=v=>typeof v==='string'&&/^[0-9a-f]{64}$/.test(v);
 const fail=(code,message)=>{const e=new Error(message);e.code=code;e.retryable=false;throw e;};
 const toHex=bytes=>Array.from(new Uint8Array(bytes),
   b=>b.toString(16).padStart(2,'0')).join('');
-let started=false,active='',cancelled=false,ready=null,sourceReceipt=null,physicalIdentityList=null,originalXmlCustody=null,verifiedPreviewResult=null;
+let started=false,active='',cancelled=false,ready=null,sourceReceipt=null,physicalIdentityList=null,originalXmlCustody=null,verifiedPreviewResult=null,finalizedGeometry=null;
 let weightProjection=null,pendingBulk=null,bulkSequence=0,previewAbortController=null;
 // Only contemporaneous successful Worker RPCs prove bulk confirmation.
 let confirmedBulkCommands=new Set(),restoringReview=false;
@@ -195,6 +195,7 @@ async function start(req){
    originalOccurrences:original,previewResult:verifiedPreviewResult,config,
  });
  ready=session;sourceReceipt=r;originalXmlCustody=xmlText;
+ finalizedGeometry=produced.finalizedGeometry;
  physicalIdentityList=produced.physicalOccurrences;weightProjection=display;
  flow(req.requestId,'GC_PW_READY',{physical:produced.physicalOccurrences.length,
    facts:session.openedFacts});
@@ -269,6 +270,13 @@ async function rpc(req){
  const {sourceId,occurrenceId,stage}=req;
  const review=ready.review,basisId=ready.basis.basisId;
  if(req.kind==='read'){
+   if(req.what==='instrument-suggestions'){
+     return {schema:'XML229.OptionalInstrumentModelSuggestions.v1',
+       basisId,sourceXmlSha256:finalizedGeometry?.sourceXmlSha256,
+       approvalRequired:false,readOnly:true,
+       sourceGeometryChanged:false,weightsAcceptedBySuggestions:false,
+       items:finalizedGeometry?.instrumentModelingSuggestions||[]};
+   }
    if(req.what==='preview'){
      if(!verifiedPreviewResult)fail('PREVIEW_RESULT_NOT_READY','Verified original engineering Preview result is missing');
      return verifiedPreviewResult;
@@ -304,10 +312,13 @@ async function rpc(req){
         full.rows.length!==physicalIdentityList?.length||
         full.basisId!==intent.basisId||
         !ready.basis.sourceRefs?.[0]?.sha256||
+        finalizedGeometry?.schema!=='XML229.FinalizedWeightGeometry.v1'||
+        finalizedGeometry?.basisId!==intent.basisId||
+        finalizedGeometry?.sourceXmlSha256!==ready.basis.sourceRefs[0].sha256||
         full.rows.some(row=>row.status==='Needs review'||row.status==='Match-1'||
-           !(typeof row.effectiveKg==='number'&&Number.isFinite(row.effectiveKg)&&row.effectiveKg>0)))
+           !(typeof row.effectiveKg==='number'&&Number.isFinite(row.effectiveKg)&&row.effectiveKg>=0)))
        fail('NATIVE_FINAL_MASS_CENSUS_UNREADY',
-         'Every independently indexed original physical needs a positive accepted Source/Final mass');
+         'Every original physical needs an accepted nonnegative Source/Final mass; native zero-mass lineage is verified separately');
      return {
        schema:'XML229.NativeFinalPhysicalPacket.v1',
        basisId:full.basisId,sourceId,
@@ -316,6 +327,7 @@ async function rpc(req){
        sourceXmlSha256:ready.basis.sourceRefs[0].sha256,
        finalIntentSha256:intent.intentSha256,
        physicalCount:full.rows.length,
+       finalizedGeometry,
        components:full.rows.map(row=>({
          occurrenceId:row.occurrenceId,
          effectiveKg:row.effectiveKg,
@@ -332,7 +344,10 @@ async function rpc(req){
      // Digest-only metadata (no source/master contents). Useful to locate
      // which exact InputBasis field changed on a legitimate browser restart.
      const basis=ready.basis;
-     return {...backup,inputBasisDigests:{
+     return {...backup,
+       finalizedGeometrySha256:finalizedGeometry?.sha256,
+       physicalOwnerSchema:finalizedGeometry?.physicalOwnerCardinality?.schema,
+       inputBasisDigests:{
        sourceRefs:basis.sourceRefs,
        masters:basis.masters,
        selectionSha256:basis.selectionSha256,
@@ -460,6 +475,14 @@ async function rpc(req){
    if(restoringReview)fail('REVIEW_RESTORE_IN_PROGRESS');
    restoringReview=true;
    try{
+     // New 372-part Final decisions cannot inherit old per-endpoint approvals
+     // from the same original source/master hash. Review backup is bound to
+     // the exact finalized pre-acceptance physical geometry, not source alone.
+     if(req.backup?.finalizedGeometrySha256!==finalizedGeometry?.sha256||
+        req.backup?.physicalOwnerSchema!==
+         finalizedGeometry?.physicalOwnerCardinality?.schema)
+       fail('REVIEW_BACKUP_FINAL_GEOMETRY_MISMATCH',
+         'Rebuild and review weights on this finalized physical-component geometry');
      const proof=await rpc({...req,kind:'read',what:'completion'});
      const result=await restoreXml229SourceBoundReviewBackup(review,req.backup,{
        basisId,sourceId,proof,

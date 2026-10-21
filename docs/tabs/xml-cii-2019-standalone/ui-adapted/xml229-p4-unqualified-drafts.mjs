@@ -78,7 +78,8 @@ export async function planXml229RigidWeightDrafts(session,{
      const row=page.rows[index];
      if(!row||row.sourceId!==sourceId||typeof row.occurrenceId!=='string'||
         !row.occurrenceId||!xml229WeightReviewEligible(row)||
-        positive(row.sourceKg)||positive(row.match1Kg)||positive(row.finalKg)||
+        positive(row.sourceKg)||positive(row.match1Kg)||
+     (typeof row.finalKg==='number'&&Number.isFinite(row.finalKg)&&row.finalKg>=0)||
         drafts.has(row.occurrenceId))
        deny('UNQUALIFIED_DRAFT_ROW_DRIFT');
      counts.blankRigid++;
@@ -185,7 +186,8 @@ export function seedXml229VisibleSuggestedWeightDrafts(rows,draftValues,{minScor
  for(const row of rows){
   if(!row||typeof row.occurrenceId!=='string'||!row.occurrenceId)
     deny('SUGGESTION_VISIBLE_ROW_INVALID');
-  if(positive(row.sourceKg)||positive(row.match1Kg)||positive(row.finalKg)||
+  if(positive(row.sourceKg)||positive(row.match1Kg)||
+     (typeof row.finalKg==='number'&&Number.isFinite(row.finalKg)&&row.finalKg>=0)||
      row.match1View?.stageDecision||row.finalView?.stageDecision)continue;
   const saved=draftValues.get(row.occurrenceId);
   if(saved&&!saved.skippedWeight)continue;

@@ -34,6 +34,7 @@ _ORIGINAL_PARSE_XML_DOCUMENT = base._parse_xml_document
 _ORIGINAL_BUILD_RESTRAINTS = base._build_restraints
 _ORIGINAL_BUILD_COORDS_PAYLOAD = base._build_coords_payload
 _PUBLISH_BEND_RADIUS_1_5D = False
+_XML229_FINALIZED_GEOMETRY_ACTIVE = False
 EXPLICIT_RESTRAINT_CUSTODY_EVENTS: list[dict] = []
 
 
@@ -206,7 +207,9 @@ def _audit_collapsed_explicit_restraint_identity(document: base.XmlDocument, sou
 
 def _runtime_parse_xml_document(path) -> base.XmlDocument:
     source_rows = _source_explicit_restraint_identity_rows(path)
-    document = _ORIGINAL_PARSE_XML_DOCUMENT(path, preserve_rigid_weight_owners=True)
+    document = _ORIGINAL_PARSE_XML_DOCUMENT(
+        path, preserve_rigid_weight_owners=True,
+        preserve_finalized_geometry=_XML229_FINALIZED_GEOMETRY_ACTIVE)
     return _audit_collapsed_explicit_restraint_identity(document, source_rows)
 
 
@@ -369,7 +372,7 @@ def install_runtime_custody_patch() -> None:
 
 
 def main() -> None:
-    global _PUBLISH_BEND_RADIUS_1_5D
+    global _PUBLISH_BEND_RADIUS_1_5D, _XML229_FINALIZED_GEOMETRY_ACTIVE
 
     args = patched._parse_args()
     support_config = patched._load_support_config(args.support_config_json)
@@ -379,18 +382,35 @@ def main() -> None:
     support_config.setdefault("defaultTeeSifType", 0)
     _PUBLISH_BEND_RADIUS_1_5D = publish_one_point_five_d(support_config)
 
-    input_xml = patched._maybe_enrich_from_staged_json(args.input, args.staged_json, support_config)
+    # Stage exact original occurrence identities before ANY enrichment,
+    # renumbering, or short-element cleanup. Original packet SHA is checked
+    # against untouched args.input by the stage and again by the binder.
+    staged_original = args.input
+    if args.xml229_native_final_packet is not None:
+        from xml229_native_final_mass_binding import stage_native_original_lineage
+        staged_original = stage_native_original_lineage(
+            args.input, args.xml229_native_final_packet)
+    input_xml = patched._maybe_enrich_from_staged_json(
+        staged_original, args.staged_json, support_config)
     input_xml = patched._apply_process_data_to_xml(input_xml, support_config)
     input_xml, bend_policy = apply_bend_radius_policy(input_xml, support_config)
+    # Weights are accepted against the immutable original XML geometry.
+    # Geometry transformation must be complete BEFORE those decisions, not
+    # performed implicitly during this Run. Number-only renaming is allowed;
+    # added/deleted/reordered/repositioned/retyped physical nodes are not.
+    if args.xml229_native_final_packet is not None:
+        from xml229_native_final_mass_binding import assert_preaccepted_geometry_unchanged
+        assert_preaccepted_geometry_unchanged(staged_original, input_xml)
     # The *actual* converter input receives accepted Final masses here, not
-    # a separate diagnostic copy. Unsupported splits/owners stop generation.
+    # a separate diagnostic copy. No post-acceptance geometry splitting.
     xml229_native_owners = None
     if args.xml229_native_final_packet is not None:
         if args.xml229_native_mass_proof is None or args.weight_scale != 10:
             raise ValueError("XML229_NATIVE_MASS_PROOF_AND_KG_TO_N_REQUIRED")
         from xml229_native_final_mass_binding import bind_native_final_xml
         input_xml, xml229_native_owners = bind_native_final_xml(
-            args.input, input_xml, args.xml229_native_final_packet)
+            args.input, input_xml, args.xml229_native_final_packet,
+            require_staged_lineage=True)
     elif args.xml229_native_mass_proof is not None:
         raise ValueError("XML229_NATIVE_FINAL_PACKET_REQUIRED")
     for row in bend_policy.get("rows", []):
@@ -405,6 +425,16 @@ def main() -> None:
     tee_desc_by_node = direction._tee_description_by_node(input_xml)
     insulation_density_map = patched._branch_insulation_density_map(input_xml)
     hydro_pressure_map = patched._branch_hydro_pressure_map(input_xml)
+    # The Worker-finalized XML is already cleaned. Skip the second
+    # coordinate-based cleanup which was previously applied AFTER Final.
+    if args.xml229_native_final_packet is not None:
+        from xml229_native_final_mass_binding import read_packet
+        active_packet, _ = read_packet(
+            args.xml229_native_final_packet, args.input)
+        _XML229_FINALIZED_GEOMETRY_ACTIVE = bool(
+            active_packet.get("finalizedGeometry"))
+    else:
+        _XML229_FINALIZED_GEOMETRY_ACTIVE = False
     document = base._parse_xml_document(input_xml)
     component_specs = direction._component_type_restraint_specs(document, support_config)
     dtxr_specs, node_number_kind_map = patched._build_keyword_restraint_specs(input_xml, support_config)
@@ -424,6 +454,9 @@ def main() -> None:
         patched._node_name_kind_map(document, node_number_kind_map),
         support_config,
     )
+    if xml229_native_owners is not None:
+        from xml229_native_final_mass_binding import assert_native_model_geometry_unchanged
+        assert_native_model_geometry_unchanged(staged_original, document, model)
     require_rigid_weight_owners(input_xml, model)
     temperature_map, pressure_map = patched._branch_case_maps(document)
     base._build_restraint_payload = direction._direction_enabled_restraint_payload_factory(support_config)

@@ -1,24 +1,25 @@
-/**
- * One pending Apply click survives a busy Worker-backed page navigation.
- * Never replay it against a superseded InputBasis/session.
- * This helper only re-dispatches a UI click; no review writer is called.
- */
+/** Defers the source-wide Apply or read-only safety export during a live Worker render/write. */
 export function createXml229BulkApplyQueue(root,live,say){
  let pending=null;
+ const selectors=['[data-p4-bulk-plan]','[data-p4-full-source-safety]'];
  return Object.freeze({
-   defer(event,session,busy){
-     if(!busy)return false;
-     if(session&&event.target.closest?.('[data-p4-bulk-plan]')){
-       pending=session;
-       say('Apply all suggestions queued; waiting for current Weight page.');
-     }
-     return true;
-   },
-   drain(session){
-     if(!pending)return;
-     const current=pending===session&&live()===session&&root.isConnected;
-     pending=null;
-     if(current)root.querySelector('[data-p4-bulk-plan]')?.click();
-   },
+  defer(event,session,busy){
+   if(!busy)return false;
+   const which=selectors.find(selector=>event.target.closest?.(selector));
+   if(session&&which){
+    pending={session,which};
+    say(which===selectors[0]
+      ?'Apply all suggestions queued for current Weight page.'
+      :'Full-source safety audit queued until current Worker decisions settle.');
+   }
+   return true;
+  },
+  drain(session){
+   if(!pending)return;
+   const {session:owner,which}=pending;
+   const current=owner===session&&live()===session&&root.isConnected;
+   pending=null;
+   if(current)root.querySelector(which)?.click();
+  },
  });
 }

@@ -10,7 +10,8 @@ def _text(element, name):
 
 def _has_weight(element):
     weight = float(_text(element, "Weight") or "0")
-    return _text(element, "Rigid") == "2" and math.isfinite(weight) and weight > 0
+    return _text(element, "Rigid") == "2" and math.isfinite(weight) and (
+        weight > 0 or (weight == 0 and bool(_text(element, "XML229OriginalPhysicalId"))))
 
 
 def prepare_weighted_node_numbers(root):
@@ -44,8 +45,10 @@ def prepare_weighted_node_numbers(root):
 def preserve_weighted_short_hop(kept, node, protected, length):
     """Keep nonzero physical component hops; never shift or sum their mass."""
     previous = kept[-1]
-    arriving_weighted = node.rigid == 2 and math.isfinite(node.weight) and node.weight > 0
-    previous_weighted = previous.rigid == 2 and math.isfinite(previous.weight) and previous.weight > 0
+    arriving_weighted = node.rigid == 2 and math.isfinite(node.weight) and (
+        node.weight > 0 or (node.weight == 0 and bool(node.xml229_original_physical_id)))
+    previous_weighted = previous.rigid == 2 and math.isfinite(previous.weight) and (
+        previous.weight > 0 or (previous.weight == 0 and bool(previous.xml229_original_physical_id)))
     if (arriving_weighted or node.weighted_component_start) and length > 0:
         return [*kept, node]
     if previous_weighted and not arriving_weighted and node.node_number in protected and length > 0:
