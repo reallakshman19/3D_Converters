@@ -142,6 +142,48 @@ try{
  }));
  assert.deepEqual(outcome,{accepted:15,zero:14,positive:1,
   final:100,preserved:true,nativeResult:null});
+ const auto=await page.evaluate(async()=>{
+  const {offerXml229AutomaticNativeRun}=await import(
+   '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-auto-native.mjs');
+  const worker=window.__worker,ref=window.__stateRef;
+  const sha='a'.repeat(64),generationId='source-generation';
+  worker.readNativeFinalPacket=async()=>({nativeCiiReleaseAuthorized:false});
+  worker.receipt.originalJsonSha256=sha;
+  worker.receipt.sourceGenerationId=generationId;
+  ref.current.xml229StagedSourceReceipt={
+   schema:'XML229.OriginalStagedSourceReceipt.v1',sha256:sha,generationId};
+  const btn=document.createElement('button');
+  btn.dataset.action='xml229-native-run';
+  document.querySelector('#run').append(btn);
+  let clicks=0;btn.addEventListener('click',()=>{clicks++;});
+  const report={raw:{xml229VerifiedEngineering:true},checklistRows:[
+   {id:'weight-match',status:'ready',blocking:false},
+   {id:'xml229-original-json-engineering-authority',status:'held',blocking:true},
+   {id:'run-result',status:'pending',blocking:false},
+  ]};
+  const invoke=()=>offerXml229AutomaticNativeRun({
+   stateRef:ref,session:worker,report,button:btn,
+   liveWorker:()=>window.__worker,
+  });
+  ref.current.activePhaseId='preview';const hidden=invoke();
+  await Promise.resolve();
+  const before=clicks;
+  ref.current.activePhaseId='run';
+  const scheduled=invoke(),concurrent=invoke();
+  await Promise.resolve();
+  const one=clicks;
+  invoke();await Promise.resolve();
+  const after=clicks;
+  ref.current.result={ok:false,error:'NATIVE_CONVERSION_HELD'};
+  const failedRun=invoke();await Promise.resolve();
+  return {hidden,before,scheduled,concurrent,one,after,failedRun,
+    resultUnchanged:ref.current.result.error==='NATIVE_CONVERSION_HELD',
+    acceptedCount:window.__decisions.length};
+ });
+ assert.deepEqual(auto,{hidden:false,before:0,scheduled:true,
+  concurrent:true,one:1,after:1,failedRun:false,
+  resultUnchanged:true,acceptedCount:15},
+  'automatic native launch only on active ready Run; one attempt and no Final writes');
  assert.deepEqual(errors,[]);
  console.log(JSON.stringify({schema:'XML229.RunAutoPopupBrowser.v1',
   initiallyAutomatic:true,requiresExplicitConfirmation:true,

@@ -161,7 +161,11 @@ export function renderAdaptedCiiPreviewCanvas(parent, state, report) {
 
   const metaText = available
     ? `${ciiRow?.filename || state?.result?.ciiName || 'output.cii'} | ${stats.lines} lines | ${stats.bytes} bytes`
-    : 'Run conversion to enable the .cii preview and download.';
+    : state?.running
+      ? 'Native conversion in progress. Download remains locked until independent CII verification succeeds.'
+      : report?.raw?.xml229VerifiedEngineering===true
+        ? 'Verified Final masses ready. Native Run starts automatically in the active Run tab; Download unlocks after output reconciliation.'
+        : 'Run conversion to enable the .cii preview and download.';
   card.append(head, geometryHost, geometryMeta, host, createElement('div', metaText, 'xml-cii-adapted-cii-preview-meta model-converters-preview-meta'));
   parent.appendChild(card);
   drawAdaptedCiiPreviewCanvas(canvas, ciiText);

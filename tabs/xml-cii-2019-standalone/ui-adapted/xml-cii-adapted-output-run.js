@@ -7,6 +7,7 @@ import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-can
 import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
 import {runXml229NativeCiiMassCandidate} from './xml229-native-cii-candidate-run.mjs';
 import {createXml229RunMassReviewButton} from './xml229-run-mass-review-button.mjs';
+import {offerXml229AutomaticNativeRun} from './xml229-run-auto-native.mjs';
 import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js';
 import {ensureXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace,getXml229CandidateAttempt} from './xml229-flow-trace-registry.mjs';
 import {buildXml229RunHoldAudit} from '../integration/xml229-run-hold-audit.mjs';
@@ -32,7 +33,6 @@ function masterRowCount(state, masterKey, contextRowsKey, configRows) {
   if (Array.isArray(contextRows) && contextRows.length) return contextRows.length;
   return Array.isArray(configRows) ? configRows.length : 0;
 }
-
 export function outputRunReadinessMasterCounts(state, config = supportConfigForReadiness(state)) {
   return {
     linelist: masterRowCount(state, 'lineList', 'lineRows', config?.linelist?.masterRows),
@@ -41,7 +41,6 @@ export function outputRunReadinessMasterCounts(state, config = supportConfigForR
     weight: masterRowCount(state, 'weight', 'weightMasterRows', config?.weight?.masterRows),
   };
 }
-
 function section(parent, title) {
   const el = createElement('section', '', 'xml-cii-weight-panel');
   el.appendChild(createElement('h3', title));
@@ -451,7 +450,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
       ?'XML-only selected for this exact XML, branch selection, config and master basis. Staged JSON, Preview, GC-PW and accepted Weight/Final decisions are excluded from native conversion; source or master changes require new explicit selection.'
       :(report.raw.xml229NativeOutputVerified
         ?'Current accepted engineering weights are consumed by verified native CII output. Download is permitted while this Worker source and Final intent remain unchanged.'
-        :'The original JSON index is not a conversion result. Finalise and Run Conversion will use the accepted Source/Final weights, verify actual emitted CII mass records, then download only if reconciliation succeeds. XML-only testing excludes these weights.'),
+        :'When Run is active with verified Final masses, native conversion starts automatically once per Worker. Download is enabled only after independent output mass/lineage verification; manual retry remains available. XML-only testing excludes these weights.'),
     'model-converters-workflow-detail-note'));
   const actionDiv = createElement('div');
   if (actionDiv.style) Object.assign(actionDiv.style, { marginTop: '12px', display: 'flex', gap: '8px', flexDirection: 'column' });
@@ -575,7 +574,8 @@ function renderRunControls(parent, stateRef, state, report, render) {
         xml229ActualCiiSha256:verified.actualCiiSha256,
         xml229NativeOutput:verified};
       stateRef.current=updateWorkflowState(stateRef.current,{result});
-      downloadTextFile(result.ciiName,result.ciiText,'text/plain;charset=utf-8');
+      try{downloadTextFile(result.ciiName,result.ciiText,'text/plain;charset=utf-8');}
+      catch{recordXml229FlowTrace(stateRef,{kind:'AUTO_DOWNLOAD_UNAVAILABLE',actor:'output-ui'});}
     }catch(error){
       if(current())stateRef.current=updateWorkflowState(stateRef.current,{
         result:{ok:false,error:String(error?.code||'NATIVE_CII_RECONCILIATION_FAILED')}});
@@ -588,6 +588,9 @@ function renderRunControls(parent, stateRef, state, report, render) {
   });
   actionDiv.append(runReviewBtn,noteDiv,refreshBtn,exportEvidenceBtn,finalizeBtn);
   ctrlCard.appendChild(actionDiv);
+  if(governed&&weightsReady&&!blocked)offerXml229AutomaticNativeRun({
+    stateRef,session:getXml229CurrentWorkerHeldReview(stateRef),report,
+    button:finalizeBtn,liveWorker:()=>getXml229CurrentWorkerHeldReview(stateRef)});
 }
 
 /**

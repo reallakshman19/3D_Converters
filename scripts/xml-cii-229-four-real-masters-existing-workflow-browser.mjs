@@ -357,7 +357,12 @@ try{
   // Fully accepted Worker Source/Final masses now permit an attempt to
   // generate and independently reconcile native CII. They do not pre-claim
   // an output artifact before the actual converter runs.
-  assert.equal(await page.locator('[data-action="xml229-native-run"]').isEnabled(),true);
+  const nativeBtn=page.locator('[data-action="xml229-native-run"]');
+  const nativeRunEnabled=await nativeBtn.isEnabled();
+  const nativeLabel=(await nativeBtn.textContent()).trim();
+  assert(nativeRunEnabled||nativeLabel==='Running...',
+    'Complete Final census must either enable native Run or have already auto-started it');
+  record.stages.nativeRunAutoStarted=!nativeRunEnabled&&nativeLabel==='Running...';
   for(const item of record.stages.runIndependentStages){
     assert.equal(exported.checklistRows.find(x=>x.id===item.id)?.status,item.status,
       'rendered independent stage must equal exported canonical status');
@@ -500,13 +505,22 @@ try{
     ...document.querySelectorAll('[data-active-phase="run"] tbody tr'),
   ].some(tr=>tr.children[0]?.textContent==='weight-match'&&
     /0 Match-1 only/.test(tr.textContent)),null,{timeout:30000});
-  assert.equal(await page.locator('[data-action="xml229-native-run"]').isEnabled(),true,
-    'restored accepted Source/Final mass must permit real native reconciliation, not an unconditional HOLD');
+  const restoredNativeBtn=page.locator('[data-action="xml229-native-run"]');
+  const restoredNativeEnabled=await restoredNativeBtn.isEnabled();
+  const restoredNativeLabel=(await restoredNativeBtn.textContent()).trim();
+  assert(restoredNativeEnabled||restoredNativeLabel==='Running...',
+    'restored accepted Source/Final masses must enable or automatically start native reconciliation');
+  record.stages.restoredNativeAutoStarted=!restoredNativeEnabled&&restoredNativeLabel==='Running...';
   // XML229: explicitly allow ordinary XML native preflight while excluding
   // optional JSON; reselect governed and prove its native O1 HOLD persists.
   const participation=page.locator('[data-action="xml229-output-participation"]');
   assert.equal(await participation.inputValue(),'governed',
     'loading original JSON must not silently opt into XML-only conversion');
+  // The automatic governed candidate must settle before changing conversion
+  // routes; a stale, in-flight Run must not leak into an XML-only test.
+  await page.waitForFunction(()=>document.querySelector(
+    '[data-action="xml229-output-participation"]')?.disabled===false,
+    null,{timeout:120000});
   await participation.selectOption('xml-only');
   await page.waitForFunction(()=>(
     ![...document.querySelectorAll('[data-active-phase="run"] tbody tr')]
