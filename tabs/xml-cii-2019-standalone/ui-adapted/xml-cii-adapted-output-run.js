@@ -7,6 +7,7 @@ import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-can
 import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
 import {runXml229NativeCiiMassCandidate} from './xml229-native-cii-candidate-run.mjs';
 import {createXml229RunMassReviewButton} from './xml229-run-mass-review-button.mjs';
+import {createXml229NativeJsonReattachControl} from './xml229-native-json-reattach.mjs';
 import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js';
 import {ensureXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace,getXml229CandidateAttempt} from './xml229-flow-trace-registry.mjs';
 import {buildXml229RunHoldAudit} from '../integration/xml229-run-hold-audit.mjs';
@@ -14,10 +15,8 @@ import {inspectXml229EngineeringLease} from '../integration/xml229-engineering-b
 import {syncXml229CanonicalOutputHeaderBadges} from './xml229-canonical-output-header-badges.mjs';
 import {captureXml229XmlOnlyApproval,isXml229XmlOnlyApproved}
   from '../integration/xml229-output-participation.mjs';
-
 function rows(value) { return Array.isArray(value) ? value : []; }
 function text(value) { return String(value ?? ''); }
-
 function supportConfigForReadiness(state) {
   try {
     const parsed = JSON.parse(String(state?.supportConfigJson || '{}'));
@@ -26,7 +25,6 @@ function supportConfigForReadiness(state) {
     return {};
   }
 }
-
 function masterRowCount(state, masterKey, contextRowsKey, configRows) {
   const ref = state?.masterContext?.datasetRefs?.[masterKey];
   const datasetCount = Number(ref?.rowCount);
@@ -589,7 +587,9 @@ function renderRunControls(parent, stateRef, state, report, render) {
       }
     }
   });
-  actionDiv.append(runReviewBtn,noteDiv,refreshBtn,exportEvidenceBtn,finalizeBtn);
+  const reattach=governed?createXml229NativeJsonReattachControl({stateRef,createElement}):null;
+  actionDiv.append(runReviewBtn,noteDiv,...(reattach?[reattach]:[]),
+    refreshBtn,exportEvidenceBtn,finalizeBtn);
   ctrlCard.appendChild(actionDiv);
 }
 

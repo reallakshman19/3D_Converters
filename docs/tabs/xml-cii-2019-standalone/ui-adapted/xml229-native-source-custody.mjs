@@ -7,7 +7,7 @@ const fail=code=>{const e=new Error(code);e.code=code;throw e;};
 const text=value=>typeof value==='string'?value:'';
 const sha=value=>typeof value==='string'&&/^[a-f0-9]{64}$/i.test(value);
 
-export async function resolveXml229NativeCandidateSource({state,packet,readFile}={}){
+export async function resolveXml229NativeCandidateSource({state,packet,readFile,attachment=null}={}){
  if(!state||!packet||!sha(packet.sourceXmlSha256)||
     !sha(packet.originalJsonSha256)||typeof readFile!=='function')
    fail('NATIVE_CANDIDATE_SOURCE_CUSTODY_REQUIRED');
@@ -31,7 +31,15 @@ export async function resolveXml229NativeCandidateSource({state,packet,readFile}
    fail('NATIVE_CANDIDATE_STAGED_JSON_FILE_UNREADABLE');
  if(stagedFileText&&stagedStateText&&stagedFileText!==stagedStateText)
    fail('NATIVE_CANDIDATE_STAGED_JSON_CONFLICT');
- const stagedJsonText=stagedFileText||stagedStateText;
+ let stagedJsonText=stagedFileText||stagedStateText;
+ if(!stagedJsonText&&attachment){
+   if(attachment.basisId!==packet.basisId||
+      attachment.sourceGenerationId!==packet.sourceGenerationId||
+      attachment.sha256!==packet.originalJsonSha256||!attachment.file)
+     fail('NATIVE_CANDIDATE_JSON_ATTACHMENT_STALE');
+   stagedJsonText=text(await readFile(attachment.file));
+   if(!stagedJsonText)fail('NATIVE_CANDIDATE_JSON_ATTACHMENT_UNREADABLE');
+ }
  // Default native behavior uses staged JSON for restraint semantics.
  // Never silently opt out merely because O1 keeps the original blob private.
  if(!stagedJsonText&&state.options?.useRestraintTypeBasedOnJson!==false)

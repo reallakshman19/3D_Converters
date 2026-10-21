@@ -12,6 +12,7 @@ on:
       - 'tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-{client,worker}.mjs'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-source-custody.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-json-reattach.mjs'
       - 'tests/xml229-native-source-custody.test.mjs'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js'
       - 'docs/converters/**'
@@ -64,12 +65,13 @@ jobs:
           node --check converters/xml-cii2019-core/xml229-native-cii-independent-reconciliation.mjs
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-source-custody.mjs
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-json-reattach.mjs
           node --check converters/xml-cii-2019-standalone/engine.js
           node --check converters/xml-cii-2019-standalone/invocation-builder.js
           node --check tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs
           node --test tests/xml229-native-cii-independent-reconciliation.test.mjs tests/xml229-native-cii-real-cli-e2e.test.mjs tests/xml229-run-hold-audit.test.mjs tests/xml229-native-source-custody.test.mjs
       - name: Verify root and live-served modules are identical
         run: |
-          for f in             converters/xml-cii2019-core/xml229-native-cii-independent-reconciliation.mjs             converters/xml-cii-2019-standalone/engine.js             converters/xml-cii-2019-standalone/invocation-builder.js             tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs             tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs             tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs             tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-source-custody.mjs             tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js; do
+          for f in             converters/xml-cii2019-core/xml229-native-cii-independent-reconciliation.mjs             converters/xml-cii-2019-standalone/engine.js             converters/xml-cii-2019-standalone/invocation-builder.js             tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs             tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs             tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs             tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-source-custody.mjs             tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-json-reattach.mjs             tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js; do
             diff -u "$f" "docs/$f"
           done

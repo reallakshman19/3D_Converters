@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
+import {attachXml229NativeJson,getXml229NativeJsonReattachment}
+ from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-json-reattach.mjs';
 import {resolveXml229NativeCandidateSource}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-source-custody.mjs';
 
@@ -70,6 +72,43 @@ test('conflicting browser file and text or unreadable JSON fail closed',async()=
   state:{sourceText:xml},packet:{...packet,originalJsonSha256:'wrong'},
   readFile:loadFile}),{code:'NATIVE_CANDIDATE_SOURCE_CUSTODY_REQUIRED'});
 });
+test('Owner explicitly reattaches exact original JSON to the same Worker for restraint-based native Run',async()=>{
+ const sourceGenerationId='original-generation',basisId='b'.repeat(64);
+ const session={closed:false,receipt:{basisId,sourceGenerationId,
+  originalJsonSha256:digest(json)},
+  readCompletion:async()=>({basisId,sourceGenerationId,
+   originalJsonSha256:digest(json)})};
+ const file={text:async()=>json,bytes:json};
+ assert.equal(getXml229NativeJsonReattachment(session),null);
+ const attachment=await attachXml229NativeJson({session,file});
+ assert.equal(attachment.sha256,digest(json));
+ assert.equal(getXml229NativeJsonReattachment(session),attachment);
+ const present=await resolveXml229NativeCandidateSource({
+  state:{sourceText:xml,options:{useRestraintTypeBasedOnJson:true}},
+  packet:{...packet,sourceGenerationId,basisId},
+  attachment,readFile:loadFile});
+ assert.equal(present.stagedJsonText,json);
+ assert.equal(present.sourceText,xml);
+ const stale={...attachment,sourceGenerationId:'different'};
+ await assert.rejects(resolveXml229NativeCandidateSource({
+  state:{sourceText:xml},packet:{...packet,sourceGenerationId,basisId},
+  attachment:stale,readFile:loadFile
+ }),{code:'NATIVE_CANDIDATE_JSON_ATTACHMENT_STALE'});
+ session.closed=true;
+ assert.equal(getXml229NativeJsonReattachment(session),null);
+});
+test('wrong JSON never attaches and cannot silently authorize native output',async()=>{
+ const basisId='b'.repeat(64),sourceGenerationId='gen';
+ const session={closed:false,receipt:{basisId,sourceGenerationId,
+  originalJsonSha256:digest(json)},
+  readCompletion:async()=>({basisId,sourceGenerationId,
+   originalJsonSha256:digest(json)})};
+ await assert.rejects(attachXml229NativeJson({
+  session,file:{text:async()=>'{"bad":true}',bytes:'{"bad":true}'},
+ }),{code:'NATIVE_JSON_ATTACH_SHA_MISMATCH'});
+ assert.equal(getXml229NativeJsonReattachment(session),null);
+});
+
 test('native candidate remains guarded by independent mass output and no staged-JSON shortcut',async()=>{
  const candidate=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs',import.meta.url),'utf8');
  assert.match(candidate,/session\.readNativeFinalPacket\(\)/);
@@ -78,7 +117,7 @@ test('native candidate remains guarded by independent mass output and no staged-
  assert.match(candidate,/reconcileXml229ActualCiiAgainstFinal/);
  assert.match(candidate,/nativeCiiReleaseAuthorized!==true/);
  assert.doesNotMatch(candidate,/NATIVE_CANDIDATE_ORIGINAL_SOURCE_REQUIRED/);
- for(const p of ['xml229-native-source-custody.mjs','xml229-native-cii-candidate-run.mjs']){
+ for(const p of ['xml229-native-source-custody.mjs','xml229-native-json-reattach.mjs','xml229-native-cii-candidate-run.mjs']){
   const root=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/'+p,import.meta.url),'utf8');
   const served=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/'+p,import.meta.url),'utf8');
   assert.equal(root,served,p);
