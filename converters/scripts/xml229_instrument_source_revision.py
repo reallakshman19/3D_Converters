@@ -118,45 +118,36 @@ def inspect(xml):
     }
 
 
-def valid_approval(row, anchor, manifest_dir):
+def optional_choice(row, anchor, manifest_dir):
+    """PENDING or omitted choices need no approval and do not change XML."""
     require(isinstance(row, dict) and
             all(row.get(key) == value for key, value in anchor.items()),
             "INSTRUMENT_SOURCE_ANCHOR_DRIFT")
-    require(row.get("classification") == "RIGID",
-            "INSTRUMENT_ENGINEERING_CLASSIFICATION_REQUIRED")
-    for key in ("approvedBy", "approvedAtUtc",
-                "evidencePath", "evidenceCitation"):
-        value = row.get(key)
-        require(isinstance(value, str) and
-                len(value.strip()) >= 3 and
-                value.strip().lower() not in BAD_VALUE,
-                "INSTRUMENT_APPROVAL_EVIDENCE_REQUIRED")
-    try:
-        approved = datetime.fromisoformat(row["approvedAtUtc"].replace("Z", "+00:00"))
-    except ValueError:
-        raise ClassificationRefused("INSTRUMENT_APPROVAL_TIME_INVALID") from None
-    require(approved.tzinfo is not None and
-            approved.utcoffset() == timedelta(0),
-            "INSTRUMENT_APPROVAL_TIME_INVALID")
-    evidence_sha = row.get("evidenceSha256")
-    require(isinstance(evidence_sha, str) and SHA.fullmatch(evidence_sha),
-            "INSTRUMENT_EVIDENCE_HASH_REQUIRED")
-    evidence_path = Path(row["evidencePath"])
-    if not evidence_path.is_absolute():
-        evidence_path = manifest_dir / evidence_path
-    require(evidence_path.is_file() and digest(evidence_path.read_bytes()) ==
-            evidence_sha, "INSTRUMENT_EVIDENCE_BYTES_MISMATCH")
+    choice = row.get("classification", "PENDING")
+    require(choice in ("PENDING", "KEEP_SOURCE", "FLEXIBLE", "RIGID"),
+            "INSTRUMENT_CHOICE_INVALID")
+    if choice != "RIGID":
+        return None
+    evidence_path = row.get("evidencePath") or ""
+    evidence_sha = row.get("evidenceSha256") or ""
+    if evidence_path or evidence_sha:
+        require(bool(evidence_path) and isinstance(evidence_sha, str) and
+                SHA.fullmatch(evidence_sha) is not None,
+                "INSTRUMENT_OPTIONAL_EVIDENCE_INCOMPLETE")
+        source = Path(evidence_path)
+        if not source.is_absolute():
+            source = manifest_dir / source
+        require(source.is_file() and digest(source.read_bytes()) == evidence_sha,
+                "INSTRUMENT_EVIDENCE_BYTES_MISMATCH")
     return {
         "branchOccurrenceIndex": anchor["branchOccurrenceIndex"],
         "endSourceNodeOrdinal": anchor["endSourceNodeOrdinal"],
         "componentRefNo": anchor["componentRefNo"],
         "classification": "RIGID",
-        "approvedBy": row["approvedBy"].strip(),
-        "approvedAtUtc": row["approvedAtUtc"],
-        "evidenceSha256": evidence_sha,
-        "evidenceCitation": row["evidenceCitation"].strip(),
+        "engineeringApprovalVerified": False,
+        "approvalRequired": False,
+        "evidenceSha256": evidence_sha or None,
     }
-
 
 def approve(xml, manifest, revised, receipt):
     source = Path(xml)
