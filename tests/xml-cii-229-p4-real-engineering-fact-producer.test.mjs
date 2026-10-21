@@ -8,7 +8,11 @@ import './xml-cii-229-independent-preview-worker.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
-import {readFile} from 'node:fs/promises';
+import {readFile,mkdtemp,writeFile,rm} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {installWeightBasisXmlDom} from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
 import {xmlCiiDryRunPreview} from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-dryrun.js';
 import {projectXmlCiiOccurrences} from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-xml-source.js';
@@ -362,6 +366,83 @@ test('optional INST suggestion excludes a pre-rigid first endpoint in actual pro
   assert.equal(opened.finalizedGeometry.instrumentModelingSuggestions.length,
    preRigid?0:1,'Only fully unclassified instrument pairs qualify');
   assert.equal(opened.finalizedGeometry.physicalOwnerCardinality.weightsAccepted,false);
+ }
+});
+
+
+test('optional Python source revisions are accepted by actual Preview Worker without implicit kg',async()=>{
+ // Two separate adjacent INST 1->2 pairs use the same source model as the
+ // verified engineering producer. This runs the real companion CLI and the
+ // real JS fact producer, not duplicate suggestion predicates.
+ const onePair=XML.replace('<ComponentType>VALV</ComponentType>',
+                           '<ComponentType>INST</ComponentType>')
+  .replace('<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>2</Endpoint>',
+           '<ComponentRefNo>1006649732/119369</ComponentRefNo><Endpoint>1</Endpoint>');
+ assert.notEqual(onePair,XML);
+ const secondPair='\n<Node><NodeNumber>330</NodeNumber><ComponentType>INST</ComponentType>'+
+  '<ComponentRefNo>1006649732/119370</ComponentRefNo><Endpoint>1</Endpoint>'+
+  '<Position>700 0 0</Position><Weight>0</Weight></Node>'+
+  '\n<Node><NodeNumber>340</NodeNumber><ComponentType>INST</ComponentType>'+
+  '<ComponentRefNo>1006649732/119370</ComponentRefNo><Endpoint>2</Endpoint>'+
+  '<Position>830 0 0</Position><Weight>0</Weight></Node>\n';
+ const original=onePair.replace('</Branch>',secondPair+'</Branch>');
+ assert.notEqual(original,onePair);
+ const dir=await mkdtemp(join(tmpdir(),'xml229-instrument-worker-'));
+ try{
+  const py=fileURLToPath(new URL(
+   '../converters/scripts/xml229_instrument_source_revision.py',import.meta.url));
+  const input=join(dir,'original.xml');
+  await writeFile(input,original);
+  for(const selected of [0,1,2]){
+   const manifest=join(dir,'suggestions-'+selected+'.json');
+   const revisedPath=join(dir,'revised-'+selected+'.xml');
+   const receiptPath=join(dir,'receipt-'+selected+'.json');
+   execFileSync('python3',[py,'inspect','--source',input,'--manifest',manifest],
+    {encoding:'utf8',timeout:30000});
+   const choices=JSON.parse(await readFile(manifest,'utf8'));
+   assert.equal(choices.components.length,2);
+   for(const item of choices.components.slice(0,selected))
+    item.classification='RIGID';
+   await writeFile(manifest,JSON.stringify(choices));
+   execFileSync('python3',[py,'apply','--source',input,'--manifest',manifest,
+    '--revised-source',revisedPath,'--receipt',receiptPath],
+    {encoding:'utf8',timeout:30000});
+   const xml=await readFile(revisedPath,'utf8');
+   const receipt=JSON.parse(await readFile(receiptPath,'utf8'));
+   assert.equal(receipt.selectedCount,selected);
+   assert.equal(receipt.remainingSuggestions,2-selected);
+   assert.equal(receipt.approvalRequired,false);
+   assert.equal(receipt.kilogramsAccepted,false);
+   assert.equal(receipt.reusablePreviousWeightReview,selected===0);
+   if(!selected)assert.equal(xml,original);
+   assert.equal((xml.match(/<Rigid>2<\/Rigid>/g)||[]).length,
+    (original.match(/<Rigid>2<\/Rigid>/g)||[]).length+selected);
+   const basis=await createPreviewBasis({domainId:'xml-cii/2019',
+    sources:[{sourceId:SOURCE_ID,mediaType:'application/xml',text:xml}],
+    masters,selection,config,overrides:{},sha256:digestUtf8});
+   const projected=projectXmlCiiOccurrences({xmlText:xml,sourceId:SOURCE_ID});
+   const preview=xmlCiiDryRunPreview(xml,config,'');
+   const opened=await openXml229EngineeringFactModel({
+    basis,live:{...live,sources:{[SOURCE_ID]:xml}},xmlText:xml,
+    sourceId:SOURCE_ID,previewResult:{...preview,sourceOccurrences:projected,
+     engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},
+    expectedOriginalCount:projected.branchCount+projected.nodeCount});
+   const geometry=opened.finalizedGeometry;
+   assert.equal(geometry.instrumentModelingSuggestions.length,2-selected,
+    'Worker eligibility must agree with the companion source revision');
+   assert.equal(geometry.rigidEdgePromotions.length,0,
+    'Worker must not auto-promote an instrument span');
+   assert.equal(geometry.physicalOwnerCardinality.weightsAccepted,false);
+   assert.equal(geometry.sourceXmlSha256,basis.sourceRefs[0].sha256);
+   const facts=await opened.model.getFacts({basisId:basis.basisId,
+    subjectType:'physical-component',limit:100});
+   const mass=facts.items.filter(row=>row.fieldId==='mass.kg');
+   assert.equal(mass.length,3,'one rigid plus two instrument mass owners');
+   assert(mass.every(row=>row.value===null&&row.authority==='unresolved'),
+    'source zero kg must not become accepted mass on selecting Rigid');
+  }
+ }finally{
+  await rm(dir,{recursive:true,force:true});
  }
 });
 
