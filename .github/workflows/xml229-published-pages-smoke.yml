@@ -27,6 +27,8 @@ jobs:
           curl --fail --location --retry 7 --retry-delay 5 --retry-all-errors "$PUBLIC_APP/tests/fixtures/xml229/BC4.LineList.json?source=$SOURCE_HEAD" -o /tmp/xml229-pages-bc4.json
           curl --fail --location --retry 7 --retry-delay 5 --retry-all-errors "$PUBLIC_APP/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js?source=$SOURCE_HEAD" -o /tmp/xml229-pages-weight-panel.js
           curl --fail --location --retry 7 --retry-delay 5 --retry-all-errors "$PUBLIC_APP/tabs/xml-cii-2019-standalone/ui-adapted/xml229-owner-basis-custody-export.mjs?source=$SOURCE_HEAD" -o /tmp/xml229-pages-custody.mjs
+          curl --fail --location --retry 7 --retry-delay 5 --retry-all-errors "$PUBLIC_APP/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-source-wide-suggestion-action.mjs?source=$SOURCE_HEAD" -o /tmp/xml229-pages-suggestion-action.mjs
+          curl --fail --location --retry 7 --retry-delay 5 --retry-all-errors "$PUBLIC_APP/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-skip-weight-drafts.mjs?source=$SOURCE_HEAD" -o /tmp/xml229-pages-skip-planner.mjs
           python3 - <<'PY'
           import json,hashlib
           from pathlib import Path
@@ -35,12 +37,41 @@ jobs:
           o=json.loads(fixture)
           assert o['rowCount']==len(o['rows'])==385
           assert not o['engineeringApproval'] and not o['nativeCiiReleaseAuthorized']
-          for src,marker in [
-              ('/tmp/xml229-pages-weight-panel.js','planXml229SkipWeightDrafts'),
-              ('/tmp/xml229-pages-custody.mjs','OwnerLocalEffectiveBasisCustody'),
-          ]:
-              assert marker in Path(src).read_text(), f'Published Pages asset missing expected current marker: {marker}'
-          print('PUBLIC_PAGES_ENTRY_AND_EXACT_BC4_MASTER_AND_CUSTODY_MODULES_PASS')
+          # Verify the actually deployed bytes against the exact successful
+          # deployment commit, not only a marker that may move in a refactor.
+          # The deploy workflow uploads the repository root (path: .).
+          asset_root=Path('tabs/xml-cii-2019-standalone/ui-adapted')
+          names={
+              'weight-panel':'xml-cii-adapted-p4-verified-weight-panel.js',
+              'custody':'xml229-owner-basis-custody-export.mjs',
+              'suggestion-action':'xml229-p4-source-wide-suggestion-action.mjs',
+              'skip-planner':'xml229-p4-skip-weight-drafts.mjs',
+          }
+          downloads={
+              'weight-panel':'/tmp/xml229-pages-weight-panel.js',
+              'custody':'/tmp/xml229-pages-custody.mjs',
+              'suggestion-action':'/tmp/xml229-pages-suggestion-action.mjs',
+              'skip-planner':'/tmp/xml229-pages-skip-planner.mjs',
+          }
+          for kind,name in names.items():
+              deployed=Path(downloads[kind]).read_bytes()
+              expected=(asset_root/name).read_bytes()
+              assert deployed==expected, (
+                  f'Published Pages asset differs from deployed source commit: {name}; '
+                  f'published_sha256={hashlib.sha256(deployed).hexdigest()} '
+                  f'expected_sha256={hashlib.sha256(expected).hexdigest()}'
+              )
+          panel=Path(downloads['weight-panel']).read_text()
+          action=Path(downloads['suggestion-action']).read_text()
+          planner=Path(downloads['skip-planner']).read_text()
+          custody=Path(downloads['custody']).read_text()
+          assert 'applyXml229BlankWeightDrafts' in panel
+          assert './xml229-p4-source-wide-suggestion-action.mjs' in panel
+          assert 'planXml229SkipWeightDrafts(' in action
+          assert './xml229-p4-skip-weight-drafts.mjs' in action
+          assert 'export async function planXml229SkipWeightDrafts(' in planner
+          assert 'OwnerLocalEffectiveBasisCustody' in custody
+          print('PUBLIC_PAGES_EXACT_HEAD_BC4_AND_WEIGHT_IMPORT_CHAIN_PASS')
           PY
   published-bc4-real-browser:
     needs: inspect-published-source
