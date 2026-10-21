@@ -150,7 +150,7 @@ test('root and served popup/UI byte-identical; Run uses a separate explicit popu
  assert.match(action,/UNRESOLVED_PHYSICAL_MASS/);
  assert.match(popup,/runZeroSuggestion/);
  assert.match(popup,/overflow-wrap:anywhere/);
- assert.match(popup,/Apply All Source suggestions \\(Max\\)/);
+ assert.match(popup,/Apply All Source suggestions \(Max\)/);
  assert.match(popup,/input\.value=str\(p\.value\)/);
  assert.match(popup,/submit\.addEventListener\('click',async\(\)=>/);
  assert.match(popup,/origin:kg===0\?'confirmed-zero':'manual'/);
