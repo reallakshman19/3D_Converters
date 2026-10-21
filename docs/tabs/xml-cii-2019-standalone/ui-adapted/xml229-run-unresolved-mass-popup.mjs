@@ -106,9 +106,7 @@ function populate(tbody,rows){
    cell(tr,physical.dtxr);cell(tr,physical.branchName);
    cell(tr,physical.lineKey);cell(tr,physical.componentType);
    cell(tr,physical.componentRefNoEndpoint||physical.componentRefNo);
-   cell(tr,(physical.proposals||[]).slice(0,2).map(p=>
-     str(p.value)+' kg'+(p.qualified?' (qualified)':' (estimated)')).join(' / ')||
-     'No verified suggestion');
+   const suggestions=cell(tr,'');
    const td=cell(tr,'');
    const input=document.createElement('input');
    input.type='number';input.min='0';input.step='any';input.value='0';
@@ -116,6 +114,18 @@ function populate(tbody,rows){
    input.setAttribute('aria-label','Applied Weight kg for '+str(physical.shortName||physical.occurrenceId));
    input.style.cssText='width:100px;padding:6px;background:#243b5d;color:#fff;border:1px solid #818cf8';
    td.appendChild(input);inputs.set(physical.occurrenceId,input);
+   const proposals=(physical.proposals||[]).filter(p=>
+     Number.isFinite(p?.value)&&p.value>0&&p.unit==='kg').slice(0,3);
+   if(!proposals.length)suggestions.textContent='No verified suggestion';
+   for(const p of proposals){
+     const chip=document.createElement('button');
+     chip.type='button';chip.dataset.runZeroSuggestion='true';
+     chip.textContent=(p.qualified?'★ ':'≈ ')+str(p.value)+' kg';
+     chip.title=p.qualified?'Source-qualified suggestion':'Estimated suggestion';
+     chip.style.cssText='padding:4px 6px;margin:2px;border:1px solid #64748b;border-radius:5px;cursor:pointer';
+     chip.addEventListener('click',()=>{input.value=str(p.value);});
+     suggestions.appendChild(chip);
+   }
    tbody.appendChild(tr);
  }
  return inputs;

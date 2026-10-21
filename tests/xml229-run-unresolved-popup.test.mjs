@@ -98,14 +98,14 @@ test('source-stale and changed authoritative Final counts fail closed',async()=>
 test('root and served popup/UI byte-identical; Run uses a separate explicit popup',async()=>{
  const dir='../tabs/xml-cii-2019-standalone/ui-adapted/';
  for(const name of ['xml229-run-unresolved-mass-popup.mjs',
-   'xml-cii-adapted-output-run.js']){
+   'xml-cii-adapted-output-run.js','xml229-run-mass-review-button.mjs']){
    const source=await readFile(new URL(dir+name,import.meta.url),'utf8');
    const docs=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/'+name,import.meta.url),'utf8');
    assert.equal(source,docs,name);
  }
  const output=await readFile(new URL(dir+'xml-cii-adapted-output-run.js',import.meta.url),'utf8');
  const popup=await readFile(new URL(dir+'xml229-run-unresolved-mass-popup.mjs',import.meta.url),'utf8');
- assert.match(output,/openXml229RunUnresolvedMassPopup/);
+ assert.match(output,/createXml229RunMassReviewButton/);
  assert.match(output,/Review unresolved physicals \(0 kg defaults\)/);
  assert.match(popup,/submit\.addEventListener\('click',async\(\)=>/);
  assert.match(popup,/origin:kg===0\?'confirmed-zero':'manual'/);
