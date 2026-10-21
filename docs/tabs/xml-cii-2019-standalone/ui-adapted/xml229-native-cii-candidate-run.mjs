@@ -7,6 +7,8 @@ import {readTextFile,enrichSupportConfigJson,workflowOptionsFromState,sourceName
  from '../xml-cii-workflow-ui-adapter.js';
 import {runXmlCii2019StandaloneEngineJob}
  from '../xml-cii-workflow-engine-client.js';
+import {resolveXml229NativeCandidateSource} from './xml229-native-source-custody.mjs';
+import {getXml229NativeJsonReattachment} from './xml229-native-json-reattach.mjs';
 import {reconcileXml229ActualCiiAgainstFinal}
  from '../../../converters/xml-cii2019-core/xml229-native-cii-independent-reconciliation.mjs';
 
@@ -29,11 +31,11 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   fail('NATIVE_CANDIDATE_BASIS_OR_CENSUS_DRIFT');
  // Use the exact independently owned original XML, NOT the selected subset
  // or a cached Preview table. The Python native writer verifies the full SHA.
- const sourceText=String((await readTextFile(state.sourceFile))??state.sourceText??'');
- const stagedJsonText=String((await readTextFile(state.stagedJsonFile))??
-   state.stagedJsonText??'');
- if(!sourceText.trim()||!stagedJsonText.trim())
-  fail('NATIVE_CANDIDATE_ORIGINAL_SOURCE_REQUIRED');
+ const {sourceText,stagedJsonText}=await resolveXml229NativeCandidateSource({
+   state,packet,readFile:readTextFile,
+   attachment:getXml229NativeJsonReattachment(session),
+ });
+ if(!isCurrent())fail('NATIVE_CANDIDATE_BASIS_STALE');
  const options={
   ...workflowOptionsFromState(state),
   outputMode:'cii-only',kgToNewton:true,
