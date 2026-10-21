@@ -8,8 +8,7 @@ import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-
 import {digestCanonical,canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-scope.js';
 import {renderXml229WeightReviewPage} from './xml229-p4-weight-review-presentation.mjs';
-import {commitXml229SelectedAppliedWeight}
- from './xml229-p4-applied-weight-owner-selection.mjs';
+import {commitXml229SelectedAppliedWeight} from './xml229-p4-applied-weight-owner-selection.mjs';
 import {createXml229ZeroMassPopup} from './xml229-p4-zero-mass-popup.mjs';
 import {renderXml229InstrumentSuggestions} from './xml229-p4-optional-instrument-advisory.mjs';
 import {commitXml229AllSelectedFinal,commitXml229VisibleSelectedFinal}
@@ -585,8 +584,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const proof=await session.readCompletion();
    if(root.isConnected===false||live()!==session||active!==session)return;
    root.dataset.p4ReadReady='true';
-   void renderXml229InstrumentSuggestions(root,session,
-     ()=>root.isConnected!==false&&active===session&&live()===session);
+   void renderXml229InstrumentSuggestions(root,session,()=>root.isConnected!==false&&active===session&&live()===session);
    applyQueue.drain(session);
    const counts=proof?.counts||{};
    say('Existing verified Preview facts loaded. Weight decisions: '+
