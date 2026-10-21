@@ -275,16 +275,29 @@ def approve(xml, manifest, revised, receipt):
         "reusablePreviousWeightReview": not bool(checked),
         "actualCiiMassReconciled": False,
     }
-    # Create a NEW source XML and a receipt. Never overwrite originals or an
-    # existing accepted basis. On an I/O failure delete both incomplete files.
-    outputs = [Path(revised), Path(receipt)]
+    # The preflight checks are advisory only: another process can create an
+    # output between exists() and write. Exclusively create both files, then
+    # remove only inodes created by this invocation if either write fails.
+    outputs = ((Path(revised), revised_bytes),
+               (Path(receipt), (json.dumps(record, indent=2) + "\n").encode("utf-8")))
+    created = []
     try:
-        outputs[0].write_bytes(revised_bytes)
-        outputs[1].write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+        for path, payload in outputs:
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            owned = os.fstat(fd)
+            created.append((path, owned.st_dev, owned.st_ino))
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
     except OSError:
-        for output in outputs:
-            if output.exists():
-                output.unlink()
+        for path, device, inode in reversed(created):
+            try:
+                now = path.lstat()
+            except FileNotFoundError:
+                continue
+            if (now.st_dev, now.st_ino) == (device, inode):
+                path.unlink(missing_ok=True)
         raise
     return record
 

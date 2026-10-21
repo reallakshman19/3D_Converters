@@ -190,6 +190,45 @@ class SourceInstrumentClassificationTests(unittest.TestCase):
                 if node.tag == "Rigid" and node.text == "2"), 1)
 
 
+    def test_racing_output_creation_never_overwrites_or_removes_foreign_files(self):
+        """Competing output arrival after preflight must fail closed."""
+        import os
+        from unittest.mock import patch
+        import xml229_instrument_source_revision as source_revision
+
+        with TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            source, manifest = d / "source.xml", d / "manifest.json"
+            original = fixture().encode("utf-8")
+            source.write_bytes(original)
+            choices = inspect(source)
+            choices["components"][0]["classification"] = "RIGID"
+            manifest.write_text(json.dumps(choices))
+            real_open = os.open
+            for competing in ("revision", "receipt"):
+                with self.subTest(competing=competing):
+                    revised = d / (competing + "-revised.xml")
+                    receipt = d / (competing + "-receipt.json")
+                    target = revised if competing == "revision" else receipt
+                    competitor_bytes = b"CREATED BY COMPETING WRITER"
+                    injected = False
+
+                    def inject_between_preflight_and_create(path, flags, mode=0o777):
+                        nonlocal injected
+                        if Path(path) == target and not injected:
+                            injected = True
+                            target.write_bytes(competitor_bytes)
+                        return real_open(path, flags, mode)
+
+                    with patch.object(source_revision.os, "open",
+                                      side_effect=inject_between_preflight_and_create):
+                        with self.assertRaises(FileExistsError):
+                            approve(source, manifest, revised, receipt)
+                    self.assertTrue(injected)
+                    self.assertEqual(target.read_bytes(), competitor_bytes)
+                    self.assertFalse((receipt if target == revised else revised).exists())
+                    self.assertEqual(source.read_bytes(), original)
+
     @staticmethod
     def expected_ef05_revision(original, selected):
         """Independent raw-byte oracle; deliberately not Expat production logic."""
