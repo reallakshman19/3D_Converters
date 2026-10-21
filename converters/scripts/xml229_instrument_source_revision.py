@@ -64,6 +64,7 @@ def audit(xml_bytes):
     unresolved = []
     for bi, branch in enumerate(x for x in root.iter() if name(x) == "Branch"):
         nodes = children(branch, "Node")
+        paired_ordinals = set()
         for ni in range(len(nodes) - 1):
             left, right = nodes[ni:ni + 2]
             ref = get(left, "ComponentRefNo")
@@ -75,6 +76,7 @@ def audit(xml_bytes):
             length = math.dist(position(get(left, "Position")),
                                position(get(right, "Position")))
             require(length > 6, "INSTRUMENT_ENDPOINT_SPAN_UNSUPPORTED")
+            paired_ordinals.update((ni, ni + 1))
             require(not get(left, "Rigid"),
                     "INSTRUMENT_START_RIGID_CONFLICT")
             end_rigid = get(right, "Rigid")
@@ -90,6 +92,9 @@ def audit(xml_bytes):
                 "toPosition": get(right, "Position"),
                 "spanMm": round(length, 8),
             })
+        require(all(i in paired_ordinals for i, n in enumerate(nodes)
+                    if get(n, "ComponentType") == "INST"),
+                "INSTRUMENT_UNPAIRED_SOURCE_OWNER")
     return root, unresolved
 
 
