@@ -1,0 +1,74 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
+import {resolveXml229NativeCandidateSource}
+ from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-source-custody.mjs';
+
+const digest=x=>createHash('sha256').update(x).digest('hex');
+const xml='<PipeStressExport><Branch/></PipeStressExport>';
+const json='{"Source":["original"]}';
+const packet={schema:'XML229.NativeFinalPhysicalPacket.v1',
+ sourceXmlSha256:digest(xml),originalJsonSha256:digest(json)};
+const loadFile=async file=>file.bytes;
+
+test('Worker O1 packet can supply governed custody when browser has no raw JSON',async()=>{
+ const resolved=await resolveXml229NativeCandidateSource({
+  state:{sourceText:xml,stagedJsonText:'',stagedJsonFile:null},
+  packet,readFile:loadFile,
+ });
+ assert.equal(resolved.sourceText,xml);
+ assert.equal(resolved.stagedJsonText,'');
+ assert.equal(packet.originalJsonSha256,digest(json));
+ assert.equal(resolved.nativeCiiReleaseAuthorized,undefined);
+});
+test('matching staged browser source is optional but mismatched JSON cannot ride Worker receipt',async()=>{
+ const exact=await resolveXml229NativeCandidateSource({
+  state:{sourceText:xml,stagedJsonText:json},packet,readFile:loadFile});
+ assert.equal(exact.stagedJsonText,json);
+ await assert.rejects(resolveXml229NativeCandidateSource({
+  state:{sourceText:xml,stagedJsonText:'{"Source":["other"]}'},
+  packet,readFile:loadFile}),{code:'NATIVE_CANDIDATE_STAGED_JSON_SHA_DRIFT'});
+ await assert.rejects(resolveXml229NativeCandidateSource({
+  state:{sourceText:xml,stagedJsonFile:{bytes:'{"Source":["other"]}'}},
+  packet,readFile:loadFile}),{code:'NATIVE_CANDIDATE_STAGED_JSON_SHA_DRIFT'});
+});
+test('XML input absent/stale or unreadable never reaches converter',async()=>{
+ await assert.rejects(resolveXml229NativeCandidateSource({
+  state:{sourceText:'',stagedJsonText:''},packet,readFile:loadFile}),
+  {code:'NATIVE_CANDIDATE_SOURCE_XML_REQUIRED'});
+ await assert.rejects(resolveXml229NativeCandidateSource({
+  state:{sourceText:xml+'\n'},packet,readFile:loadFile}),
+  {code:'NATIVE_CANDIDATE_SOURCE_XML_SHA_DRIFT'});
+ await assert.rejects(resolveXml229NativeCandidateSource({
+  state:{sourceText:xml,sourceFile:{bytes:''}},packet,readFile:loadFile}),
+  {code:'NATIVE_CANDIDATE_SOURCE_XML_FILE_UNREADABLE'});
+ await assert.rejects(resolveXml229NativeCandidateSource({
+  state:{sourceText:xml,sourceFile:{bytes:xml+'\n'}},packet,readFile:loadFile}),
+  {code:'NATIVE_CANDIDATE_SOURCE_XML_CONFLICT'});
+});
+test('conflicting browser file and text or unreadable JSON fail closed',async()=>{
+ await assert.rejects(resolveXml229NativeCandidateSource({
+  state:{sourceText:xml,stagedJsonText:json,
+    stagedJsonFile:{bytes:'other'}},packet,readFile:loadFile}),
+  {code:'NATIVE_CANDIDATE_STAGED_JSON_CONFLICT'});
+ await assert.rejects(resolveXml229NativeCandidateSource({
+  state:{sourceText:xml,stagedJsonFile:{bytes:''}},packet,readFile:loadFile}),
+  {code:'NATIVE_CANDIDATE_STAGED_JSON_FILE_UNREADABLE'});
+ await assert.rejects(resolveXml229NativeCandidateSource({
+  state:{sourceText:xml},packet:{...packet,originalJsonSha256:'wrong'},
+  readFile:loadFile}),{code:'NATIVE_CANDIDATE_SOURCE_CUSTODY_REQUIRED'});
+});
+test('native candidate remains guarded by independent mass output and no staged-JSON shortcut',async()=>{
+ const candidate=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs',import.meta.url),'utf8');
+ assert.match(candidate,/session\.readNativeFinalPacket\(\)/);
+ assert.match(candidate,/resolveXml229NativeCandidateSource/);
+ assert.match(candidate,/reconcileXml229ActualCiiAgainstFinal/);
+ assert.match(candidate,/nativeCiiReleaseAuthorized!==true/);
+ assert.doesNotMatch(candidate,/NATIVE_CANDIDATE_ORIGINAL_SOURCE_REQUIRED/);
+ for(const p of ['xml229-native-source-custody.mjs','xml229-native-cii-candidate-run.mjs']){
+  const root=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/'+p,import.meta.url),'utf8');
+  const served=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/'+p,import.meta.url),'utf8');
+  assert.equal(root,served,p);
+ }
+});

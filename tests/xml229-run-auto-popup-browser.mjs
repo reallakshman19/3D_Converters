@@ -44,7 +44,10 @@ try{
    occurrenceId:'original-'+i,sourceId,nodeName:'Physical '+i,
    componentType:'VALV',branchName:'EF-05/1',lineKey:'EF-05',
    sourceKg:null,match1Kg:null,finalKg:i<85?i+1:null,
-   proposals:i===90?[{value:5,unit:'kg',qualified:true}]:[],
+   proposals:i===90?[{value:5,unit:'kg',qualified:true},
+    {value:17,unit:'kg',qualified:false},
+    {value:3,unit:'kg',qualified:true},
+    {value:80,unit:'kg',qualified:false}]:[],
   }));
   const decisions=[];
   window.__rows=rows;window.__decisions=decisions;
@@ -117,7 +120,13 @@ try{
   'dismissal is respected on a rerender of the same Worker');
  await page.locator('button.model-converters-run-btn').last().click();
  await page.locator('[data-xml229-run-unresolved-dialog]').waitFor();
- await page.locator('[data-run-zero-occurrence="original-90"] [data-run-zero-suggestion]').click();
+ await page.locator('[data-run-zero-action="apply-max"]').click();
+ assert.equal(await page.locator('[data-run-zero-kg="original-90"]').inputValue(),'80');
+ assert.equal(await page.locator('[data-run-zero-kg="original-91"]').inputValue(),'0');
+ assert.equal(await page.evaluate(()=>window.__decisions.length),0);
+ assert.equal(await page.locator('[data-run-zero-occurrence="original-90"] td').first().evaluate(
+  node=>getComputedStyle(node).whiteSpace),'normal');
+ await page.locator('[data-run-zero-occurrence="original-90"] [data-run-zero-suggestion]').first().click();
  assert.equal(await page.locator('[data-run-zero-kg="original-90"]').inputValue(),'5');
  await page.locator('[data-run-zero-kg="original-90"]').fill('12.5');
  await page.locator('[data-run-zero-action="confirm"]').click();

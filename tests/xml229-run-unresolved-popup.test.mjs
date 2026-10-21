@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {listXml229RunUnresolvedMasses,confirmXml229RunUnresolvedMasses}
+import {listXml229RunUnresolvedMasses,confirmXml229RunUnresolvedMasses,
+ prefillXml229RunMaxSuggestions,xml229MaxSuggestedKg}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-unresolved-mass-popup.mjs';
 
 const basisId='b'.repeat(64),sourceId='EF-05';
@@ -10,7 +11,12 @@ function verifiedFixture(){
    sourceId,occurrenceId:'original-'+i,
    shortName:'Component '+i,branchName:'Branch 1',componentType:'VALV',
    sourceKg:null,match1Kg:null,finalKg:i<85?i+1:null,
-   proposals:i===90?[{value:5,unit:'kg',qualified:true}]:[],
+   proposals:i===90?[
+     {value:5,unit:'kg',qualified:true},
+     {value:12,unit:'kg',qualified:false},
+     {value:2,unit:'kg',qualified:true},
+     {value:80,unit:'kg',qualified:false},
+   ]:[],
  }));
  const decisions=[];
  const session={
@@ -51,6 +57,22 @@ test('second popup scans ALL 100 Worker owners, showing only 15 unresolved witho
  assert.equal(decisions.length,0,'reading defaults must not write any Final decision');
  assert.equal(rows[0].finalKg,1);
 });
+test('Apply All Source suggestions (Max) only prefills verified kg row inputs',async()=>{
+ const {session,rows,decisions}=verifiedFixture();
+ const snapshot=await listXml229RunUnresolvedMasses({session});
+ const inputs=new Map(snapshot.pending.map(row=>[row.occurrenceId,{value:'0'}]));
+ assert.equal(xml229MaxSuggestedKg(snapshot.pending.find(x=>x.occurrenceId==='original-90')),80);
+ assert.equal(xml229MaxSuggestedKg({proposals:[
+  {value:91,unit:'lb'},{value:-1,unit:'kg'},{value:NaN,unit:'kg'}]}),null);
+ const result=prefillXml229RunMaxSuggestions(snapshot.pending,inputs);
+ assert.deepEqual(result,{filled:1,unmatched:14});
+ assert.equal(inputs.get('original-90').value,'80');
+ assert.equal(inputs.get('original-91').value,'0','no source suggestion stays unchanged');
+ assert.equal(decisions.length,0,'prefill must never apply Final mass');
+ assert.equal(rows[0].finalKg,1,'85 existing Final values remain untouched');
+ assert.equal(rows[90].finalKg,null,'no owner acceptance on prefill');
+});
+
 test('one explicit confirmation records 0 or positive only for 15; preserves 85 existing Final',async()=>{
  const {session,rows,decisions}=verifiedFixture();
  const snapshot=await listXml229RunUnresolvedMasses({session});
@@ -127,6 +149,8 @@ test('root and served popup/UI byte-identical; Run uses a separate explicit popu
  assert.match(action,/queueMicrotask/);
  assert.match(action,/UNRESOLVED_PHYSICAL_MASS/);
  assert.match(popup,/runZeroSuggestion/);
+ assert.match(popup,/overflow-wrap:anywhere/);
+ assert.match(popup,/Apply All Source suggestions \\(Max\\)/);
  assert.match(popup,/input\.value=str\(p\.value\)/);
  assert.match(popup,/submit\.addEventListener\('click',async\(\)=>/);
  assert.match(popup,/origin:kg===0\?'confirmed-zero':'manual'/);
