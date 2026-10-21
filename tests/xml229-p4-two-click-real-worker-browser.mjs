@@ -185,6 +185,7 @@ try{
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
   const session=getXml229CurrentWorkerHeldReview(window.__stateRef);
   const packet=await session.readNativeFinalPacket();
+  const optionalAdvice=await session.readInstrumentModelingSuggestions();
   const backup=await session.exportReviewBackup();
   let wrongGeometryRejected=null;
   try{
@@ -192,9 +193,15 @@ try{
       ...backup,finalizedGeometrySha256:'0'.repeat(64)}});
   }catch(error){wrongGeometryRejected=error?.code||String(error);}
   return {originalXmlText:window.__options.xmlText,
-   packet,backup,wrongGeometryRejected};
+   packet,backup,wrongGeometryRejected,optionalAdvice};
  });
- const {originalXmlText,packet,backup,wrongGeometryRejected}=sourceAndFinal;
+ const {originalXmlText,packet,backup,wrongGeometryRejected,optionalAdvice}=sourceAndFinal;
+ assert.equal(optionalAdvice.schema,'XML229.OptionalInstrumentModelSuggestions.v1');
+ assert.equal(optionalAdvice.approvalRequired,false);
+ assert.equal(optionalAdvice.readOnly,true);
+ assert.equal(optionalAdvice.sourceGeometryChanged,false);
+ assert.equal(optionalAdvice.weightsAcceptedBySuggestions,false);
+ assert(Array.isArray(optionalAdvice.items));
  assert.equal(backup.finalizedGeometrySha256,
               packet.finalizedGeometry.sha256);
  assert.equal(backup.physicalOwnerSchema,
