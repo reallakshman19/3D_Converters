@@ -39,8 +39,15 @@ function normalizedPopulation(session,{sourceGenerationId,originalJsonSha256}={}
      denied('ORIGINAL_PHYSICAL_ID_REQUIRED','No legacy or missing original physical identity allowed');
    const effective=row.effectiveKg;
    if(effective!==null&&
-      (typeof effective!=='number'||!Number.isFinite(effective)||effective<=0))
-     denied('INVALID_FINAL_MASS','Only positive verified engineering masses accepted as effective');
+      (typeof effective!=='number'||!Number.isFinite(effective)||effective<0))
+     denied('INVALID_FINAL_MASS','Effective mass must be a finite nonnegative kg value');
+   // A zero is a Final engineering decision, NEVER an unreviewed blank.
+   // readVerifiedModeAFinalRows only projects accepted per-owner Final;
+   // the GC-PW decision service already requires set-zero-mass confirmation.
+   if(effective===0&&
+      (row.status!=='Final'||row.finalKg!==0||
+       row.sourceKg!==null||row.match1Kg!==null))
+     denied('INVALID_FINAL_MASS','Zero kg requires an explicitly accepted blank-source Final');
    return [row.sourceId,row.occurrenceId,row.branchOccurrenceIndex,
      row.nodeOrdinal,row.componentSignature,
      row.sourceKg,row.match1Kg,row.finalKg,effective];

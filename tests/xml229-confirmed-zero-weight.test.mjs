@@ -7,6 +7,8 @@ import {readVerifiedIndividualWeightReview,commitVerifiedIndividualWeightReview}
  from '../converters/xml-cii2019-core/weight-facts-individual-review.js';
 import {readVerifiedModeAFinalRows}
  from '../converters/xml-cii2019-core/weight-facts-mode-a-final-read.js';
+import {commitXml229NativeFinalIntent}
+ from '../converters/xml-cii2019-core/weight-facts-native-consumption-intent.js';
 import {validateDecisionCommand} from '../contracts/gc-pw-v1/contract.mjs';
 import {renderXml229WeightReviewPage}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs';
@@ -31,15 +33,15 @@ const basis={
  selectionSha256:digest('selection'),stagedSourceSha256:null,
  masters:{},configSha256:digest('config'),overridesSha256:digest('overrides'),
 };
-function physicalFact(){
+function physicalFact(id=occurrenceId){
  return {schemaVersion:WEIGHT_SCHEMA,domainId:'xml-cii/2019',basisId,
-  sourceId,occurrenceId,subjectType:'physical-component',fieldId:'mass.kg',
+  sourceId,occurrenceId:id,subjectType:'physical-component',fieldId:'mass.kg',
   value:null,unit:'kg',authority:'unresolved',provenance:[],diagnostics:[]};
 }
-function gcPw(){
+function gcPw(facts=[physicalFact()]){
  const review=createWeightReviewService({score:()=>[]});
- review.openBasis(basis,{facts:[physicalFact()]});
- return {basis,review,openedFacts:1};
+ review.openBasis(basis,{facts});
+ return {basis,review,openedFacts:facts.length};
 }
 test('blank remains unresolved until explicit owner confirmation; 0kg is a distinct reviewed Final',()=>{
  const session=gcPw();
@@ -75,6 +77,58 @@ test('blank remains unresolved until explicit owner confirmation; 0kg is a disti
  assert.match(html,/Final 0 kg \(confirmed\)/);
  assert.match(html,/data-p4-applied-weight[^>]*value="0"/s);
 });
+test('native Final intent accepts only confirmed zero; null stays ineligible',async()=>{
+ const session=gcPw();
+ const source={sourceGenerationId:'owner-confirmed-zero-generation',
+   originalJsonSha256:digest('indexed original staged JSON')};
+ const unresolved=await commitXml229NativeFinalIntent(session,source);
+ assert.equal(unresolved.eligibleForEngineBinding,false);
+ assert.equal(unresolved.unresolvedCount,1);
+ assert.equal(unresolved.nativeCiiReleaseAuthorized,false);
+ const view=readVerifiedIndividualWeightReview(session,{sourceId,occurrenceId,
+   stage:'Rigidmatch2'});
+ assert.throws(()=>commitVerifiedIndividualWeightReview(session,view,{
+   action:'set-zero-mass',value:0,unit:'kg',reason,
+ }),{code:'ZERO_WEIGHT_CONFIRMATION_REQUIRED'});
+ const committed=commitVerifiedIndividualWeightReview(session,view,{
+   action:'set-zero-mass',value:0,unit:'kg',reason,zeroMassConfirmed:true,
+ });
+ assert.equal(committed.view.stageDecision.action,'set-zero-mass');
+ const confirmed=await commitXml229NativeFinalIntent(session,source);
+ assert.equal(confirmed.eligibleForEngineBinding,true);
+ assert.equal(confirmed.acceptedFinalCount,1);
+ assert.equal(confirmed.unresolvedCount,0);
+ assert.equal(confirmed.nativeCiiReleaseAuthorized,false);
+ assert.equal(confirmed.physicalEngineConsumptionVerified,false);
+ assert.notEqual(confirmed.intentSha256,unresolved.intentSha256);
+ assert.equal((await commitXml229NativeFinalIntent(session,source)).intentSha256,
+   confirmed.intentSha256,'same current Final CAS revisions must hash identically');
+});
+test('mixed positive and explicitly confirmed zero reach native intent without release',async()=>{
+ const other=JSON.stringify([sourceId,0,1,'["VALV","V-2","1","VL-2"]']);
+ const session=gcPw([physicalFact(),physicalFact(other)]);
+ for(const [id,kg] of [[occurrenceId,0],[other,27]]){
+   const view=readVerifiedIndividualWeightReview(session,{
+     sourceId,occurrenceId:id,stage:'Rigidmatch2'});
+   const zero=kg===0;
+   commitVerifiedIndividualWeightReview(session,view,{
+     action:zero?'set-zero-mass':'final-override',
+     value:kg,unit:'kg',reason:zero?reason:'Owner designated 27 kg for VALV source physical',
+     ...(zero?{zeroMassConfirmed:true}:{}),
+   });
+ }
+ const rows=readVerifiedModeAFinalRows(session);
+ assert.equal(rows.unresolved,0);
+ assert.deepEqual(rows.rows.map(x=>x.effectiveKg).sort((a,b)=>a-b),[0,27]);
+ const intent=await commitXml229NativeFinalIntent(session,{
+   sourceGenerationId:'mixed-confirmed-zero-source',
+   originalJsonSha256:digest('mixed staged JSON')});
+ assert.equal(intent.eligibleForEngineBinding,true);
+ assert.equal(intent.physicalCount,2);
+ assert.equal(intent.acceptedFinalCount,2);
+ assert.equal(intent.nativeCiiReleaseAuthorized,false);
+});
+
 test('contract forbids 0kg manual and any unconfirmed zero command',()=>{
  const command={commandId:'c',basisId,scopeId:sourceId,occurrenceId,
   expectedDecisionRevision:null,action:'set-zero-mass',value:0,unit:'kg',reason};
