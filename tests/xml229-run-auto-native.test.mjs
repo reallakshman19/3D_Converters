@@ -46,3 +46,15 @@ test('actual Download .cii remains coupled to emitted artifact, not checklist re
  const mirror=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-auto-native.mjs',import.meta.url),'utf8');
  assert.equal(helper,mirror);
 });
+
+test('shared Pyodide interpreter resets native parser hooks and serializes automatic/manual jobs',async()=>{
+ const engine=await readFile(new URL('../converters/xml-cii-2019-standalone/engine.js',import.meta.url),'utf8');
+ const docs=await readFile(new URL('../docs/converters/xml-cii-2019-standalone/engine.js',import.meta.url),'utf8');
+ assert.equal(engine,docs,'live-served native JS engine must match tested source');
+ assert.match(engine,/const RESET_NATIVE_BASE_SNIPPET/);
+ assert.match(engine,/importlib\.reload\(sys\.modules\["xml_to_cii2019"\]\)/);
+ assert.match(engine,/await pyodide\.runPythonAsync\(RESET_NATIVE_BASE_SNIPPET\)/);
+ assert.match(engine,/engineQueue=next\.then\(\(\)=>undefined,\(\)=>undefined\)/);
+ assert.match(engine,/runSerializedXmlCii2019Engine\(job\)/);
+ assert.match(engine,/runPythonScript\(pyodide, invocation\.scriptPath/);
+});
