@@ -96,21 +96,23 @@ def audit(xml_bytes):
                 "sourceOutsideDiameterMm": get(right, "OutsideDiameter"),
                 "sourceEndRigid": end_rigid,
             })
-        require(all(i in paired_ordinals for i, n in enumerate(nodes)
-                    if get(n, "ComponentType") == "INST"),
-                "INSTRUMENT_UNPAIRED_SOURCE_OWNER")
+        # Nonmatching instruments stay in the source unchanged: suggestions
+        # are advisory and cannot hold up unrelated components.
     return root, unresolved
 
 
 def inspect(xml):
     data = Path(xml).read_bytes()
     _, rows = audit(data)
-    require(rows, "NO_UNCLASSIFIED_INSTRUMENTS")
     return {
         "schema": SCHEMA, "sourceXmlSha256": digest(data),
         "stage": "BEFORE_WEIGHT_MATCH",
+        "mode": "OPTIONAL_SUGGESTIONS",
+        "approvalRequired": False,
         "components": [{
             **row, "classification": "PENDING",
+            "suggestedClassification": "RIGID_CANDIDATE",
+            "automaticClassificationApplied": False,
             "approvedBy": "", "approvedAtUtc": "",
             "evidencePath": "", "evidenceSha256": "",
             "evidenceCitation": "",
@@ -230,10 +232,10 @@ def approve(xml, manifest, revised, receipt):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
-    plan = sub.add_parser("inspect", help="Create pending, source-bound instrument approvals")
+    plan = sub.add_parser("inspect", help="List optional instrument modeling suggestions")
     plan.add_argument("--source", required=True)
     plan.add_argument("--manifest", required=True)
-    apply = sub.add_parser("apply", help="Apply complete approvals as NEW pre-weight source")
+    apply = sub.add_parser("apply", help="Apply only explicitly selected RIGID suggestions")
     apply.add_argument("--source", required=True)
     apply.add_argument("--manifest", required=True)
     apply.add_argument("--revised-source", required=True)
@@ -247,11 +249,11 @@ def main():
                     "INSTRUMENT_OUTPUT_MUST_BE_NEW_REVISION")
             result = inspect(args.source)
             target.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-            print(f"PENDING {len(result['components'])} original instrument approvals; 0 kg accepted")
+            print(f"SUGGESTIONS {len(result['components'])} optional; no approval or kg required")
         else:
             result = approve(args.source, args.manifest,
                              args.revised_source, args.receipt)
-            print(f"SOURCE_REVISED {result['classifiedCount']} approved instrument elements; 0 kg accepted")
+            print(f"SELECTED {result['selectedCount']} optional RIGID models; unchanged={not result['sourceChanged']}")
     except (ClassificationRefused, ET.ParseError, OSError) as exc:
         parser.exit(2, f"INSTRUMENT_CLASSIFICATION_REFUSED: {exc}\n")
 
