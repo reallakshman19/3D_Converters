@@ -206,9 +206,16 @@ try{
     'advisory must not imply changes to source geometry or accepted mass');
   assert.equal(await instrumentAdvice.count(),1,
     'exactly one instrument advisory should appear in the current session');
-  assert.equal(await page.locator(
-    '[data-p4-weight-root] input[type="file"]').count(),0,
-    'optional instruments must not require evidence uploads in Weight Match');
+  // The two pre-existing file controls restore GC-PW decisions and Applied
+  // Weight drafts. Neither is an instrument-approval/evidence prerequisite.
+  // Inspect their actual purpose rather than incorrectly forbidding all files.
+  const uploadPurposes=await page.locator(
+    '[data-p4-weight-root] input[type="file"]').evaluateAll(inputs=>
+    inputs.map(input=>input.hasAttribute('data-p4-import-review')?'review-restore':
+      input.hasAttribute('data-p4-import-drafts')?'draft-restore':'unrecognized')
+      .sort());
+  assert.deepEqual(uploadPurposes,['draft-restore','review-restore'],
+    'no instrument approval/evidence file control may be introduced');
   assert.equal(await page.locator('[data-p4-scope="all"]').count(),1,
     'normal Weight Match must remain available while all instruments are pending');
   record.stages.instrumentModeling={
