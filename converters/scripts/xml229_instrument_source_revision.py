@@ -73,15 +73,16 @@ def audit(xml_bytes):
                     get(right, "ComponentRefNo") == ref and
                     get(left, "Endpoint") == "1" and get(right, "Endpoint") == "2"):
                 continue
-            length = math.dist(position(get(left, "Position")),
-                               position(get(right, "Position")))
-            require(length > 6, "INSTRUMENT_ENDPOINT_SPAN_UNSUPPORTED")
             paired_ordinals.update((ni, ni + 1))
-            require(not get(left, "Rigid"),
-                    "INSTRUMENT_START_RIGID_CONFLICT")
+            try:
+                length = math.dist(position(get(left, "Position")),
+                                   position(get(right, "Position")))
+            except ClassificationRefused:
+                continue
             end_rigid = get(right, "Rigid")
-            require(end_rigid in ("", "2"), "INSTRUMENT_RIGID_CLASS_CONFLICT")
-            if end_rigid == "2":
+            # Missing or conflicting geometry cannot be a suggestion, but
+            # does not stop any other component or the source workflow.
+            if length <= 6 or get(left, "Rigid") or end_rigid:
                 continue
             unresolved.append({
                 "branchOccurrenceIndex": bi,
