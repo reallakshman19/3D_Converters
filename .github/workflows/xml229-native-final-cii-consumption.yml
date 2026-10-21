@@ -41,7 +41,7 @@ jobs:
           done
       - name: Accepted kg into exact original owner and native RIGID pointer
         run: python3 tests/xml229-native-final-mass-consumption.test.py
-      - name: Reviewable instrument classifications require evidence and new source SHA
+      - name: Optional instrument suggestions, partial choices, and source revisions
         run: python3 tests/xml229-instrument-source-revision.test.py
   independent-js-cii-mass-check:
     runs-on: ubuntu-latest
