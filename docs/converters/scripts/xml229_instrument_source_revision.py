@@ -91,6 +91,10 @@ def audit(xml_bytes):
                 "fromPosition": get(left, "Position"),
                 "toPosition": get(right, "Position"),
                 "spanMm": round(length, 8),
+                "sourceWeightField": get(right, "Weight"),
+                "sourceWallThicknessMm": get(right, "WallThickness"),
+                "sourceOutsideDiameterMm": get(right, "OutsideDiameter"),
+                "sourceEndRigid": end_rigid,
             })
         require(all(i in paired_ordinals for i, n in enumerate(nodes)
                     if get(n, "ComponentType") == "INST"),
