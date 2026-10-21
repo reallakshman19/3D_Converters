@@ -344,7 +344,7 @@ export async function openXml229EngineeringFactModel({
          field(left,'Endpoint')!=='1'||field(right,'Endpoint')!=='2'||
          !field(left,'ComponentRefNo')||
          field(left,'ComponentRefNo')!==field(right,'ComponentRefNo')||
-         field(right,'Rigid'))continue;
+         field(left,'Rigid')||field(right,'Rigid'))continue;
       const from=field(left,'Position').trim().split(/\s+/).map(Number);
       const to=field(right,'Position').trim().split(/\s+/).map(Number);
       if(from.length!==3||to.length!==3||

@@ -334,6 +334,37 @@ test('authentic repository Firstpass XML + staged JSON retains all original phys
  assert(snap.items.every(item=>item.sourceId===sourceId));
 });
 
+
+test('optional INST suggestion excludes a pre-rigid first endpoint in actual producer',async()=>{
+ const pair=XML.replace(
+  '<Node><NodeNumber>320</NodeNumber><ComponentType>INST</ComponentType>',
+  '<Node><NodeNumber>319</NodeNumber><ComponentType>INST</ComponentType>'+
+  '<ComponentRefNo>1006649732/119369</ComponentRefNo><Endpoint>1</Endpoint>'+
+  '<Position>550 0 0</Position><Weight>0</Weight></Node>\n'+
+  '<Node><NodeNumber>320</NodeNumber><ComponentType>INST</ComponentType>');
+ assert.notEqual(pair,XML);
+ for(const preRigid of [false,true]){
+  const xml=preRigid?pair.replace(
+   '<Endpoint>1</Endpoint><Position>550 0 0</Position>',
+   '<Endpoint>1</Endpoint><Rigid>2</Rigid><Position>550 0 0</Position>'):pair;
+  const basis=await createPreviewBasis({domainId:'xml-cii/2019',
+   sources:[{sourceId:SOURCE_ID,mediaType:'application/xml',text:xml}],
+   masters,selection,config,overrides:{},sha256:digestUtf8});
+  const original=projectXmlCiiOccurrences({xmlText:xml,sourceId:SOURCE_ID});
+  const preview=xmlCiiDryRunPreview(xml,config,'');
+  const opened=await openXml229EngineeringFactModel({
+   basis,live:{...live,sources:{[SOURCE_ID]:xml}},
+   xmlText:xml,sourceId:SOURCE_ID,
+   previewResult:{...preview,sourceOccurrences:original,
+    engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},
+   expectedOriginalCount:original.branchCount+original.nodeCount,
+  });
+  assert.equal(opened.finalizedGeometry.instrumentModelingSuggestions.length,
+   preRigid?0:1,'Only fully unclassified instrument pairs qualify');
+  assert.equal(opened.finalizedGeometry.physicalOwnerCardinality.weightsAccepted,false);
+ }
+});
+
 test('root and served docs producer are byte-for-byte identical',async()=>{
  const p='tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs';
  assert.deepEqual(await readFile(new URL('../'+p,import.meta.url)),
