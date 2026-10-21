@@ -40,7 +40,10 @@ class SourceInstrumentClassificationTests(unittest.TestCase):
             x["componentRefNo"] for x in review["components"])), 14)
         self.assertTrue(all(
             x["classification"] == "PENDING" and
-            x["evidenceSha256"] == "" and x["approvedBy"] == ""
+            x["evidenceSha256"] == "" and x["approvedBy"] == "" and
+            x["sourceWeightField"] == "0" and
+            x["sourceWallThicknessMm"] == "0" and
+            x["sourceEndRigid"] == "" and x["spanMm"] == 305.0
             for x in review["components"]))
         self.assertEqual(review["sourceXmlSha256"],
                          hashlib.sha256(benchmark.read_bytes()).hexdigest())
