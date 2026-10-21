@@ -153,7 +153,6 @@ def approve(xml, manifest, revised, receipt):
     source = Path(xml)
     original = source.read_bytes()
     root, anchors = audit(original)
-    require(anchors, "NO_UNCLASSIFIED_INSTRUMENTS")
     approval_bytes = Path(manifest).read_bytes()
     try:
         approved = json.loads(approval_bytes)
@@ -163,24 +162,34 @@ def approve(xml, manifest, revised, receipt):
             approved.get("stage") == "BEFORE_WEIGHT_MATCH" and
             approved.get("sourceXmlSha256") == digest(original),
             "INSTRUMENT_APPROVAL_SOURCE_SHA_DRIFT")
-    rows = approved.get("components")
-    require(isinstance(rows, list) and len(rows) == len(anchors),
-            "INSTRUMENT_APPROVAL_COVERAGE_INCOMPLETE")
+    rows = approved.get("components", [])
+    require(isinstance(rows, list), "INSTRUMENT_SUGGESTIONS_INVALID")
+    by_identity = {
+        (r["branchOccurrenceIndex"], r["endSourceNodeOrdinal"],
+         r["componentRefNo"]): r for r in anchors
+    }
     checked = []
-    for row, anchor in zip(rows, anchors):
-        checked.append(valid_approval(row, anchor, Path(manifest).parent))
-    # Every decision and byte of documentary evidence was verified BEFORE
-    # changing a single output. New source is a separate revision.
+    seen = set()
+    for row in rows:
+        require(isinstance(row, dict), "INSTRUMENT_SUGGESTIONS_INVALID")
+        identity = (row.get("branchOccurrenceIndex"),
+                    row.get("endSourceNodeOrdinal"), row.get("componentRefNo"))
+        require(identity in by_identity and identity not in seen,
+                "INSTRUMENT_SUGGESTION_SOURCE_MISMATCH")
+        seen.add(identity)
+        selected = optional_choice(row, by_identity[identity],
+                                   Path(manifest).parent)
+        if selected is not None:
+            checked.append(selected)
     branches = [x for x in root.iter() if name(x) == "Branch"]
-    for anchor in anchors:
-        target = children(branches[anchor["branchOccurrenceIndex"]], "Node")[
-            anchor["endSourceNodeOrdinal"]]
-        require(not children(target, "Rigid"), "INSTRUMENT_RIGID_CLASS_CONFLICT")
-        namespace = target.tag.rsplit("}", 1)[0] + "}" if "}" in target.tag else ""
-        ET.SubElement(target, namespace + "Rigid").text = "2"
-    revised_bytes = ET.tostring(root, encoding="utf-8", xml_declaration=True)
-    _, still_pending = audit(revised_bytes)
-    require(not still_pending, "INSTRUMENT_CLASSIFICATION_INCOMPLETE")
+    for chosen in checked:
+        node = children(branches[chosen["branchOccurrenceIndex"]], "Node")[
+            chosen["endSourceNodeOrdinal"]]
+        namespace = node.tag.rsplit("}", 1)[0] + "}" if "}" in node.tag else ""
+        ET.SubElement(node, namespace + "Rigid").text = "2"
+    # A no-choice path is a valid unchanged original, not a release gate.
+    revised_bytes = (ET.tostring(root, encoding="utf-8",
+                                xml_declaration=True) if checked else original)
     for file in (revised, receipt):
         file = Path(file)
         require(file.resolve() not in {source.resolve(), Path(manifest).resolve()} and
@@ -189,15 +198,20 @@ def approve(xml, manifest, revised, receipt):
             "INSTRUMENT_OUTPUT_PATH_COLLISION")
     record = {
         "schema": RECEIPT_SCHEMA,
-        "stage": "SOURCE_REVISION_BEFORE_WEIGHT_MATCH",
+        "stage": "OPTIONAL_SOURCE_MODELING",
         "oldSourceXmlSha256": digest(original),
         "newSourceXmlSha256": digest(revised_bytes),
-        "approvalManifestSha256": digest(approval_bytes),
-        "classifiedCount": len(checked),
-        "approvals": checked,
+        "suggestionManifestSha256": digest(approval_bytes),
+        "suggestionCount": len(anchors),
+        "selectedCount": len(checked),
+        "remainingSuggestions": len(anchors) - len(checked),
+        "classificationSelections": checked,
+        "approvalRequired": False,
+        "engineeringApprovalVerified": False,
+        "sourceChanged": bool(checked),
         "kilogramsAccepted": False,
-        "reusablePreviousWeightReview": False,
-        "governedCiiReleaseAuthorized": False,
+        "reusablePreviousWeightReview": not bool(checked),
+        "actualCiiMassReconciled": False,
     }
     # Create a NEW source XML and a receipt. Never overwrite originals or an
     # existing accepted basis. On an I/O failure delete both incomplete files.
