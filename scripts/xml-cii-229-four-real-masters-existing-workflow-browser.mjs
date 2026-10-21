@@ -358,11 +358,11 @@ try{
   // generate and independently reconcile native CII. They do not pre-claim
   // an output artifact before the actual converter runs.
   const nativeBtn=page.locator('[data-action="xml229-native-run"]');
-  const nativeEnabled=await nativeBtn.isEnabled();
+  const nativeRunEnabled=await nativeBtn.isEnabled();
   const nativeLabel=(await nativeBtn.textContent()).trim();
-  assert(nativeEnabled||nativeLabel==='Running...',
+  assert(nativeRunEnabled||nativeLabel==='Running...',
     'Complete Final census must either enable native Run or have already auto-started it');
-  record.stages.nativeRunAutoStarted=!nativeEnabled&&nativeLabel==='Running...';
+  record.stages.nativeRunAutoStarted=!nativeRunEnabled&&nativeLabel==='Running...';
   for(const item of record.stages.runIndependentStages){
     assert.equal(exported.checklistRows.find(x=>x.id===item.id)?.status,item.status,
       'rendered independent stage must equal exported canonical status');
