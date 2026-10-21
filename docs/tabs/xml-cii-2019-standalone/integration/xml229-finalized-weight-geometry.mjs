@@ -7,10 +7,7 @@ import {digestUtf8} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {isXmlCiiWeightReviewNode,isXmlCiiWeightReviewConnectionEligible}
   from '../../../converters/xml-cii2019-core/weight-match-model.js';
 
-export async function finalizeXml229WeightGeometry({
-  basis,projection,branches,prepared,physical,sourceNodeByOrdinal,
-  nonOwnerEndpointStarts,sourceId,
-},{children,field,fail,canonicalJson}){
+function assignSourceNodeNumbers({projection,branches,prepared,children,field,fail}){
   // Pre-acceptance topology normalization: a nonpositive NodeNumber is an
   // unassigned placeholder, NEVER an approved native connected-node ID.
   // Assign globally unique positive IDs while retaining source ordinals and
@@ -42,6 +39,10 @@ export async function finalizeXml229WeightGeometry({
       nextId+=10;
     }
   }
+  return assignedNodeNumbers;
+}
+
+function promoteWitnessedRigidEdges({branches,prepared,children,field}){
   // An actual 1->2 same-ref VALV/FLAN/INST element is a geometrically
   // witnessed physical segment. Classify that EXISTING span as a native
   // rigid mass-bearing edge before any kg can be accepted; never invent a
@@ -83,6 +84,10 @@ export async function finalizeXml229WeightGeometry({
       }));
     }
   }
+  return rigidEdgePromotions;
+}
+
+function discoverOptionalInstruments({branches,prepared,children,field}){
   // Advisory only: instrument pairs have a real positive-length span but
   // their stiffness cannot be inferred from the label or a zero Weight field.
   // This list is never a conversion gate and never changes Rigid or Final kg.
@@ -118,7 +123,10 @@ export async function finalizeXml229WeightGeometry({
       }));
     }
   }
-  const finalXmlText=new XMLSerializer().serializeToString(prepared.document);
+  return instrumentModelingSuggestions;
+}
+
+function attestPhysicalEndpointPairs({physical,branches,prepared,sourceNodeByOrdinal,sourceId,children,field,canonicalJson}){
   // A physical *part* can have Endpoint=1 and Endpoint=2 XML witnesses.
   // These are not automatically two mass owners. Preserve both source facts,
   // but record their unique one-part lineage BEFORE the Weight review opens.
@@ -158,6 +166,26 @@ export async function finalizeXml229WeightGeometry({
       }
     }
   }
+  return endpointPairs;
+}
+
+export async function finalizeXml229WeightGeometry({
+  basis,projection,branches,prepared,physical,sourceNodeByOrdinal,
+  nonOwnerEndpointStarts,sourceId,
+},{children,field,fail,canonicalJson}){
+  const assignedNodeNumbers=assignSourceNodeNumbers({
+    projection,branches,prepared,children,field,fail,
+  });
+  const rigidEdgePromotions=promoteWitnessedRigidEdges({
+    branches,prepared,children,field,
+  });
+  const instrumentModelingSuggestions=discoverOptionalInstruments({
+    branches,prepared,children,field,
+  });
+  const finalXmlText=new XMLSerializer().serializeToString(prepared.document);
+  const endpointPairs=attestPhysicalEndpointPairs({
+    physical,branches,prepared,sourceNodeByOrdinal,sourceId,children,field,canonicalJson,
+  });
   const physicalOwnerCardinality=Object.freeze({
     schema:'XML229.PreAcceptancePhysicalPartCardinality.v1',
     sourcePhysicalNodeOccurrences:physical.length+nonOwnerEndpointStarts.size,
