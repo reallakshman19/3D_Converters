@@ -265,7 +265,7 @@ test('actual verified Preview result enters GC-PW Weight session via the EXISTIN
  assert.equal(ready.review.getDecisionState({basisId:ready.basis.basisId,scopeId:SOURCE_ID,
   stage:'Rigidmatch2'}).decisionRevision,null);
 });
-registerXml229ProducerIntegrityTests({XML,SOURCE_ID,masters,selection,config,live,fixture,projectXmlCiiOccurrences,createPreviewBasis,digestUtf8,xmlCiiDryRunPreview,openXml229EngineeringFactModel});
+registerXml229ProducerIntegrityTests({XML,SOURCE_ID,masters,selection,config,live,fixture,projectXmlCiiOccurrences,createPreviewBasis,digestUtf8,xmlCiiDryRunPreview,openXml229EngineeringFactModel,getCode,XML229_ENGINEERING_FIELDS});
 registerXml229PythonWorkerRevisionTests({XML,SOURCE_ID,masters,selection,config,live,fixture,projectXmlCiiOccurrences,createPreviewBasis,digestUtf8,xmlCiiDryRunPreview,openXml229EngineeringFactModel});
 
 test('root and served docs producer are byte-for-byte identical',async()=>{

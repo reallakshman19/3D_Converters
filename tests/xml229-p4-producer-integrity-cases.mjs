@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
-export function registerXml229ProducerIntegrityTests({XML,SOURCE_ID,masters,selection,config,live,fixture,projectXmlCiiOccurrences,createPreviewBasis,digestUtf8,xmlCiiDryRunPreview,openXml229EngineeringFactModel}){
+export function registerXml229ProducerIntegrityTests({XML,SOURCE_ID,masters,selection,config,live,fixture,projectXmlCiiOccurrences,createPreviewBasis,digestUtf8,xmlCiiDryRunPreview,openXml229EngineeringFactModel,getCode,XML229_ENGINEERING_FIELDS}){
 test('no fact population promotion if original source branch/node identities drift',async()=>{
  const f=await fixture();
  const wrong=structuredClone(f.result);wrong.sourceOccurrences.nodes[1].occurrenceId='fake-node';
