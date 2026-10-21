@@ -6,6 +6,24 @@ import {hasXml229GovernedNativeHold} from '../integration/xml229-output-particip
 const deny=code=>{const e=new Error(code);e.code=code;throw e;};
 const str=x=>String(x??'');
 const unresolved=row=>row?.sourceKg===null&&row?.match1Kg===null&&row?.finalKg===null;
+/** Read all Worker-supplied kg suggestions, not only the first three chips. */
+export const xml229MaxSuggestedKg=row=>{
+ const values=(Array.isArray(row?.proposals)?row.proposals:[]).filter(
+   p=>typeof p?.value==='number'&&Number.isFinite(p.value)&&p.value>0&&p.unit==='kg');
+ return values.length?Math.max(...values.map(p=>p.value)):null;
+};
+/** Display-only bulk fill. An unresolved row without kg suggestions stays untouched. */
+export function prefillXml229RunMaxSuggestions(rows,inputs){
+ let filled=0,unmatched=0;
+ for(const physical of rows){
+   const input=inputs.get(physical.occurrenceId);
+   if(!input)throw new Error('RUN_MAX_SUGGESTION_INPUT_MISSING');
+   const kg=xml229MaxSuggestedKg(physical);
+   if(kg===null){unmatched++;continue;}
+   input.value=String(kg);filled++;
+ }
+ return Object.freeze({filled,unmatched});
+}
 
 /** Read all original physicals, not the current 25-row Weight Match view. */
 export async function listXml229RunUnresolvedMasses({session,isCurrent=()=>true}={}){
@@ -88,7 +106,7 @@ export async function confirmXml229RunUnresolvedMasses({
 
 function cell(tr,value){
  const td=document.createElement('td');td.textContent=str(value);
- td.style.cssText='padding:7px 10px;border-bottom:1px solid #334155;white-space:nowrap';
+ td.style.cssText='padding:7px 10px;border-bottom:1px solid #334155;white-space:normal;overflow-wrap:anywhere;word-break:break-word;max-width:180px;vertical-align:top';
  tr.appendChild(td);return td;
 }
 function button(host,label,kind){
@@ -161,13 +179,13 @@ export async function openXml229RunUnresolvedMassPopup({stateRef,render,onNaviga
  const title=document.createElement('h3');
  title.textContent='Final mass review — '+snapshot.pending.length+' unresolved physicals';
  const detail=document.createElement('p');
- detail.textContent='Only unresolved original physicals are listed. Each Applied Weight defaults to 0 kg for converter numeric compatibility, but is NOT an accepted Final until you confirm. Review suggestions or enter a positive kg. Existing '+snapshot.startingFinal+' Final values will not be changed.';
+ detail.textContent='Only unresolved original physicals are listed. Each Applied Weight defaults to an uncommitted 0 kg. Apply All Source suggestions (Max) fills each row with the largest provided positive kg suggestion (including estimates), but does NOT confirm any engineering mass. Rows with no valid suggestions remain unchanged. Existing '+snapshot.startingFinal+' Final values will not be changed.';
  const status=document.createElement('p');status.setAttribute('role','status');
  status.textContent='Opening this popup has not written any mass decisions.';
  const scroll=document.createElement('div');scroll.style.cssText='overflow:auto;max-height:55vh';
  const table=document.createElement('table');
  table.className='mc-rigid-review-table';
- table.style.cssText='min-width:1050px;border-collapse:collapse;font-size:12px';
+ table.style.cssText='width:100%;table-layout:fixed;border-collapse:collapse;font-size:12px';
  const head=document.createElement('thead'),h=document.createElement('tr');
  for(const name of ['Status','Short name','DTXR','Branch','Line','Component','Ref / endpoint','Source suggestions','Applied Weight (kg)'])cell(h,name);
  head.appendChild(h);table.appendChild(head);
@@ -175,17 +193,23 @@ export async function openXml229RunUnresolvedMassPopup({stateRef,render,onNaviga
  table.appendChild(body);scroll.appendChild(table);
  const actions=document.createElement('div');
  actions.style.cssText='display:flex;gap:10px;justify-content:flex-end;margin-top:12px';
+ const max=button(actions,'Apply All Source suggestions (Max)','apply-max');
  const close=button(actions,'Keep unresolved / Cancel','cancel');
  const submit=button(actions,'Confirm these Final masses','confirm');
  submit.style.background='#1d4ed8';submit.style.color='white';
  panel.append(title,detail,scroll,status,actions);overlay.appendChild(panel);
  document.body.appendChild(overlay);submit.focus();
  let busy=false;
+ max.addEventListener('click',()=>{
+   if(busy)return;
+   const result=prefillXml229RunMaxSuggestions(snapshot.pending,inputs);
+   status.textContent=result.filled+' Applied Weight input(s) prefilled with the largest positive kg suggestion; '+result.unmatched+' row(s) without suggestions left unchanged. No Final mass decision was recorded.';
+ });
  close.addEventListener('click',()=>{if(!busy)overlay.remove();});
  submit.addEventListener('click',async()=>{
    if(busy)return;
    const values=new Map([...inputs].map(([id,input])=>[id,input.value]));
-   busy=true;submit.disabled=true;close.disabled=true;
+   busy=true;submit.disabled=true;close.disabled=true;max.disabled=true;
    try{
      await confirmXml229RunUnresolvedMasses({
        session,snapshot,values,isCurrent,
@@ -198,7 +222,7 @@ export async function openXml229RunUnresolvedMassPopup({stateRef,render,onNaviga
    }catch(error){
      status.textContent='Review HELD ['+str(error?.code||error?.message||'RUN_ZERO_COMMIT_FAILED')+
        ']. If some decisions were saved, refresh to reread the authoritative Worker census.';
-   }finally{busy=false;submit.disabled=false;close.disabled=false;}
+   }finally{busy=false;submit.disabled=false;close.disabled=false;max.disabled=false;}
  });
  return snapshot;
 }
