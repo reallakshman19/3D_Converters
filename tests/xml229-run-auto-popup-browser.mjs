@@ -147,6 +147,7 @@ try{
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-auto-native.mjs');
   const worker=window.__worker,ref=window.__stateRef;
   const sha='a'.repeat(64),generationId='source-generation';
+  worker.readNativeFinalPacket=async()=>({nativeCiiReleaseAuthorized:false});
   worker.receipt.originalJsonSha256=sha;
   worker.receipt.sourceGenerationId=generationId;
   ref.current.xml229StagedSourceReceipt={
