@@ -330,6 +330,41 @@ export async function openXml229EngineeringFactModel({
       }));
     }
   }
+  // Advisory only: instrument pairs have a real positive-length span but
+  // their stiffness cannot be inferred from the label or a zero Weight field.
+  // This list is never a conversion gate and never changes Rigid or Final kg.
+  const instrumentModelingSuggestions=[];
+  for(const [bi,branch] of branches.entries()){
+    const effective=children(branch,'Node');
+    const retained=prepared.ledger.retainedByBranch[bi];
+    for(let i=0;i+1<effective.length;i++){
+      const left=effective[i],right=effective[i+1];
+      if(field(left,'ComponentType').toUpperCase()!=='INST'||
+         field(right,'ComponentType').toUpperCase()!=='INST'||
+         field(left,'Endpoint')!=='1'||field(right,'Endpoint')!=='2'||
+         !field(left,'ComponentRefNo')||
+         field(left,'ComponentRefNo')!==field(right,'ComponentRefNo')||
+         field(right,'Rigid'))continue;
+      const from=field(left,'Position').trim().split(/\s+/).map(Number);
+      const to=field(right,'Position').trim().split(/\s+/).map(Number);
+      if(from.length!==3||to.length!==3||
+         ![...from,...to].every(Number.isFinite))continue;
+      const spanMm=Math.hypot(...from.map((x,j)=>x-to[j]));
+      if(!(spanMm>6))continue;
+      instrumentModelingSuggestions.push(Object.freeze({
+        branchOccurrenceIndex:bi,
+        firstSourceNodeOrdinal:retained[i].sourceNodeOrdinal,
+        secondSourceNodeOrdinal:retained[i+1].sourceNodeOrdinal,
+        componentRefNo:field(left,'ComponentRefNo'),
+        spanMm,
+        suggestedClassification:'RIGID_CANDIDATE',
+        status:'OPTIONAL_REVIEW',
+        automaticClassificationApplied:false,
+        approvalRequiredToView:false,
+        sourceWeightIsAccepted:false,
+      }));
+    }
+  }
   const finalXmlText=new XMLSerializer().serializeToString(prepared.document);
   // A physical *part* can have Endpoint=1 and Endpoint=2 XML witnesses.
   // These are not automatically two mass owners. Preserve both source facts,
@@ -387,6 +422,7 @@ export async function openXml229EngineeringFactModel({
     originalNodeCount:prepared.ledger.originalCount,
     assignedNodeNumbers:Object.freeze(assignedNodeNumbers),
     rigidEdgePromotions:Object.freeze(rigidEdgePromotions),
+    instrumentModelingSuggestions:Object.freeze(instrumentModelingSuggestions),
     retainedSourceOrdinalsByBranch:prepared.ledger.retainedByBranch.map(
       rows=>rows.map(row=>row.sourceNodeOrdinal)),
   });
