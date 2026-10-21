@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Pre-Weight Match source revision for EXTERNALLY approved instrument RIGID decisions.
+"""Optional instrument modeling suggestions before Weight Match.
 
-Inspect emits a PENDING evidence manifest. Apply requires an explicit decision
-and a locally verifiable evidence file for EVERY unresolved source instrument.
-No weight is accepted here and this module is NEVER run by native CII Run.
+Inspect lists source-bound, nonbinding rigid-element candidates.
+Apply permits zero, one or several explicitly selected suggestions without
+mandatory engineering approval or evidence files. Unselected source elements
+remain unchanged; this tool never approves kilograms or runs inside CII Run.
 """
 import argparse
 from datetime import datetime, timedelta
