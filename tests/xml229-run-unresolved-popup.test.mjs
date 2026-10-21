@@ -95,6 +95,22 @@ test('source-stale and changed authoritative Final counts fail closed',async()=>
    {code:'RUN_ZERO_CONFIRM_FINAL_POPULATION_CHANGED'});
  assert.equal(decisions.length,0);
 });
+test('Run automatically offers unresolved mass popup only for source-verified pending Weight HOLD',async()=>{
+ const {shouldAutoOfferXml229RunMassReview}=await import(
+   '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-mass-review-button.mjs');
+ const ready={raw:{xml229VerifiedEngineering:true},
+   runHoldAudit:{diagnosisCode:'UNRESOLVED_PHYSICAL_MASS'},
+   checklistRows:[{id:'weight-match',status:'pending'}]};
+ assert.equal(shouldAutoOfferXml229RunMassReview(ready),true);
+ assert.equal(shouldAutoOfferXml229RunMassReview(ready,true),false);
+ assert.equal(shouldAutoOfferXml229RunMassReview({...ready,
+   raw:{xml229VerifiedEngineering:false}}),false);
+ assert.equal(shouldAutoOfferXml229RunMassReview({...ready,
+   runHoldAudit:{diagnosisCode:'NATIVE_OUTPUT_UNVERIFIED'}}),false);
+ assert.equal(shouldAutoOfferXml229RunMassReview({...ready,
+   checklistRows:[{id:'weight-match',status:'ready'}]}),false);
+});
+
 test('root and served popup/UI byte-identical; Run uses a separate explicit popup',async()=>{
  const dir='../tabs/xml-cii-2019-standalone/ui-adapted/';
  for(const name of ['xml229-run-unresolved-mass-popup.mjs',
@@ -108,6 +124,8 @@ test('root and served popup/UI byte-identical; Run uses a separate explicit popu
  assert.match(output,/createXml229RunMassReviewButton/);
  const action=await readFile(new URL(dir+'xml229-run-mass-review-button.mjs',import.meta.url),'utf8');
  assert.match(action,/Review unresolved physicals \(0 kg defaults\)/);
+ assert.match(action,/queueMicrotask/);
+ assert.match(action,/UNRESOLVED_PHYSICAL_MASS/);
  assert.match(popup,/runZeroSuggestion/);
  assert.match(popup,/input\.value=str\(p\.value\)/);
  assert.match(popup,/submit\.addEventListener\('click',async\(\)=>/);
