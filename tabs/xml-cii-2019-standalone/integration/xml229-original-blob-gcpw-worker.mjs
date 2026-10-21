@@ -270,6 +270,13 @@ async function rpc(req){
  const {sourceId,occurrenceId,stage}=req;
  const review=ready.review,basisId=ready.basis.basisId;
  if(req.kind==='read'){
+   if(req.what==='instrument-suggestions'){
+     return {schema:'XML229.OptionalInstrumentModelSuggestions.v1',
+       basisId,sourceXmlSha256:finalizedGeometry?.sourceXmlSha256,
+       approvalRequired:false,readOnly:true,
+       sourceGeometryChanged:false,weightsAcceptedBySuggestions:false,
+       items:finalizedGeometry?.instrumentModelingSuggestions||[]};
+   }
    if(req.what==='preview'){
      if(!verifiedPreviewResult)fail('PREVIEW_RESULT_NOT_READY','Verified original engineering Preview result is missing');
      return verifiedPreviewResult;
