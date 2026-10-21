@@ -133,12 +133,13 @@ function populate(tbody,rows){
    input.style.cssText='width:100px;padding:6px;background:#243b5d;color:#fff;border:1px solid #818cf8';
    td.appendChild(input);inputs.set(physical.occurrenceId,input);
    const proposals=(physical.proposals||[]).filter(p=>
-     Number.isFinite(p?.value)&&p.value>0&&p.unit==='kg').slice(0,3);
+     Number.isFinite(p?.value)&&p.value>0&&p.unit==='kg');
+   const maximum=xml229MaxSuggestedKg(physical);
    if(!proposals.length)suggestions.textContent='No verified suggestion';
    for(const p of proposals){
      const chip=document.createElement('button');
      chip.type='button';chip.dataset.runZeroSuggestion='true';
-     chip.textContent=(p.qualified?'★ ':'≈ ')+str(p.value)+' kg';
+     chip.textContent=(p.value===maximum?'MAX ':'')+(p.qualified?'★ ':'≈ ')+str(p.value)+' kg';
      chip.title=p.qualified?'Source-qualified suggestion':'Estimated suggestion';
      chip.style.cssText='padding:4px 6px;margin:2px;border:1px solid #64748b;border-radius:5px;cursor:pointer';
      chip.addEventListener('click',()=>{input.value=str(p.value);});
