@@ -191,6 +191,33 @@ try{
   await page.waitForFunction(()=>document.querySelector('[data-p4-weight-root]')?.dataset.p4ReadReady==='true',
     null,{timeout:120000});
 
+  // The actual 41-branch EF-05 Worker must expose all 14 optional instrument
+  // recommendations in usable Weight Match BEFORE the first mass action.
+  // This is the served Chromium UI, not a synthetic recommendation fixture.
+  const instrumentAdvice=page.locator(
+    '[data-p4-weight-root] [data-p4-instrument-advisory]');
+  await instrumentAdvice.waitFor({state:'visible',timeout:60000});
+  const instrumentAdviceText=(await instrumentAdvice.textContent()||'').trim();
+  assert(instrumentAdviceText.startsWith(
+    '14 instrument modeling suggestions (optional; no approval required).'),
+    'real EF-05 should show all 14 optional instruments without an approval gate');
+  assert(instrumentAdviceText.includes(
+    'No rigid classification or kg was applied automatically.'),
+    'advisory must not imply changes to source geometry or accepted mass');
+  assert.equal(await instrumentAdvice.count(),1,
+    'exactly one instrument advisory should appear in the current session');
+  assert.equal(await page.locator(
+    '[data-p4-weight-root] input[type="file"]').count(),0,
+    'optional instruments must not require evidence uploads in Weight Match');
+  assert.equal(await page.locator('[data-p4-scope="all"]').count(),1,
+    'normal Weight Match must remain available while all instruments are pending');
+  record.stages.instrumentModeling={
+    realSource:'EF-05',suggestions:14,allOptional:true,
+    approvalRequired:false,evidenceUploadRequired:false,
+    automaticRigidChanges:false,automaticAcceptedKg:false,
+    weightMatchUsable:true};
+  record.passes.push('real EF-05 Chromium shows 14 optional instrument suggestions without approvals, uploads or automatic classification');
+
   // Full public 41-branch source / staged JSON / four-master GC-PW precheck:
   // all original physicals (including outside the focused Weight tab),
   // seven canonical facts per owner, all proposals and semantic family evidence.
