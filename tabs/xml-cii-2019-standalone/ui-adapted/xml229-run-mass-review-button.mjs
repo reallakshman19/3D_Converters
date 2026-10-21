@@ -31,9 +31,11 @@ export function createXml229RunMassReviewButton({
  button.addEventListener('click',open);
  // Initial Run paints can have no live completion. Offer only after the
  // source-bound Worker has independently refreshed the real HOLD audit.
- if(shouldAutoOfferXml229RunMassReview(report,approved))queueMicrotask(()=>{
+ if(stateRef?.current?.activePhaseId==='run'&&
+    shouldAutoOfferXml229RunMassReview(report,approved))queueMicrotask(()=>{
    const session=getXml229CurrentWorkerHeldReview(stateRef);
-   if(button.isConnected!==true||!session||session.closed||offered.has(session))
+   if(stateRef?.current?.activePhaseId!=='run'||
+      button.isConnected!==true||!session||session.closed||offered.has(session))
      return;
    offered.add(session);
    open();

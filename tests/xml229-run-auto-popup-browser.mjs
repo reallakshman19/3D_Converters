@@ -70,7 +70,7 @@ try{
    },
   };
   const receipt={schema:'XML229.OriginalStagedSourceReceipt.v1',sourceId};
-  const stateRef={current:{xml229StagedSourceReceipt:receipt,
+  const stateRef={current:{activePhaseId:'preview',xml229StagedSourceReceipt:receipt,
    sourceBatch:{activeSourceId:sourceId,sources:[{
     sourceId,xml229StagedSourceReceipt:receipt}]},sourceText:'<PipeStressExport/>',
    supportConfigJson:'{}'}};
@@ -93,6 +93,13 @@ try{
    host.append(btn,note);
    return btn;
   };
+  window.__firstButton=window.__addRunButton();
+ });
+ // A verified Worker may be available while the Owner is still editing 4 Preview.
+ // The automatic modal must not intercept source/Preview controls.
+ assert.equal(await page.locator('[data-xml229-run-unresolved-dialog]').count(),0);
+ await page.evaluate(()=>{
+  window.__stateRef.current.activePhaseId='run';
   window.__firstButton=window.__addRunButton();
  });
  await page.locator('[data-xml229-run-unresolved-dialog]').waitFor({timeout:20000});
@@ -130,7 +137,7 @@ try{
  console.log(JSON.stringify({schema:'XML229.RunAutoPopupBrowser.v1',
   initiallyAutomatic:true,requiresExplicitConfirmation:true,
   dismissedOncePerWorker:true,manuallyReopenable:true,
-  85FinalPreserved:true,nativeReleaseAuthorized:false}));
+  existing85FinalPreserved:true,nativeReleaseAuthorized:false}));
 }finally{
  await browser?.close();await new Promise(ok=>server.close(ok));
 }

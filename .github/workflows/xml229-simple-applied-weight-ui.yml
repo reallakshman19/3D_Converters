@@ -34,6 +34,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Compile all edited scripts and served twins
         run: |
+          node --check tests/xml229-run-auto-popup-browser.mjs
           for f in tabs/xml-cii-2019-standalone/ui-adapted/{xml229-p4-weight-review-presentation.mjs,xml229-p4-unqualified-drafts.mjs,xml229-p4-skip-weight-drafts.mjs,xml-cii-adapted-p4-verified-weight-panel.js,xml-cii-adapted-output-run.js}; do node --check "$f"; done
       - name: Safe zero kg, viewport, source master integrity, and UI validations
         run: node --test tests/xml229-simple-applied-weight.test.mjs tests/xml-cii-229-p4-weight-presentation-adapter.test.mjs tests/xml229-weight-semantic-eligibility.test.mjs tests/xml229-two-click-match1-draft-confirmation.test.mjs
