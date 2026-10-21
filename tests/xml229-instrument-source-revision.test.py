@@ -163,7 +163,7 @@ class SourceInstrumentClassificationTests(unittest.TestCase):
             self.assertFalse(receipt.exists())
             self.assertEqual(source.read_text(), fixture())
 
-    def test_partial_instrument_approval_is_not_sufficient(self):
+    def test_partial_selection_is_allowed(self):
         with TemporaryDirectory() as tmp:
             d = Path(tmp)
             source, approval = d / "source.xml", d / "approval.json"
@@ -177,13 +177,17 @@ class SourceInstrumentClassificationTests(unittest.TestCase):
                 "</Branch></Pipe></PipeStressExport>"))
             data = inspect(source)
             self.assertEqual(len(data["components"]), 2)
+            data["components"][0]["classification"] = "RIGID"
             data["components"].pop()
             approval.write_text(json.dumps(data))
-            with self.assertRaises(ClassificationRefused) as err:
-                approve(source, approval, d / "out.xml", d / "out.json")
-            self.assertEqual(str(err.exception),
-                             "INSTRUMENT_APPROVAL_COVERAGE_INCOMPLETE")
-            self.assertFalse((d / "out.xml").exists())
+            result = approve(source, approval, d / "out.xml", d / "out.json")
+            self.assertEqual(result["selectedCount"], 1)
+            self.assertEqual(result["remainingSuggestions"], 1)
+            self.assertFalse(result["approvalRequired"])
+            tree, still_pending = audit((d / "out.xml").read_bytes())
+            self.assertEqual(len(still_pending), 1)
+            self.assertEqual(sum(1 for node in tree.iter()
+                if node.tag == "Rigid" and node.text == "2"), 1)
 
 
 if __name__ == "__main__":
