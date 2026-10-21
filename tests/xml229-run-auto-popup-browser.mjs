@@ -81,8 +81,8 @@ try{
    checklistRows:[{id:'weight-match',status:'pending'}]};
   window.__report=report;
   const host=document.querySelector('#run');
-  const createElement=(kind,label)=>{const e=document.createElement(kind);
-   e.textContent=label||'';return e;};
+  const createElement=(kind,label,css)=>{const e=document.createElement(kind);
+   e.textContent=label||'';if(css)e.className=css;return e;};
   window.__addRunButton=()=>{
    const note=document.createElement('div');
    const btn=createXml229RunMassReviewButton({
