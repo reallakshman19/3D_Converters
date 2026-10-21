@@ -6,6 +6,7 @@ import { deriveLineKeyFromBranchName } from '../../../converters/xml-cii2019-cor
 import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
 import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
 import {runXml229NativeCiiMassCandidate} from './xml229-native-cii-candidate-run.mjs';
+import {openXml229RunUnresolvedMassPopup} from './xml229-run-unresolved-mass-popup.mjs';
 import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js';
 import {ensureXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace,getXml229CandidateAttempt} from './xml229-flow-trace-registry.mjs';
 import {buildXml229RunHoldAudit} from '../integration/xml229-run-hold-audit.mjs';
@@ -457,11 +458,23 @@ function renderRunControls(parent, stateRef, state, report, render) {
     'model-converters-workflow-detail-note'));
   const actionDiv = createElement('div');
   if (actionDiv.style) Object.assign(actionDiv.style, { marginTop: '12px', display: 'flex', gap: '8px', flexDirection: 'column' });
-  const runReviewBtn = createElement('button', 'Run - Review Weight Matches', 'model-converters-run-btn');
+  const runReviewBtn = createElement('button', approved?'Run - Review Weight Matches':'Review unresolved physicals (0 kg defaults)', 'model-converters-run-btn');
   if (runReviewBtn.style) Object.assign(runReviewBtn.style, { width: '100%', padding: '12px' });
-  runReviewBtn.addEventListener('click', () => { stateRef.current = updateWorkflowState(stateRef.current, { activePhaseId: 'weight-match' }); if (typeof render === 'function') render(); });
+  runReviewBtn.addEventListener('click', () => {
+    void openXml229RunUnresolvedMassPopup({
+      stateRef,render,
+      onNavigate:()=>{
+        stateRef.current=updateWorkflowState(stateRef.current,{activePhaseId:'weight-match'});
+        if(typeof render==='function')render();
+      },
+    }).catch(error=>{
+      noteDiv.textContent='Source-bound unresolved mass popup unavailable ['+
+        String(error?.code||'RUN_ZERO_REVIEW_UNAVAILABLE')+
+        ']. Rebuild verified Preview or reopen Weight Match.';
+    });
+  });
   const noteDiv = createElement('div', '', 'model-converters-workflow-detail-note');
-  noteDiv.innerHTML = approved ? 'XML-only mode excludes JSON-derived Weight/Final from native output; independent XML preflight remains mandatory.' : 'Opens <strong>4A Weight Match</strong> to select and directly record Owner-designated Applied Weight in GC-PW Final. Native CII release still needs independently reconciled output consumption; XML-only testing excludes these weights.';
+  noteDiv.innerHTML = approved ? 'XML-only mode excludes JSON-derived Weight/Final from native output; independent XML preflight remains mandatory.' : 'Opens a <strong>second Weight-style popup</strong> listing every unresolved source physical. Applied Weight starts at 0 kg but is not recorded until explicit confirmation. Existing Final weights remain untouched. Native CII still requires independent reconciliation. If none remain, opens 4A Weight Match.';
   const refreshBtn = button('refresh-output-run', 'Refresh readiness / checklist');
   refreshBtn.style.cssText = 'cursor:pointer;padding:12px;border-radius:6px;background:#1e293b;color:#cbd5e1;border:1px solid #334155;font-size:12px;width:100%;text-align:center;font-weight:700;';
   refreshBtn.addEventListener('click', () => { stateRef.current = applyStandaloneOutputRunReadiness(stateRef.current, buildStandaloneOutputRunReadiness(stateRef.current)); if (typeof render === 'function') render(); });
