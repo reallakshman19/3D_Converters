@@ -170,6 +170,36 @@ test('physical endpoint pairs are identified before accepting weights, without m
               await digestUtf8(opened.finalizedGeometry.xmlText));
 });
 
+test('instrument pair suggests but never requires classification or modifies Rigid',async()=>{
+ const xml=XML.replace('<ComponentType>VALV</ComponentType>',
+                       '<ComponentType>INST</ComponentType>')
+  .replace('<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>2</Endpoint>',
+           '<ComponentRefNo>1006649732/119369</ComponentRefNo><Endpoint>1</Endpoint>');
+ const basis=await createPreviewBasis({domainId:'xml-cii/2019',
+  sources:[{sourceId:SOURCE_ID,mediaType:'application/xml',text:xml}],
+  masters,selection,config,overrides:{},sha256:digestUtf8});
+ const original=projectXmlCiiOccurrences({xmlText:xml,sourceId:SOURCE_ID});
+ const preview=xmlCiiDryRunPreview(xml,config,'');
+ const opened=await openXml229EngineeringFactModel({
+  basis,live:{...live,sources:{[SOURCE_ID]:xml}},xmlText:xml,
+  sourceId:SOURCE_ID,
+  previewResult:{...preview,sourceOccurrences:original,
+   engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},
+  expectedOriginalCount:original.branchCount+original.nodeCount,
+ });
+ const final=opened.finalizedGeometry;
+ assert.equal(final.instrumentModelingSuggestions.length,1);
+ assert.equal(final.instrumentModelingSuggestions[0].status,'OPTIONAL_REVIEW');
+ assert.equal(final.instrumentModelingSuggestions[0].approvalRequiredToView,false);
+ assert.equal(final.instrumentModelingSuggestions[0].automaticClassificationApplied,false);
+ assert.equal(final.instrumentModelingSuggestions[0].sourceWeightIsAccepted,false);
+ assert.equal(final.rigidEdgePromotions.length,0);
+ assert.equal(final.physicalOwnerCardinality.distinctPhysicalPartCandidates,2);
+ assert.equal(opened.physicalOccurrences.length,2);
+ assert.match(final.xmlText,/<ComponentType>INST<\/ComponentType>/);
+ assert.equal(await digestUtf8(final.xmlText),final.sha256);
+});
+
 test('FLAN/VALV first-end witness delegates to existing same-ref RIGID mass owner before review',async()=>{
  const xml=XML.replace(
   '<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>2</Endpoint>',
