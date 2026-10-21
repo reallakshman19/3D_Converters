@@ -31,6 +31,8 @@ For a **nonrigid** choice, keep governed output HOLD until there is an independe
 
 The repository now provides `converters/scripts/xml229_instrument_source_revision.py`. It is a **pre-Weight Match operator tool**, not a Run-stage converter and not an approval service.
 
+A ready-to-review **PENDING, unapproved** manifest for the exact benchmark source is available at [`xml229-ef05-14-instrument-pending-approvals.json`](./xml229-ef05-14-instrument-pending-approvals.json). Copy it outside the repository before filling it with real engineering decisions and private documentary evidence. Each field is source-anchored; **do not commit completed private approvals or evidence documents** to this public repository. Regenerate the template with `inspect` when the original source changes.
+
 ```bash
 # Create a source-SHA-bound, PENDING approval manifest for all 14 instruments.
 python3 converters/scripts/xml229_instrument_source_revision.py inspect \
