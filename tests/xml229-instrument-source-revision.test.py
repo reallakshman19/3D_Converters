@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] /
 from xml229_instrument_source_revision import (
     ClassificationRefused, approve, audit, inspect,
 )
+from xml229_native_final_mass_binding import NativeMassError, read_packet
 
 
 def fixture():
@@ -88,6 +89,19 @@ class SourceInstrumentClassificationTests(unittest.TestCase):
                                 result["newSourceXmlSha256"])
             self.assertEqual(result, json.loads(receipt.read_text()))
             self.assertEqual(source.read_text(), fixture())
+            # A prior accepted-weight packet cannot apply to a classified
+            # source revision: the original source SHA changed.
+            prior = d / "old-packet.json"
+            prior.write_text(json.dumps({
+                "schema": "XML229.NativeFinalPhysicalPacket.v1",
+                "sourceXmlSha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+                "basisId": "a" * 64, "finalIntentSha256": "b" * 64,
+                "physicalCount": 1,
+                "components": [{"occurrenceId": "old", "effectiveKg": 1}],
+            }))
+            with self.assertRaises(NativeMassError) as old_mass:
+                read_packet(prior, output)
+            self.assertEqual(old_mass.exception.code, "ORIGINAL_SOURCE_SHA_DRIFT")
             original, pending = audit(output.read_bytes())
             self.assertEqual(pending, [])
             branch = next(x for x in original.iter() if x.tag == "Branch")
@@ -100,6 +114,17 @@ class SourceInstrumentClassificationTests(unittest.TestCase):
                 approve(source, approval, output, receipt)
             self.assertEqual(str(err.exception),
                              "INSTRUMENT_OUTPUT_MUST_BE_NEW_REVISION")
+
+    def test_unpaired_instrument_source_refuses_classification(self):
+        with TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            source = d / "invalid.xml"
+            source.write_text(fixture().replace(
+                '<ComponentRefNo>=INS-1</ComponentRefNo><Endpoint>2</Endpoint>',
+                '<ComponentRefNo>=DIFFERENT</ComponentRefNo><Endpoint>2</Endpoint>'))
+            with self.assertRaises(ClassificationRefused) as error:
+                inspect(source)
+            self.assertEqual(str(error.exception), "INSTRUMENT_UNPAIRED_SOURCE_OWNER")
 
     def test_stale_source_or_unverifiable_evidence_never_changes_source(self):
         with TemporaryDirectory() as tmp:
