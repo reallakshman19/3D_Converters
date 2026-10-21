@@ -185,6 +185,9 @@ try{
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
   const session=getXml229CurrentWorkerHeldReview(window.__stateRef);
   const packet=await session.readNativeFinalPacket();
+  const handoff=await session.readNativeOriginalJsonForEngine({packet});
+  const autoJsonVerified=handoff.sha256===packet.originalJsonSha256&&
+    await handoff.file.text()===await window.__options.originalStagedBlob.text();
   const optionalAdvice=await session.readInstrumentModelingSuggestions();
   const backup=await session.exportReviewBackup();
   let wrongGeometryRejected=null;
@@ -193,9 +196,10 @@ try{
       ...backup,finalizedGeometrySha256:'0'.repeat(64)}});
   }catch(error){wrongGeometryRejected=error?.code||String(error);}
   return {originalXmlText:window.__options.xmlText,
-   packet,backup,wrongGeometryRejected,optionalAdvice};
+   packet,backup,wrongGeometryRejected,optionalAdvice,autoJsonVerified};
  });
- const {originalXmlText,packet,backup,wrongGeometryRejected,optionalAdvice}=sourceAndFinal;
+ const {originalXmlText,packet,backup,wrongGeometryRejected,optionalAdvice,autoJsonVerified}=sourceAndFinal;
+ assert.equal(autoJsonVerified,true,'native Run reuses exact O1 JSON without re-upload');
  assert.equal(optionalAdvice.schema,'XML229.OptionalInstrumentModelSuggestions.v1');
  assert.equal(optionalAdvice.approvalRequired,false);
  assert.equal(optionalAdvice.readOnly,true);

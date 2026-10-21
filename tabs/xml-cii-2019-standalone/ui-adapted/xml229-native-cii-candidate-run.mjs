@@ -31,9 +31,12 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   fail('NATIVE_CANDIDATE_BASIS_OR_CENSUS_DRIFT');
  // Use the exact independently owned original XML, NOT the selected subset
  // or a cached Preview table. The Python native writer verifies the full SHA.
+ const attachment=!state.stagedJsonFile&&!state.stagedJsonText&&
+   typeof session.readNativeOriginalJsonForEngine==='function'
+     ?await session.readNativeOriginalJsonForEngine({packet})
+     :getXml229NativeJsonReattachment(session);
  const {sourceText,stagedJsonText}=await resolveXml229NativeCandidateSource({
-   state,packet,readFile:readTextFile,
-   attachment:getXml229NativeJsonReattachment(session),
+   state,packet,readFile:readTextFile,attachment,
  });
  if(!isCurrent())fail('NATIVE_CANDIDATE_BASIS_STALE');
  const options={

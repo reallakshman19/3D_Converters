@@ -9,6 +9,7 @@
  */
 import {physicalOccurrenceId}
  from '../../../contracts/gc-pw-v1/occurrence-bridge.mjs';
+import {attestXml229IndexedJsonForNative} from './xml229-native-indexed-json-handoff.mjs';
 
 const PROTOCOL='XML229.P4.WorkerHeldOriginalJsonGC-PW.v1';
 const CENSUS='XML229.P4.OriginalWeightCensus.v1';
@@ -232,6 +233,14 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    async readNativeFinalPacket(){
      // Private per-original owner mass custody; not a release credential.
      return rpc({kind:'read',what:'native-final-packet',sourceId});
+   },
+   async readNativeOriginalJsonForEngine({packet}={}){
+     return attestXml229IndexedJsonForNative({
+       originalBlob:originalStagedBlob,sourceReceipt:originalStagedSourceReceipt,
+       workerReceipt:ready,packet,
+       confirmPacket:()=>rpc({kind:'read',what:'native-final-packet',sourceId}),
+       isCurrent:()=>{try{current();return true;}catch{return false;}},
+     });
    },
    async attestEngineInput({engineInputXmlText}={}){
      return rpc({kind:'read',what:'attest-engine-input',sourceId,engineInputXmlText});
