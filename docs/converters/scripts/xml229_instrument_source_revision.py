@@ -96,21 +96,23 @@ def audit(xml_bytes):
                 "sourceOutsideDiameterMm": get(right, "OutsideDiameter"),
                 "sourceEndRigid": end_rigid,
             })
-        require(all(i in paired_ordinals for i, n in enumerate(nodes)
-                    if get(n, "ComponentType") == "INST"),
-                "INSTRUMENT_UNPAIRED_SOURCE_OWNER")
+        # Nonmatching instruments stay in the source unchanged: suggestions
+        # are advisory and cannot hold up unrelated components.
     return root, unresolved
 
 
 def inspect(xml):
     data = Path(xml).read_bytes()
     _, rows = audit(data)
-    require(rows, "NO_UNCLASSIFIED_INSTRUMENTS")
     return {
         "schema": SCHEMA, "sourceXmlSha256": digest(data),
         "stage": "BEFORE_WEIGHT_MATCH",
+        "mode": "OPTIONAL_SUGGESTIONS",
+        "approvalRequired": False,
         "components": [{
             **row, "classification": "PENDING",
+            "suggestedClassification": "RIGID_CANDIDATE",
+            "automaticClassificationApplied": False,
             "approvedBy": "", "approvedAtUtc": "",
             "evidencePath": "", "evidenceSha256": "",
             "evidenceCitation": "",
@@ -118,51 +120,41 @@ def inspect(xml):
     }
 
 
-def valid_approval(row, anchor, manifest_dir):
+def optional_choice(row, anchor, manifest_dir):
+    """PENDING or omitted choices need no approval and do not change XML."""
     require(isinstance(row, dict) and
             all(row.get(key) == value for key, value in anchor.items()),
             "INSTRUMENT_SOURCE_ANCHOR_DRIFT")
-    require(row.get("classification") == "RIGID",
-            "INSTRUMENT_ENGINEERING_CLASSIFICATION_REQUIRED")
-    for key in ("approvedBy", "approvedAtUtc",
-                "evidencePath", "evidenceCitation"):
-        value = row.get(key)
-        require(isinstance(value, str) and
-                len(value.strip()) >= 3 and
-                value.strip().lower() not in BAD_VALUE,
-                "INSTRUMENT_APPROVAL_EVIDENCE_REQUIRED")
-    try:
-        approved = datetime.fromisoformat(row["approvedAtUtc"].replace("Z", "+00:00"))
-    except ValueError:
-        raise ClassificationRefused("INSTRUMENT_APPROVAL_TIME_INVALID") from None
-    require(approved.tzinfo is not None and
-            approved.utcoffset() == timedelta(0),
-            "INSTRUMENT_APPROVAL_TIME_INVALID")
-    evidence_sha = row.get("evidenceSha256")
-    require(isinstance(evidence_sha, str) and SHA.fullmatch(evidence_sha),
-            "INSTRUMENT_EVIDENCE_HASH_REQUIRED")
-    evidence_path = Path(row["evidencePath"])
-    if not evidence_path.is_absolute():
-        evidence_path = manifest_dir / evidence_path
-    require(evidence_path.is_file() and digest(evidence_path.read_bytes()) ==
-            evidence_sha, "INSTRUMENT_EVIDENCE_BYTES_MISMATCH")
+    choice = row.get("classification", "PENDING")
+    require(choice in ("PENDING", "KEEP_SOURCE", "FLEXIBLE", "RIGID"),
+            "INSTRUMENT_CHOICE_INVALID")
+    if choice != "RIGID":
+        return None
+    evidence_path = row.get("evidencePath") or ""
+    evidence_sha = row.get("evidenceSha256") or ""
+    if evidence_path or evidence_sha:
+        require(bool(evidence_path) and isinstance(evidence_sha, str) and
+                SHA.fullmatch(evidence_sha) is not None,
+                "INSTRUMENT_OPTIONAL_EVIDENCE_INCOMPLETE")
+        source = Path(evidence_path)
+        if not source.is_absolute():
+            source = manifest_dir / source
+        require(source.is_file() and digest(source.read_bytes()) == evidence_sha,
+                "INSTRUMENT_EVIDENCE_BYTES_MISMATCH")
     return {
         "branchOccurrenceIndex": anchor["branchOccurrenceIndex"],
         "endSourceNodeOrdinal": anchor["endSourceNodeOrdinal"],
         "componentRefNo": anchor["componentRefNo"],
         "classification": "RIGID",
-        "approvedBy": row["approvedBy"].strip(),
-        "approvedAtUtc": row["approvedAtUtc"],
-        "evidenceSha256": evidence_sha,
-        "evidenceCitation": row["evidenceCitation"].strip(),
+        "engineeringApprovalVerified": False,
+        "approvalRequired": False,
+        "evidenceSha256": evidence_sha or None,
     }
-
 
 def approve(xml, manifest, revised, receipt):
     source = Path(xml)
     original = source.read_bytes()
     root, anchors = audit(original)
-    require(anchors, "NO_UNCLASSIFIED_INSTRUMENTS")
     approval_bytes = Path(manifest).read_bytes()
     try:
         approved = json.loads(approval_bytes)
@@ -172,24 +164,34 @@ def approve(xml, manifest, revised, receipt):
             approved.get("stage") == "BEFORE_WEIGHT_MATCH" and
             approved.get("sourceXmlSha256") == digest(original),
             "INSTRUMENT_APPROVAL_SOURCE_SHA_DRIFT")
-    rows = approved.get("components")
-    require(isinstance(rows, list) and len(rows) == len(anchors),
-            "INSTRUMENT_APPROVAL_COVERAGE_INCOMPLETE")
+    rows = approved.get("components", [])
+    require(isinstance(rows, list), "INSTRUMENT_SUGGESTIONS_INVALID")
+    by_identity = {
+        (r["branchOccurrenceIndex"], r["endSourceNodeOrdinal"],
+         r["componentRefNo"]): r for r in anchors
+    }
     checked = []
-    for row, anchor in zip(rows, anchors):
-        checked.append(valid_approval(row, anchor, Path(manifest).parent))
-    # Every decision and byte of documentary evidence was verified BEFORE
-    # changing a single output. New source is a separate revision.
+    seen = set()
+    for row in rows:
+        require(isinstance(row, dict), "INSTRUMENT_SUGGESTIONS_INVALID")
+        identity = (row.get("branchOccurrenceIndex"),
+                    row.get("endSourceNodeOrdinal"), row.get("componentRefNo"))
+        require(identity in by_identity and identity not in seen,
+                "INSTRUMENT_SUGGESTION_SOURCE_MISMATCH")
+        seen.add(identity)
+        selected = optional_choice(row, by_identity[identity],
+                                   Path(manifest).parent)
+        if selected is not None:
+            checked.append(selected)
     branches = [x for x in root.iter() if name(x) == "Branch"]
-    for anchor in anchors:
-        target = children(branches[anchor["branchOccurrenceIndex"]], "Node")[
-            anchor["endSourceNodeOrdinal"]]
-        require(not children(target, "Rigid"), "INSTRUMENT_RIGID_CLASS_CONFLICT")
-        namespace = target.tag.rsplit("}", 1)[0] + "}" if "}" in target.tag else ""
-        ET.SubElement(target, namespace + "Rigid").text = "2"
-    revised_bytes = ET.tostring(root, encoding="utf-8", xml_declaration=True)
-    _, still_pending = audit(revised_bytes)
-    require(not still_pending, "INSTRUMENT_CLASSIFICATION_INCOMPLETE")
+    for chosen in checked:
+        node = children(branches[chosen["branchOccurrenceIndex"]], "Node")[
+            chosen["endSourceNodeOrdinal"]]
+        namespace = node.tag.rsplit("}", 1)[0] + "}" if "}" in node.tag else ""
+        ET.SubElement(node, namespace + "Rigid").text = "2"
+    # A no-choice path is a valid unchanged original, not a release gate.
+    revised_bytes = (ET.tostring(root, encoding="utf-8",
+                                xml_declaration=True) if checked else original)
     for file in (revised, receipt):
         file = Path(file)
         require(file.resolve() not in {source.resolve(), Path(manifest).resolve()} and
@@ -198,15 +200,20 @@ def approve(xml, manifest, revised, receipt):
             "INSTRUMENT_OUTPUT_PATH_COLLISION")
     record = {
         "schema": RECEIPT_SCHEMA,
-        "stage": "SOURCE_REVISION_BEFORE_WEIGHT_MATCH",
+        "stage": "OPTIONAL_SOURCE_MODELING",
         "oldSourceXmlSha256": digest(original),
         "newSourceXmlSha256": digest(revised_bytes),
-        "approvalManifestSha256": digest(approval_bytes),
-        "classifiedCount": len(checked),
-        "approvals": checked,
+        "suggestionManifestSha256": digest(approval_bytes),
+        "suggestionCount": len(anchors),
+        "selectedCount": len(checked),
+        "remainingSuggestions": len(anchors) - len(checked),
+        "classificationSelections": checked,
+        "approvalRequired": False,
+        "engineeringApprovalVerified": False,
+        "sourceChanged": bool(checked),
         "kilogramsAccepted": False,
-        "reusablePreviousWeightReview": False,
-        "governedCiiReleaseAuthorized": False,
+        "reusablePreviousWeightReview": not bool(checked),
+        "actualCiiMassReconciled": False,
     }
     # Create a NEW source XML and a receipt. Never overwrite originals or an
     # existing accepted basis. On an I/O failure delete both incomplete files.
@@ -225,10 +232,10 @@ def approve(xml, manifest, revised, receipt):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
-    plan = sub.add_parser("inspect", help="Create pending, source-bound instrument approvals")
+    plan = sub.add_parser("inspect", help="List optional instrument modeling suggestions")
     plan.add_argument("--source", required=True)
     plan.add_argument("--manifest", required=True)
-    apply = sub.add_parser("apply", help="Apply complete approvals as NEW pre-weight source")
+    apply = sub.add_parser("apply", help="Apply only explicitly selected RIGID suggestions")
     apply.add_argument("--source", required=True)
     apply.add_argument("--manifest", required=True)
     apply.add_argument("--revised-source", required=True)
@@ -242,11 +249,11 @@ def main():
                     "INSTRUMENT_OUTPUT_MUST_BE_NEW_REVISION")
             result = inspect(args.source)
             target.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-            print(f"PENDING {len(result['components'])} original instrument approvals; 0 kg accepted")
+            print(f"SUGGESTIONS {len(result['components'])} optional; no approval or kg required")
         else:
             result = approve(args.source, args.manifest,
                              args.revised_source, args.receipt)
-            print(f"SOURCE_REVISED {result['classifiedCount']} approved instrument elements; 0 kg accepted")
+            print(f"SELECTED {result['selectedCount']} optional RIGID models; unchanged={not result['sourceChanged']}")
     except (ClassificationRefused, ET.ParseError, OSError) as exc:
         parser.exit(2, f"INSTRUMENT_CLASSIFICATION_REFUSED: {exc}\n")
 
