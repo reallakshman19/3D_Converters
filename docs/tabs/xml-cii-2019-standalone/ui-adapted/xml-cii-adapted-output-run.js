@@ -6,6 +6,7 @@ import { deriveLineKeyFromBranchName } from '../../../converters/xml-cii2019-cor
 import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
 import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
 import {runXml229NativeCiiMassCandidate} from './xml229-native-cii-candidate-run.mjs';
+import {scheduleXml229AutoRun} from './xml229-output-auto-run.mjs';
 import {createXml229RunMassReviewButton} from './xml229-run-mass-review-button.mjs';
 import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js';
 import {ensureXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace,getXml229CandidateAttempt} from './xml229-flow-trace-registry.mjs';
@@ -414,6 +415,62 @@ async function collectXml229RunHoldAudit(stateRef,report){
  });
 }
 
+function createXml229RunCurrentPredicate(stateRef, session, initial) {
+  const receipt = initial?.xml229StagedSourceReceipt;
+  const singleSource = initial?.sourceBatch?.sources?.filter((x) => x.enabled !== false);
+  return () => !!session && !session.closed &&
+    getXml229CurrentWorkerHeldReview(stateRef) === session &&
+    receipt?.schema === 'XML229.OriginalStagedSourceReceipt.v1' &&
+    stateRef.current?.xml229StagedSourceReceipt?.sha256 === receipt.sha256 &&
+    stateRef.current?.xml229StagedSourceReceipt?.generationId === receipt.generationId &&
+    stateRef.current?.sourceFile === initial.sourceFile &&
+    stateRef.current?.sourceText === initial.sourceText &&
+    stateRef.current?.stagedJsonFile === initial.stagedJsonFile &&
+    stateRef.current?.stagedJsonText === initial.stagedJsonText &&
+    stateRef.current?.supportConfigJson === initial.supportConfigJson &&
+    stateRef.current?.masterContext === initial.masterContext &&
+    stateRef.current?.branchSelection === initial.branchSelection &&
+    stateRef.current?.options === initial.options &&
+    xmlCiiProcessingMode(stateRef.current) !== 'mode-b' &&
+    (!singleSource || singleSource.length === 1);
+}
+
+async function executeXml229NativeRun({ stateRef, render, finalizeBtn }) {
+  const session = getXml229CurrentWorkerHeldReview(stateRef);
+  const initial = stateRef.current;
+  const current = createXml229RunCurrentPredicate(stateRef, session, initial);
+  if (!current()) return;
+  if (finalizeBtn) finalizeBtn.disabled = true;
+  stateRef.current = updateWorkflowState(stateRef.current, { running: true, result: null });
+  if (typeof render === 'function') render();
+  try {
+    const verified = await runXml229NativeCiiMassCandidate({
+      state: initial, session, isCurrent: current,
+    });
+    if (!current() || verified.nativeCiiReleaseAuthorized !== true)
+      throw Object.assign(new Error('NATIVE_RUN_SOURCE_CHANGED'),
+        { code: 'NATIVE_RUN_SOURCE_CHANGED' });
+    const result = {
+      ok: true,
+      ciiText: verified.ciiText,
+      ciiName: 'xml229-verified-native.cii',
+      xml229ActualCiiSha256: verified.actualCiiSha256,
+      xml229NativeOutput: verified,
+    };
+    stateRef.current = updateWorkflowState(stateRef.current, { result });
+    downloadTextFile(result.ciiName, result.ciiText, 'text/plain;charset=utf-8');
+  } catch (error) {
+    if (current()) stateRef.current = updateWorkflowState(stateRef.current, {
+      result: { ok: false, error: String(error?.code || 'NATIVE_CII_RECONCILIATION_FAILED') },
+    });
+  } finally {
+    if (current()) {
+      stateRef.current = updateWorkflowState(stateRef.current, { running: false });
+      if (typeof render === 'function') render();
+    }
+  }
+}
+
 function renderRunControls(parent, stateRef, state, report, render) {
   const ctrlCard = section(parent, 'Run Conversion');
   const routeLabel=createElement('label','','model-converters-workflow-regex-field');
@@ -530,62 +587,30 @@ function renderRunControls(parent, stateRef, state, report, render) {
   const blocked=state.running||(governed
     ?(!single||!weightsReady||otherBlocks.length>0)
     :report.summary.blockingCount>0);
-  const finalizeBtn=createElement('button',state.running?'Running...':
-    'Finalise and Run Conversion','model-converters-download-btn');
+  const btnLabel = state.running
+    ? 'Running...'
+    : (state.result?.ok ? 'Conversion Complete (CII Ready)' : 'Finalise and Run Conversion');
+  const finalizeBtn=createElement('button', btnLabel, 'model-converters-download-btn');
   if(finalizeBtn.style)Object.assign(finalizeBtn.style,{
-    width:'100%',padding:'12px',background:blocked?'#334155':'#1e4ed8',
+    width:'100%',padding:'12px',
+    background:blocked?'#334155':(state.result?.ok?'#15803d':'#1e4ed8'),
     color:'#fff',border:'none',fontWeight:'700'});
   finalizeBtn.disabled=!!blocked;
   finalizeBtn.dataset.action=governed&&weightsReady?'xml229-native-run':'run';
-  if(governed)finalizeBtn.addEventListener('click',async()=>{
-    if(finalizeBtn.disabled)return;
-    const session=getXml229CurrentWorkerHeldReview(stateRef);
-    const initial=stateRef.current;
-    const receipt=initial?.xml229StagedSourceReceipt;
-    const singleSource=initial.sourceBatch?.sources?.filter(x=>x.enabled!==false);
-    const current=()=>!!session&&!session.closed&&
-      getXml229CurrentWorkerHeldReview(stateRef)===session&&
-      receipt?.schema==='XML229.OriginalStagedSourceReceipt.v1'&&
-      stateRef.current?.xml229StagedSourceReceipt?.sha256===receipt.sha256&&
-      stateRef.current?.xml229StagedSourceReceipt?.generationId===receipt.generationId&&
-      stateRef.current?.sourceFile===initial.sourceFile&&
-      stateRef.current?.sourceText===initial.sourceText&&
-      stateRef.current?.stagedJsonFile===initial.stagedJsonFile&&
-      stateRef.current?.stagedJsonText===initial.stagedJsonText&&
-      stateRef.current?.supportConfigJson===initial.supportConfigJson&&
-      stateRef.current?.masterContext===initial.masterContext&&
-      stateRef.current?.branchSelection===initial.branchSelection&&
-      stateRef.current?.options===initial.options&&
-      xmlCiiProcessingMode(stateRef.current)!=='mode-b'&&
-      (!singleSource||singleSource.length===1);
-    if(!current())return;
-    finalizeBtn.disabled=true;
-    stateRef.current=updateWorkflowState(stateRef.current,{running:true,result:null});
-    if(typeof render==='function')render();
-    try{
-      // Current accepted Worker mass -> actual converter -> independent CII
-      // ELEMENTS/RIGID byte check; no additional human verification stage.
-      const verified=await runXml229NativeCiiMassCandidate({
-        state:initial,session,isCurrent:current});
-      if(!current()||verified.nativeCiiReleaseAuthorized!==true)
-        throw Object.assign(new Error('NATIVE_RUN_SOURCE_CHANGED'),
-          {code:'NATIVE_RUN_SOURCE_CHANGED'});
-      const result={ok:true,ciiText:verified.ciiText,
-        ciiName:'xml229-verified-native.cii',
-        xml229ActualCiiSha256:verified.actualCiiSha256,
-        xml229NativeOutput:verified};
-      stateRef.current=updateWorkflowState(stateRef.current,{result});
-      downloadTextFile(result.ciiName,result.ciiText,'text/plain;charset=utf-8');
-    }catch(error){
-      if(current())stateRef.current=updateWorkflowState(stateRef.current,{
-        result:{ok:false,error:String(error?.code||'NATIVE_CII_RECONCILIATION_FAILED')}});
-    }finally{
-      if(current()){
-        stateRef.current=updateWorkflowState(stateRef.current,{running:false});
-        if(typeof render==='function')render();
-      }
-    }
-  });
+  if(governed){
+    finalizeBtn.addEventListener('click',async()=>{
+      if(finalizeBtn.disabled)return;
+      await executeXml229NativeRun({stateRef,render,finalizeBtn});
+    });
+    scheduleXml229AutoRun({stateRef,render,governed,weightsReady,blocked,finalizeBtn,executeXml229NativeRun});
+  } else if (!blocked && !state.running && !state.result?.ok) {
+    scheduleXml229AutoRun({
+      stateRef, render, governed: true, weightsReady: true, blocked: false,
+      finalizeBtn,
+      executeXml229NativeRun: () => finalizeBtn.click(),
+      session: finalizeBtn,
+    });
+  }
   actionDiv.append(runReviewBtn,noteDiv,refreshBtn,exportEvidenceBtn,finalizeBtn);
   ctrlCard.appendChild(actionDiv);
 }
@@ -661,6 +686,7 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
   const isRef = stateOrRef && 'current' in stateOrRef;
   const stateRef = isRef ? stateOrRef : { current: stateOrRef };
   const state = stateRef.current;
+  const config = supportConfigForReadiness(state);
   card.__xml229ReadinessToken=(card.__xml229ReadinessToken||0)+1;
   const paint=(report,renderState=stateRef.current)=>{
     card.innerHTML = '';

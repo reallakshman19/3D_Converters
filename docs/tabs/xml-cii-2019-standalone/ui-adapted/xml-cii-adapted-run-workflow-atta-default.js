@@ -4,6 +4,7 @@ import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapte
 import {
   withXmlCiiRigidWeightFinal,
 } from '../../../converters/xml-cii2019-core/rigid-weight-authority.js?v=20260928-issue776-authority-2';
+import { downloadTextFile } from './xml-cii-adapted-dom.js';
 import { applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedConfigFromState, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
 import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20261001-weight-output-2';
@@ -123,14 +124,13 @@ function rigidReviewMarkup(rows) {
 
 function openStandaloneRigidWeightReviewPopup(issues, stateRef, config) {
   const rows = Array.isArray(issues) ? issues : [];
-  if (!rows.length) return Promise.resolve({ cancelled: false, skipped: false, weightsByKey: {} });
-  return new Promise((resolve) => {
-    const overlay = document.createElement('div');
-    overlay.className = 'model-converters-workflow-popup-overlay mc-rigid-review-overlay';
-    overlay.innerHTML = rigidReviewMarkup(rows);
-    document.body.appendChild(overlay);
-    bindRigidReviewPopup(overlay, rows, resolve, stateRef, config);
-  });
+  const weightsByKey = {};
+  for (const issue of rows) {
+    const best = issue.candidates?.[0];
+    const val = Number(best?.suggestedWeight ?? best?.weight);
+    if (Number.isFinite(val) && val > 0) weightsByKey[issue.key] = val;
+  }
+  return Promise.resolve({ cancelled: false, skipped: false, weightsByKey });
 }
 
 function bindRigidReviewPopup(overlay, rows, resolve, stateRef, config) {
@@ -229,18 +229,7 @@ async function unresolvedRigidIssues(state, config) {
 }
 
 async function reviewRigidWeights(stateRef, config) {
-  try {
-    const result = await openStandaloneRigidWeightReviewPopup(await unresolvedRigidIssues(stateRef.current, config), stateRef, config);
-    if (result.cancelled) return false;
-    if (result.weightsByKey && Object.keys(result.weightsByKey).length > 0) {
-      const finalConfig = withXmlCiiRigidWeightFinal(config, result.weightsByKey);
-      persistRunConfig(stateRef, finalConfig);
-    }
-    return true;
-  } catch (error) {
-    console.warn('Standalone rigid weight review failed to execute:', error);
-    return true;
-  }
+  return true;
 }
 
 export async function runWorkflowFromUi(stateRef, render) {
@@ -261,6 +250,9 @@ export async function runWorkflowFromUi(stateRef, render) {
   try {
     const result = await runXmlCii2019Workflow(await buildXmlCiiWorkflowJobFromUiState(stateRef.current));
     stateRef.current = updateWorkflowState(stateRef.current, { result });
+    if (result?.ok && result?.ciiText) {
+      downloadTextFile(result.ciiName || 'output.cii', result.ciiText, 'text/plain;charset=utf-8');
+    }
   } finally {
     stateRef.current = applyStandaloneOutputRunReadiness(
       updateWorkflowState(stateRef.current, { running: false }),

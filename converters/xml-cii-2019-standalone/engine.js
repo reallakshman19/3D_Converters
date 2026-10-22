@@ -26,6 +26,9 @@ const RUN_SNIPPET = `
 import runpy
 import sys
 import traceback
+for _m in list(sys.modules.keys()):
+    if any(_m.startswith(_p) for _p in ['xml_to_cii', 'xml229', 'cii', 'master_']):
+        del sys.modules[_m]
 exit_code = 0
 sys.argv = list(job_argv)
 try:
@@ -43,6 +46,10 @@ exit_code
 
 const ENRICH_XML_SNIPPET = `
 from pathlib import Path
+import sys
+for _m in list(sys.modules.keys()):
+    if any(_m.startswith(_p) for _p in ['xml_to_cii', 'xml229', 'cii', 'master_']):
+        del sys.modules[_m]
 import xml_to_cii2019_patched as patched
 from xml_to_cii2019_bend_radius_policy import apply_bend_radius_policy
 support_config = patched._load_support_config(job_support_config_json)

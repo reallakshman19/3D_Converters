@@ -156,7 +156,7 @@ function ciiBendRadii(ciiText) {
     const stage = await topology.runPsi116TopologyStage(pyodide, transactionJob, fixtureXml, transactionDir, transactionLog);
     assert.strictEqual(stage.topoFixCommitted, true, stage.topoFixValidationText);
     assert.strictEqual(stage.ciiInputSource, 'topofix');
-    assert.strictEqual(stage.ciiInputPath, path.join(transactionDir, 'FirstpassXML.topofix.xml'));
+    assert.strictEqual(path.resolve(stage.ciiInputPath), path.resolve(transactionDir, 'FirstpassXML.topofix.xml'));
     assert(stage.topoFixXmlText.includes('<PipeStressExport'));
     assert(transactionLog.includes('CII conversion input switched to committed TopoFix XML.'));
 

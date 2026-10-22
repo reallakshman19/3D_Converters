@@ -1,5 +1,5 @@
 {
-  "lastId": 1277,
+  "lastId": 1302,
   "entries": [
     {
       "id": 1,
@@ -8939,6 +8939,181 @@
       "file": "tests/xml-cii-issue-776-deployment-parity.test.mjs",
       "context": "P0 Owner conditional merge: protected #776 deployment cache successor still asserted prior 20261007 tag; guarded update to exact 20261008 P0 standalone entrypoint",
       "backupFile": "13400_issue980_issue776_deployment_parity_expected_release.bak"
+    },
+    {
+      "id": 1278,
+      "timestamp": "2026-10-21 20:35:35",
+      "file": "converters\\scripts\\xml_to_cii2019_runtime_custody.py",
+      "context": "Windows write_bytes binary fidelity",
+      "backupFile": "1278_converters_scripts_xml_to_cii2019_runtime_custody_py.bak"
+    },
+    {
+      "id": 1279,
+      "timestamp": "2026-10-21 20:35:57",
+      "file": "tests\\xml-cii-standalone-topofix-live-proof.test.js",
+      "context": "Cross-platform path comparison for ciiInputPath",
+      "backupFile": "1279_tests_xml_cii_standalone_topofix_live_proof_test_js.bak"
+    },
+    {
+      "id": 1280,
+      "timestamp": "2026-10-21 20:37:26",
+      "file": "converters\\scripts\\xml_to_cii2019_contracted_direction.py",
+      "context": "Support preserve_rigid_weight_owners parameter",
+      "backupFile": "1280_converters_scripts_xml_to_cii2019_contracted_direction_py.bak"
+    },
+    {
+      "id": 1281,
+      "timestamp": "2026-10-21 21:17:11",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-output-run.js",
+      "context": "Auto-run governed native conversion when weights ready",
+      "backupFile": "1281_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_output_run_js.bak"
+    },
+    {
+      "id": 1282,
+      "timestamp": "2026-10-21 21:17:17",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-output-run.js",
+      "context": "Auto-run governed native conversion when weights ready",
+      "backupFile": "1282_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_output_run_js.bak"
+    },
+    {
+      "id": 1283,
+      "timestamp": "2026-10-21 22:39:21",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml229-native-cii-candidate-run.mjs",
+      "context": "Auto-run CII fallback and download",
+      "backupFile": "1283_tabs_xml_cii_2019_standalone_ui_adapted_xml229_native_cii_candidate_run_mjs.bak"
+    },
+    {
+      "id": 1284,
+      "timestamp": "2026-10-21 22:39:31",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-output-run.js",
+      "context": "Auto-run CII fallback and download",
+      "backupFile": "1284_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_output_run_js.bak"
+    },
+    {
+      "id": 1285,
+      "timestamp": "2026-10-21 22:39:36",
+      "file": "tabs\\xml-cii-2019-standalone\\xml-cii-output-run-readiness.js",
+      "context": "Auto-run CII fallback and download",
+      "backupFile": "1285_tabs_xml_cii_2019_standalone_xml_cii_output_run_readiness_js.bak"
+    },
+    {
+      "id": 1286,
+      "timestamp": "2026-10-21 22:39:47",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml229-native-cii-candidate-run.mjs",
+      "context": "Auto-run CII fallback and download mirror",
+      "backupFile": "1286_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml229_native_cii_candidate_run_mjs.bak"
+    },
+    {
+      "id": 1287,
+      "timestamp": "2026-10-21 22:39:47",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-output-run.js",
+      "context": "Auto-run CII fallback and download mirror",
+      "backupFile": "1287_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_output_run_js.bak"
+    },
+    {
+      "id": 1288,
+      "timestamp": "2026-10-21 22:39:47",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\xml-cii-output-run-readiness.js",
+      "context": "Auto-run CII fallback and download mirror",
+      "backupFile": "1288_docs_tabs_xml_cii_2019_standalone_xml_cii_output_run_readiness_js.bak"
+    },
+    {
+      "id": 1289,
+      "timestamp": "2026-10-21 22:49:30",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "Auto-run flow without blocking review modal and auto-download CII",
+      "backupFile": "1289_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 1290,
+      "timestamp": "2026-10-21 22:49:30",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "Auto-run flow without blocking review modal and auto-download CII mirror",
+      "backupFile": "1290_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 1291,
+      "timestamp": "2026-10-21 22:55:06",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow.js",
+      "context": "auto apply rigid review weights and auto download cii",
+      "backupFile": "1291_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_js.bak"
+    },
+    {
+      "id": 1292,
+      "timestamp": "2026-10-21 22:55:09",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow.js",
+      "context": "auto apply rigid review weights and auto download cii",
+      "backupFile": "1292_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_js.bak"
+    },
+    {
+      "id": 1293,
+      "timestamp": "2026-10-21 23:01:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow.js",
+      "context": "eliminate rigid review popup DOM completely",
+      "backupFile": "1293_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_js.bak"
+    },
+    {
+      "id": 1294,
+      "timestamp": "2026-10-21 23:01:32",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow.js",
+      "context": "eliminate rigid review popup DOM completely",
+      "backupFile": "1294_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_js.bak"
+    },
+    {
+      "id": 1295,
+      "timestamp": "2026-10-21 23:01:38",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "eliminate rigid review popup DOM completely",
+      "backupFile": "1295_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 1296,
+      "timestamp": "2026-10-21 23:01:44",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "eliminate rigid review popup DOM completely",
+      "backupFile": "1296_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 1297,
+      "timestamp": "2026-10-21 23:19:43",
+      "file": "converters\\xml-cii-2019-standalone\\engine.js",
+      "context": "Isolate pyodide sys.modules between enrich and runCii",
+      "backupFile": "1297_converters_xml_cii_2019_standalone_engine_js.bak"
+    },
+    {
+      "id": 1298,
+      "timestamp": "2026-10-21 23:19:49",
+      "file": "docs\\converters\\xml-cii-2019-standalone\\engine.js",
+      "context": "Isolate pyodide sys.modules between enrich and runCii docs",
+      "backupFile": "1298_docs_converters_xml_cii_2019_standalone_engine_js.bak"
+    },
+    {
+      "id": 1299,
+      "timestamp": "2026-10-21 23:45:26",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "Simplify reviewRigidWeights to eliminate popup and avoid injecting unverified weights",
+      "backupFile": "1299_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 1300,
+      "timestamp": "2026-10-21 23:45:33",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow-atta-default.js",
+      "context": "Simplify reviewRigidWeights to eliminate popup and avoid injecting unverified weights docs",
+      "backupFile": "1300_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_atta_default_js.bak"
+    },
+    {
+      "id": 1301,
+      "timestamp": "2026-10-21 23:45:38",
+      "file": "tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow.js",
+      "context": "Simplify reviewRigidWeights in xml-cii-adapted-run-workflow.js",
+      "backupFile": "1301_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_js.bak"
+    },
+    {
+      "id": 1302,
+      "timestamp": "2026-10-21 23:45:44",
+      "file": "docs\\tabs\\xml-cii-2019-standalone\\ui-adapted\\xml-cii-adapted-run-workflow.js",
+      "context": "Simplify reviewRigidWeights in docs xml-cii-adapted-run-workflow.js",
+      "backupFile": "1302_docs_tabs_xml_cii_2019_standalone_ui_adapted_xml_cii_adapted_run_workflow_js.bak"
     }
   ]
 }

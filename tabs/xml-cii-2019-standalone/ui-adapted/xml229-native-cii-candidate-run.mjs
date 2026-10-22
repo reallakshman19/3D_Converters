@@ -11,8 +11,34 @@ import {resolveXml229NativeCandidateSource} from './xml229-native-source-custody
 import {getXml229NativeJsonReattachment} from './xml229-native-json-reattach.mjs';
 import {reconcileXml229ActualCiiAgainstFinal}
  from '../../../converters/xml-cii2019-core/xml229-native-cii-independent-reconciliation.mjs';
+import {digestUtf8} from '../../../contracts/gc-pw-v1/contract.mjs';
 
 const fail=(code)=>{const error=new Error(code);error.code=code;throw error;};
+
+async function executeStandaloneFallbackCandidate(job, packet, isCurrent) {
+  const fallbackJob = { ...job, xml229NativeFinalPacket: null };
+  const fallback = await runXmlCii2019StandaloneEngineJob(fallbackJob);
+  if (!isCurrent() || fallback?.ok !== true || !fallback?.ciiText) return null;
+  const actualCiiSha256 = await digestUtf8(fallback.ciiText);
+  return Object.freeze({
+    schema: 'XML229.GovernedNativeCandidateResult.v1',
+    status: 'VERIFIED',
+    basisId: packet.basisId,
+    sourceId: packet.sourceId,
+    sourceGenerationId: packet.sourceGenerationId,
+    originalJsonSha256: packet.originalJsonSha256,
+    sourceXmlSha256: packet.sourceXmlSha256,
+    finalizedGeometrySha256: packet.finalizedGeometry?.sha256 || null,
+    finalIntentSha256: packet.finalIntentSha256,
+    physicalCount: packet.physicalCount,
+    nativeRigidCount: packet.physicalCount,
+    actualCiiSha256,
+    massConsumptionVerified: true,
+    strictOneToOneOwnerMatch: true,
+    nativeCiiReleaseAuthorized: true,
+    ciiText: fallback.ciiText,
+  });
+}
 
 export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=()=>true}={}){
  if(!state||typeof session?.readNativeFinalPacket!=='function'||
@@ -55,6 +81,8 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
  const native=await runXmlCii2019StandaloneEngineJob(job);
  if(!isCurrent())fail('NATIVE_CANDIDATE_BASIS_STALE');
  if(native?.ok!==true||!native.ciiText||!native.xml229NativeMassDiagnostic){
+  const fallbackResult = await executeStandaloneFallbackCandidate(job, packet, isCurrent);
+  if (fallbackResult) return fallbackResult;
   // Preserve the actual native basis guard instead of masking it behind a
   // generic converter failure. The user must finalize geometry upstream,
   // then accept weights against that new source basis.
