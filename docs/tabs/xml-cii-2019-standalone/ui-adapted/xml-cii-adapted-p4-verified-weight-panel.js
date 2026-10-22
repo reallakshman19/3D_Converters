@@ -432,9 +432,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        resolveInputs,onProgress:stage=>say('GC-PW Worker: '+stage),
      });
      offset=0;clearDrafts();await render();
-     void renderXml229InstrumentSuggestions(root,active,
-       ()=>root.isConnected!==false&&live()===active,
-       ()=>render());
+     void renderXml229InstrumentSuggestions(root,active,()=>root.isConnected!==false&&live()===active,render);
      root.dataset.p4ReadReady='true';
      applyQueue.drain(active);
      say('Verified source facts ready. Applied Weight suggestions are available.');
@@ -587,9 +585,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const proof=await session.readCompletion();
    if(root.isConnected===false||live()!==session||active!==session)return;
    root.dataset.p4ReadReady='true';
-   void renderXml229InstrumentSuggestions(root,session,
-     ()=>root.isConnected!==false&&active===session&&live()===session,
-     ()=>render());
+   void renderXml229InstrumentSuggestions(root,session,()=>root.isConnected!==false&&active===session&&live()===session,render);
    applyQueue.drain(session);
    const counts=proof?.counts||{};
    say('Existing verified Preview facts loaded. Weight decisions: '+
