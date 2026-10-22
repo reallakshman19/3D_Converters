@@ -42,6 +42,12 @@ record.source={xmlSha256:sha(x),jsonSha256:sha(j),
  xmlBytes:x.length,jsonBytes:j.length,
  branches:(x.toString('utf8').match(/<Branch>/g)||[]).length,
  xmlNodes:(x.toString('utf8').match(/<Node>/g)||[]).length};
+// Keep the owner-confirmed EF-05 XML byte identity immutable. This check
+// does not assert that engineering Final masses or source RIGID classes exist.
+assert.equal(record.source.xmlSha256,
+  '2573883480af904096dea2663c9cf585be2db28dd047785397b4d61edee0a030',
+  'Authoritative EF-05 source XML bytes drifted');
+assert.equal(record.source.xmlBytes,898252);
 assert.equal(record.source.branches,41);
 assert.equal(record.source.xmlNodes,1654);
 if(lineListVariant==='bc4-json'){
@@ -270,6 +276,25 @@ try{
   };
   assert.equal(syntax.ok,true,'Downloaded browser CII failed 2019 syntax check');
   assert.deepEqual(syntax.errors,[]);
+  // Preserve only this explicitly opted-in XML-only test CII, never a
+  // governed Final-mass release. The attestation binds exact source bytes,
+  // executable revision, output digest, and the opt-out participation.
+  const xmlOnlyOutput='ValidationRecords/xml229-ef05-xml-only-test'+artifactSuffix+'.cii';
+  await writeFile(xmlOnlyOutput,cii);
+  await writeFile('ValidationRecords/xml229-ef05-xml-only-test-attestation'+artifactSuffix+'.json',
+    JSON.stringify({
+      schema:'XML229.EF05.XmlOnlyTestArtifact.v1',
+      category:'TEST_ONLY_NOT_GOVERNED_FINAL_MASS_RELEASE',
+      sourceXmlSha256:record.source.xmlSha256,
+      sourceXmlBytes:record.source.xmlBytes,
+      ciiSha256:sha(cii),
+      ciiBytes:cii.length,
+      runHead:record.head,
+      outputParticipation:record.stages.route.participation,
+      nativeCiiReleaseAuthorized:false,
+      engineeringFinalMassReconciled:false,
+      syntax2019Ok:syntax.ok,
+    },null,2)+'\n');
   record.passes.push('real native CII result downloaded, nonempty and SHA-attested');
 
   await page.locator('[data-action="xml229-output-participation"]').selectOption('governed');
