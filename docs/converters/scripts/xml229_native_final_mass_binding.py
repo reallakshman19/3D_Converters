@@ -813,8 +813,8 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
             used_zero_elements.add(ei)
             actual_from, actual_to, pointer = output_elements[ei]
             edge = model.edges[ei]
-            require(actual_from == str(edge.from_node.node_number) and
-                    actual_to == str(edge.to_node.node_number) and pointer == 0 and
+            require(float(actual_from) == edge.from_node.node_number and
+                    float(actual_to) == edge.to_node.node_number and pointer == 0 and
                     edge.to_node.weight == 0,
                     "CII_ZERO_INSTRUMENT_OUTPUT_NOT_VERIFIED")
             claims.append({"occurrenceId": row["occurrenceId"],
