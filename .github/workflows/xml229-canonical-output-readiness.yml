@@ -131,6 +131,8 @@ jobs:
           path: |
             ValidationRecords/xml229-ef05-native-output-e2e.json
             ValidationRecords/xml229-ef05-browser-downloaded-cii-syntax.json
+            ValidationRecords/xml229-ef05-xml-only-test.cii
+            ValidationRecords/xml229-ef05-xml-only-test-attestation.json
             /tmp/xml229-ef05-run-http.log
           if-no-files-found: error
           retention-days: 30
