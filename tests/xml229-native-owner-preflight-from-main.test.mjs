@@ -62,8 +62,8 @@ test('classification in a separately finalized source removes only selected bloc
 
 test('source owner identity, not just component type, controls preflight',()=>{
   const otherSource=packet({sourceId:'DIFFERENT_SOURCE'});
-  assert.equal(inspectXml229NativeOwnerPreflight(otherSource).unsupportedOwners.length,14,
-    'packet source and accepted identities match');
+  assert.equal(inspectXml229NativeOwnerPreflight(otherSource).unsupportedOwners.length,0,
+    'owners from another source ID must not match this packet');
   const mismatched=packet({components:packet().components.map(row=>({
     ...row,occurrenceId:JSON.stringify(['OTHER',0,0,'different']),
   }))});
