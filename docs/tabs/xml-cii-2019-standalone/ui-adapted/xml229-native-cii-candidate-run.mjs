@@ -11,6 +11,7 @@ import {resolveXml229NativeCandidateSource} from './xml229-native-source-custody
 import {getXml229NativeJsonReattachment} from './xml229-native-json-reattach.mjs';
 import {reconcileXml229ActualCiiAgainstFinal}
  from '../../../converters/xml-cii2019-core/xml229-native-cii-independent-reconciliation.mjs';
+import {requireXml229NativeOwnerPreflight} from './xml229-native-owner-preflight.mjs';
 
 const fail=(code)=>{const error=new Error(code);error.code=code;throw error;};
 
@@ -29,6 +30,9 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
     packet.originalJsonSha256!==before.originalJsonSha256||
     packet.physicalCount!==before.verifiedPhysicalCount)
   fail('NATIVE_CANDIDATE_BASIS_OR_CENSUS_DRIFT');
+ // Diagnose current source-bound instrument owners BEFORE invoking native
+ // conversion. This never authorizes mass or weakens the Python binder.
+ requireXml229NativeOwnerPreflight(packet);
  // Use the exact independently owned original XML, NOT the selected subset
  // or a cached Preview table. The Python native writer verifies the full SHA.
  const attachment=!state.stagedJsonFile&&!state.stagedJsonText&&
