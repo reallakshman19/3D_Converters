@@ -7,6 +7,7 @@ on:
       - 'contracts/xml229-flow-trace-v1/**'
       - 'docs/contracts/xml229-flow-trace-v1/**'
       - 'tests/xml229-run-hold-audit.test.mjs'
+      - 'tests/xml229-native-owner-blocker-evidence.test.mjs'
       - 'tests/xml229-output-run-audit-browser.mjs'
       - '.github/workflows/xml229-output-run-audit.yml'
   push:
@@ -16,6 +17,7 @@ on:
       - 'contracts/xml229-flow-trace-v1/**'
       - 'docs/contracts/xml229-flow-trace-v1/**'
       - 'tests/xml229-run-hold-audit.test.mjs'
+      - 'tests/xml229-native-owner-blocker-evidence.test.mjs'
       - 'tests/xml229-output-run-audit-browser.mjs'
       - '.github/workflows/xml229-output-run-audit.yml'
 jobs:
@@ -32,7 +34,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Audit and canonical Worker regression contracts
-        run: node --test tests/xml229-run-hold-audit.test.mjs tests/xml-cii-229-canonical-readiness-worker.test.mjs tests/xml-cii-229-engineering-basis-authority.test.mjs tests/xml229-cross-worker-flow-audit.test.mjs
+        run: node --test tests/xml229-run-hold-audit.test.mjs tests/xml-cii-229-canonical-readiness-worker.test.mjs tests/xml-cii-229-engineering-basis-authority.test.mjs tests/xml229-cross-worker-flow-audit.test.mjs tests/xml229-native-owner-blocker-evidence.test.mjs
   chromium:
     needs: node
     runs-on: ubuntu-latest

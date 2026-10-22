@@ -57,6 +57,9 @@ export function inspectXml229NativeOwnerPreflight(packet) {
     schema: 'XML229.NativeOwnerPreflight.v1',
     status: unsupportedOwners.length ? 'UNSUPPORTED_OWNERS' : 'NO_SUGGESTED_INSTRUMENT_BLOCKERS',
     sourceXmlSha256: packet.sourceXmlSha256,
+    basisId: packet.basisId,
+    finalIntentSha256: packet.finalIntentSha256,
+    physicalCount: packet.physicalCount,
     unsupportedOwners: Object.freeze(unsupportedOwners),
   });
 }

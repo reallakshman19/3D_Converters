@@ -6,6 +6,7 @@ import { deriveLineKeyFromBranchName } from '../../../converters/xml-cii2019-cor
 import { renderAdaptedCiiPreviewCanvas } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
 import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
 import {runXml229NativeCiiMassCandidate} from './xml229-native-cii-candidate-run.mjs';
+import {buildXml229NativeOwnerBlockerEvidence} from './xml229-native-owner-blocker-evidence.mjs';
 import {createXml229RunMassReviewButton} from './xml229-run-mass-review-button.mjs';
 import {offerXml229AutomaticNativeRun} from './xml229-run-auto-native.mjs';
 import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js';
@@ -613,6 +614,42 @@ function renderRunControls(parent, stateRef, state, report, render) {
         Type:owner.componentType,Reference:owner.componentRefNo,
         'Span mm':owner.spanMm,Reason:owner.reason,
       })), 'No unsupported instrument owners'));
+    const evidenceStatus=createElement('div','',
+      'model-converters-workflow-detail-note');
+    const evidenceBtn=button('xml229-export-owner-blockers',
+      'Download source-bound blocker evidence JSON');
+    evidenceBtn.addEventListener('click',()=>{
+      try{
+        const evidence=buildXml229NativeOwnerBlockerEvidence(
+          state.result?.xml229NativeOwnerPreflight);
+        downloadTextFile('xml229-native-owner-blockers.json',
+          JSON.stringify(evidence,null,2),'application/json;charset=utf-8');
+        evidenceStatus.textContent='Blocker evidence exported for source review. '+
+          'This JSON is NOT an instrument classification manifest or CII release proof.';
+      }catch{
+        evidenceStatus.textContent='Evidence export unavailable; source or Final '+
+          'receipt no longer matches. Refresh the current Worker review.';
+      }
+    });
+    audit.appendChild(evidenceBtn);
+    audit.appendChild(evidenceStatus);
+    audit.appendChild(createElement('div',
+      'To model an instrument as rigid, first establish that classification '+
+      'from source engineering information. In a checked-out repository, '+
+      'run inspect on the exact input XML, review the generated JSON choices, '+
+      'and apply only explicitly selected RIGID classifications to a NEW XML. '+
+      'Reopen the revised source and complete a NEW Final weight review. '+
+      'Never reuse old Final masses or treat the evidence export as approval.',
+      'model-converters-workflow-detail-note'));
+    audit.appendChild(createElement('pre',[
+      'python3 converters/scripts/xml229_instrument_source_revision.py inspect',
+      '  --source YOUR_SOURCE.xml --manifest instrument-suggestions.json',
+      '',
+      '# Review instrument-suggestions.json; mark RIGID only when justified.',
+      'python3 converters/scripts/xml229_instrument_source_revision.py apply',
+      '  --source YOUR_SOURCE.xml --manifest instrument-suggestions.json',
+      '  --revised-source reviewed-source.xml --receipt revision-receipt.json',
+    ].join('\n'),'xml-cii-phase-help'));
     ctrlCard.appendChild(audit);
   }
   if(governed&&weightsReady&&!blocked)offerXml229AutomaticNativeRun({
