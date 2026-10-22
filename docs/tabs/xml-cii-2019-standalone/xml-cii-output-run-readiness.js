@@ -120,6 +120,31 @@ function originalJsonAuthorityRows(input) {
     {blocking:true,severity:'warning',status:'held'})];
 }
 
+
+// A completed Final session can be valid while individual instrument owners
+// cannot be represented by the native RIGID-only mass writer. When the exact
+// current Run candidate returns its source-bound preflight, surface a separate
+// actionable HOLD, not a converter crash. This is presentation only: never
+// turn evidence into classification, reuse Final kg or authorize native CII.
+function nativeInstrumentOwnerHoldRows(input) {
+  const result = input.result;
+  const evidence = result?.xml229NativeOwnerPreflight;
+  if (!hasOriginalJsonSourceOnlyRunHold(input) ||
+      result?.error !== 'NATIVE_RIGID_OWNER_UNSUPPORTED' ||
+      evidence?.schema !== 'XML229.NativeOwnerPreflight.v1' ||
+      !Array.isArray(evidence.unsupportedOwners) ||
+      evidence.unsupportedOwners.length === 0) return [];
+  const count = evidence.unsupportedOwners.length;
+  return [row('xml229-instrument-native-owner-authority',
+    'Instrument source classification for governed CII',
+    false,
+    count + ' accepted instrument owner(s) lack source RIGID classification. ' +
+      'Native CII remains HELD; review engineering authority, revise the source ' +
+      'only where justified, and perform a new Final weight review. ' +
+      'XML-only testing remains a separate explicit option.',
+    {blocking:true, severity:'warning', status:'held'})];
+}
+
 function inputXmlRows(input) {
   const matched = Number(input.manualElementSideloadResult?.summary?.matchedRows || input.result?.diagnostics?.sideLoadMatched || 0);
   return [row('inputxml-side-load', 'InputXML side-load status', matched > 0 || !!text(input.elementSideLoadText), `InputXML side-load evidence rows: ${matched || 'not built yet'}.`)];
@@ -175,6 +200,7 @@ export function buildOutputRunChecklist(input = {}) {
   const kind = resolvedKind(input);
   return [...optionRows(input, kind), ...topologyRows(input, kind), ...commonRows(input),
     ...originalJsonAuthorityRows(input),
+    ...nativeInstrumentOwnerHoldRows(input),
     ...(kind === 'inputxml' ? inputXmlRows(input) : xmlRows(input))];
 }
 
@@ -232,7 +258,18 @@ function runLogLevel(message) {
 
 function logRows(input, checklistRows) {
   const fromResult = array(input.result?.logs).map((message) => ({ level: runLogLevel(text(message)), source: 'run', message: text(message) }));
-  if (input.result?.error) fromResult.push({ level: 'error', source: 'run', message: text(input.result.error) });
+  if (input.result?.error) {
+    const ownerHold = checklistRows.some(item =>
+      item.id === 'xml229-instrument-native-owner-authority' &&
+      item.blocking && item.status === 'held');
+    fromResult.push({
+      level: ownerHold ? 'warning' : 'error',
+      source: ownerHold ? 'native-release-hold' : 'run',
+      message: ownerHold
+        ? 'NATIVE_RIGID_OWNER_UNSUPPORTED: governed native CII held pending source classification; no CII released.'
+        : text(input.result.error),
+    });
+  }
   const fromChecklist = checklistRows.filter((item) => item.status !== 'ready').map((item) => ({ level: item.severity, source: 'readiness', message: `${item.label}: ${item.message}` }));
   return [...fromChecklist, ...fromResult];
 }
