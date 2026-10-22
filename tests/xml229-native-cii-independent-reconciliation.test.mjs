@@ -103,3 +103,51 @@ test('accepted zero consumes real pointed CII RIGID; absent and mismatched masse
  await assert.rejects(reconcileXml229ActualCiiAgainstFinal(original),
   {code:'NATIVE_WRITER_PROOF_CUSTODY_INVALID'});
 });
+
+test('explicit zero INST uses one non-rigid CII element without making it RIGID',async()=>{
+ const source='<PipeStressExport><Pipe><Branch><Branchname>INST</Branchname>'+
+  '<Node><ComponentType>INST</ComponentType><ComponentRefNo>=X</ComponentRefNo>'+
+  '<Endpoint>1</Endpoint><Position>0 0 0</Position></Node>'+
+  '<Node><ComponentType>INST</ComponentType><ComponentRefNo>=X</ComponentRefNo>'+
+  '<Endpoint>2</Endpoint><Position>305 0 0</Position><Weight>0</Weight></Node>'+
+  '</Branch></Pipe></PipeStressExport>';
+ const id=JSON.stringify(['SRC',0,1,JSON.stringify(['INST','=X','2',''])]);
+ const element=['10 20 0 0 0 0',...Array(11).fill('0 0 0 0 0 0'),
+   '0 0 0 0 0 0','0 0 0 0 0 0','0 0 0'];
+ const unweighted='#$ CONTROL\n1 0 0 0 0 0\n0 0 0 0 0 0\n0 0 0 0 0 0\n0\n'+
+  '#$ ELEMENTS\n'+element.join('\n')+'\n#$ RIGID\n#$ UNITS\nN.\n';
+ const pkg={
+  originalXmlText:source,ciiText:unweighted,
+  packet:{
+   schema:'XML229.NativeFinalPhysicalPacket.v1',
+   sourceId:'SRC',basisId:'a'.repeat(64),finalIntentSha256:'b'.repeat(64),
+   sourceXmlSha256:sha(source),physicalCount:1,
+   components:[{occurrenceId:id,effectiveKg:0}],
+   nativeCiiReleaseAuthorized:false,
+  },
+  writerDiagnostic:{
+   schema:'XML229.NativeRigidConsumptionDiagnostic.v1',
+   sourcePhysicalCount:1,claimedNativeRigidCount:0,
+   claimedZeroNonRigidInstrumentCount:1,
+   nativeCiiReleaseAuthorized:false,massesConsumedInNativeRigid:true,
+   actualCiiSha256:sha(unweighted),
+   claims:[{occurrenceId:id,rigidRecordIndex:null,nativeElementIndex:0,
+    ciiFromNode:'10',ciiToNode:'20',massKg:0,emittedForceN:0,
+    zeroNonRigidInstrument:true,branchOccurrenceIndex:0,engineNodeOrdinal:1}],
+  },
+ };
+ const ok=await reconcileXml229ActualCiiAgainstFinal(pkg);
+ assert.equal(ok.zeroNonRigidInstrumentCount,1);
+ assert.equal(ok.nativeCiiReleaseAuthorized,true);
+ pkg.packet.components[0].effectiveKg=5;
+ await assert.rejects(reconcileXml229ActualCiiAgainstFinal(pkg),
+  {code:'NATIVE_ZERO_INSTRUMENT_NOT_CONFIRMED'});
+ pkg.packet.components[0].effectiveKg=0;
+ pkg.writerDiagnostic.claims[0].ciiToNode='999';
+ await assert.rejects(reconcileXml229ActualCiiAgainstFinal(pkg),
+  {code:'NATIVE_ZERO_INSTRUMENT_OUTPUT_NOT_VERIFIED'});
+ pkg.writerDiagnostic.claims[0].ciiToNode='20';
+ pkg.writerDiagnostic.claimedZeroNonRigidInstrumentCount=0;
+ await assert.rejects(reconcileXml229ActualCiiAgainstFinal(pkg),
+  {code:'NATIVE_WRITER_PROOF_CUSTODY_INVALID'});
+});
