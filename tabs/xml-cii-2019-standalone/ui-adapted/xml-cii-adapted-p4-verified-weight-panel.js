@@ -11,8 +11,7 @@ import {renderXml229WeightReviewPage} from './xml229-p4-weight-review-presentati
 import {commitXml229SelectedAppliedWeight} from './xml229-p4-applied-weight-owner-selection.mjs';
 import {createXml229ZeroMassPopup} from './xml229-p4-zero-mass-popup.mjs';
 import {renderXml229InstrumentSuggestions} from './xml229-p4-optional-instrument-advisory.mjs';
-import {commitXml229AllSelectedFinal,commitXml229VisibleSelectedFinal}
- from './xml229-p4-source-wide-final-commit.mjs';
+import {commitXml229AllSelectedFinal,commitXml229VisibleSelectedFinal} from './xml229-p4-source-wide-final-commit.mjs';
 import {hydrateXml229WeightDraftInputs,seedXml229VisibleSuggestedWeightDrafts}
  from './xml229-p4-unqualified-drafts.mjs';
 import {applyXml229SourceWideSuggestionDrafts,applyXml229BlankWeightDrafts} from './xml229-p4-source-wide-suggestion-action.mjs';
