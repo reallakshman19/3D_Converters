@@ -27,7 +27,7 @@ const packet=(overrides={})=>({
   components:manifest.components.map(row=>({
     occurrenceId:JSON.stringify([sourceId,row.branchOccurrenceIndex,
       row.endSourceNodeOrdinal,'INST-signature']),
-    effectiveKg:0,
+    effectiveKg:18.25,
   })),
   ...overrides,
 });
@@ -48,6 +48,22 @@ test('real EF-05 source-bound manifest locates all 14 unclassified instrument ow
   assert.throws(()=>requireXml229NativeOwnerPreflight(packet()),error=>
     error.code==='NATIVE_RIGID_OWNER_UNSUPPORTED' &&
     error.xml229NativeOwnerPreflight.unsupportedOwners.length===14);
+});
+
+test('explicit 0 kg Final instrument owners pass advisory without assuming RIGID',()=>{
+  const yes=packet({components:packet().components.map(row=>({...row,effectiveKg:0}))});
+  const result=requireXml229NativeOwnerPreflight(yes);
+  assert.equal(result.status,'CONFIRMED_ZERO_INSTRUMENTS');
+  assert.equal(result.unsupportedOwners.length,0);
+  assert.equal(result.confirmedZeroInstrumentOwners.length,14);
+  const mixed=packet({components:packet().components.map((row,i)=>({
+    ...row,effectiveKg:i<6?0:18.25,
+  }))});
+  const blocked=inspectXml229NativeOwnerPreflight(mixed);
+  assert.equal(blocked.confirmedZeroInstrumentOwners.length,6);
+  assert.equal(blocked.unsupportedOwners.length,8);
+  assert.throws(()=>requireXml229NativeOwnerPreflight(mixed),
+    {code:'NATIVE_RIGID_OWNER_UNSUPPORTED'});
 });
 
 test('classification in a separately finalized source removes only selected blockers',()=>{
