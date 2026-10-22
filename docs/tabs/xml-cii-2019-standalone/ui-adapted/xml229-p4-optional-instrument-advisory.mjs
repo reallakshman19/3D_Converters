@@ -22,10 +22,12 @@ export async function renderXml229InstrumentSuggestions(root,session,isCurrent,o
  const note=element(doc,'div');
  note.dataset.p4InstrumentAdvisory='true';
  const info=element(doc,'p',advice.items.length+
-  ' source-identified instrument pairs. Review individual kg in the popup. '+
-  'Empirical Weight API models require a user-specified supported family/rating/NS '+
-  'and are suggestions only. Positive kg on an unclassified INST still needs a '+
-  'supported rigid model; explicitly confirmed 0 kg may be verified as an unweighted CII element.');
+  ' instrument modeling suggestions (optional; no approval required). '+
+  'No rigid classification or kg was applied automatically. '+
+  'Review individual kg in the popup. Empirical Weight API models require a '+
+  'user-specified supported family/rating/NS and are suggestions only. '+
+  'Positive kg on an unclassified INST still needs a supported rigid model; '+
+  'explicitly confirmed 0 kg may be verified as an unweighted CII element.');
  const open=element(doc,'button','Review instrument weights');
  open.type='button';open.dataset.p4InstrumentReview='true';
  note.append(info,open);
