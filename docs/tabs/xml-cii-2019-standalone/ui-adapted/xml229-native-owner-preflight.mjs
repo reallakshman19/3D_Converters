@@ -37,13 +37,35 @@ export function inspectXml229NativeOwnerPreflight(packet) {
     status: 'UNAVAILABLE', unsupportedOwners: Object.freeze([]),
   });
   const accepted = acceptedOwnerOrdinals(packet);
+  const confirmedZeroInstrumentOwners = [];
   const unsupportedOwners = [];
+  const zeroOwners = new Set();
+  for (const component of packet.components) {
+    if (component?.effectiveKg !== 0) continue;
+    let id;
+    try { id = JSON.parse(component.occurrenceId); } catch { continue; }
+    if (Array.isArray(id) && id[0] === packet.sourceId &&
+        Number.isInteger(id[1]) && Number.isInteger(id[2]))
+      zeroOwners.add(key(id[1], id[2]));
+  }
   for (const row of suggestions) {
     const bi = row?.branchOccurrenceIndex;
     const ordinal = row?.secondSourceNodeOrdinal;
     if (!Number.isInteger(bi) || bi < 0 ||
         !Number.isInteger(ordinal) || ordinal < 0 ||
         !accepted.has(key(bi, ordinal))) continue;
+    // The GC-PW source-bound Final service records explicit 0 kg as
+    // accepted only after an Owner confirmation. A zero-mass instrument
+    // needs no fabricated rigid mass element, but Python must independently
+    // prove its actual non-rigid CII element and zero mass.
+    if (zeroOwners.has(key(bi, ordinal))) {
+      confirmedZeroInstrumentOwners.push(Object.freeze({
+        branchOccurrenceIndex: bi, sourceNodeOrdinal: ordinal,
+        componentRefNo: String(row.componentRefNo || ''),
+        spanMm: row.spanMm, effectiveKg: 0,
+      }));
+      continue;
+    }
     unsupportedOwners.push(Object.freeze({
       branchOccurrenceIndex: bi,
       sourceNodeOrdinal: ordinal,
@@ -55,12 +77,15 @@ export function inspectXml229NativeOwnerPreflight(packet) {
   }
   return Object.freeze({
     schema: 'XML229.NativeOwnerPreflight.v1',
-    status: unsupportedOwners.length ? 'UNSUPPORTED_OWNERS' : 'NO_SUGGESTED_INSTRUMENT_BLOCKERS',
+    status: unsupportedOwners.length ? 'UNSUPPORTED_OWNERS' :
+      confirmedZeroInstrumentOwners.length ? 'CONFIRMED_ZERO_INSTRUMENTS' :
+      'NO_SUGGESTED_INSTRUMENT_BLOCKERS',
     sourceXmlSha256: packet.sourceXmlSha256,
     basisId: packet.basisId,
     finalIntentSha256: packet.finalIntentSha256,
     physicalCount: packet.physicalCount,
     unsupportedOwners: Object.freeze(unsupportedOwners),
+    confirmedZeroInstrumentOwners: Object.freeze(confirmedZeroInstrumentOwners),
   });
 }
 
