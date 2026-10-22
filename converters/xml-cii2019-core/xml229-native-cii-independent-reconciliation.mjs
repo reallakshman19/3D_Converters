@@ -46,12 +46,13 @@ function parseNativeCii(cii){
  const elements=s.get('ELEMENTS'),rigid=s.get('RIGID');
  if(elements.length!==elementCount*15||rigid.length!==rigidCount)
   fail('CII_RECORD_POPULATION_DRIFT');
- const slots=new Map(),weights=[];
+ const slots=new Map(),weights=[],elementOwners=[];
  for(let i=0;i<elementCount;i++){
   const row1=elements[i*15].trim().split(/\s+/);
   const row13=elements[i*15+12].trim().split(/\s+/);
   if(row1.length!==6||row13.length!==6)fail('CII_ELEMENT_ROW_INVALID');
   const p=exactInteger(row13[1]);
+  elementOwners.push({from:row1[0],to:row1[1],rigidPointer:p});
   if(p>rigidCount)fail('CII_RIGID_POINTER_OUT_OF_RANGE');
   if(p){
    if(slots.has(p-1))fail('CII_RIGID_POINTER_DUPLICATE');
@@ -66,7 +67,7 @@ function parseNativeCii(cii){
   if(nums.some(n=>!Number.isFinite(n)||n<0))fail('CII_RIGID_MASS_INVALID');
   weights.push(nums[0]);
  }
- return {slots,weights,elementCount,rigidCount};
+ return {slots,weights,elementOwners,elementCount,rigidCount};
 }
 function sameNativeFormattedMass(expected,actual){
  if(!mass(expected)||!Number.isFinite(actual))return false;
@@ -117,15 +118,23 @@ export async function reconcileXml229ActualCiiAgainstFinal({
     (final?.sha256&&writerDiagnostic?.finalizedGeometrySha256!==final.sha256)||
     writerDiagnostic?.massesConsumedInNativeRigid!==true||
     writerDiagnostic?.sourcePhysicalCount!==packet.physicalCount||
-    writerDiagnostic?.claimedNativeRigidCount!==packet.physicalCount||
+    !int(writerDiagnostic?.claimedNativeRigidCount)||
+    (writerDiagnostic?.claimedZeroNonRigidInstrumentCount === undefined
+      ? writerDiagnostic?.claimedNativeRigidCount !== packet.physicalCount
+      : !int(writerDiagnostic.claimedZeroNonRigidInstrumentCount) ||
+        writerDiagnostic.claimedNativeRigidCount +
+        writerDiagnostic.claimedZeroNonRigidInstrumentCount !== packet.physicalCount)||
     !Array.isArray(writerDiagnostic.claims)||
     writerDiagnostic.claims.length!==packet.physicalCount)
   fail('NATIVE_WRITER_PROOF_CUSTODY_INVALID');
  const parsed=parseNativeCii(ciiText),claims=new Map();
  const claimedRigid=new Set(),claimedElements=new Set();
+ let verifiedZeroInstrumentCount=0;
  for(const claim of writerDiagnostic.claims){
   if(!claim||typeof claim.occurrenceId!=='string'||claims.has(claim.occurrenceId)||
-     !int(claim.rigidRecordIndex)||!int(claim.nativeElementIndex)||
+     !(claim.zeroNonRigidInstrument===true && claim.rigidRecordIndex===null ||
+       claim.zeroNonRigidInstrument!==true && int(claim.rigidRecordIndex))||
+     !int(claim.nativeElementIndex)||
      !int(claim.branchOccurrenceIndex)||!int(claim.engineNodeOrdinal)||
      !mass(claim.massKg)||typeof claim.ciiFromNode!=='string'||
      typeof claim.ciiToNode!=='string')
@@ -145,11 +154,28 @@ export async function reconcileXml229ActualCiiAgainstFinal({
   const claim=claims.get(original.occurrenceId);
   if(!claim||claim.massKg!==original.effectiveKg||
      claim.branchOccurrenceIndex!==oid.branchOccurrenceIndex||
-     claimedRigid.has(claim.rigidRecordIndex)||
      claimedElements.has(claim.nativeElementIndex))
    fail('NATIVE_OUTPUT_PHYSICAL_OWNERSHIP_DRIFT');
-  claimedRigid.add(claim.rigidRecordIndex);
   claimedElements.add(claim.nativeElementIndex);
+  if(claim.zeroNonRigidInstrument===true){
+    let signature;
+    try{signature=JSON.parse(oid.componentSignature);}catch{
+      fail('NATIVE_ZERO_INSTRUMENT_SOURCE_ID_INVALID');
+    }
+    if(original.effectiveKg!==0||!Array.isArray(signature)||
+       signature[0]!=='INST'||signature[2]!=='2'||
+       claim.rigidRecordIndex!==null||claim.emittedForceN!==0)
+      fail('NATIVE_ZERO_INSTRUMENT_NOT_CONFIRMED');
+    const actual=parsed.elementOwners[claim.nativeElementIndex];
+    if(!actual||actual.from!==claim.ciiFromNode||
+       actual.to!==claim.ciiToNode||actual.rigidPointer!==0)
+      fail('NATIVE_ZERO_INSTRUMENT_OUTPUT_NOT_VERIFIED');
+    verifiedZeroInstrumentCount++;
+    continue;
+  }
+  if(claimedRigid.has(claim.rigidRecordIndex))
+    fail('NATIVE_OUTPUT_PHYSICAL_OWNERSHIP_DRIFT');
+  claimedRigid.add(claim.rigidRecordIndex);
   const actual=parsed.slots.get(claim.rigidRecordIndex);
   if(!actual||actual.element!==claim.nativeElementIndex||
      actual.from!==claim.ciiFromNode||actual.to!==claim.ciiToNode)
@@ -158,7 +184,9 @@ export async function reconcileXml229ActualCiiAgainstFinal({
      parsed.weights[claim.rigidRecordIndex]))
    fail('NATIVE_CII_MASS_CONSUMPTION_MISMATCH');
  }
- if(seen.size!==packet.physicalCount||claims.size!==packet.physicalCount)
+ if(seen.size!==packet.physicalCount||claims.size!==packet.physicalCount||
+    claimedRigid.size!==writerDiagnostic.claimedNativeRigidCount||
+    verifiedZeroInstrumentCount!==(writerDiagnostic.claimedZeroNonRigidInstrumentCount||0))
   fail('NATIVE_OUTPUT_MASS_POPULATION_DRIFT');
  for(let i=0;i<parsed.rigidCount;i++)
   if(!claimedRigid.has(i)&&Math.abs(parsed.weights[i])>1e-6)
@@ -169,12 +197,13 @@ export async function reconcileXml229ActualCiiAgainstFinal({
   originalXmlSha256:packet.sourceXmlSha256,actualCiiSha256:ciiSha,
   physicalCount:packet.physicalCount,
   nativeElementCount:parsed.elementCount,nativeRigidCount:parsed.rigidCount,
+  zeroNonRigidInstrumentCount:verifiedZeroInstrumentCount,
   massConsumptionVerified:true,
   strictOneToOneOwnerMatch:true,
   splitGeometryIndependentlyVerified:false,
-  // Every original physical has exactly one verified retained native owner,
-  // a unique ELEMENTS pointer and a CII mass matching the accepted Final kg.
-  // Unsupported split and non-RIGID owners are rejected before this point.
+  // Every positive mass has one verified RIGID pointer. Explicit Final-zero
+  // INST pairs have one source-linked unweighted ELEMENTS row with pointer=0.
+  // Neither a missing kg nor an unclassified positive instrument is waived.
   nativeCiiReleaseAuthorized:true,
   status:'STRICT_ONE_TO_ONE_NATIVE_CII_RECONCILED',
  });
