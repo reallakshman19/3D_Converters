@@ -578,7 +578,9 @@ function renderRunControls(parent, stateRef, state, report, render) {
       catch{recordXml229FlowTrace(stateRef,{kind:'AUTO_DOWNLOAD_UNAVAILABLE',actor:'output-ui'});}
     }catch(error){
       if(current())stateRef.current=updateWorkflowState(stateRef.current,{
-        result:{ok:false,error:String(error?.code||'NATIVE_CII_RECONCILIATION_FAILED')}});
+        result:{ok:false,error:String(error?.code||'NATIVE_CII_RECONCILIATION_FAILED'),
+          ...(error?.xml229NativeOwnerPreflight?.unsupportedOwners?.length
+            ?{xml229NativeOwnerPreflight:error.xml229NativeOwnerPreflight}:{})}});
     }finally{
       if(current()){
         stateRef.current=updateWorkflowState(stateRef.current,{running:false});
@@ -588,6 +590,31 @@ function renderRunControls(parent, stateRef, state, report, render) {
   });
   actionDiv.append(runReviewBtn,noteDiv,refreshBtn,exportEvidenceBtn,finalizeBtn);
   ctrlCard.appendChild(actionDiv);
+  // Show exact source locations for rejected instrument mass owners. Do not
+  // turn optional Preview suggestions into approved RIGID classifications.
+  const unsupported=rows(state.result?.xml229NativeOwnerPreflight?.unsupportedOwners);
+  if(unsupported.length){
+    const audit=createElement('details','','xml-cii-weight-panel');
+    audit.open=true;
+    audit.dataset.xml229NativeOwnerPreflight='true';
+    audit.appendChild(createElement('summary',
+      unsupported.length+' accepted instrument owners lack native RIGID classification'));
+    audit.appendChild(createElement('div',
+      'These accepted masses cannot be released as fully reconciled CII RIGID masses. '+
+      'Review original instrument modeling authority and create a new source '+
+      'revision before new Final mass decisions. The original source, old Final '+
+      'review, and XML-only test path remain intact.',
+      'model-converters-workflow-detail-note'));
+    audit.appendChild(table(
+      ['Branch ordinal','Node ordinal','Type','Reference','Span mm','Reason'],
+      unsupported.map(owner=>({
+        'Branch ordinal':owner.branchOccurrenceIndex,
+        'Node ordinal':owner.sourceNodeOrdinal,
+        Type:owner.componentType,Reference:owner.componentRefNo,
+        'Span mm':owner.spanMm,Reason:owner.reason,
+      })), 'No unsupported instrument owners'));
+    ctrlCard.appendChild(audit);
+  }
   if(governed&&weightsReady&&!blocked)offerXml229AutomaticNativeRun({
     stateRef,session:getXml229CurrentWorkerHeldReview(stateRef),report,
     button:finalizeBtn,liveWorker:()=>getXml229CurrentWorkerHeldReview(stateRef)});
