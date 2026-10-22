@@ -636,18 +636,39 @@ def bind_native_final_xml(original_path, enriched_path, packet_path,
         key = (bi, j)
         require(key not in used, "NATIVE_OWNER_DUPLICATED")
         used.add(key)
-        # Reuse ONLY an existing native CII RIGID edge: a to-node with
-        # Rigid=2, or CAESAR's existing Rigid=2 predecessor -> same-ref FLAN
-        # rule. Never manufacture a Rigid=2 marker for unsupported geometry.
+        # An explicit Final zero on a source-attested INST 1->2 pair
+        # represents NO concentrated component mass. It needs an actual
+        # *non-rigid* ELEMENTS record, not a fabricated RIGID classification.
+        # All positive masses and every other 0 kg family still require
+        # their already proven native RIGID owner.
         prior = nodes(dest)[j-1] if j else None
         normalize_ref = lambda value: value.strip().lstrip("=").replace(" ", "").upper()
         ref = normalize_ref(txt(owner, "ComponentRefNo"))
+        rigid_present = txt(owner, "Rigid") == "2"
         flange_rigid_edge = (txt(owner, "ComponentType").upper() == "FLAN"
                             and prior is not None and
                             txt(prior, "Rigid") == "2" and
                             bool(ref) and
                             ref == normalize_ref(txt(prior, "ComponentRefNo")))
-        require(txt(owner, "Rigid") == "2" or flange_rigid_edge,
+        source_prior = src_nodes[ni-1] if ni else None
+        zero_nonrigid_instrument = (
+            kg == 0 and not rigid_present and not flange_rigid_edge and
+            txt(original, "ComponentType").upper() == "INST" and
+            txt(original, "Endpoint") == "2" and
+            not txt(original, "Rigid") and
+            source_prior is not None and
+            txt(source_prior, "ComponentType").upper() == "INST" and
+            txt(source_prior, "Endpoint") == "1" and
+            not txt(source_prior, "Rigid") and
+            bool(ref) and
+            ref == normalize_ref(txt(source_prior, "ComponentRefNo")) and
+            prior is not None and
+            txt(prior, "ComponentType").upper() == "INST" and
+            txt(prior, "Endpoint") == "1" and
+            normalize_ref(txt(prior, "ComponentRefNo")) == ref and
+            _normalized_position(txt(original, "Position")) !=
+            _normalized_position(txt(source_prior, "Position")))
+        require(rigid_present or flange_rigid_edge or zero_nonrigid_instrument,
                 "NATIVE_RIGID_OWNER_UNSUPPORTED")
         weight = child(owner, "Weight")
         if weight is None:
@@ -662,6 +683,7 @@ def bind_native_final_xml(original_path, enriched_path, packet_path,
             "componentRefNo": txt(owner, "ComponentRefNo"),
             "endpoint": txt(owner, "Endpoint"),
             "position": txt(owner, "Position"), "kg": float(kg),
+            "zeroNonRigidInstrument": bool(zero_nonrigid_instrument),
             "stagedLineage": bool(require_staged_lineage),
             "finalizedGeometrySha256": (
                 packet.get("finalizedGeometry") or {}).get("sha256"),
@@ -727,6 +749,29 @@ def emitted_sections(text):
     return slots, weights
 
 
+def _cii_elements(cii_text):
+    """Exact ELEMENTS index, from/to nodes and rigid pointer from output."""
+    lines = cii_text.splitlines()
+    try:
+        start = lines.index("#$ ELEMENTS") + 1
+        stop = next(i for i in range(start, len(lines)) if lines[i].startswith("#$ "))
+    except (ValueError, StopIteration):
+        raise NativeMassError("CII_ELEMENTS_SECTION_INVALID") from None
+    rows = [line.split() for line in lines[start:stop] if line.strip()]
+    require(len(rows) % 15 == 0, "CII_ELEMENTS_RECORD_INVALID")
+    result = []
+    for i in range(len(rows) // 15):
+        first, pointer = rows[15*i], rows[15*i+12]
+        require(len(first) == 6 and len(pointer) == 6,
+                "CII_ELEMENTS_FORMAT_INVALID")
+        try:
+            value = int(pointer[1])
+        except ValueError:
+            raise NativeMassError("CII_RIGID_POINTER_INVALID") from None
+        result.append((first[0], first[1], value))
+    return result
+
+
 def verify_emitted_native_masses(cii_text, owners, model, scale=10):
     """Independently parse actual emitted CII bytes; reconcile all owners.
 
@@ -738,9 +783,48 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
     slots, emitted = emitted_sections(cii_text)
     edges = model.rigid_edges
     require(len(edges) == len(emitted), "CII_GRAPH_RIGID_COUNT_DRIFT")
+    output_elements = _cii_elements(cii_text)
+    require(len(output_elements) == len(model.edges),
+            "CII_GRAPH_ELEMENT_COUNT_DRIFT")
     used = set()
+    used_zero_elements = set()
     claims = []
     for row in owners:
+        if row.get("zeroNonRigidInstrument"):
+            require(row["kg"] == 0 and row["componentType"].upper() == "INST"
+                    and row["endpoint"] == "2",
+                    "CII_ZERO_INSTRUMENT_NOT_CONFIRMED")
+            matching = []
+            for idx, edge in enumerate(model.edges):
+                node = edge.to_node
+                if (edge.branch_name == row["branchName"] and
+                        ((getattr(node, "xml229_original_physical_id", "") ==
+                          row["occurrenceId"]) if row.get("stagedLineage")
+                         else str(node.node_number) == row["nodeNumber"]) and
+                        node.component_type == row["componentType"] and
+                        node.component_ref_no == row["componentRefNo"] and
+                        str(node.endpoint or "") == row["endpoint"] and
+                        node.position == tuple(map(float, row["position"].split()))):
+                    matching.append(idx)
+            require(len(matching) == 1, "CII_ZERO_INSTRUMENT_ELEMENT_AMBIGUOUS")
+            ei = matching[0]
+            require(ei not in used_zero_elements,
+                    "CII_ZERO_INSTRUMENT_ELEMENT_DUPLICATED")
+            used_zero_elements.add(ei)
+            actual_from, actual_to, pointer = output_elements[ei]
+            edge = model.edges[ei]
+            require(actual_from == str(edge.from_node.node_number) and
+                    actual_to == str(edge.to_node.node_number) and pointer == 0 and
+                    edge.to_node.weight == 0,
+                    "CII_ZERO_INSTRUMENT_OUTPUT_NOT_VERIFIED")
+            claims.append({"occurrenceId": row["occurrenceId"],
+                           "rigidRecordIndex": None, "nativeElementIndex": ei,
+                           "ciiFromNode": actual_from, "ciiToNode": actual_to,
+                           "massKg": 0, "emittedForceN": 0,
+                           "zeroNonRigidInstrument": True,
+                           "branchOccurrenceIndex": row["branchOccurrenceIndex"],
+                           "engineNodeOrdinal": row["engineNodeOrdinal"]})
+            continue
         matches = []
         for idx, edge in enumerate(edges):
             node = edge.to_node
@@ -786,7 +870,8 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
                        "massKg": row["kg"], "emittedForceN": emitted[index],
                        "branchOccurrenceIndex": row["branchOccurrenceIndex"],
                        "engineNodeOrdinal": row["engineNodeOrdinal"]})
-    require(len(used) == len(owners), "CII_NATIVE_CENSUS_INCOMPLETE")
+    require(len(used) + len(used_zero_elements) == len(owners),
+            "CII_NATIVE_CENSUS_INCOMPLETE")
     for i, edge in enumerate(edges):
         if i not in used:
             require(abs(emitted[i]) <= 1e-6,
@@ -794,6 +879,7 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
     return {"schema": "XML229.NativeRigidConsumptionDiagnostic.v1",
             "sourcePhysicalCount": len(owners),
             "claimedNativeRigidCount": len(used),
+            "claimedZeroNonRigidInstrumentCount": len(used_zero_elements),
             "outputRigidCount": len(emitted),
             "actualCiiSha256": hashlib.sha256(cii_text.encode("utf-8")).hexdigest(),
             "finalizedGeometrySha256": (
