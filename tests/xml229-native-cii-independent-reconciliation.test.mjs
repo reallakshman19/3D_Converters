@@ -141,7 +141,7 @@ test('explicit zero INST uses one non-rigid CII element without making it RIGID'
  assert.equal(ok.nativeCiiReleaseAuthorized,true);
  pkg.packet.components[0].effectiveKg=5;
  await assert.rejects(reconcileXml229ActualCiiAgainstFinal(pkg),
-  {code:'NATIVE_ZERO_INSTRUMENT_NOT_CONFIRMED'});
+  {code:'NATIVE_OUTPUT_PHYSICAL_OWNERSHIP_DRIFT'});
  pkg.packet.components[0].effectiveKg=0;
  pkg.writerDiagnostic.claims[0].ciiToNode='999';
  await assert.rejects(reconcileXml229ActualCiiAgainstFinal(pkg),
