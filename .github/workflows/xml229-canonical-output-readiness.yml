@@ -6,6 +6,7 @@ on:
       - 'tabs/xml-cii-2019-standalone/**'
       - 'docs/tabs/xml-cii-2019-standalone/**'
       - 'tests/xml-cii-229-canonical-output-run-readiness.test.mjs'
+      - 'tests/xml229-native-instrument-hold-readiness.test.mjs'
       - 'tests/xml-cii-229-xml-only-output-regression.test.mjs'
       - 'tests/xml-cii-229-canonical-readiness-worker.test.mjs'
       - 'tests/xml-cii-229-live-preview-restoration.test.mjs'
@@ -50,6 +51,7 @@ jobs:
       - name: Run canonical readiness, session and Run hold regression
         run: |
           node --test tests/xml-cii-229-canonical-output-run-readiness.test.mjs
+          node --test tests/xml229-native-instrument-hold-readiness.test.mjs
           node --test tests/xml-cii-229-xml-only-output-regression.test.mjs
           node --test tests/xml-cii-229-canonical-readiness-worker.test.mjs
           node --test tests/xml-cii-229-live-preview-restoration.test.mjs
@@ -129,6 +131,8 @@ jobs:
           path: |
             ValidationRecords/xml229-ef05-native-output-e2e.json
             ValidationRecords/xml229-ef05-browser-downloaded-cii-syntax.json
+            ValidationRecords/xml229-ef05-xml-only-test.cii
+            ValidationRecords/xml229-ef05-xml-only-test-attestation.json
             /tmp/xml229-ef05-run-http.log
           if-no-files-found: error
           retention-days: 30

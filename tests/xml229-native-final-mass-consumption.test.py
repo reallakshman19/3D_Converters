@@ -49,8 +49,9 @@ def model(kg):
     node=SimpleNamespace(source_node_number=None,node_number=20,
                          component_type="RIGID",component_ref_no="REF-1",endpoint=2,
                          position=(5.,0.,0.),weight=kg)
-    return SimpleNamespace(rigid_edges=[
-        SimpleNamespace(branch_name="BR-1",to_node=node)])
+    start=SimpleNamespace(node_number=10)
+    edge=SimpleNamespace(branch_name="BR-1",from_node=start,to_node=node)
+    return SimpleNamespace(rigid_edges=[edge],edges=[edge])
 
 class NativeFinalMassTests(unittest.TestCase):
     def test_exact_original_owner_becomes_weighted_native_xml_and_is_reconciled(self):
@@ -413,8 +414,8 @@ class NativeFinalMassTests(unittest.TestCase):
             ['INST','=INST-1','1',''],separators=(',',':'))],separators=(',',':'))
         second=json.dumps(['SOURCE',0,2,sig],separators=(',',':'))
         runner=Path(__file__).resolve().parents[1]/'converters'/'scripts'/'xml_to_cii2019_runtime_custody.py'
-        for classified in (True,False):
-            with self.subTest(source_explicitly_classified=classified):
+        for classified,kg in ((True,18.25),(False,18.25),(False,0)):
+            with self.subTest(source_explicitly_classified=classified,kg=kg):
                 with TemporaryDirectory() as td:
                     directory=Path(td)
                     xml=make_xml(classified)
@@ -423,7 +424,7 @@ class NativeFinalMassTests(unittest.TestCase):
                     output=directory/'result.cii'
                     proof=directory/'proof.json'
                     source.write_text(xml)
-                    p=packet(xml,kg=18.25)
+                    p=packet(xml,kg=kg)
                     p['sourceGenerationId']='explicit-source-instrument-case'
                     p['components'][0]['occurrenceId']=second
                     p['finalizedGeometry']={
@@ -461,15 +462,20 @@ class NativeFinalMassTests(unittest.TestCase):
                         '--xml229-native-final-packet',str(manifest),
                         '--xml229-native-mass-proof',str(proof),
                     ],capture_output=True,text=True)
-                    if classified:
+                    if classified or kg==0:
                         self.assertEqual(result.returncode,0,result.stderr)
                         evidence=json.loads(proof.read_text())
                         self.assertEqual(evidence['sourcePhysicalCount'],1)
-                        self.assertEqual(evidence['claims'][0]['massKg'],18.25)
-                        self.assertEqual(evidence['claims'][0]['emittedForceN'],182.5)
+                        self.assertEqual(evidence['claims'][0]['massKg'],kg)
+                        self.assertEqual(evidence['claims'][0]['emittedForceN'],kg*10)
                         self.assertEqual(float(evidence['claims'][0]['ciiFromNode']),20)
                         self.assertEqual(float(evidence['claims'][0]['ciiToNode']),30)
                         self.assertTrue(output.exists())
+                        if kg==0 and not classified:
+                            self.assertEqual(evidence['claimedNativeRigidCount'],0)
+                            self.assertEqual(evidence['claimedZeroNonRigidInstrumentCount'],1)
+                            self.assertIsNone(evidence['claims'][0]['rigidRecordIndex'])
+                            self.assertTrue(evidence['claims'][0]['zeroNonRigidInstrument'])
                     else:
                         self.assertNotEqual(result.returncode,0)
                         self.assertIn('NATIVE_RIGID_OWNER_UNSUPPORTED',

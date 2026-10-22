@@ -27,7 +27,7 @@ const packet = {
   components:manifest.components.map(row=>({
     occurrenceId:JSON.stringify([sourceId,row.branchOccurrenceIndex,
       row.endSourceNodeOrdinal,'source-witness']),
-    effectiveKg:0,
+    effectiveKg:18.25,
   })),
 };
 
