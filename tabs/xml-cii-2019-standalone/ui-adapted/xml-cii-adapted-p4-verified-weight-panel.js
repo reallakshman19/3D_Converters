@@ -263,7 +263,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      'to verify the current XML, JSON Blob and four masters again. '+
      'No Match-1/Final decisions were restored or accepted automatically.',true);
  };
- const render=async()=>{
+ const render=async({suppressAutoCommit=false}={})=>{
    if(!active)return;
    const session=active,token=++renderSequence;
    const page=await (mode==='all'&&!query&&!Object.keys(excel.snapshot().columnFilters).length&&!excel.snapshot().sort?session.readPage({offset,limit:25}):session.readPage({offset,limit:25,filter:mode,query,...excel.snapshot()}));
@@ -276,7 +276,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const count=hydrateXml229WeightDraftInputs(table,page.rows,draftValues);
    persistDrafts(); // Source-basis-bound backup before any authoritative write.
    // Visible source-ranked selections go directly through protected Final CAS.
-   const {committed,stale}=await commitXml229VisibleSelectedFinal({
+   const {committed,stale}=suppressAutoCommit?{committed:0,stale:false}:await commitXml229VisibleSelectedFinal({
      session,rows:page.rows,drafts:draftValues,
      isCurrent:()=>token===renderSequence&&active===session&&live()===session,
      onError:error=>say('Applied Weight could not be recorded ['+
@@ -293,7 +293,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  };
  const excel=installXml229WeightExcelAutoFilter({root,table,
   readSession:()=>active,readScope:()=>({filter:mode,query}),
-  refresh:render,resetPage:()=>{offset=0;pendingBulk=null;},
+  refresh:()=>render({suppressAutoCommit:true}),resetPage:()=>{offset=0;pendingBulk=null;},
   isCurrent:session=>session===active&&live()===session&&root.isConnected!==false,
  });
  zeroPopup=createXml229ZeroMassPopup({
