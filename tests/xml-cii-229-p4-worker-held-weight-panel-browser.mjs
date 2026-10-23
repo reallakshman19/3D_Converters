@@ -103,6 +103,32 @@ try{
   label:tr.textContent,weight:tr.querySelector('[data-p4-proposal]').value,
  })));
  assert.equal(original.length,2);
+ // The short-length control is view-only: these fixture physicals are >6 mm.
+ const shortBefore=await page.evaluate(async()=>{
+   const {getXml229CurrentWorkerHeldReview}=await import(
+    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   return (await getXml229CurrentWorkerHeldReview(window.__p4StateRef).readCompletion()).counts.final;
+ });
+ await page.locator('[data-p4-hide-short-mm]').check();
+ await page.waitForFunction(()=>document.querySelector('[data-p4-hide-short-mm]')?.checked===true&&
+   document.querySelectorAll('tr[data-p4-row]').length===2);
+ const shortView=await page.evaluate(async()=>{
+   const {getXml229CurrentWorkerHeldReview}=await import(
+    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   const session=getXml229CurrentWorkerHeldReview(window.__p4StateRef);
+   return session.readPage({offset:0,limit:25,filter:'all',hideShortMm:true});
+ });
+ assert.equal(shortView.hiddenShortCount,0);
+ assert.equal(shortView.totalCount,2);
+ assert.equal(shortView.populationCount,2);
+ await page.locator('[data-p4-hide-short-mm]').uncheck();
+ await page.waitForFunction(()=>document.querySelector('[data-p4-hide-short-mm]')?.checked===false);
+ const shortAfter=await page.evaluate(async()=>{
+   const {getXml229CurrentWorkerHeldReview}=await import(
+    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   return (await getXml229CurrentWorkerHeldReview(window.__p4StateRef).readCompletion()).counts.final;
+ });
+ assert.equal(shortAfter,shortBefore,'short view is not an engineering Final decision');
  // Real Chromium + live GC-PW Worker: Excel filters must span all source rows
  // and must not accept engineering kg merely because a column was filtered.
  const beforeExcel=await page.evaluate(async()=>{
