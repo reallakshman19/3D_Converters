@@ -35,7 +35,7 @@ export function xml229WeightReviewPageModel(page,offset=0){
    },{final:0,match1:0,source:0,unresolved:0,proposed:0})};
 }
 export function renderXml229WeightReviewPage(page,offset=0,{
- filter='all',query='',minScorePercent=80,columnFilters={},sort=null,
+ filter='all',query='',minScorePercent=80,columnFilters={},sort=null,hideShortMm=false,
 }={}){
  const m=xml229WeightReviewPageModel(page,offset);
  const fmt=(x,unit='')=>typeof x==='number'&&Number.isFinite(x)
@@ -117,8 +117,12 @@ export function renderXml229WeightReviewPage(page,offset=0,{
     <label style="font-size:12px">Suggested score ≥
       <input data-p4-min-score type="number" min="0" max="100" step="1" value="${e(minScorePercent)}"
        aria-label="Minimum suggestion score percentage" style="width:58px;background:#0b1320;color:#fff"> %</label>
+    <label title="View only. Hides verified original physical rows whose length is 0–6 mm, including 6 mm; no XML, accepted mass, CII element or full physical census changes."
+      style="display:inline-flex;gap:5px;align-items:center;color:#cbd5e1">
+      <input data-p4-hide-short-mm type="checkbox" ${hideShortMm?'checked':''}>
+      Hide ≤6 mm <small style="color:#94a3b8">(table only)</small></label>
     <button data-p4-bulk-plan type="button" class="model-converters-download-btn">Apply all suggestions</button>
-    <small data-p4-filter-count style="color:#94a3b8">AutoFilter: ${activeColumns.length} active column(s) · full original population.</small>
+    <small data-p4-filter-count style="color:#94a3b8">AutoFilter: ${activeColumns.length} active column(s) · source-wide.${hideShortMm?' '+(page?.hiddenShortCount??0)+' verified ≤6 mm physical row(s) hidden from this view.':''}</small>
     <button type="button" data-p4-excel-clear style="color:#dbeafe;background:#1e3a5a;border:1px solid #64748b;border-radius:5px;padding:6px"
       ${!activeColumns.length&&!sort?'disabled':''}>Clear all column filters / sorting</button>
   </div>
