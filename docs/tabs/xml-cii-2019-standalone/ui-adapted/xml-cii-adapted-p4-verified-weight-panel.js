@@ -318,16 +318,11 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    },260);
  });
  root.addEventListener('change',async event=>{
-   const short=event.target.closest?.('[data-p4-hide-short-mm]');
-   if(short){
-     if(busy||!active||live()!==active){short.checked=hideShortMm;return;}
-     const previous=hideShortMm;hideShortMm=short.checked;offset=0;pendingBulk=null;excel.close();
+   if(event.target.matches?.('[data-p4-hide-short-mm]')){
+     if(busy||!active||live()!==active){event.target.checked=hideShortMm;return;}
+     const old=hideShortMm;hideShortMm=event.target.checked;offset=0;pendingBulk=null;excel.close();
      try{await render({suppressAutoCommit:true});}
-     catch(error){
-       hideShortMm=previous;
-       say('Short-element display filter unavailable ['+
-         String(error?.code||'READ_FAILED')+']. No mass was changed.',true);
-     }
+     catch(error){hideShortMm=old;say('Short-element filter unavailable ['+String(error?.code||'READ_FAILED')+']. No mass changed.',true);}
      return;
    }
    const applied=event.target.closest?.('[data-p4-applied-weight]');
