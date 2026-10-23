@@ -5,6 +5,7 @@ on:
       - 'converters/scripts/cii2019_short_simplify.py'
       - 'converters/scripts/xml_to_cii2019_patched.py'
       - 'tests/test_cii2019_short_simplify.py'
+      - 'docs/cii2019-short-element-simplification.md'
       - '.github/workflows/cii2019-short-element-prototype.yml'
   workflow_dispatch:
 jobs:
