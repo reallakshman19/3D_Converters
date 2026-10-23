@@ -95,7 +95,7 @@ export function installXml229WeightExcelAutoFilter({
    const scope=readScope();
    try{
     const data=await session.readColumnOptions({
-     column,filter:scope.filter,query:scope.query,
+     column,filter:scope.filter,query:scope.query,hideShortMm:scope.hideShortMm,
      columnFilters:snapshot().columnFilters,search:search.value,
     });
     if(token!==requestToken||popup!==panel||!isCurrent(session))return;
