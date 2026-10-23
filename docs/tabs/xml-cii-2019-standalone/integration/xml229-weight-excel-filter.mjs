@@ -12,6 +12,13 @@ export const XML229_WEIGHT_COLUMNS=Object.freeze([
  numeric:['boreMm','rating','nodeNumber','lengthMm','appliedWeight'].includes(key)})));
 const COLUMNS=new Map(XML229_WEIGHT_COLUMNS.map(x=>[x.key,x]));
 const BLANK='(Blanks)';
+export const XML229_SHORT_ELEMENT_HIDE_LIMIT_MM=6;
+/** Verified seven-field length.mm. Display-only: never alter the census or
+ * interpret missing/malformed lengths as short or a zero-length element. */
+export function isXml229VerifiedShortPhysical(meta,limitMm=XML229_SHORT_ELEMENT_HIDE_LIMIT_MM){
+ const length=meta?.lengthMm;
+ return typeof length==='number'&&Number.isFinite(length)&&length>=0&&length<=limitMm;
+}
 const fail=code=>{const e=new Error(code);e.code=code;throw e;};
 const value=x=>x===null||x===undefined||String(x).trim()===''?BLANK:String(x).trim();
 const mass=x=>typeof x==='number'&&Number.isFinite(x)&&x>=0;
