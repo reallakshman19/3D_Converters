@@ -132,15 +132,46 @@ class ShortElements(unittest.TestCase):
         self.assertEqual(rc,2)
         self.assertNotIn("MERGED_SAFE", [c["disposition"] for c in r["candidates"]])
 
-    def test_zero_length_and_conflicting_coordinates_protected(self):
+    def test_zero_length_and_inconsistent_loop_fail_closed(self):
         zero=emitted([[node(10,0),node(20,0),node(30,100)]])
         rc,r,_=self.run_case(zero)
         self.assertEqual(r["candidates"][0]["disposition"],"BLOCKED_UNRESOLVED")
-        conflict=emitted([[node(10,0),node(20,3),node(30,103)],
-                          [node(20,99),node(40,199)]])
-        # Disconnected absolute XML position alone is not encoded; same CII node
-        # number has two incompatible cumulative paths only when a loop closes.
-        self.assertIn("PASS_SCOPED",("PASS_SCOPED",))
+        # Last 10 repeats with an incompatible position. Node-ID-only union
+        # would silently assert false topology despite valid-looking CII rows.
+        conflict=emitted([[node(10,0),node(20,3),node(30,103),node(10,1)]])
+        rc,r,out=self.run_case(conflict)
+        self.assertEqual(rc,2)
+        self.assertIsNone(out)
+        self.assertIn("CONFLICTING_NODE_GEOMETRY",r.get("failure",""))
+
+    def test_duplicate_node_identity_and_unresolved_coordinates_fail(self):
+        duplicate=emitted([[node(10,0),node(20,3),node(20,3),node(30,100)]])
+        rc,r,out=self.run_case(duplicate)
+        self.assertEqual(rc,2)
+        self.assertIsNone(out)
+        self.assertIn("SELF_LOOP",r.get("failure",""))
+        order, sections = simplify.sections_of(emitted([[node(10,0),node(20,3),node(30,103)]]))
+        sections["COORDS"]=[writer._row(["1"]),writer._row(["999","0","0","0"])]
+        unresolved="\\n".join("#$ "+key+"\\n"+"\\n".join(sections[key]) for key in order)+"\\n"
+        rc,r,out=self.run_case(unresolved)
+        self.assertEqual(rc,2)
+        self.assertIsNone(out)
+        self.assertEqual(r["status"],"FAIL")
+
+    def test_candidate_reproduction_catches_silent_geometry_edit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp)
+            inp=p/"source.cii"; candidate=p/"candidate.cii"; report=p/"audit.json"
+            inp.write_text(emitted([[node(10,0),node(20,6),node(30,106)]]))
+            rc,r=simplify.process(inp,candidate,report,mode="simplify")
+            self.assertEqual(rc,0)
+            rc,valid=simplify.validate_existing(inp,candidate,report)
+            self.assertEqual(rc,0)
+            self.assertTrue(valid["validation"]["exact_reproduction"])
+            candidate.write_text(candidate.read_text().replace("106.000000","105.000000"))
+            rc,invalid=simplify.validate_existing(inp,candidate,report)
+            self.assertEqual(rc,2)
+            self.assertEqual(invalid["validation"]["status"],"FAIL")
 
     def test_no_short_elements_is_byte_identical(self):
         text=emitted([[node(10,0),node(20,10),node(30,110)]])
