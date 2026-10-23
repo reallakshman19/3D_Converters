@@ -147,6 +147,26 @@ class ShortElements(unittest.TestCase):
         self.assertEqual(r["topology"]["after"]["terminal_nodes"],[10,30])
         self.assertAlmostEqual(simplify.parse(out.decode())[2][0].length,106.0,places=4)
 
+    def test_report_path_collision_never_modifies_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp)
+            content=emitted([[node(10,0),node(20,3),node(30,103)]])
+            source=p/"immutable.cii"
+            source.write_text(content)
+            output=p/"candidate.cii"
+            with self.assertRaisesRegex(simplify.UnsafeModel,"CII_SHORT_PATH_COLLISION"):
+                simplify.process(source,output,source,mode="simplify")
+            self.assertEqual(source.read_text(),content)
+            self.assertFalse(output.exists())
+            xml=p/"immutable.xml"
+            xml.write_text("XML SOURCE MUST SURVIVE")
+            with self.assertRaisesRegex(simplify.UnsafeModel,"CII_SHORT_PATH_COLLISION"):
+                simplify.process(source,output,xml,mode="simplify",source_xml=xml)
+            self.assertEqual(xml.read_text(),"XML SOURCE MUST SURVIVE")
+            with self.assertRaisesRegex(simplify.UnsafeModel,"CII_SHORT_PATH_COLLISION"):
+                simplify.validate_existing(source,output,output)
+            self.assertFalse(output.exists())
+
     def test_unknown_units_fails_closed(self):
         text=invalid_units(emitted([[node(10,0),node(20,3),node(30,103)]]))
         rc,r,_=self.run_case(text)
