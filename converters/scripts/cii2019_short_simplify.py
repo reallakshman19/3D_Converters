@@ -41,6 +41,17 @@ def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def check_output_paths(input_path: Path, output_path: Path, report_path: Path, *,
+                       source_xml: Path | None = None,
+                       native_final_packet: Path | None = None) -> None:
+    """Reject every source/output, report/output and summary/source collision."""
+    protected = {p.resolve() for p in (input_path, source_xml, native_final_packet) if p is not None}
+    destination = [output_path.resolve(), report_path.resolve(),
+                   report_path.with_suffix(".txt").resolve()]
+    if len(set(destination)) != 3 or any(p in protected for p in destination):
+        raise UnsafeModel("CII_SHORT_PATH_COLLISION: use distinct output, report and source paths")
+
+
 def fields(row: str, count: int) -> list[str]:
     # CII 2019 fixed FORTRAN width (same as the repository syntax checker).
     return [row[2 + i * FIXED:2 + (i + 1) * FIXED].strip() for i in range(count)]
@@ -378,6 +389,8 @@ def syntax_report(text: str, path: Path) -> dict:
 
 def process(input_path: Path, output_path: Path, report_path: Path, *, mode: str,
             source_xml: Path|None=None, native_final_packet: Path|None=None) -> tuple[int,dict]:
+    check_output_paths(input_path, output_path, report_path,
+                       source_xml=source_xml, native_final_packet=native_final_packet)
     original = input_path.read_bytes()
     input_sha = digest(original)
     source_sha = digest(source_xml.read_bytes()) if source_xml else None
@@ -541,6 +554,8 @@ def validate_existing(input_path: Path, candidate_path: Path, report_path: Path,
                       source_xml: Path | None = None,
                       native_final_packet: Path | None = None) -> tuple[int,dict]:
     """Reproduce the transformation and compare exact candidate bytes/hash."""
+    check_output_paths(input_path, candidate_path, report_path,
+                       source_xml=source_xml, native_final_packet=native_final_packet)
     with tempfile.TemporaryDirectory(prefix="cii-short-validation-") as temp:
         expected = Path(temp) / "expected.cii"
         rc, report = process(input_path, expected, report_path, mode="simplify",
