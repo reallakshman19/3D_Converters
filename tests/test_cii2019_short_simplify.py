@@ -15,13 +15,13 @@ import xml_to_cii2019 as writer
 import cii2019_short_simplify as simplify
 
 
-def node(number, x, *, type="PIPE", rigid=None, weight=0, node_name=""):
+def node(number, x, *, y=0.0, z=0.0, type="PIPE", rigid=None, weight=0, node_name=""):
     return writer.XmlNode(
         node_number=number,node_name=node_name,endpoint=1,component_type=type,
         component_ref_no="",rigid=rigid,weight=weight,material_code=1,
         outside_diameter=100,alpha_angle=None,wall_thickness=4,
         corrosion_allowance=0,insulation_thickness=0,bend_radius=0,
-        bend_type=None,position=(float(x),0.,0.),restraint_specs=(),
+        bend_type=None,position=(float(x),float(y),float(z)),restraint_specs=(),
     )
 
 
@@ -122,9 +122,16 @@ class ShortElements(unittest.TestCase):
         text=emitted([[node(10,0),node(20,3),node(30,6),node(40,106)]])
         rc,r,output=self.run_case(text)
         self.assertEqual(rc,2)  # second short candidate remains HOLD, no silent success
-        self.assertLess(r["output_elements"],r["input_elements"])
+        self.assertIsNone(output, "HOLD must never publish a partial contraction")
+        self.assertIsNone(r["output_elements"])
+        self.assertIsNone(r["output_cii_sha256"])
+        self.assertFalse(r["candidate_published"])
+        self.assertLess(r["proposed_elements"],r["input_elements"])
         self.assertTrue(any(x["disposition"]=="BLOCKED_UNRESOLVED" for x in r["candidates"]))
-        self.assertEqual(r["topology"]["before"]["component_count"],r["topology"]["after"]["component_count"])
+        self.assertFalse(any(x["disposition"]=="MERGED_SAFE" for x in r["candidates"]))
+        self.assertEqual(r["topology"]["after"]["status"],"NOT_RUN")
+        self.assertEqual(r["topology"]["before"]["component_count"],
+                         r["topology"]["proposed"]["component_count"])
 
     def test_disconnected_component_membership_is_preserved(self):
         # A component-count-only checker would accept accidental rewiring of
@@ -223,9 +230,60 @@ class ShortElements(unittest.TestCase):
         self.assertEqual(out,text.encode())
 
     def test_surviving_error_noncollinear_requires_no_merge(self):
-        text=emitted([[node(10,0),node(20,3),node(30,3)]])
-        # Geometric delta of second is zero => error-prone simplifier might erase both.
-        rc,r,_=self.run_case(text)
-        self.assertFalse(any(c["disposition"]=="MERGED_SAFE" for c in r["candidates"]))
+        # A *genuine* right-angle turn: both segments have nonzero lengths.
+        # A broken cosine/straightness check would incorrectly coalesce them.
+        text=emitted([[node(10,0),node(20,3),node(30,3,y=4)]])
+        _,_,elements=simplify.parse(text)
+        self.assertEqual(tuple(round(e.length,6) for e in elements),(3.0,4.0))
+        self.assertEqual(elements[0].delta,(3.0,0.0,0.0))
+        self.assertEqual(elements[1].delta,(0.0,4.0,0.0))
+        self.assertFalse(simplify.collinear(elements[0].delta,elements[1].delta))
+        rc,r,output=self.run_case(text)
+        self.assertEqual(rc,2)
+        self.assertEqual(r["status"],"HOLD")
+        self.assertIsNone(output)
+        self.assertFalse(r["candidate_published"])
+        self.assertEqual(r["input_elements"],2)
+        self.assertEqual(r["short_elements_le_6mm"],2)
+        self.assertTrue(all(c["reason"]=="NO_UNOWNED_COLLINEAR_SAME_PROPERTY_NEIGHBOR"
+                            for c in r["candidates"]))
+        self.assertTrue(all(c["disposition"]=="BLOCKED_UNRESOLVED" for c in r["candidates"]))
+
+    def test_hold_removes_existing_output_without_touching_source(self):
+        text=emitted([[node(10,0),node(20,3),node(30,6),node(40,106)]])
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp)
+            source=p/"source.cii"; output=p/"candidate.cii"; audit=p/"audit.json"
+            source.write_text(text,encoding="utf-8")
+            original=source.read_bytes()
+            output.write_bytes(b"STALE_PARTIAL_CII_MUST_BE_DESTROYED")
+            rc,r=simplify.process(source,output,audit,mode="simplify")
+            self.assertEqual(rc,2)
+            self.assertEqual(r["status"],"HOLD")
+            self.assertFalse(r["candidate_published"])
+            self.assertIsNone(r["output_cii_sha256"])
+            self.assertIsNone(r["output_elements"])
+            self.assertFalse(output.exists(), "No stale or partial HOLD output permitted")
+            self.assertEqual(source.read_bytes(),original)
+            self.assertIn("WITHHELD",audit.with_suffix(".txt").read_text())
+            self.assertEqual(json.loads(audit.read_text())["status"],"HOLD")
+
+    def test_fail_removes_existing_output_without_touching_source(self):
+        text=emitted([[node(10,0),node(20,3),node(30,103)]])
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp)
+            source=p/"source.cii"; output=p/"candidate.cii"; audit=p/"audit.json"
+            source.write_text(text.replace("  SI (mm)","  INVALID"),encoding="utf-8")
+            original=source.read_bytes()
+            # Deliberately corrupt syntax to exercise FAIL instead of HOLD.
+            source.write_bytes(original.replace(b"#$ ELEMENTS",b"#$ BADSECT",1))
+            original=source.read_bytes()
+            output.write_bytes(b"PREEXISTING_INVALID_CII")
+            rc,r=simplify.process(source,output,audit,mode="simplify")
+            self.assertEqual(rc,2)
+            self.assertEqual(r["status"],"FAIL")
+            self.assertFalse(output.exists())
+            self.assertIsNone(r["output_cii_sha256"])
+            self.assertEqual(source.read_bytes(),original)
 
 if __name__ == "__main__": unittest.main()
