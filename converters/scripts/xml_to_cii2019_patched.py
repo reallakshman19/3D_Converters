@@ -767,6 +767,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--xml229-native-final-packet", required=False, type=Path, default=None)
     parser.add_argument("--xml229-native-mass-proof", required=False, type=Path, default=None)
     parser.add_argument("--diagnostics-out", required=False, type=Path, default=None)
+    parser.add_argument("--simplify-eligible-short-cii", action="store_true", default=False,
+                        help="Opt-in emitted CII short-link merge; withhold output on HOLD/FAIL.")
+    parser.add_argument("--short-element-report", type=Path, default=None,
+                        help="JSON audit path for optional CII simplification.")
     parser.add_argument("--use-restraint-type-based-on-json", dest="use_restraint_type_based_on_json", action="store_true", default=True)
     parser.add_argument("--no-use-restraint-type-based-on-json", dest="use_restraint_type_based_on_json", action="store_false")
     parser.add_argument("--split-condensed-valve-flange", dest="split_condensed_valve_flange", action="store_true", default=None)
@@ -792,7 +796,28 @@ def main() -> None:
     base._build_restraint_payload = _patched_build_restraint_payload_factory(support_config)
     base._build_elements_payload = _patched_elements_payload_factory(temperature_map, pressure_map, insulation_density_map, hydro_pressure_map, support_config)  # type: ignore[assignment]
     cii_text = base._build_cii_text(model, args.coords_mode, base._resolve_template_version_line(args.template_cii), args.weight_scale)
-    args.output.write_text(cii_text, encoding="utf-8")
+    if args.simplify_eligible_short_cii:
+        # Run on the actual emitted neutral file; never on raw XML node spacing.
+        # The output remains unpublished unless both parsers and scoped graph/
+        # engineering checks accept the exact candidate bytes.
+        from cii2019_short_simplify import process as simplify_emitted_cii
+        with tempfile.TemporaryDirectory(prefix="cii2019-short-") as tmpdir:
+            staged = Path(tmpdir) / "writer.cii"
+            candidate = Path(tmpdir) / "candidate.cii"
+            staged.write_text(cii_text, encoding="utf-8")
+            report_path = args.short_element_report or args.output.with_name(
+                "short-element-simplification-report.json")
+            result_code, result = simplify_emitted_cii(
+                staged, candidate, report_path, mode="simplify",
+                source_xml=args.input,
+                native_final_packet=args.xml229_native_final_packet,
+            )
+            if result_code != 0:
+                raise RuntimeError(
+                    f"CII_SHORT_SIMPLIFICATION_{result['status']}: output withheld; report={report_path}")
+            args.output.write_bytes(candidate.read_bytes())
+    else:
+        args.output.write_text(cii_text, encoding="utf-8")
     if args.diagnostics_out:
         args.diagnostics_out.write_text(base._build_diagnostics_report(model), encoding="utf-8")
     print(f"Wrote {args.output} with {len(model.edges)} elements and {len(model.restraints)} restraints. use_restraint_type_based_on_json={args.use_restraint_type_based_on_json}; split_condensed_valve_flange={support_config.get('splitCondensedValveFlange')}")
