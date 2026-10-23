@@ -780,6 +780,9 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = _parse_args()
+    if args.simplify_eligible_short_cii and args.output.exists():
+        raise FileExistsError("CII_SHORT_OUTPUT_ALREADY_EXISTS: use a fresh output path; "
+                              "refusing to leave an ambiguous or stale artifact")
     support_config = _load_support_config(args.support_config_json)
     if args.split_condensed_valve_flange is not None:
         support_config["splitCondensedValveFlange"] = bool(args.split_condensed_valve_flange)
@@ -815,7 +818,16 @@ def main() -> None:
             if result_code != 0:
                 raise RuntimeError(
                     f"CII_SHORT_SIMPLIFICATION_{result['status']}: output withheld; report={report_path}")
-            args.output.write_bytes(candidate.read_bytes())
+            # Stage the verified candidate next to the requested destination.
+            # Atomic replacement prevents truncated outputs from partial writes.
+            with tempfile.NamedTemporaryFile(mode="wb", dir=args.output.parent,
+                                             prefix=".cii2019-short-", delete=False) as staged_out:
+                staged_out.write(candidate.read_bytes())
+            staged_path = Path(staged_out.name)
+            try:
+                staged_path.replace(args.output)
+            finally:
+                staged_path.unlink(missing_ok=True)
     else:
         args.output.write_text(cii_text, encoding="utf-8")
     if args.diagnostics_out:
