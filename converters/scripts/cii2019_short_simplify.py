@@ -440,9 +440,9 @@ def process(input_path: Path, output_path: Path, report_path: Path, *, mode: str
                 proposed = render(order,s,elements,output_elements)
                 new_order,new_sections,new_elements = parse(proposed)
                 post_syntax = syntax_report(proposed,output_path)
+                report["syntax"]["after"] = post_syntax
                 if not post_syntax["ok"]:
                     raise UnsafeModel("OUTPUT_SYNTAX_FAIL")
-                report["syntax"]["after"] = post_syntax
                 after = graph(new_elements)
                 after_refs = references(new_sections,set(after["coordinates"]))
                 if before["component_count"] != after["component_count"] or before["terminal_nodes"] != after["terminal_nodes"]:
