@@ -126,6 +126,8 @@ class ShortElements(unittest.TestCase):
         self.assertIsNone(r["output_elements"])
         self.assertIsNone(r["output_cii_sha256"])
         self.assertFalse(r["candidate_published"])
+        self.assertEqual(r["engineering_properties"]["status"],"HOLD")
+        self.assertEqual(r["concentrated_mass_reconciliation"]["status"],"HOLD")
         self.assertLess(r["proposed_elements"],r["input_elements"])
         self.assertTrue(any(x["disposition"]=="BLOCKED_UNRESOLVED" for x in r["candidates"]))
         self.assertFalse(any(x["disposition"]=="MERGED_SAFE" for x in r["candidates"]))
