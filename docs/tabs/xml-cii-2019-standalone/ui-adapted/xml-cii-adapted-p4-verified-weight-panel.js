@@ -29,12 +29,10 @@ const err=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
 const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const labelKg=n=>typeof n==='number'&&Number.isFinite(n)&&n>=0?n+' kg':'—';
 /** InputBasis tracks real XML/JSON/master changes, not UI navigation or File wrapper churn. */
-const ownerScope=value=>{
- const s=String(value??'').trim();
+const ownerScope=value=>{const s=String(value??'').trim();
  return !s||s==='ALL'||s==='__ALL__'?'__ALL__':s;
 };
-const configEquivalent=(a,b)=>{
- if(a===b)return true;
+const configEquivalent=(a,b)=>{if(a===b)return true;
  try{return canonicalJson(JSON.parse(a||'{}'))===canonicalJson(JSON.parse(b||'{}'));}
  catch{return false;}
 };
@@ -228,19 +226,16 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    draftOwner=session;draftValues=draftWorkspace.drafts;
    showXml229DraftRecoveryNotice(root,draftWorkspace,downloadTextFile);
  };
- const persistDrafts=()=>{
-   if(draftWorkspace&&draftOwner===active&&live()===active)
+ const persistDrafts=()=>{if(draftWorkspace&&draftOwner===active&&live()===active)
      return saveXml229RecoveryDrafts(draftWorkspace);
    return 0;
  };
- const clearDrafts=()=>{
-   draftOwner=null;draftWorkspace=null;draftValues=new Map();
+ const clearDrafts=()=>{draftOwner=null;draftWorkspace=null;draftValues=new Map();
    bulkDetail.hidden=true;bulkDetail.textContent='';
    zeroPopup?.dismiss();excel.reset();hideShortMm=false;
    root.querySelector('[data-xml229-draft-recovery]')?.remove();
  };
- const captureDraft=tr=>{
-   if(!tr||!active||draftOwner!==active||live()!==active)return;
+ const captureDraft=tr=>{if(!tr||!active||draftOwner!==active||live()!==active)return;
    if(disarmXml229EditedDraft(tr,root.__p4VisibleRows,draftValues,
      pendingBulk,table,bulkDetail)){
      pendingBulk=null;
@@ -251,12 +246,10 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      String(error.code||'WEIGHT_DRAFT_STORAGE_WRITE_FAILED')+
      ']. Save Applied Weight before leaving.',true);}
  };
- const say=(message,bad=false)=>{
-   status.textContent=message;status.style.color=bad?'#f87171':'#10b981';
+ const say=(message,bad=false)=>{status.textContent=message;status.style.color=bad?'#f87171':'#10b981';
  };
  const live=()=>getXml229CurrentWorkerHeldReview(stateRef),applyQueue=createXml229BulkApplyQueue(root,live,say);
- const requireRebuild=()=>{
-   root.dataset.p4ReadReady='false';
+ const requireRebuild=()=>{root.dataset.p4ReadReady='false';
    active=null;pendingBulk=null;clearDrafts();root.__p4VisibleRows=[];
    table.replaceChildren();
    say('Verified original-source Worker ended. Return to 4 Preview → Build Preview '+
