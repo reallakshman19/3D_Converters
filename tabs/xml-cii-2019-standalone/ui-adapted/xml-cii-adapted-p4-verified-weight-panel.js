@@ -26,8 +26,7 @@ import {downloadXml229OwnerBasisCustody} from './xml229-owner-basis-custody-down
 import {beginXml229FlowTrace} from './xml229-flow-trace-registry.mjs';
 import {getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,publishXml229VerifiedEngineeringBuild,revokeXml229VerifiedEngineeringBasis} from '../integration/xml229-engineering-basis-authority.mjs';
 const err=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
-const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
- .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
+const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const labelKg=n=>typeof n==='number'&&Number.isFinite(n)&&n>=0?n+' kg':'—';
 /** InputBasis tracks real XML/JSON/master changes, not UI navigation or File wrapper churn. */
 const ownerScope=value=>{
