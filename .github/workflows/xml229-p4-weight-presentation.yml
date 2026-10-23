@@ -8,6 +8,10 @@ on:
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js'
       - 'tests/xml-cii-229-p4-weight-presentation-adapter.test.mjs'
+      - 'tests/xml229-weight-excel-autofilter.test.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-weight-excel-filter.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-excel-autofilter.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-{client,worker}.mjs'
       - '.github/workflows/xml229-p4-weight-presentation.yml'
   workflow_dispatch:
 permissions:
@@ -29,10 +33,15 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Verify source-bound adapter and honest run readiness
         run: |
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-weight-excel-filter.mjs
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-excel-autofilter.mjs
+          node --test tests/xml229-weight-excel-autofilter.test.mjs
           node --test tests/xml-cii-229-p4-weight-presentation-adapter.test.mjs
           node --test tests/xml-cii-229-review-session-live-basis.test.mjs tests/xml-cii-229-engineering-basis-authority.test.mjs
       - name: Check served parity
         run: |
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-weight-excel-filter.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-weight-excel-filter.mjs
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-excel-autofilter.mjs docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-excel-autofilter.mjs
           diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-review-presentation.mjs
           diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-run-readiness-presentation.mjs docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-run-readiness-presentation.mjs
           diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js
