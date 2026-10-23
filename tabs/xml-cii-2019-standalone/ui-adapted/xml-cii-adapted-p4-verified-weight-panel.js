@@ -13,8 +13,7 @@ import {commitXml229SelectedAppliedWeight} from './xml229-p4-applied-weight-owne
 import {createXml229ZeroMassPopup} from './xml229-p4-zero-mass-popup.mjs';
 import {renderXml229InstrumentSuggestions} from './xml229-p4-optional-instrument-advisory.mjs';
 import {commitXml229AllSelectedFinal,commitXml229VisibleSelectedFinal} from './xml229-p4-source-wide-final-commit.mjs';
-import {hydrateXml229WeightDraftInputs,seedXml229VisibleSuggestedWeightDrafts}
- from './xml229-p4-unqualified-drafts.mjs';
+import {hydrateXml229WeightDraftInputs,seedXml229VisibleSuggestedWeightDrafts} from './xml229-p4-unqualified-drafts.mjs';
 import {applyXml229SourceWideSuggestionDrafts,applyXml229BlankWeightDrafts} from './xml229-p4-source-wide-suggestion-action.mjs';
 import {disarmXml229EditedDraft} from './xml229-p4-two-click-confirmation.mjs';
 import {createXml229BulkApplyQueue} from './xml229-p4-busy-apply-queue.mjs';
@@ -25,9 +24,7 @@ import {exportXml229WeightEvidence} from './xml229-p4-private-weight-evidence.mj
 import {downloadXml229FullSourceSafety} from './xml229-full-source-safety-download.mjs';
 import {downloadXml229OwnerBasisCustody} from './xml229-owner-basis-custody-download.mjs';
 import {beginXml229FlowTrace} from './xml229-flow-trace-registry.mjs';
-import {getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,
- publishXml229VerifiedEngineeringBuild,revokeXml229VerifiedEngineeringBasis}
- from '../integration/xml229-engineering-basis-authority.mjs';
+import {getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,publishXml229VerifiedEngineeringBuild,revokeXml229VerifiedEngineeringBasis} from '../integration/xml229-engineering-basis-authority.mjs';
 const err=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
 const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
  .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
