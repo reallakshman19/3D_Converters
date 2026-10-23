@@ -8,6 +8,7 @@ import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-
 import {digestCanonical,canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-scope.js';
 import {renderXml229WeightReviewPage} from './xml229-p4-weight-review-presentation.mjs';
+import {installXml229WeightExcelAutoFilter} from './xml229-p4-excel-autofilter.mjs';
 import {commitXml229SelectedAppliedWeight} from './xml229-p4-applied-weight-owner-selection.mjs';
 import {createXml229ZeroMassPopup} from './xml229-p4-zero-mass-popup.mjs';
 import {renderXml229InstrumentSuggestions} from './xml229-p4-optional-instrument-advisory.mjs';
@@ -239,7 +240,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const clearDrafts=()=>{
    draftOwner=null;draftWorkspace=null;draftValues=new Map();
    bulkDetail.hidden=true;bulkDetail.textContent='';
-   zeroPopup?.dismiss();
+   zeroPopup?.dismiss();excel.reset();
    root.querySelector('[data-xml229-draft-recovery]')?.remove();
  };
  const captureDraft=tr=>{
@@ -269,13 +270,11 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const render=async()=>{
    if(!active)return;
    const session=active,token=++renderSequence;
-   const page=mode==='all'&&!query
-     ?await session.readPage({offset,limit:25})
-     :await session.readPage({offset,limit:25,filter:mode,query});
+   const page=await session.readPage({offset,limit:25,filter:mode,query,...excel.snapshot()});
    if(token!==renderSequence||session!==active||
       root.isConnected===false||live()!==session)return;
    if(draftOwner!==session)bindDrafts(session);
-   table.innerHTML=renderXml229WeightReviewPage(page,offset,{filter:mode,query,minScorePercent});
+   table.innerHTML=renderXml229WeightReviewPage(page,offset,{filter:mode,query,minScorePercent,...excel.snapshot()});
    root.__p4VisibleRows=page.rows;
    seedXml229VisibleSuggestedWeightDrafts(page.rows,draftValues,{minScorePercent});
    const count=hydrateXml229WeightDraftInputs(table,page.rows,draftValues);
@@ -296,6 +295,11 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    }
    return count;
  };
+ const excel=installXml229WeightExcelAutoFilter({root,table,
+  readSession:()=>active,readScope:()=>({filter:mode,query}),
+  refresh:render,resetPage:()=>{offset=0;pendingBulk=null;},
+  isCurrent:session=>session===active&&live()===session&&root.isConnected!==false,
+ });
  zeroPopup=createXml229ZeroMassPopup({
    root,live,getDrafts:()=>draftValues,saveDrafts:persistDrafts,render,say,
  });
@@ -614,6 +618,6 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        String(error?.code||'VERIFICATION_UNAVAILABLE')+']',true);
    });
  }
- return {dispose:()=>{if(searchTimer!==null)clearTimeout(searchTimer);},
+ return {dispose:()=>{if(searchTimer!==null)clearTimeout(searchTimer);excel.dispose();},
    cancel:()=>revokeXml229VerifiedEngineeringBasis(key,{expectedSession:active})};
 }
