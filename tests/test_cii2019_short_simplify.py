@@ -126,6 +126,27 @@ class ShortElements(unittest.TestCase):
         self.assertTrue(any(x["disposition"]=="BLOCKED_UNRESOLVED" for x in r["candidates"]))
         self.assertEqual(r["topology"]["before"]["component_count"],r["topology"]["after"]["component_count"])
 
+    def test_disconnected_component_membership_is_preserved(self):
+        # A component-count-only checker would accept accidental rewiring of
+        # separate islands. The after graph must match projected partitions.
+        text=emitted([[node(10,0),node(20,6),node(30,106)],
+                      [node(100,500),node(110,620)]])
+        rc,r,out=self.run_case(text)
+        self.assertEqual(rc,0,json.dumps(r,sort_keys=True)[:3000])
+        self.assertEqual(r["topology"]["before"]["component_count"],2)
+        self.assertEqual(r["topology"]["after"]["components"],[[10,30],[100,110]])
+        self.assertEqual((r["input_elements"],r["output_elements"]),(3,2))
+
+    def test_reversed_emitted_edge_orientation(self):
+        # The emitted neutral graph may encode a segment in reverse order.
+        # Merge must preserve directed deltas rather than assume node IDs grow.
+        text=emitted([[node(30,106),node(20,6),node(10,0)]])
+        rc,r,out=self.run_case(text)
+        self.assertEqual(rc,0,json.dumps(r,sort_keys=True)[:3000])
+        self.assertEqual((r["input_elements"],r["output_elements"]),(2,1))
+        self.assertEqual(r["topology"]["after"]["terminal_nodes"],[10,30])
+        self.assertAlmostEqual(simplify.parse(out.decode())[2][0].length,106.0,places=4)
+
     def test_unknown_units_fails_closed(self):
         text=invalid_units(emitted([[node(10,0),node(20,3),node(30,103)]]))
         rc,r,_=self.run_case(text)
