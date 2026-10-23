@@ -391,6 +391,13 @@ def process(input_path: Path, output_path: Path, report_path: Path, *, mode: str
             source_xml: Path|None=None, native_final_packet: Path|None=None) -> tuple[int,dict]:
     check_output_paths(input_path, output_path, report_path,
                        source_xml=source_xml, native_final_packet=native_final_packet)
+    # A prior run's output must never masquerade as a successful result after
+    # this run returns HOLD/FAIL. Only an explicitly requested output is removed;
+    # input/source/report path aliases were rejected above.
+    if output_path.is_file() or output_path.is_symlink():
+        output_path.unlink()
+    elif output_path.exists():
+        raise UnsafeModel("CII_SHORT_OUTPUT_IS_NOT_A_FILE")
     original = input_path.read_bytes()
     input_sha = digest(original)
     source_sha = digest(source_xml.read_bytes()) if source_xml else None
@@ -400,7 +407,9 @@ def process(input_path: Path, output_path: Path, report_path: Path, *, mode: str
               "candidates":[],"element_mapping":{},"node_mapping":{},
               "topology":{},"reference_integrity":{},"engineering_properties":{},
               "concentrated_mass_reconciliation":{},"syntax":{},
-              "output_cii_sha256":None, "status":"NOT_RUN", "validated_scopes":[],
+              "output_cii_sha256":None, "candidate_published":False,
+              "proposed_elements":None, "proposed_output_cii_sha256":None,
+              "status":"NOT_RUN", "validated_scopes":[],
               "limitations":["Independent CAESAR II solver equivalence NOT_RUN",
                              "Real-source lineage beyond input/source SHA NOT_RUN"]}
     output_bytes = original
@@ -525,17 +534,70 @@ def process(input_path: Path, output_path: Path, report_path: Path, *, mode: str
             report["status"] = "PASS_SCOPED"
         if mode == "audit":
             report["status"] = "HOLD" if rows else report["status"]
-        report["output_cii_sha256"] = digest(output_bytes)
-        output_path.parent.mkdir(parents=True,exist_ok=True)
-        output_path.write_bytes(output_bytes)
-        code = 0 if report["status"]=="PASS_SCOPED" else 2
+        if report["status"] == "PASS_SCOPED":
+            # Publish only a fully validated scoped result. The filesystem
+            # rename prevents consumers observing a partially written CII.
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with tempfile.NamedTemporaryFile(
+                mode="wb", dir=output_path.parent,
+                prefix=f".{output_path.name}.", suffix=".tmp", delete=False
+            ) as stream:
+                stream.write(output_bytes)
+                staged_path = Path(stream.name)
+            try:
+                staged_path.replace(output_path)
+            finally:
+                staged_path.unlink(missing_ok=True)
+            report["output_cii_sha256"] = digest(output_bytes)
+            report["candidate_published"] = True
+            code = 0
+        else:
+            # All transformations on HOLD are *unpublished proposals*, not
+            # physical deletions. Keep them auditable without declaring that
+            # a removed element or revised graph exists in an output file.
+            report["proposed_elements"] = len(final_elements)
+            report["proposed_output_cii_sha256"] = digest(output_bytes) if merged else None
+            report["proposed_element_mapping"] = report["element_mapping"]
+            report["proposed_node_mapping"] = report["node_mapping"]
+            report["element_mapping"] = {
+                str(e.old_id): {"new_element_id": e.old_id, "role": "unchanged_unpublished"}
+                for e in elements
+            }
+            report["node_mapping"] = {
+                str(n): {"status": "unchanged_unpublished", "new_node_id": n}
+                for n in before["coordinates"]
+            }
+            if merged:
+                report["topology"]["proposed"] = report["topology"].pop("after")
+                report["reference_integrity"]["proposed"] = report["reference_integrity"].pop("after")
+                report["syntax"]["proposed"] = report["syntax"].pop("after")
+            report["topology"]["after"] = {"status": "NOT_RUN", "reason": "OUTPUT_WITHHELD"}
+            report["reference_integrity"]["after"] = {"status": "NOT_RUN", "reason": "OUTPUT_WITHHELD"}
+            report["syntax"]["after"] = {"status": "NOT_RUN", "reason": "OUTPUT_WITHHELD"}
+            for item in rows:
+                if item["disposition"] == "MERGED_SAFE":
+                    item["proposed_reason"] = item["reason"]
+                    item.update(classification="UNRESOLVED", disposition="BLOCKED_UNRESOLVED",
+                                reason="WHOLE_MODEL_HOLD_NO_PHYSICAL_REMOVAL")
+            report["output_elements"] = None
+            code = 2
     except (ValueError,UnicodeError,IndexError,OverflowError) as exc:
         report["status"] = "FAIL"
         report["failure"] = str(exc)
         report["output_cii_sha256"] = None
+        report["output_elements"] = None
+        report["candidate_published"] = False
         code = 2
-    report_path.parent.mkdir(parents=True,exist_ok=True)
-    report_path.write_text(json.dumps(report,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+    # This also cleans up a prior candidate if failure occurred before the
+    # publication gate. Never suppress errors in source/output path validation.
+    if code != 0:
+        output_path.unlink(missing_ok=True)
+    try:
+        report_path.parent.mkdir(parents=True,exist_ok=True)
+        report_path.write_text(json.dumps(report,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+    except OSError:
+        output_path.unlink(missing_ok=True)
+        raise
     summary = [f"CII short-element {mode}: {report['status']}",
                f"Input: {report['input_cii_sha256']}",
                f"Output: {report['output_cii_sha256'] or 'WITHHELD'}",
@@ -546,7 +608,11 @@ def process(input_path: Path, output_path: Path, report_path: Path, *, mode: str
                        f"{item['length_mm']:.6f} mm): {item['disposition']} -- {item['reason']}")
     if report.get('failure'):
         summary.append("FAIL: "+report['failure'])
-    report_path.with_suffix('.txt').write_text("\n".join(summary)+"\n", encoding="utf-8")
+    try:
+        report_path.with_suffix('.txt').write_text("\n".join(summary)+"\n", encoding="utf-8")
+    except OSError:
+        output_path.unlink(missing_ok=True)
+        raise
     return code, report
 
 
