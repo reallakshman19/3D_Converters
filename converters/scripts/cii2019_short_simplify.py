@@ -359,7 +359,7 @@ def render(order: list[str], s: dict[str,list[str]], original: list[Element],
     new_mats = [e.material for e in retained]
     mat_rows = [formatted(new_mats[i:i+6]) for i in range(0,len(new_mats),6)]
     blocks["MISCEL_1"] = mat_rows + misc[old_mat_rows:]
-    return "\n".join(["#$ "+key+"\n"+"\n".join(blocks[key]) for key in order])+"\n"
+    return "\n".join(row for key in order for row in ["#$ "+key, *blocks[key]])+"\n"
 
 
 def syntax_report(text: str, path: Path) -> dict:
