@@ -1,0 +1,25 @@
+name: CII 2019 short-element prototype (non-release)
+on:
+  pull_request:
+    paths:
+      - 'converters/scripts/cii2019_short_simplify.py'
+      - 'converters/scripts/xml_to_cii2019_patched.py'
+      - 'tests/test_cii2019_short_simplify.py'
+      - '.github/workflows/cii2019-short-element-prototype.yml'
+  workflow_dispatch:
+jobs:
+  scoped-prototype:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Syntax check code
+        run: python -m py_compile converters/scripts/cii2019_short_simplify.py converters/scripts/xml_to_cii2019_patched.py converters/scripts/cii_syntax_check_2019.py
+      - name: Consequential short-element fixtures, real writer and validator
+        run: python -m unittest discover -s tests -p test_cii2019_short_simplify.py -v
+      - name: Existing patched XML-to-CII regressions
+        run: python converters/scripts/test_xml_to_cii2019_patched_process.py
