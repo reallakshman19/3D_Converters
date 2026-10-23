@@ -557,6 +557,14 @@ def process(input_path: Path, output_path: Path, report_path: Path, *, mode: str
             # a removed element or revised graph exists in an output file.
             report["proposed_elements"] = len(final_elements)
             report["proposed_output_cii_sha256"] = digest(output_bytes) if merged else None
+            report["engineering_properties"]["status"] = "HOLD"
+            report["engineering_properties"]["detail"] = (
+                "Unpublished proposal only; no released after-artifact property proof"
+            )
+            report["concentrated_mass_reconciliation"]["status"] = "HOLD"
+            report["concentrated_mass_reconciliation"]["detail"] = (
+                "No CII output published; independent Final-mass reconciliation NOT_RUN"
+            )
             report["proposed_element_mapping"] = report["element_mapping"]
             report["proposed_node_mapping"] = report["node_mapping"]
             report["element_mapping"] = {
