@@ -266,7 +266,9 @@ def classify(elements: list[Element], g: dict, refs: dict, units_ok: bool,
         by_node[e.b].append(e)
     rows = []
     for e in elements:
-        if e.length > THRESHOLD_MM + 1e-9:
+        # Strict inclusive comparison against exactly the emitted CII vector.
+        # Never admit a physically larger-than-6-mm value via epsilon.
+        if e.length > THRESHOLD_MM:
             continue
         item = {"old_element_id": e.old_id, "branch_lineage": e.line_label.strip(),
                 "from_node": e.a, "to_node": e.b, "length_mm": e.length,
@@ -447,6 +449,14 @@ def process(input_path: Path, output_path: Path, report_path: Path, *, mode: str
                 after_refs = references(new_sections,set(after["coordinates"]))
                 if before["component_count"] != after["component_count"] or before["terminal_nodes"] != after["terminal_nodes"]:
                     raise UnsafeModel("GRAPH_COMPONENT_OR_TERMINAL_CHANGE")
+                # Count equality alone can hide component swaps. Compare every
+                # original component's projection onto the retained nodes.
+                retained_nodes = set(after["coordinates"])
+                projected = sorted(tuple(sorted(set(component) & retained_nodes))
+                                   for component in before["components"])
+                actual_components = sorted(tuple(component) for component in after["components"])
+                if projected != actual_components:
+                    raise UnsafeModel("GRAPH_COMPONENT_MEMBERSHIP_CHANGE")
                 if sorted(set(before["coordinates"]) - set(after["coordinates"])) != sorted(
                         x["removed_internal_node"] for x in rows if x["disposition"] == "MERGED_SAFE"):
                     raise UnsafeModel("UNACCOUNTED_NODE_REMOVAL")
