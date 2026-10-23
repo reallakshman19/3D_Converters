@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {
  XML229_WEIGHT_COLUMNS,xml229ExcelCell,parseXml229ExcelRequest,
+ isXml229VerifiedShortPhysical,XML229_SHORT_ELEMENT_HIDE_LIMIT_MM,
  matchesXml229ExcelColumns,sortXml229ExcelRows,xml229ExcelColumnOptions,
 } from '../tabs/xml-cii-2019-standalone/integration/xml229-weight-excel-filter.mjs';
 import {renderXml229WeightReviewPage} from
@@ -121,4 +122,36 @@ test('authoritative source, served docs and P4 panel remain byte-identical',asyn
  const worker=await readFile(new URL(names[1],root),'utf8');
  assert.match(worker,/req\.what==='column-options'/);
  assert.match(worker,/matchesXml229ExcelColumns/);
+});
+
+test('Hide <=6mm is display-only, inclusive, source-verified and defaults off',async()=>{
+ assert.equal(XML229_SHORT_ELEMENT_HIDE_LIMIT_MM,6);
+ for(const mm of [0,2,3,6])assert.equal(isXml229VerifiedShortPhysical({lengthMm:mm}),true);
+ for(const mm of [6.001,10,305,-1,Infinity,NaN,'3',null,undefined])
+  assert.equal(isXml229VerifiedShortPhysical({lengthMm:mm}),false);
+ assert.equal(isXml229VerifiedShortPhysical({},6),false);
+ const html=renderXml229WeightReviewPage({
+   totalCount:2,populationCount:5,hiddenShortCount:3,rows:[{
+    occurrenceId:'SOURCE',componentType:'VALV',lengthMm:10,proposals:[],
+   }],
+ },0,{hideShortMm:true});
+ assert.match(html,/data-p4-hide-short-mm/);
+ assert.match(html,/type="checkbox" checked/);
+ assert.match(html,/3 verified ≤6 mm physical row\(s\) hidden/);
+ assert.match(html,/table only/);
+ const defaultHtml=renderXml229WeightReviewPage({totalCount:0,rows:[]});
+ assert.doesNotMatch(defaultHtml,/type="checkbox" checked/);
+ const root=new URL('../',import.meta.url);
+ const worker=await readFile(new URL('tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs',root),'utf8');
+ const client=await readFile(new URL('tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs',root),'utf8');
+ const panel=await readFile(new URL('tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',root),'utf8');
+ const popup=await readFile(new URL('tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-excel-autofilter.mjs',root),'utf8');
+ assert.match(worker,/hideShortMm&&isXml229VerifiedShortPhysical\(meta\)/);
+ assert.match(worker,/typeof req\.hideShortMm!=='boolean'/);
+ assert.match(worker,/hiddenShortCount/);
+ assert.match(client,/readColumnOptions\(\{column,filter='all',query='',columnFilters=\{\},search='',hideShortMm=false\}/);
+ assert.match(panel,/hideShortMm=event\.target\.checked/);
+ assert.match(panel,/render\(\{suppressAutoCommit:true\}\)/);
+ assert.match(popup,/hideShortMm:scope\.hideShortMm/);
+ assert.doesNotMatch(worker,/hideShortMm\s*\?\s*review\./);
 });
