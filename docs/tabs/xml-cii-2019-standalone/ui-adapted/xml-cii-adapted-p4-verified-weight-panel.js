@@ -266,7 +266,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const render=async()=>{
    if(!active)return;
    const session=active,token=++renderSequence;
-   const page=await session.readPage({offset,limit:25,filter:mode,query,...excel.snapshot()});
+   const page=await (mode==='all'&&!query&&!Object.keys(excel.snapshot().columnFilters).length&&!excel.snapshot().sort?session.readPage({offset,limit:25}):session.readPage({offset,limit:25,filter:mode,query,...excel.snapshot()}));
    if(token!==renderSequence||session!==active||
       root.isConnected===false||live()!==session)return;
    if(draftOwner!==session)bindDrafts(session);
