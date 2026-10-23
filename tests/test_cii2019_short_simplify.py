@@ -48,7 +48,7 @@ def rename_element(text,index,name):
     order,s=simplify.sections_of(text)
     offset=index*15+9
     s["ELEMENTS"][offset]=f"{len(name):12d} {name}"
-    return "\n".join("#$ "+key+"\n"+"\n".join(s[key]) for key in order)+"\n"
+    return "\n".join(row for key in order for row in ["#$ "+key,*s[key]])+"\n"
 
 
 def invalid_units(text):
