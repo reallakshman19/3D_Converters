@@ -53,7 +53,7 @@ test('Unqualified pipe is never zero-filled as a weight item',async()=>{
 });
 test('one suggestion-backed editable Applied Weight field never writes engineering decisions',()=>{
  const html=renderXml229WeightReviewPage({totalCount:1,rows:[row(1)]});
- assert.match(html,/Nearest Suggestions<\/th>.*Applied Weight/s);
+ assert.match(html,/Nearest Suggestions[\s\S]*data-p4-excel-column="nearestSuggestions"[\s\S]*<\/th>[\s\S]*Applied Weight[\s\S]*data-p4-excel-column="appliedWeight"/);
  assert.doesNotMatch(html,/data-p4-skip-weight/);
  assert.match(html,/Filter Blank Weight/);
  assert.match(html,/All XML physicals/);
