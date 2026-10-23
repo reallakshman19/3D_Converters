@@ -5,6 +5,7 @@
  * masters, infer a Final decision, or authorize native CII Run.
  */
 import {xml229ProposalScorePercent} from '../integration/xml229-weight-review-focus.mjs';
+import {XML229_WEIGHT_COLUMNS} from '../integration/xml229-weight-excel-filter.mjs';
 import {auditXml229AcceptedMatch1Row}
  from '../integration/xml229-accepted-match1-family-audit.mjs';
 const txt=x=>String(x??'');
@@ -33,7 +34,9 @@ export function xml229WeightReviewPageModel(page,offset=0){
      return a;
    },{final:0,match1:0,source:0,unresolved:0,proposed:0})};
 }
-export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='',minScorePercent=80}={}){
+export function renderXml229WeightReviewPage(page,offset=0,{
+ filter='all',query='',minScorePercent=80,columnFilters={},sort=null,
+}={}){
  const m=xml229WeightReviewPageModel(page,offset);
  const fmt=(x,unit='')=>typeof x==='number'&&Number.isFinite(x)
    ?e(Number(x).toFixed(unit==='mm'?1:0))+(unit?' '+unit:''):'—';
@@ -94,6 +97,7 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
     </td>
    </tr>`;
  }).join('');
+ const activeColumns=Object.keys(columnFilters||{});
  const tabs=[['rigid','Weight items'],['blank-rigid','Filter Blank Weight'],['all','All XML physicals']]
   .map(([id,name])=>`<button data-p4-scope="${id}" type="button"
    aria-pressed="${filter===id?'true':'false'}"
@@ -114,14 +118,27 @@ export function renderXml229WeightReviewPage(page,offset=0,{filter='all',query='
       <input data-p4-min-score type="number" min="0" max="100" step="1" value="${e(minScorePercent)}"
        aria-label="Minimum suggestion score percentage" style="width:58px;background:#0b1320;color:#fff"> %</label>
     <button data-p4-bulk-plan type="button" class="model-converters-download-btn">Apply all suggestions</button>
-    <small data-p4-filter-count style="color:#94a3b8">Filters apply to all original occurrences.</small>
+    <small data-p4-filter-count style="color:#94a3b8">AutoFilter: ${activeColumns.length} active column(s) · full original population.</small>
+    <button type="button" data-p4-excel-clear style="color:#dbeafe;background:#1e3a5a;border:1px solid #64748b;border-radius:5px;padding:6px"
+      ${!activeColumns.length&&!sort?'disabled':''}>Clear all column filters / sorting</button>
   </div>
   <div class="mc-rigid-review-table-wrap" style="overflow:auto;max-height:48vh;border:1px solid #253a55;border-radius:8px">
     <table class="mc-rigid-review-table" style="border-collapse:collapse;font-size:12px;table-layout:auto;min-width:1780px">
       <thead style="position:sticky;top:0;background:#14243a;color:#dceaff">
-       <tr>${['Status','Short name / Valve Hint','DTXR','Branch','Line Key','ComponentType','Bore','Rating','Node',
-        'ComponentRefNo_Endpoint','Length',
-        'Nearest Suggestions','Applied Weight'].map(h=>`<th style="padding:8px;white-space:nowrap">${e(h)}</th>`).join('')}</tr>
+       <tr>${XML229_WEIGHT_COLUMNS.map(({key,label})=>{
+        const enabled=activeColumns.includes(key),sorted=sort?.column===key;
+        const glyph=enabled?'#60a5fa':sorted?'#a5f3fc':'#8095b0';
+        const direction=sorted?' · sorted '+(sort.direction==='asc'?'ascending':'descending'):'';
+        return `<th style="padding:8px;white-space:nowrap">
+          ${e(label)} <button data-p4-excel-column="${e(key)}" type="button"
+           aria-label="Filter and sort ${e(label)}" aria-pressed="${enabled?'true':'false'}"
+           title="Excel AutoFilter: ${e(label)}${direction}"
+           style="vertical-align:middle;background:transparent;color:${glyph};
+            border:1px solid ${glyph};border-radius:4px;padding:3px;cursor:pointer">
+           <svg aria-hidden="true" width="11" height="11" viewBox="0 0 16 16">
+            <path fill="${glyph}" d="M1 3h14L9 10v4l-2 1v-5z"></path>
+           </svg></button></th>`;
+       }).join('')}</tr>
       </thead><tbody>${rows}</tbody>
     </table>
   </div>
