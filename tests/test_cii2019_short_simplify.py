@@ -236,7 +236,8 @@ class ShortElements(unittest.TestCase):
         _,_,elements=simplify.parse(text)
         self.assertEqual(tuple(round(e.length,6) for e in elements),(3.0,4.0))
         self.assertEqual(elements[0].delta,(3.0,0.0,0.0))
-        self.assertEqual(elements[1].delta,(0.0,4.0,0.0))
+        # Native XML->CII writer maps source (x,y,z) to CII (x,z,-y).
+        self.assertEqual(elements[1].delta,(0.0,0.0,-4.0))
         self.assertFalse(simplify.collinear(elements[0].delta,elements[1].delta))
         rc,r,output=self.run_case(text)
         self.assertEqual(rc,2)
