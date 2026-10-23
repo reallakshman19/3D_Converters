@@ -71,7 +71,7 @@ class ShortElements(unittest.TestCase):
     def test_straight_run_merges_only_short_element_and_preserves_total_length(self):
         text=emitted([[node(10,0),node(20,6),node(30,106)]])
         rc,r,output=self.run_case(text)
-        self.assertEqual(rc,0,r.get("failure"))
+        self.assertEqual(rc,0,json.dumps(r,sort_keys=True)[:5000])
         self.assertEqual((r["input_elements"],r["output_elements"]),(2,1))
         self.assertEqual([c["disposition"] for c in r["candidates"]],["MERGED_SAFE"])
         self.assertEqual(simplify.parse(output.decode())[2][0].length,106)
@@ -86,7 +86,7 @@ class ShortElements(unittest.TestCase):
     def test_gasket_2mm_named_owner_protected(self):
         text=rename_element(emitted([[node(10,0),node(20,2),node(30,102)]]),0,"GASKET")
         rc,r,output=self.run_case(text)
-        self.assertEqual((r["input_elements"],r["output_elements"]),(2,2))
+        self.assertEqual((r["input_elements"],r["output_elements"]),(2,2),json.dumps(r,sort_keys=True)[:5000])
         self.assertEqual(r["candidates"][0]["disposition"],"PROTECTED")
         self.assertEqual(output,text.encode())
 
@@ -164,7 +164,7 @@ class ShortElements(unittest.TestCase):
             inp=p/"source.cii"; candidate=p/"candidate.cii"; report=p/"audit.json"
             inp.write_text(emitted([[node(10,0),node(20,6),node(30,106)]]))
             rc,r=simplify.process(inp,candidate,report,mode="simplify")
-            self.assertEqual(rc,0)
+            self.assertEqual(rc,0,json.dumps(r,sort_keys=True)[:5000])
             rc,valid=simplify.validate_existing(inp,candidate,report)
             self.assertEqual(rc,0)
             self.assertTrue(valid["validation"]["exact_reproduction"])
