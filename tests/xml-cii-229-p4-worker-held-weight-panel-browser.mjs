@@ -103,6 +103,37 @@ try{
   label:tr.textContent,weight:tr.querySelector('[data-p4-proposal]').value,
  })));
  assert.equal(original.length,2);
+ // Real Chromium + live GC-PW Worker: Excel filters must span all source rows
+ // and must not accept engineering kg merely because a column was filtered.
+ const beforeExcel=await page.evaluate(async()=>{
+   const {getXml229CurrentWorkerHeldReview}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   return (await getXml229CurrentWorkerHeldReview(window.__p4StateRef).readCompletion()).counts.final;
+ });
+ assert.equal(await page.locator('[data-p4-excel-column]').count(),13);
+ await page.locator('[data-p4-excel-column="componentType"]').click();
+ const popup=page.locator('[data-p4-excel-popup="componentType"]');
+ await popup.locator('label').filter({hasText:'VALV'}).locator('input').uncheck();
+ await popup.locator('[data-p4-excel-action="apply"]').click();
+ await page.waitForFunction(()=>document.querySelectorAll('tr[data-p4-row]').length===1);
+ assert.equal((await page.locator('tr[data-p4-row] td').nth(5).textContent()).trim(),'RIGID');
+ await page.locator('[data-p4-excel-clear]').click();
+ await page.waitForFunction(()=>document.querySelectorAll('tr[data-p4-row]').length===2);
+ await page.locator('[data-p4-excel-column="nodeNumber"]').click();
+ await page.locator('[data-p4-excel-popup="nodeNumber"] [data-p4-excel-action="desc"]').click();
+ await page.waitForFunction(()=>{
+   const nums=[...document.querySelectorAll('tr[data-p4-row]')].map(tr=>
+     Number(tr.children[8]?.textContent.trim()));
+   return nums.length===2&&nums[0]>=nums[1];
+ });
+ await page.locator('[data-p4-excel-clear]').click();
+ await page.waitForFunction(()=>document.querySelectorAll('tr[data-p4-row]').length===2);
+ const afterExcel=await page.evaluate(async()=>{
+   const {getXml229CurrentWorkerHeldReview}=await import(
+     '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
+   return (await getXml229CurrentWorkerHeldReview(window.__p4StateRef).readCompletion()).counts.final;
+ });
+ assert.equal(afterExcel,beforeExcel,'Excel column filters and sorting may not commit Final kg');
  // Real native Worker + production panel: independently read pinned source
  // candidate rows, apply once at 80%, and inspect actual kg + viewport.
  const genuineBefore=await page.evaluate(async()=>{
