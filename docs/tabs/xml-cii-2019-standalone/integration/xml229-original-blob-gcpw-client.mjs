@@ -245,8 +245,11 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    async attestEngineInput({engineInputXmlText}={}){
      return rpc({kind:'read',what:'attest-engine-input',sourceId,engineInputXmlText});
    },
-   async readPage({offset=0,limit=25,filter='all',query=''}={}){
-     return rpc({kind:'read',what:'page',sourceId,offset,limit,filter,query});
+   async readPage({offset=0,limit=25,filter='all',query='',columnFilters={},sort=null}={}){
+     return rpc({kind:'read',what:'page',sourceId,offset,limit,filter,query,columnFilters,sort});
+   },
+   async readColumnOptions({column,filter='all',query='',columnFilters={},search=''}={}){
+     return rpc({kind:'read',what:'column-options',sourceId,column,filter,query,columnFilters,search});
    },
    async planQualifiedBlankFill({minScorePercent=0}={}){
      return rpc({kind:'read',what:'bulk-plan',sourceId,minScorePercent});
