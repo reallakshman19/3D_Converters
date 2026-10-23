@@ -219,7 +219,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const build=root.querySelector('[data-p4-weight-build]');
  const key=stateRef?.modeABaseRef||stateRef;
  let active=getXml229CurrentWorkerHeldReview(stateRef),offset=0,busy=false;
- let mode='rigid',query='',pendingBulk=null,searchTimer=null,renderSequence=0,minScorePercent=80;
+ let mode='rigid',query='',pendingBulk=null,searchTimer=null,renderSequence=0,minScorePercent=80,hideShortMm=false;
  let draftOwner=null,draftValues=new Map(),draftWorkspace=null,zeroPopup=null;
  const bindDrafts=session=>{
    draftWorkspace=openXml229WeightDraftWorkspace(session.receipt,{
@@ -236,7 +236,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const clearDrafts=()=>{
    draftOwner=null;draftWorkspace=null;draftValues=new Map();
    bulkDetail.hidden=true;bulkDetail.textContent='';
-   zeroPopup?.dismiss();excel.reset();
+   zeroPopup?.dismiss();excel.reset();hideShortMm=false;
    root.querySelector('[data-xml229-draft-recovery]')?.remove();
  };
  const captureDraft=tr=>{
@@ -266,11 +266,11 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const render=async({suppressAutoCommit=false}={})=>{
    if(!active)return;
    const session=active,token=++renderSequence;
-   const page=await (mode==='all'&&!query&&!Object.keys(excel.snapshot().columnFilters).length&&!excel.snapshot().sort?session.readPage({offset,limit:25}):session.readPage({offset,limit:25,filter:mode,query,...excel.snapshot()}));
+   const page=await (mode==='all'&&!query&&!hideShortMm&&!Object.keys(excel.snapshot().columnFilters).length&&!excel.snapshot().sort?session.readPage({offset,limit:25}):session.readPage({offset,limit:25,filter:mode,query,hideShortMm,...excel.snapshot()}));
    if(token!==renderSequence||session!==active||
       root.isConnected===false||live()!==session)return;
    if(draftOwner!==session)bindDrafts(session);
-   table.innerHTML=renderXml229WeightReviewPage(page,offset,{filter:mode,query,minScorePercent,...excel.snapshot()});
+   table.innerHTML=renderXml229WeightReviewPage(page,offset,{filter:mode,query,minScorePercent,hideShortMm,...excel.snapshot()});
    root.__p4VisibleRows=page.rows;
    seedXml229VisibleSuggestedWeightDrafts(page.rows,draftValues,{minScorePercent});
    const count=hydrateXml229WeightDraftInputs(table,page.rows,draftValues);
@@ -292,7 +292,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    return count;
  };
  const excel=installXml229WeightExcelAutoFilter({root,table,
-  readSession:()=>active,readScope:()=>({filter:mode,query}),
+  readSession:()=>active,readScope:()=>({filter:mode,query,hideShortMm}),
   refresh:()=>render({suppressAutoCommit:true}),resetPage:()=>{offset=0;pendingBulk=null;},
   isCurrent:session=>session===active&&live()===session&&root.isConnected!==false,
  });
@@ -318,6 +318,18 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    },260);
  });
  root.addEventListener('change',async event=>{
+   const short=event.target.closest?.('[data-p4-hide-short-mm]');
+   if(short){
+     if(busy||!active||live()!==active){short.checked=hideShortMm;return;}
+     const previous=hideShortMm;hideShortMm=short.checked;offset=0;pendingBulk=null;excel.close();
+     try{await render({suppressAutoCommit:true});}
+     catch(error){
+       hideShortMm=previous;
+       say('Short-element display filter unavailable ['+
+         String(error?.code||'READ_FAILED')+']. No mass was changed.',true);
+     }
+     return;
+   }
    const applied=event.target.closest?.('[data-p4-applied-weight]');
    if(applied){
      const tr=applied.closest('tr[data-p4-row]');
