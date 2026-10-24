@@ -4,7 +4,10 @@ on:
     paths:
       - 'converters/scripts/cii2019_short_simplify.py'
       - 'converters/scripts/xml_to_cii2019_patched.py'
+      - 'docs/converters/scripts/xml_to_cii2019_patched.py'
+      - 'docs/converters/scripts/cii2019_short_simplify.py'
       - 'tests/test_cii2019_short_simplify.py'
+      - 'tests/test_cii2019_served_path.py'
       - 'docs/cii2019-short-element-simplification.md'
       - '.github/workflows/cii2019-short-element-prototype.yml'
   workflow_dispatch:
@@ -19,9 +22,13 @@ jobs:
         with:
           python-version: '3.11'
       - name: Syntax check code
-        run: python -m py_compile converters/scripts/cii2019_short_simplify.py converters/scripts/xml_to_cii2019_patched.py converters/scripts/cii_syntax_check_2019.py
+        run: |
+          python -m py_compile converters/scripts/cii2019_short_simplify.py converters/scripts/xml_to_cii2019_patched.py converters/scripts/cii_syntax_check_2019.py
+          python -m py_compile docs/converters/scripts/cii2019_short_simplify.py docs/converters/scripts/xml_to_cii2019_patched.py docs/converters/scripts/cii_syntax_check_2019.py
       - name: Consequential short-element fixtures, real writer and validator
         run: python -m unittest discover -s tests -p test_cii2019_short_simplify.py -v
+      - name: Actual docs-served opt-in, default-OFF and fail-closed HOLD acceptance
+        run: python -m unittest discover -s tests -p test_cii2019_served_path.py -v
       - name: Existing patched XML-to-CII regressions
         run: python converters/scripts/test_xml_to_cii2019_patched_process.py
       - name: Real-writer positive case and audit artifact (not an EF-05 witness)
