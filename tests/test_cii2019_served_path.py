@@ -36,7 +36,7 @@ def sha(data: bytes) -> str:
 
 
 def source_xml(path: Path, *, turn: bool = False) -> bytes:
-    """Three real XML nodes: straight 6+100 mm or noncollinear 3+4 mm."""
+    """Three real XML nodes: CII-rounded 6+100 mm or noncollinear 3+4 mm."""
     root = ET.Element("PipeStressExport")
     for tag, value in (
         ("DateTime", ""), ("Source", ""), ("Version", ""), ("UserName", ""),
@@ -56,8 +56,13 @@ def source_xml(path: Path, *, turn: bool = False) -> bytes:
     ET.SubElement(branch, "MaterialNumber").text = "1"
     ET.SubElement(branch, "InsulationDensity").text = "0"
     ET.SubElement(branch, "FluidDensity").text = "0"
+    # Upstream legacy XML node-drop treats <=6.0 mm source hops as already
+    # pruned. Feed a 6.000001 mm SOURCE edge: it survives that existing
+    # prepass, then the native writer's 6-significant-digit CII formatting
+    # emits a genuine, exactly 6.00000 mm link. This isolates the *emitted*
+    # graph simplifier without modifying the upstream node-drop policy.
     pts = [(10, 0, 0), (20, 3, 0), (30, 3, 4)] if turn else [
-        (10, 0, 0), (20, 6, 0), (30, 106, 0)
+        (10, 0, 0), (20, 6.000001, 0), (30, 106.000001, 0)
     ]
     for number, x, y in pts:
         node = ET.SubElement(branch, "Node")
