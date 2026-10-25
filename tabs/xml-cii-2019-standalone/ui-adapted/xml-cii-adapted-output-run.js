@@ -600,7 +600,12 @@ function renderRunControls(parent, stateRef, state, report, render) {
       .includes(failure.category)?failure.category:'ENGINE_FAILED';
     const phase=['PYODIDE_INITIALIZE','SCRIPT_LOAD','BASE_MODULE_RESET',
       'INPUT_PREPARATION','TOPOLOGY_STAGE','ENRICH_XML','CII_CONVERSION',
-      'MASS_PROOF_READ','MASS_PROOF_VERIFY','UNKNOWN']
+      'MASS_PROOF_READ','MASS_PROOF_VERIFY','RUNTIME_OPTIONS',
+      'ORIGINAL_LINEAGE_STAGE','STAGED_ENRICHMENT',
+      'PREACCEPTANCE_GEOMETRY','FINAL_MASS_BINDING','FINAL_GEOMETRY_READ',
+      'MODEL_PARSE','MODEL_BUILD','MODEL_GEOMETRY_CHECK',
+      'RIGID_WEIGHT_OWNER_CHECK','CII_SERIALIZE','EMITTED_MASS_VERIFY',
+      'OUTPUT_WRITE','UNKNOWN']
       .includes(failure.phase)?failure.phase:'UNKNOWN';
     const code=/^[A-Z][A-Z0-9_]{2,79}$/.test(failure.code||'')
       ?failure.code:'NATIVE_CANDIDATE_CONVERTER_FAILED';
