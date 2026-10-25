@@ -108,3 +108,59 @@ test('UI and engine expose bounded failure phase without weakening publication',
  const docs=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-converter-failure-diagnostic.mjs',import.meta.url),'utf8');
  assert.equal(root,docs);
 });
+
+test('typed native Python failure reveals vetted substage/code, never raw traceback',()=>{
+ const privateData='PRIVATE_ENGINEERING_XML /some/private/path.xml Traceback SRC-1';
+ const valid=diagnoseXml229NativeConverterFailure({
+   ok:false,nativeFailurePhase:'CII_CONVERSION',
+   nativePythonFailure:{stage:'FINAL_MASS_BINDING',
+     code:'NATIVE_FINAL_MASS_REQUIRED'},
+   error:privateData,logs:['NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE '+privateData]});
+ assert.equal(valid.category,'ENGINE_FAILED');
+ assert.equal(valid.phase,'FINAL_MASS_BINDING');
+ assert.equal(valid.code,'NATIVE_FINAL_MASS_REQUIRED');
+ assert.equal(valid.nativeCiiReleaseAuthorized,false);
+ assert.doesNotMatch(JSON.stringify(valid),/PRIVATE_ENGINEERING_XML|Traceback|path.xml/);
+ const cii=diagnoseXml229NativeConverterFailure({
+   ok:false,nativeFailurePhase:'CII_CONVERSION',
+   nativePythonFailure:{stage:'EMITTED_MASS_VERIFY',code:'CII_NATIVE_MODEL_MASS_MISMATCH'}});
+ assert.equal(cii.code,'CII_NATIVE_MODEL_MASS_MISMATCH');
+ assert.equal(cii.phase,'EMITTED_MASS_VERIFY');
+});
+test('untrusted typed codes and phases cannot spoof accepted engineering failure',()=>{
+ for(const receipt of [
+   {stage:'/home/secret/file',code:'CII_NATIVE_MODEL_MASS_MISMATCH'},
+   {stage:'CII_SERIALIZE',code:'UNVERIFIED_PRIVATE_SOURCE_ID'},
+   {stage:'CII_SERIALIZE',code:'NATIVE_FINAL_MASS_REQUIRED /home/secret'},
+   {stage:'CII_SERIALIZE',code:'../../private.xml'},
+ ]){
+   const outcome=diagnoseXml229NativeConverterFailure({
+     ok:false,nativeFailurePhase:'CII_CONVERSION',
+     nativePythonFailure:receipt,
+     error:'NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT'});
+   if(receipt.stage==='/home/secret/file')assert.equal(outcome.phase,'UNKNOWN');
+   else assert.equal(outcome.code,'UNCLASSIFIED_EXCEPTION');
+   assert.equal(outcome.nativeCiiReleaseAuthorized,false);
+   assert.doesNotMatch(JSON.stringify(outcome),/secret|private\.xml/i);
+ }
+ // Unknown Python exception must not inherit a known code in raw stderr.
+ const failure=diagnoseXml229NativeConverterFailure({ok:false,
+   nativeFailurePhase:'CII_CONVERSION',
+   nativePythonFailure:{stage:'MODEL_BUILD',code:'UNCLASSIFIED_EXCEPTION'},
+   logs:['NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT']});
+ assert.equal(failure.code,'UNCLASSIFIED_EXCEPTION');
+ assert.equal(failure.phase,'MODEL_BUILD');
+});
+test('native Python runner resets typed receipts per attempt and root/docs remain identical',async()=>{
+ const engine=await readFile(new URL('../converters/xml-cii-2019-standalone/engine.js',import.meta.url),'utf8');
+ const py=await readFile(new URL('../converters/scripts/xml_to_cii2019_runtime_custody.py',import.meta.url),'utf8');
+ assert.match(engine,/sys\._xml229_native_failure_stage = 'UNKNOWN'/);
+ assert.match(engine,/job_native_failure_code = 'UNCLASSIFIED_EXCEPTION'/);
+ assert.match(engine,/pyodide\.globals\.set\('job_governed_native', governedNative\)/);
+ assert.match(engine,/nativePythonFailure:error\.xml229NativePythonFailure/);
+ for(const stage of ['ORIGINAL_LINEAGE_STAGE','FINAL_MASS_BINDING','MODEL_PARSE',
+   'CII_SERIALIZE','EMITTED_MASS_VERIFY'])
+  assert.ok(py.includes("_mark_native_failure_stage('"+stage+"')"));
+ assert.equal(engine,await readFile(new URL('../docs/converters/xml-cii-2019-standalone/engine.js',import.meta.url),'utf8'));
+ assert.equal(py,await readFile(new URL('../docs/converters/scripts/xml_to_cii2019_runtime_custody.py',import.meta.url),'utf8'));
+});

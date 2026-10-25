@@ -371,9 +371,16 @@ def install_runtime_custody_patch() -> None:
     base._build_bend_payload = _runtime_bend_payload  # type: ignore[assignment]
 
 
+def _mark_native_failure_stage(stage: str) -> None:
+    # Only a transient in-process diagnostic for the Pyodide runner.
+    # No source content, exception message or traceback crosses this port.
+    sys._xml229_native_failure_stage = stage
+
+
 def main() -> None:
     global _PUBLISH_BEND_RADIUS_1_5D, _XML229_FINALIZED_GEOMETRY_ACTIVE
 
+    _mark_native_failure_stage('RUNTIME_OPTIONS')
     args = patched._parse_args()
     support_config = patched._load_support_config(args.support_config_json)
     if args.split_condensed_valve_flange is not None:
@@ -388,8 +395,10 @@ def main() -> None:
     staged_original = args.input
     if args.xml229_native_final_packet is not None:
         from xml229_native_final_mass_binding import stage_native_original_lineage
+        _mark_native_failure_stage('ORIGINAL_LINEAGE_STAGE')
         staged_original = stage_native_original_lineage(
             args.input, args.xml229_native_final_packet)
+    _mark_native_failure_stage('STAGED_ENRICHMENT')
     input_xml = patched._maybe_enrich_from_staged_json(
         staged_original, args.staged_json, support_config)
     input_xml = patched._apply_process_data_to_xml(input_xml, support_config)
@@ -400,6 +409,7 @@ def main() -> None:
     # added/deleted/reordered/repositioned/retyped physical nodes are not.
     if args.xml229_native_final_packet is not None:
         from xml229_native_final_mass_binding import assert_preaccepted_geometry_unchanged
+        _mark_native_failure_stage('PREACCEPTANCE_GEOMETRY')
         assert_preaccepted_geometry_unchanged(staged_original, input_xml)
     # The *actual* converter input receives accepted Final masses here, not
     # a separate diagnostic copy. No post-acceptance geometry splitting.
@@ -408,6 +418,7 @@ def main() -> None:
         if args.xml229_native_mass_proof is None or args.weight_scale != 10:
             raise ValueError("XML229_NATIVE_MASS_PROOF_AND_KG_TO_N_REQUIRED")
         from xml229_native_final_mass_binding import bind_native_final_xml
+        _mark_native_failure_stage('FINAL_MASS_BINDING')
         input_xml, xml229_native_owners = bind_native_final_xml(
             args.input, input_xml, args.xml229_native_final_packet,
             require_staged_lineage=True)
@@ -429,12 +440,14 @@ def main() -> None:
     # coordinate-based cleanup which was previously applied AFTER Final.
     if args.xml229_native_final_packet is not None:
         from xml229_native_final_mass_binding import read_packet
+        _mark_native_failure_stage('FINAL_GEOMETRY_READ')
         active_packet, _ = read_packet(
             args.xml229_native_final_packet, args.input)
         _XML229_FINALIZED_GEOMETRY_ACTIVE = bool(
             active_packet.get("finalizedGeometry"))
     else:
         _XML229_FINALIZED_GEOMETRY_ACTIVE = False
+    _mark_native_failure_stage('MODEL_PARSE')
     document = base._parse_xml_document(input_xml)
     component_specs = direction._component_type_restraint_specs(document, support_config)
     dtxr_specs, node_number_kind_map = patched._build_keyword_restraint_specs(input_xml, support_config)
@@ -448,6 +461,7 @@ def main() -> None:
             else direction._merge_spec_maps(component_specs, xml_specs, dtxr_specs)
         )
     )
+    _mark_native_failure_stage('MODEL_BUILD')
     model = patched._build_conversion_model(
         document,
         explicit_specs,
@@ -456,7 +470,9 @@ def main() -> None:
     )
     if xml229_native_owners is not None:
         from xml229_native_final_mass_binding import assert_native_model_geometry_unchanged
+        _mark_native_failure_stage('MODEL_GEOMETRY_CHECK')
         assert_native_model_geometry_unchanged(staged_original, document, model)
+    _mark_native_failure_stage('RIGID_WEIGHT_OWNER_CHECK')
     require_rigid_weight_owners(input_xml, model)
     temperature_map, pressure_map = patched._branch_case_maps(document)
     base._build_restraint_payload = direction._direction_enabled_restraint_payload_factory(support_config)
@@ -468,6 +484,7 @@ def main() -> None:
         support_config,
     )  # type: ignore[assignment]
     base._build_sif_payload = direction._sif_payload_factory(tee_desc_by_node, support_config)  # type: ignore[assignment]
+    _mark_native_failure_stage('CII_SERIALIZE')
     cii_text = base._build_cii_text(
         model,
         args.coords_mode,
@@ -480,10 +497,12 @@ def main() -> None:
         import json as _xml229_json
         # Parse the ACTUAL CII bytes and crosscheck ELEMENTS -> RIGID pointers,
         # exact guarded source owners and numeric kg * 10 before publication.
+        _mark_native_failure_stage('EMITTED_MASS_VERIFY')
         mass_diagnostic = verify_emitted_native_masses(
             cii_text, xml229_native_owners, model, scale=args.weight_scale)
         args.xml229_native_mass_proof.write_text(
             _xml229_json.dumps(mass_diagnostic, sort_keys=True), encoding="utf-8")
+    _mark_native_failure_stage('OUTPUT_WRITE')
     args.output.write_text(cii_text, encoding="utf-8")
     if args.diagnostics_out:
         args.diagnostics_out.write_text(base._build_diagnostics_report(model), encoding="utf-8")

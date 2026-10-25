@@ -26,16 +26,37 @@ const RUN_SNIPPET = `
 import runpy
 import sys
 import traceback
+import re
 exit_code = 0
+# Reset for every serialized Python invocation; never reuse a prior job's stage.
+sys._xml229_native_failure_stage = 'UNKNOWN'
+job_native_failure_stage = 'UNKNOWN'
+job_native_failure_code = 'UNCLASSIFIED_EXCEPTION'
 sys.argv = list(job_argv)
 try:
     runpy.run_path(job_script_path, run_name="__main__")
 except SystemExit as exc:
+    if job_governed_native:
+        job_native_failure_stage = getattr(sys, '_xml229_native_failure_stage', 'UNKNOWN')
     code = exc.code
     exit_code = 0 if code is None else (code if isinstance(code, int) else 1)
     if code is not None and not isinstance(code, int):
         print(code, file=sys.stderr)
-except Exception:
+except Exception as exc:
+    if job_governed_native:
+        job_native_failure_stage = getattr(sys, '_xml229_native_failure_stage', 'UNKNOWN')
+        # Strict typed receipt; the JS caller independently allowlists the code.
+        cls = type(exc)
+        if cls.__name__ == 'NativeMassError' and cls.__module__ == 'xml229_native_final_mass_binding':
+            candidate = getattr(exc, 'code', None)
+        elif cls is ValueError:
+            # Some writer custody guards use 'CODE: sensitive details'. Never
+            # transfer those details, only the exact first token.
+            candidate = str(exc).split(':', 1)[0]
+        else:
+            candidate = None
+        if isinstance(candidate, str) and re.fullmatch(r'[A-Z][A-Z0-9_]{2,79}', candidate):
+            job_native_failure_code = candidate
     traceback.print_exc()
     exit_code = 1
 exit_code
@@ -101,6 +122,8 @@ function errorResult(job, error, logLines = [], partial = {}, nativeFailurePhase
     logs: logLines,
     error: text(error?.message || error || 'Standalone engine failed.'),
     nativeFailurePhase,
+    ...(job?.xml229NativeFinalPacket && error?.xml229NativePythonFailure
+      ?{nativePythonFailure:error.xml229NativePythonFailure}:{}),
   };
 }
 
@@ -131,11 +154,19 @@ function writeTextFile(pyodide, dir, name, body) {
   return path;
 }
 
-async function runPythonScript(pyodide, scriptPath, argv, stdout, stderr) {
+async function runPythonScript(pyodide, scriptPath, argv, stdout, stderr, governedNative=false) {
   pyodide.globals.set('job_script_path', scriptPath);
   pyodide.globals.set('job_argv', argv);
+  pyodide.globals.set('job_governed_native', governedNative);
   const exitCode = await pyodide.runPythonAsync(RUN_SNIPPET);
-  if (Number(exitCode) !== 0) throw new Error(`Converter exited with code ${exitCode}. ${logs(stderr).slice(-6).join(' | ')}`);
+  if (Number(exitCode) !== 0) {
+    const error = new Error(`Converter exited with code ${exitCode}. ${logs(stderr).slice(-6).join(' | ')}`);
+    if (governedNative) error.xml229NativePythonFailure={
+      stage:text(pyodide.globals.get('job_native_failure_stage')),
+      code:text(pyodide.globals.get('job_native_failure_code')),
+    };
+    throw error;
+  }
 }
 
 async function runEnrichedXml(pyodide, job, paths, jobDir, stdout) {
@@ -153,7 +184,8 @@ async function runEnrichedXml(pyodide, job, paths, jobDir, stdout) {
 
 async function runCii(pyodide, job, paths, jobDir, stdout, stderr) {
   const invocation = buildStandaloneCiiInvocation(job, paths, jobDir);
-  await runPythonScript(pyodide, invocation.scriptPath, invocation.argv, stdout, stderr);
+  await runPythonScript(pyodide, invocation.scriptPath, invocation.argv, stdout, stderr,
+    !!job.xml229NativeFinalPacket);
   return { ciiText: pyodide.FS.readFile(invocation.outputPath, { encoding: 'utf8' }), ciiName: invocation.outputName, argv: invocation.argv.slice(1) };
 }
 
