@@ -26,13 +26,20 @@ test('native Run surfaces post-acceptance geometry changes as actionable blocker
  const ui=readFileSync(fileURLToPath(new URL(
   '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs',
   import.meta.url)),'utf8');
- assert.ok(ui.includes('native?.error'));
- assert.match(ui,/NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE/);
- assert.match(ui,/NATIVE_DOUBLE_ENDPOINT_MASS_OWNER/);
- assert.match(ui,/NATIVE_NONCANONICAL_ENDPOINT_OWNER/);
- assert.match(ui,/NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT/);
- assert.match(ui,/NATIVE_FINALIZED_NODE_ID_MAP_DRIFT/);
- assert.match(ui,/NATIVE_RIGID_OWNER_UNSUPPORTED/);
+ const safe=readFileSync(fileURLToPath(new URL(
+  '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-converter-failure-diagnostic.mjs',
+  import.meta.url)),'utf8');
+ // Recognized engineering basis guards now live in the bounded diagnostic
+ // classifier, and raw engine error text is never forwarded to the UI.
+ assert.match(ui,/diagnoseXml229NativeConverterFailure\(native\)/);
+ assert.match(ui,/xml229NativeFailure:diagnosis/);
+ assert.ok(safe.includes('native?.error'));
+ assert.match(safe,/NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE/);
+ assert.match(safe,/NATIVE_DOUBLE_ENDPOINT_MASS_OWNER/);
+ assert.match(safe,/NATIVE_NONCANONICAL_ENDPOINT_OWNER/);
+ assert.match(safe,/NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT/);
+ assert.match(safe,/NATIVE_FINALIZED_NODE_ID_MAP_DRIFT/);
+ assert.match(safe,/NATIVE_RIGID_OWNER_UNSUPPORTED/);
 });
 
 test('Run diagnostic binds to stable live GC-PW authority, not mutable state.current',()=>{
