@@ -20,7 +20,7 @@
 ## 3. Active Findings, Risks, Decisions, and Questions
 - **Decision**: Reuse existing pure function `isXmlCiiWeightReviewEndpoint` exported by `converters/xml-cii2019-core/weight-match-model.js`.
 - **Finding**: In CAESAR II, all rigid elements represent the element leading into `to_node` (`Endpoint=2`). Inlet nodes with `Endpoint=1` at branch start cannot be weight owners.
-- **Risk**: None. All existing 40 unit and contract tests continue to pass; tests expecting Endpoint 0 or Endpoint 2 remain intact.
+- **Risk**: Blanket Endpoint 1 filter broke authentic Firstpass Preview; the correction must only exclude source-proven duplicate rigid branch inlets.
 
 ## 4. Current Hypothesis and Falsifier
 - **Hypothesis**: Excluding `Endpoint 1` nodes via `isXmlCiiWeightReviewEndpoint` aligns the physical component census with the actual CAESAR II rigid element graph, resolving `CII_NATIVE_PHYSICAL_OWNER_MISSING` and allowing `Download .cii` to unlock automatically.
@@ -67,3 +67,8 @@
 
 ## 11. EXACT_NEXT_ACTION
 - Commit PR workreport rename, push to origin PR branch, and monitor CI checks. DO NOT MERGE.
+
+## Subsequent corrective commit (DO NOT MERGE)
+- Prior head filtered all Firstpass Endpoint=1 physicals and failed P4/Chromium with NO_PHYSICAL_WEIGHT_OWNERS. New rule only excludes a later-branch first RIGID/Rigid=2 Endpoint 1 matching precisely one earlier terminal RIGID/Rigid=2 Endpoint 2 by original positive NodeNumber and exact Position.
+- Added Firstpass and wrong-position tests. Real private PL-01 check is explicitly NOT_RUN without an authorized SHA-bound fixture, rather than silently passing.
+- Original source remains unchanged; Python and CII release guards untouched. Old Final decisions cannot be reused automatically after physical census change. Owner-browser acceptance and original 296823 vs uploaded 296828 byte provenance remain outstanding.

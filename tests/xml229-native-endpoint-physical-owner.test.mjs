@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { installWeightBasisXmlDom } from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
@@ -10,6 +11,7 @@ import {
   isXmlCiiWeightReviewEndpoint,
 } from '../converters/xml-cii2019-core/weight-match-model.js';
 import { projectXmlCiiOccurrences } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-xml-source.js';
+import {isXml229NonOwnerRigidBranchInlet} from '../converters/xml-cii2019-core/xml229-nonowner-rigid-branch-inlet.mjs';
 import { preparePreviewNodeOccurrenceDocument } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-node-occurrence-ledger.js';
 
 installWeightBasisXmlDom(globalThis);
@@ -81,20 +83,20 @@ test('Endpoint 1 branch-inlet rigid node is excluded by isXmlCiiWeightReviewEndp
   assert.equal(isXmlCiiWeightReviewEndpoint(childOutlet), true);
 });
 
-test('Physical census with endpoint filtering excludes branch head inlet from candidates', () => {
+test('Matched terminal and branch-head rigid inlet have one mass owner', () => {
   const xml = SYNTHETIC_BRANCH_HEAD_ENDPOINT1_XML;
   const clean = preparePreviewNodeOccurrenceDocument({ xmlText: xml, config: {} });
   const branches = [...clean.document.getElementsByTagName('Branch')];
   assert.equal(branches.length, 2);
 
   const physicalNodes = [];
-  for (const branch of branches) {
+  for (const [branchIndex,branch] of branches.entries()) {
     const nodes = [...branch.getElementsByTagName('Node')];
-    for (const node of nodes) {
+    for (const [nodeOrdinal,node] of nodes.entries()) {
       if (
         isXmlCiiWeightReviewNode(node) &&
         isXmlCiiWeightReviewConnectionEligible(node) &&
-        isXmlCiiWeightReviewEndpoint(node)
+        !isXml229NonOwnerRigidBranchInlet({node,branchIndex,nodeOrdinal,branches})
       ) {
         physicalNodes.push({
           nodeNumber: node.getElementsByTagName('NodeNumber')[0]?.textContent,
@@ -112,39 +114,56 @@ test('Physical census with endpoint filtering excludes branch head inlet from ca
   ]);
 });
 
-test('Real PL-01_XML excludes Node 2810 Endpoint 1 and retains exactly 29 physical owners', () => {
-  const xmlPath = 'C:/CodeB/PL-01_XML.xml';
-  let xml;
-  try {
-    xml = readFileSync(xmlPath, 'utf8');
-  } catch {
-    return;
-  }
-  const clean = preparePreviewNodeOccurrenceDocument({ xmlText: xml, config: {} });
-  const branches = [...clean.document.getElementsByTagName('Branch')];
-  assert.equal(branches.length, 9);
 
-  let unPairedEndpoint1Count = 0;
-  let totalWithEndpointCheck = 0;
-  for (const branch of branches) {
-    const nodes = [...branch.getElementsByTagName('Node')];
-    for (const node of nodes) {
-      if (
-        isXmlCiiWeightReviewNode(node) &&
-        isXmlCiiWeightReviewConnectionEligible(node)
-      ) {
-        const ep = node.getElementsByTagName('Endpoint')[0]?.textContent;
-        if (ep === '1') {
-          unPairedEndpoint1Count++;
-        }
-        if (isXmlCiiWeightReviewEndpoint(node)) {
-          totalWithEndpointCheck++;
-        }
-      }
-    }
-  }
+test('Rigid branch inlet classification requires exact unique source ownership',()=>{
+ const doc=new DOMParser().parseFromString(SYNTHETIC_BRANCH_HEAD_ENDPOINT1_XML,'text/xml');
+ const branches=[...doc.getElementsByTagName('Branch')];
+ const node=[...branches[1].getElementsByTagName('Node')][0];
+ const input={node,branchIndex:1,nodeOrdinal:0,branches};
+ assert.equal(isXml229NonOwnerRigidBranchInlet(input),true);
+ assert.equal(isXml229NonOwnerRigidBranchInlet({...input,nodeOrdinal:1}),false);
+ node.getElementsByTagName('Position')[0].textContent='1000 0 1';
+ assert.equal(isXml229NonOwnerRigidBranchInlet(input),false);
+});
 
-  assert.equal(totalWithEndpointCheck, 29);
+test('Public Firstpass retains ordinary Endpoint 1 physical candidates',()=>{
+ const xml=readFileSync(resolve(ROOT,'Benchmarks/1885Sjson/FirstpassXML'),'utf8');
+ const clean=preparePreviewNodeOccurrenceDocument({xmlText:xml,config:{}});
+ const branches=[...clean.document.getElementsByTagName('Branch')];
+ let count=0,first=0;
+ for(const [branchIndex,branch] of branches.entries()){
+   const nodes=[...branch.getElementsByTagName('Node')];
+   for(const [nodeOrdinal,node] of nodes.entries()){
+     if(!isXmlCiiWeightReviewNode(node)||!isXmlCiiWeightReviewConnectionEligible(node)||
+        isXml229NonOwnerRigidBranchInlet({node,branchIndex,nodeOrdinal,branches}))continue;
+     count++;
+     if(node.getElementsByTagName('Endpoint')[0]?.textContent==='1')first++;
+   }
+ }
+ assert(count>0,'Firstpass physical candidates cannot disappear');
+ assert(first>0,'Endpoint 1 cannot be excluded globally');
+});
+
+const privatePath=process.env.XML229_PL01_FIXTURE_PATH;
+const privateSha=process.env.XML229_PL01_FIXTURE_SHA256;
+test('Private PL-01 owner identity checks (explicit opt-in)',{
+ skip:(!privatePath||!privateSha)?'NOT_RUN: owner XML path and SHA-256 required':false,
+},()=>{
+ const bytes=readFileSync(privatePath);
+ assert.equal(createHash('sha256').update(bytes).digest('hex'),privateSha);
+ const clean=preparePreviewNodeOccurrenceDocument({xmlText:bytes.toString('utf8'),config:{}});
+ const branches=[...clean.document.getElementsByTagName('Branch')];
+ assert.equal(branches.length,9);
+ const node=[...branches[6].getElementsByTagName('Node')][0];
+ assert.equal(node.getElementsByTagName('NodeNumber')[0]?.textContent,'2810');
+ assert.equal(isXml229NonOwnerRigidBranchInlet({node,branchIndex:6,nodeOrdinal:0,branches}),true);
+ let excluded=0;
+ for(const [branchIndex,branch] of branches.entries()){
+   const nodes=[...branch.getElementsByTagName('Node')];
+   for(const [nodeOrdinal,node] of nodes.entries())
+     if(isXml229NonOwnerRigidBranchInlet({node,branchIndex,nodeOrdinal,branches}))excluded++;
+ }
+ assert.equal(excluded,1);
 });
 
 test('Fact producer, census worker, and transfer manifest remain identical to docs mirrors', () => {
