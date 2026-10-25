@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {xml229CanAutoRunVerifiedFinal}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-auto-native.mjs';
+import {diagnoseXml229NativeConverterFailure}
+ from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-converter-failure-diagnostic.mjs';
 
 const session={closed:false,readNativeFinalPacket:async()=>({})};
 const state=()=>({activePhaseId:'run',running:false,result:null,
@@ -57,4 +59,52 @@ test('shared Pyodide interpreter resets native parser hooks and serializes autom
  assert.match(engine,/engineQueue=next\.then\(\(\)=>undefined,\(\)=>undefined\)/);
  assert.match(engine,/runSerializedXmlCii2019Engine\(job\)/);
  assert.match(engine,/runPythonScript\(pyodide, invocation\.scriptPath/);
+});
+
+test('converter failure returns allowlisted categories without leaking stderr or paths',()=>{
+ const secret='SECRET_PRIVATE_XML /home/owner/site/model.xml Traceback';
+ const engine=diagnoseXml229NativeConverterFailure({
+   ok:false,nativeFailurePhase:'CII_CONVERSION',error:secret,logs:[secret]});
+ assert.equal(engine.code,'NATIVE_CANDIDATE_CONVERTER_FAILED');
+ assert.equal(engine.category,'ENGINE_FAILED');
+ assert.equal(engine.phase,'CII_CONVERSION');
+ assert.equal(engine.candidatePublished,false);
+ assert.equal(engine.nativeCiiReleaseAuthorized,false);
+ assert.doesNotMatch(JSON.stringify(engine),/SECRET_PRIVATE_XML|Traceback|private/);
+ const known=diagnoseXml229NativeConverterFailure({ok:false,
+   nativeFailurePhase:'MASS_PROOF_VERIFY',
+   logs:['NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT: '+secret]});
+ assert.equal(known.code,'NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT');
+ assert.equal(known.phase,'MASS_PROOF_VERIFY');
+ const tampered=diagnoseXml229NativeConverterFailure({
+   ok:false,nativeFailurePhase:'/secret/path',error:secret});
+ assert.equal(tampered.phase,'UNKNOWN');
+ assert.doesNotMatch(JSON.stringify(tampered),/secret|Traceback/i);
+});
+test('engine failure, missing CII and missing mass proof remain distinct and non-authorizing',()=>{
+ for(const [native,category,phase] of [
+   [{ok:false,error:'secret traceback'},'ENGINE_FAILED','UNKNOWN'],
+   [{ok:true,ciiText:null},'CII_OUTPUT_MISSING','CII_CONVERSION'],
+   [{ok:true,ciiText:'CII output'},'NATIVE_MASS_PROOF_MISSING','MASS_PROOF_READ'],
+ ]){
+   const r=diagnoseXml229NativeConverterFailure(native);
+   assert.equal(r.category,category);
+   assert.equal(r.phase,phase);
+   assert.equal(r.nativeCiiReleaseAuthorized,false);
+ }
+});
+test('UI and engine expose bounded failure phase without weakening publication',async()=>{
+ const ui=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',import.meta.url),'utf8');
+ assert.match(ui,/xml229NativeFailure:error\.xml229NativeFailure/);
+ assert.match(ui,/Download safe native failure diagnostic JSON/);
+ assert.match(ui,/verified\.nativeCiiReleaseAuthorized!==true/);
+ const engine=await readFile(new URL('../converters/xml-cii-2019-standalone/engine.js',import.meta.url),'utf8');
+ for(const phase of ['CII_CONVERSION','MASS_PROOF_READ','MASS_PROOF_VERIFY'])
+   assert.ok(engine.includes("nativeFailurePhase='"+phase+"'"));
+ assert.match(engine,/partial, nativeFailurePhase\)/);
+ const mirror=await readFile(new URL('../docs/converters/xml-cii-2019-standalone/engine.js',import.meta.url),'utf8');
+ assert.equal(engine,mirror);
+ const root=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-converter-failure-diagnostic.mjs',import.meta.url),'utf8');
+ const docs=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-converter-failure-diagnostic.mjs',import.meta.url),'utf8');
+ assert.equal(root,docs);
 });

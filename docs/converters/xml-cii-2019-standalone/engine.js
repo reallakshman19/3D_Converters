@@ -85,7 +85,7 @@ function emptyTopologyResult() {
   };
 }
 
-function errorResult(job, error, logLines = [], partial = {}) {
+function errorResult(job, error, logLines = [], partial = {}, nativeFailurePhase = 'UNKNOWN') {
   const sourceKind = job?.sourceKind === 'inputxml' ? 'inputxml' : 'xml';
   return {
     ok: false,
@@ -100,6 +100,7 @@ function errorResult(job, error, logLines = [], partial = {}) {
     diagnostics: null,
     logs: logLines,
     error: text(error?.message || error || 'Standalone engine failed.'),
+    nativeFailurePhase,
   };
 }
 
@@ -171,13 +172,17 @@ async function runSerializedXmlCii2019Engine(job) {
   const stdout = [];
   const stderr = [];
   const partial = { enrichedText: '', enrichedName: '', ...emptyTopologyResult() };
+  let nativeFailurePhase='PYODIDE_INITIALIZE';
   try {
     const pyodide = await getPyodide();
+    nativeFailurePhase='SCRIPT_LOAD';
     await ensureScripts(pyodide);
+    nativeFailurePhase='BASE_MODULE_RESET';
     await pyodide.runPythonAsync(RESET_NATIVE_BASE_SNIPPET);
     pyodide.setStdout({ batched: (line) => stdout.push(line) });
     pyodide.setStderr({ batched: (line) => stderr.push(line) });
     const jobDir = `/work/xml_cii_standalone_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+    nativeFailurePhase='INPUT_PREPARATION';
     pyodide.FS.mkdirTree(jobDir);
     const inputPath = writeTextFile(pyodide, jobDir, normalizedJob.sourceName || (sourceKind === 'inputxml' ? 'input.input.xml' : 'input.xml'), normalizedJob.sourceText);
     const stagedJsonPath = normalizedJob.stagedJsonText ? writeTextFile(pyodide, jobDir, `${outputStem(normalizedJob.sourceName)}_staged.json`, normalizedJob.stagedJsonText) : null;
@@ -202,6 +207,7 @@ async function runSerializedXmlCii2019Engine(job) {
 
     let topology = emptyTopologyResult();
     if (topologyRequested(normalizedJob)) {
+      nativeFailurePhase='TOPOLOGY_STAGE';
       topology = await runPsi116TopologyStage(pyodide, normalizedJob, inputPath, jobDir, stdout);
       Object.assign(partial, topology);
       postprocess.push({ branch: 'psi116-topology-sidecars', ...topology.topologySummary, findingsName: topology.topologyFindingsName, planName: topology.topologyFixPlanName });
@@ -209,6 +215,7 @@ async function runSerializedXmlCii2019Engine(job) {
 
     if (outputMode !== 'cii-only') {
       if (sourceKind === 'xml') {
+        nativeFailurePhase='ENRICH_XML';
         const enriched = await runEnrichedXml(pyodide, normalizedJob, paths, jobDir, stdout);
         const sif = applyStandaloneSifFacts(enriched.enrichedText, 'xml', normalizedJob.sifFacts);
         enrichedText = sif.text;
@@ -227,12 +234,15 @@ async function runSerializedXmlCii2019Engine(job) {
     }
     if (outputMode === 'cii-only' || outputMode === 'both') {
       const ciiPaths = { ...paths, inputPath: topology.ciiInputPath || paths.inputPath };
+      nativeFailurePhase='CII_CONVERSION';
       const cii = await runCii(pyodide, normalizedJob, ciiPaths, jobDir, stdout, stderr);
       ciiText = cii.ciiText;
       ciiName = cii.ciiName;
       if (massPacket) {
+        nativeFailurePhase='MASS_PROOF_READ';
         const diagnostic=JSON.parse(pyodide.FS.readFile(xml229NativeMassProofPath,
           {encoding:'utf8'}));
+        nativeFailurePhase='MASS_PROOF_VERIFY';
         if (diagnostic?.massesConsumedInNativeRigid !== true||
             diagnostic?.sourcePhysicalCount !== massPacket.physicalCount||
             diagnostic?.actualCiiSha256?.length !== 64||
@@ -259,6 +269,6 @@ async function runSerializedXmlCii2019Engine(job) {
       error: null,
     };
   } catch (error) {
-    return errorResult(normalizedJob, error, [...logs(stdout), ...logs(stderr)], partial);
+    return errorResult(normalizedJob, error, [...logs(stdout), ...logs(stderr)], partial, nativeFailurePhase);
   }
 }

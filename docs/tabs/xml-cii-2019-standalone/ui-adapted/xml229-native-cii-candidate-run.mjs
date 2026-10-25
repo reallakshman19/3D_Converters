@@ -12,6 +12,7 @@ import {getXml229NativeJsonReattachment} from './xml229-native-json-reattach.mjs
 import {reconcileXml229ActualCiiAgainstFinal}
  from '../../../converters/xml-cii2019-core/xml229-native-cii-independent-reconciliation.mjs';
 import {requireXml229NativeOwnerPreflight} from './xml229-native-owner-preflight.mjs';
+import {diagnoseXml229NativeConverterFailure} from './xml229-native-converter-failure-diagnostic.mjs';
 
 const fail=(code)=>{const error=new Error(code);error.code=code;throw error;};
 
@@ -62,21 +63,10 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   // Preserve the actual native basis guard instead of masking it behind a
   // generic converter failure. The user must finalize geometry upstream,
   // then accept weights against that new source basis.
-  const diagnosis=[native?.error,...(native?.logs||[])].filter(Boolean).join('\n');
-  for(const code of [
-    'NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT',
-    'NATIVE_PREACCEPTANCE_OWNER_CARDINALITY_DRIFT',
-    'NATIVE_NONCANONICAL_ENDPOINT_OWNER',
-    'NATIVE_FINALIZED_NODE_ID_MAP_INVALID',
-    'NATIVE_FINALIZED_NODE_ID_MAP_DRIFT',
-    'NATIVE_DOUBLE_ENDPOINT_MASS_OWNER',
-    'NATIVE_RIGID_OWNER_UNSUPPORTED',
-    'NATIVE_ACCEPTED_PHYSICAL_NOT_IN_FINAL_GEOMETRY',
-    'NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT',
-    'NATIVE_FINALIZED_GEOMETRY_SHA_DRIFT',
-    'NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE',
-  ])if(diagnosis.includes(code))fail(code);
-  fail('NATIVE_CANDIDATE_CONVERTER_FAILED');
+  const diagnosis=diagnoseXml229NativeConverterFailure(native);
+  throw Object.assign(new Error(diagnosis.code),{
+    code:diagnosis.code,xml229NativeFailure:diagnosis,
+  });
  }
  const independent=await reconcileXml229ActualCiiAgainstFinal({
   originalXmlText:sourceText,packet,ciiText:native.ciiText,
