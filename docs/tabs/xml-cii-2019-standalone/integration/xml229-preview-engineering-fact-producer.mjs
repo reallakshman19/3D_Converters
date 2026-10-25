@@ -22,7 +22,7 @@ import {preparePreviewNodeOccurrenceDocument}
   from '../ui-adapted/xml-cii-adapted-preview-node-occurrence-ledger.js';
 import {openPreviewFactReadModel}
   from '../ui-adapted/xml-cii-adapted-preview-facts-read-model.js';
-import {isXmlCiiWeightReviewNode,isXmlCiiWeightReviewConnectionEligible}
+import {isXmlCiiWeightReviewNode,isXmlCiiWeightReviewConnectionEligible,isXmlCiiWeightReviewEndpoint}
   from '../../../converters/xml-cii2019-core/weight-match-model.js';
 
 const good=v=>typeof v==='string'&&v.trim().length>0;
@@ -184,7 +184,8 @@ export async function openXml229EngineeringFactModel({
       if(nonOwnerEndpointStarts.has(
         JSON.stringify([branchIndex,origin.sourceNodeOrdinal])))continue;
       if(!isXmlCiiWeightReviewNode(node)||
-        !isXmlCiiWeightReviewConnectionEligible(node))continue;
+        !isXmlCiiWeightReviewConnectionEligible(node)||
+        !isXmlCiiWeightReviewEndpoint(node))continue;
       if(physical.length>=maxPhysical)
         fail('PHYSICAL_POPULATION_LIMIT','Too many selected physical facts for bounded P4 Worker; no main-thread fallback');
       const src=sourceNodeByOrdinal.get(

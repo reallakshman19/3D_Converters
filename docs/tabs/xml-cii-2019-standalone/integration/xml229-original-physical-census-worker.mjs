@@ -9,7 +9,7 @@ import {projectXmlCiiOccurrences}
  from '../ui-adapted/xml-cii-adapted-preview-facts-xml-source.js';
 import {preparePreviewNodeOccurrenceDocument}
  from '../ui-adapted/xml-cii-adapted-preview-node-occurrence-ledger.js';
-import {isXmlCiiWeightReviewNode,isXmlCiiWeightReviewConnectionEligible}
+import {isXmlCiiWeightReviewNode,isXmlCiiWeightReviewConnectionEligible,isXmlCiiWeightReviewEndpoint}
  from '../../../converters/xml-cii2019-core/weight-match-model.js';
 import {canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
 installWeightBasisXmlDom(globalThis);
@@ -72,7 +72,8 @@ self.addEventListener('message',({data:req})=>{
          isXmlCiiWeightReviewConnectionEligible(right);
        if(paired)continue;
        if(!isXmlCiiWeightReviewNode(node)||
-          !isXmlCiiWeightReviewConnectionEligible(node))continue;
+          !isXmlCiiWeightReviewConnectionEligible(node)||
+          !isXmlCiiWeightReviewEndpoint(node))continue;
        const physical=nodes.get(JSON.stringify([branchIndex,retained[ordinal].sourceNodeOrdinal]));
        if(!physical||physical.componentType!==field(node,'ComponentType')||
          physical.componentRefNo!==field(node,'ComponentRefNo')||
