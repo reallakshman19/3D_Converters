@@ -38,6 +38,10 @@ import {planXml229QualifiedBlankFill,commitXml229QualifiedBlankFill}
  from './xml229-source-weight-bulk-review.mjs';
 import {xml229WeightReviewFilters,matchesXml229WeightReviewFilter}
  from './xml229-weight-page-filter.mjs';
+import {XML229_WEIGHT_COLUMNS,xml229ExcelCell,parseXml229ExcelRequest,
+ matchesXml229ExcelColumns,sortXml229ExcelRows,xml229ExcelColumnOptions,
+ isXml229VerifiedShortPhysical}
+ from './xml229-weight-excel-filter.mjs';
 import {xml229WeightReviewEligible,xml229ProposalScorePercent,xml229WeightThreshold}
  from './xml229-weight-review-focus.mjs';
 import {projectXml229AuditedDecisionProvenance}
@@ -378,40 +382,62 @@ async function rpc(req){
        coverage,readiness,reconciliation,readOnly:true,
        reviewDecisionsAuthorized:false,nativeCiiReleaseAuthorized:false};
    }
-   if(req.what==='page'){
-     if(!Number.isSafeInteger(req.offset)||req.offset<0||
-        !Number.isSafeInteger(req.limit)||req.limit<1||req.limit>25)
+   if(req.what==='page'||req.what==='column-options'){
+     const optionsRequest=req.what==='column-options';
+     if(!optionsRequest&&(!Number.isSafeInteger(req.offset)||req.offset<0||
+        !Number.isSafeInteger(req.limit)||req.limit<1||req.limit>25))
        fail('INVALID_REVIEW_PAGE','Physical review page offset and length 1..25 required');
      if(!weightProjection||weightProjection.count!==physicalIdentityList?.length)
        fail('PRESENTATION_NOT_VERIFIED','Complete original physical presentation projection required');
      const mode=req.filter??'all',query=String(req.query??'').toLowerCase().trim();
      if(!xml229WeightReviewFilters.includes(mode)||query.length>120)
        fail('INVALID_WEIGHT_REVIEW_FILTER','Filter must be all, rigid, blank-rigid or needs-review');
+     const {columnFilters,sort}=parseXml229ExcelRequest(req);
+     // Display-only exclusion: no source records, facts, mass decisions,
+     // original physical census or native output geometry are mutated.
+     if(req.hideShortMm!==undefined&&typeof req.hideShortMm!=='boolean')
+       fail('WEIGHT_SHORT_VIEW_FLAG_INVALID','Hide <=6 mm is a display-only Boolean option');
+     const hideShortMm=req.hideShortMm===true;
      const match=review.getDecisionState({basisId,scopeId:sourceId,stage:'RigidMatch1'}).decisions;
      const final=review.getDecisionState({basisId,scopeId:sourceId,stage:'Rigidmatch2'}).decisions;
-     const candidates=(physicalIdentityList||[]).filter(id=>{
-       const oid=id.occurrenceId||JSON.stringify([
-         id.sourceId,id.branchOccurrenceIndex,id.nodeOrdinal,id.componentSignature]);
-       const meta=weightProjection.get(oid);
+     const suggestionRequired=optionsRequest&&req.column==='nearestSuggestions'||
+       !!columnFilters.nearestSuggestions||sort?.column==='nearestSuggestions';
+     const oidOf=id=>id.occurrenceId||JSON.stringify([
+       id.sourceId,id.branchOccurrenceIndex,id.nodeOrdinal,id.componentSignature]);
+     const suggestions=suggestionRequired?weightProjection.proposals(
+       physicalIdentityList.map(oidOf)):null;
+     const candidates=[];let hiddenShortCount=0;
+     for(const [index,id] of physicalIdentityList.entries()){
+       const oid=oidOf(id),meta=weightProjection.get(oid);
        if(!matchesXml229WeightReviewFilter(mode,{
          componentType:meta.componentType,nodeName:meta.nodeName,dtxr:meta.dtxr,
          sourceKg:meta.sourceKg,
          match1State:match[oid]?.state,finalState:final[oid]?.state,
-       }))return false;
+       }))continue;
        if(query){
          const hay=[meta.branchName,meta.lineKey,meta.componentType,meta.nodeNumber,
            meta.componentRefNoEndpoint,meta.nodeName,meta.shortName,meta.inferredValveName,
            meta.dtxr,meta.rating,meta.sourceId,meta.occurrenceId]
            .join(' ').toLowerCase();
-         if(!hay.includes(query))return false;
+         if(!hay.includes(query))continue;
        }
-       return true;
-     });
-     if(req.offset>=candidates.length&&req.offset!==0)
+       if(hideShortMm&&isXml229VerifiedShortPhysical(meta)){
+         hiddenShortCount++;continue;
+       }
+       const cells=Object.fromEntries(XML229_WEIGHT_COLUMNS.map(({key})=>[key,
+         xml229ExcelCell(meta,{match1:match[oid],final:final[oid],
+           hasSuggestions:suggestions?!!suggestions.get(oid)?.length:null},key)]));
+       candidates.push({id,oid,index,cells});
+     }
+     if(optionsRequest)return {...xml229ExcelColumnOptions(candidates,{
+       column:req.column,columnFilters,search:req.search??'',limit:250}),
+       hiddenShortCount,hideShortMm};
+     const filtered=sortXml229ExcelRows(candidates.filter(row=>
+       matchesXml229ExcelColumns(row.cells,columnFilters)),sort);
+     if(req.offset>=filtered.length&&req.offset!==0)
        fail('REVIEW_PAGE_OUTSIDE_SOURCE','Review filter offset exceeds current population');
-     const selected=candidates.slice(req.offset,req.offset+req.limit);
-     const ids=selected.map(x=>x.occurrenceId||JSON.stringify([
-       x.sourceId,x.branchOccurrenceIndex,x.nodeOrdinal,x.componentSignature]));
+     const selected=filtered.slice(req.offset,req.offset+req.limit).map(row=>row.id);
+     const ids=selected.map(oidOf);
      const sourceProposals=ids.length?weightProjection.proposals(ids):new Map();
      const rows=selected.map((id,i)=>{
        const occurrenceId=ids[i];
@@ -432,8 +458,9 @@ async function rpc(req){
          proposedKg:provenance[0]?.value??null,proposals:provenance,
          match1View:match1,finalView:finalReview};
      });
-     return {basisId,offset:req.offset,totalCount:candidates.length,
-       populationCount:physicalIdentityList.length,complete:true,rows};
+     return {basisId,offset:req.offset,totalCount:filtered.length,
+       populationCount:physicalIdentityList.length,hiddenShortCount,
+       hideShortMm,complete:true,rows};
    }
    if(req.what==='bulk-plan'){
      pendingBulk=null;

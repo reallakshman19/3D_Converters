@@ -8,12 +8,12 @@ import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-
 import {digestCanonical,canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-scope.js';
 import {renderXml229WeightReviewPage} from './xml229-p4-weight-review-presentation.mjs';
+import {installXml229WeightExcelAutoFilter} from './xml229-p4-excel-autofilter.mjs';
 import {commitXml229SelectedAppliedWeight} from './xml229-p4-applied-weight-owner-selection.mjs';
 import {createXml229ZeroMassPopup} from './xml229-p4-zero-mass-popup.mjs';
 import {renderXml229InstrumentSuggestions} from './xml229-p4-optional-instrument-advisory.mjs';
 import {commitXml229AllSelectedFinal,commitXml229VisibleSelectedFinal} from './xml229-p4-source-wide-final-commit.mjs';
-import {hydrateXml229WeightDraftInputs,seedXml229VisibleSuggestedWeightDrafts}
- from './xml229-p4-unqualified-drafts.mjs';
+import {hydrateXml229WeightDraftInputs,seedXml229VisibleSuggestedWeightDrafts} from './xml229-p4-unqualified-drafts.mjs';
 import {applyXml229SourceWideSuggestionDrafts,applyXml229BlankWeightDrafts} from './xml229-p4-source-wide-suggestion-action.mjs';
 import {disarmXml229EditedDraft} from './xml229-p4-two-click-confirmation.mjs';
 import {createXml229BulkApplyQueue} from './xml229-p4-busy-apply-queue.mjs';
@@ -24,20 +24,15 @@ import {exportXml229WeightEvidence} from './xml229-p4-private-weight-evidence.mj
 import {downloadXml229FullSourceSafety} from './xml229-full-source-safety-download.mjs';
 import {downloadXml229OwnerBasisCustody} from './xml229-owner-basis-custody-download.mjs';
 import {beginXml229FlowTrace} from './xml229-flow-trace-registry.mjs';
-import {getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,
- publishXml229VerifiedEngineeringBuild,revokeXml229VerifiedEngineeringBasis}
- from '../integration/xml229-engineering-basis-authority.mjs';
+import {getXml229VerifiedEngineeringEntry,beginXml229VerifiedEngineeringBuild,publishXml229VerifiedEngineeringBuild,revokeXml229VerifiedEngineeringBasis} from '../integration/xml229-engineering-basis-authority.mjs';
 const err=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
-const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
- .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
+const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const labelKg=n=>typeof n==='number'&&Number.isFinite(n)&&n>=0?n+' kg':'—';
 /** InputBasis tracks real XML/JSON/master changes, not UI navigation or File wrapper churn. */
-const ownerScope=value=>{
- const s=String(value??'').trim();
+const ownerScope=value=>{const s=String(value??'').trim();
  return !s||s==='ALL'||s==='__ALL__'?'__ALL__':s;
 };
-const configEquivalent=(a,b)=>{
- if(a===b)return true;
+const configEquivalent=(a,b)=>{if(a===b)return true;
  try{return canonicalJson(JSON.parse(a||'{}'))===canonicalJson(JSON.parse(b||'{}'));}
  catch{return false;}
 };
@@ -222,7 +217,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const build=root.querySelector('[data-p4-weight-build]');
  const key=stateRef?.modeABaseRef||stateRef;
  let active=getXml229CurrentWorkerHeldReview(stateRef),offset=0,busy=false;
- let mode='rigid',query='',pendingBulk=null,searchTimer=null,renderSequence=0,minScorePercent=80;
+ let mode='rigid',query='',pendingBulk=null,searchTimer=null,renderSequence=0,minScorePercent=80,hideShortMm=false;
  let draftOwner=null,draftValues=new Map(),draftWorkspace=null,zeroPopup=null;
  const bindDrafts=session=>{
    draftWorkspace=openXml229WeightDraftWorkspace(session.receipt,{
@@ -231,19 +226,16 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    draftOwner=session;draftValues=draftWorkspace.drafts;
    showXml229DraftRecoveryNotice(root,draftWorkspace,downloadTextFile);
  };
- const persistDrafts=()=>{
-   if(draftWorkspace&&draftOwner===active&&live()===active)
+ const persistDrafts=()=>{if(draftWorkspace&&draftOwner===active&&live()===active)
      return saveXml229RecoveryDrafts(draftWorkspace);
    return 0;
  };
- const clearDrafts=()=>{
-   draftOwner=null;draftWorkspace=null;draftValues=new Map();
+ const clearDrafts=()=>{draftOwner=null;draftWorkspace=null;draftValues=new Map();
    bulkDetail.hidden=true;bulkDetail.textContent='';
-   zeroPopup?.dismiss();
+   zeroPopup?.dismiss();excel.reset();hideShortMm=false;
    root.querySelector('[data-xml229-draft-recovery]')?.remove();
  };
- const captureDraft=tr=>{
-   if(!tr||!active||draftOwner!==active||live()!==active)return;
+ const captureDraft=tr=>{if(!tr||!active||draftOwner!==active||live()!==active)return;
    if(disarmXml229EditedDraft(tr,root.__p4VisibleRows,draftValues,
      pendingBulk,table,bulkDetail)){
      pendingBulk=null;
@@ -254,34 +246,30 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      String(error.code||'WEIGHT_DRAFT_STORAGE_WRITE_FAILED')+
      ']. Save Applied Weight before leaving.',true);}
  };
- const say=(message,bad=false)=>{
-   status.textContent=message;status.style.color=bad?'#f87171':'#10b981';
+ const say=(message,bad=false)=>{status.textContent=message;status.style.color=bad?'#f87171':'#10b981';
  };
  const live=()=>getXml229CurrentWorkerHeldReview(stateRef),applyQueue=createXml229BulkApplyQueue(root,live,say);
- const requireRebuild=()=>{
-   root.dataset.p4ReadReady='false';
+ const requireRebuild=()=>{root.dataset.p4ReadReady='false';
    active=null;pendingBulk=null;clearDrafts();root.__p4VisibleRows=[];
    table.replaceChildren();
    say('Verified original-source Worker ended. Return to 4 Preview → Build Preview '+
      'to verify the current XML, JSON Blob and four masters again. '+
      'No Match-1/Final decisions were restored or accepted automatically.',true);
  };
- const render=async()=>{
+ const render=async({suppressAutoCommit=false}={})=>{
    if(!active)return;
    const session=active,token=++renderSequence;
-   const page=mode==='all'&&!query
-     ?await session.readPage({offset,limit:25})
-     :await session.readPage({offset,limit:25,filter:mode,query});
+   const page=await (mode==='all'&&!query&&!hideShortMm&&!Object.keys(excel.snapshot().columnFilters).length&&!excel.snapshot().sort?session.readPage({offset,limit:25}):session.readPage({offset,limit:25,filter:mode,query,hideShortMm,...excel.snapshot()}));
    if(token!==renderSequence||session!==active||
       root.isConnected===false||live()!==session)return;
    if(draftOwner!==session)bindDrafts(session);
-   table.innerHTML=renderXml229WeightReviewPage(page,offset,{filter:mode,query,minScorePercent});
+   table.innerHTML=renderXml229WeightReviewPage(page,offset,{filter:mode,query,minScorePercent,hideShortMm,...excel.snapshot()});
    root.__p4VisibleRows=page.rows;
    seedXml229VisibleSuggestedWeightDrafts(page.rows,draftValues,{minScorePercent});
    const count=hydrateXml229WeightDraftInputs(table,page.rows,draftValues);
    persistDrafts(); // Source-basis-bound backup before any authoritative write.
    // Visible source-ranked selections go directly through protected Final CAS.
-   const {committed,stale}=await commitXml229VisibleSelectedFinal({
+   const {committed,stale}=suppressAutoCommit?{committed:0,stale:false}:await commitXml229VisibleSelectedFinal({
      session,rows:page.rows,drafts:draftValues,
      isCurrent:()=>token===renderSequence&&active===session&&live()===session,
      onError:error=>say('Applied Weight could not be recorded ['+
@@ -296,6 +284,11 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    }
    return count;
  };
+ const excel=installXml229WeightExcelAutoFilter({root,table,
+  readSession:()=>active,readScope:()=>({filter:mode,query,hideShortMm}),
+  refresh:()=>render({suppressAutoCommit:true}),resetPage:()=>{offset=0;pendingBulk=null;},
+  isCurrent:session=>session===active&&live()===session&&root.isConnected!==false,
+ });
  zeroPopup=createXml229ZeroMassPopup({
    root,live,getDrafts:()=>draftValues,saveDrafts:persistDrafts,render,say,
  });
@@ -318,6 +311,13 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    },260);
  });
  root.addEventListener('change',async event=>{
+   if(event.target.matches?.('[data-p4-hide-short-mm]')){
+     if(busy||!active||live()!==active){event.target.checked=hideShortMm;return;}
+     const old=hideShortMm;hideShortMm=event.target.checked;offset=0;pendingBulk=null;excel.close();
+     try{await render({suppressAutoCommit:true});}
+     catch(error){hideShortMm=old;say('Short-element filter unavailable ['+String(error?.code||'READ_FAILED')+']. No mass changed.',true);}
+     return;
+   }
    const applied=event.target.closest?.('[data-p4-applied-weight]');
    if(applied){
      const tr=applied.closest('tr[data-p4-row]');
@@ -614,6 +614,6 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        String(error?.code||'VERIFICATION_UNAVAILABLE')+']',true);
    });
  }
- return {dispose:()=>{if(searchTimer!==null)clearTimeout(searchTimer);},
+ return {dispose:()=>{if(searchTimer!==null)clearTimeout(searchTimer);excel.dispose();},
    cancel:()=>revokeXml229VerifiedEngineeringBasis(key,{expectedSession:active})};
 }
