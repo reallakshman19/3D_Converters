@@ -609,11 +609,15 @@ function renderRunControls(parent, stateRef, state, report, render) {
       .includes(failure.phase)?failure.phase:'UNKNOWN';
     const code=/^[A-Z][A-Z0-9_]{2,79}$/.test(failure.code||'')
       ?failure.code:'NATIVE_CANDIDATE_CONVERTER_FAILED';
+    const ownerMatchCardinality=code==='CII_NATIVE_PHYSICAL_OWNER_MISSING'?'ZERO':
+      code==='CII_NATIVE_PHYSICAL_OWNER_MULTIPLE'?'MULTIPLE':null;
     const safe={schema:'XML229.NativeConverterFailure.v1',code,category,phase,
+      ...(ownerMatchCardinality?{ownerMatchCardinality}:{}),
       candidatePublished:false,nativeCiiReleaseAuthorized:false};
     const panel=section(ctrlCard,'Native converter failure — diagnostic only');
     panel.appendChild(createElement('div',
       'Failure category: '+category+'; stage: '+phase+'; code: '+code+
+      (ownerMatchCardinality?'; owner matches: '+ownerMatchCardinality:'')+
       '. No CII was published. Final decisions were not changed.',
       'model-converters-workflow-detail-note'));
     const exportBtn=button('download-native-failure-diagnostic',

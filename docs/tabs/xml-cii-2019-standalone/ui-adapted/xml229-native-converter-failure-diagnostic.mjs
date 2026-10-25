@@ -18,6 +18,8 @@ const NATIVE_GUARDS=Object.freeze([
  'CII_NATIVE_MASS_UNREPRESENTABLE',
  'CII_NATIVE_MODEL_MASS_MISMATCH',
  'CII_NATIVE_PHYSICAL_OWNER_AMBIGUOUS',
+ 'CII_NATIVE_PHYSICAL_OWNER_MISSING',
+ 'CII_NATIVE_PHYSICAL_OWNER_MULTIPLE',
  'CII_NATIVE_PHYSICAL_RIGID_POINTER_UNVERIFIED',
  'CII_NATIVE_UNCLAIMED_POSITIVE_RIGID',
  'CII_RIGID_DOUBLE_OWNER',
@@ -109,8 +111,11 @@ export function diagnoseXml229NativeConverterFailure(native){
    NATIVE_GUARDS.find(x=>[native?.error,...(Array.isArray(native?.logs)?native.logs:[])]
      .some(message=>typeof message==='string'&&message.includes(x)))||
    'NATIVE_CANDIDATE_CONVERTER_FAILED';
+ const ownerMatchCardinality=code==='CII_NATIVE_PHYSICAL_OWNER_MISSING'?'ZERO':
+   code==='CII_NATIVE_PHYSICAL_OWNER_MULTIPLE'?'MULTIPLE':null;
  return Object.freeze({
    schema:XML229_NATIVE_FAILURE_SCHEMA,code,category,phase,
+   ...(ownerMatchCardinality?{ownerMatchCardinality}:{}),
    candidatePublished:false,nativeCiiReleaseAuthorized:false,
  });
 }

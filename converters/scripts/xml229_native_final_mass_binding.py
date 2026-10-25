@@ -803,7 +803,7 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
                          else str(node.node_number) == row["nodeNumber"]) and
                         node.component_type == row["componentType"] and
                         node.component_ref_no == row["componentRefNo"] and
-                        str(node.endpoint or "") == row["endpoint"] and
+                        ("" if node.endpoint is None else str(node.endpoint)) == row["endpoint"] and
                         node.position == tuple(map(float, row["position"].split()))):
                     matching.append(idx)
             require(len(matching) == 1, "CII_ZERO_INSTRUMENT_ELEMENT_AMBIGUOUS")
@@ -836,10 +836,13 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
                      else str(n) == row["nodeNumber"])
                     and node.component_type == row["componentType"]
                     and node.component_ref_no == row["componentRefNo"]
-                    and str(node.endpoint or "") == row["endpoint"]
+                    and ("" if node.endpoint is None else str(node.endpoint)) == row["endpoint"]
                     and node.position == tuple(map(float, row["position"].split()))):
                 matches.append(idx)
-        require(len(matches) == 1, "CII_NATIVE_PHYSICAL_OWNER_AMBIGUOUS")
+        # Zero and multiple native owners have different diagnostic causes.
+        # Both continue to fail closed: never infer, split or transfer a mass.
+        require(bool(matches), "CII_NATIVE_PHYSICAL_OWNER_MISSING")
+        require(len(matches) == 1, "CII_NATIVE_PHYSICAL_OWNER_MULTIPLE")
         index = matches[0]
         require(index not in used and index in slots,
                 "CII_NATIVE_PHYSICAL_RIGID_POINTER_UNVERIFIED")
