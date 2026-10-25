@@ -11,6 +11,8 @@ import {preparePreviewNodeOccurrenceDocument}
  from '../ui-adapted/xml-cii-adapted-preview-node-occurrence-ledger.js';
 import {isXmlCiiWeightReviewNode,isXmlCiiWeightReviewConnectionEligible}
  from '../../../converters/xml-cii2019-core/weight-match-model.js';
+import {isXml229NonOwnerRigidBranchInlet}
+ from '../../../converters/xml-cii2019-core/xml229-nonowner-rigid-branch-inlet.mjs';
 import {canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
 installWeightBasisXmlDom(globalThis);
 const PROTOCOL='XML229.P4.OriginalWeightCensus.v1';
@@ -70,7 +72,9 @@ self.addEventListener('message',({data:req})=>{
          isXmlCiiWeightReviewNode(node)&&isXmlCiiWeightReviewNode(right)&&
          isXmlCiiWeightReviewConnectionEligible(node)&&
          isXmlCiiWeightReviewConnectionEligible(right);
-       if(paired)continue;
+       if(paired||isXml229NonOwnerRigidBranchInlet({
+         node,branchIndex,nodeOrdinal:ordinal,branches,
+       }))continue;
        if(!isXmlCiiWeightReviewNode(node)||
           !isXmlCiiWeightReviewConnectionEligible(node))continue;
        const physical=nodes.get(JSON.stringify([branchIndex,retained[ordinal].sourceNodeOrdinal]));
