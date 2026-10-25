@@ -22,8 +22,10 @@ import {preparePreviewNodeOccurrenceDocument}
   from '../ui-adapted/xml-cii-adapted-preview-node-occurrence-ledger.js';
 import {openPreviewFactReadModel}
   from '../ui-adapted/xml-cii-adapted-preview-facts-read-model.js';
-import {isXmlCiiWeightReviewNode,isXmlCiiWeightReviewConnectionEligible,isXmlCiiWeightReviewEndpoint}
+import {isXmlCiiWeightReviewNode,isXmlCiiWeightReviewConnectionEligible}
   from '../../../converters/xml-cii2019-core/weight-match-model.js';
+import {isXml229NonOwnerRigidBranchInlet}
+ from '../../../converters/xml-cii2019-core/xml229-nonowner-rigid-branch-inlet.mjs';
 
 const good=v=>typeof v==='string'&&v.trim().length>0;
 const num=v=>v===null||v===undefined||String(v).trim()===''?null:
@@ -152,6 +154,15 @@ export async function openXml229EngineeringFactModel({
         firstSourceNodeOrdinal:left,secondSourceNodeOrdinal:right});
     }
   }
+  // Cross-branch duplicate inlets remain in original facts and geometry.
+  for(const [bi,branch] of branches.entries()){
+    const node=children(branch,'Node')[0];
+    if(isXml229NonOwnerRigidBranchInlet({node,branchIndex:bi,nodeOrdinal:0,branches})){
+      const original=prepared.ledger.retainedByBranch[bi]?.[0];
+      if(!original)fail('BRANCH_INLET_ORIGINAL_MISSING','Missing source ordinal');
+      nonOwnerEndpointStarts.add(JSON.stringify([bi,original.sourceNodeOrdinal]));
+    }
+  }
   const originalCensus=[],physical=[],expected=[];
   const records=[];
   const add=(occ,fieldId,val,authority,unit,detail)=>records.push(
@@ -184,8 +195,7 @@ export async function openXml229EngineeringFactModel({
       if(nonOwnerEndpointStarts.has(
         JSON.stringify([branchIndex,origin.sourceNodeOrdinal])))continue;
       if(!isXmlCiiWeightReviewNode(node)||
-        !isXmlCiiWeightReviewConnectionEligible(node)||
-        !isXmlCiiWeightReviewEndpoint(node))continue;
+        !isXmlCiiWeightReviewConnectionEligible(node))continue;
       if(physical.length>=maxPhysical)
         fail('PHYSICAL_POPULATION_LIMIT','Too many selected physical facts for bounded P4 Worker; no main-thread fallback');
       const src=sourceNodeByOrdinal.get(

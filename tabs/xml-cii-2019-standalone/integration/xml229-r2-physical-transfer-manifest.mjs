@@ -15,8 +15,10 @@ import {readVerifiedModeAFinalRows}
  from '../../../converters/xml-cii2019-core/weight-facts-mode-a-final-read.js';
 import {commitXml229NativeFinalIntent}
  from '../../../converters/xml-cii2019-core/weight-facts-native-consumption-intent.js';
-import {isXmlCiiWeightReviewNode,isXmlCiiWeightReviewConnectionEligible,isXmlCiiWeightReviewEndpoint}
+import {isXmlCiiWeightReviewNode,isXmlCiiWeightReviewConnectionEligible}
  from '../../../converters/xml-cii2019-core/weight-match-model.js';
+import {isXml229NonOwnerRigidBranchInlet}
+ from '../../../converters/xml-cii2019-core/xml229-nonowner-rigid-branch-inlet.mjs';
 
 export const XML229_TRANSFER_SCHEMA='XML229.R2.OriginalPhysicalEngineInputTransfer.v1';
 const fail=(code,message)=>{const e=new Error(message);e.code=code;e.retryable=false;throw e;};
@@ -137,9 +139,11 @@ export async function attestXml229OriginalPhysicalEngineInput({
  // expected originals were mapped. No invisible extra mass owners.
  for(const [branchIndex,branch] of engine.entries()){
    for(const [nodeOrdinal,node] of children(branch,'Node').entries()){
+     if(isXml229NonOwnerRigidBranchInlet({
+       node,branchIndex,nodeOrdinal,branches:engine,
+     }))continue;
      if(!isXmlCiiWeightReviewNode(node)||
-        !isXmlCiiWeightReviewConnectionEligible(node)||
-        !isXmlCiiWeightReviewEndpoint(node))continue;
+        !isXmlCiiWeightReviewConnectionEligible(node))continue;
      const slot=canonicalJson([sourceId,branchIndex,nodeOrdinal]);
      if(!engineUsed.has(slot))
        fail('EXTRA_ENRICHED_PHYSICAL_OWNER',
