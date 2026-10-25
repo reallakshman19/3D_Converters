@@ -23,6 +23,7 @@ def fake_args(packet=True):
         xml229_native_mass_proof=Path("not-published-proof.json") if packet else None,
         split_condensed_valve_flange=None,
         staged_json=None,
+        support_config_json='{}',
         weight_scale=10,
         diagnostics_out=None,
     )
