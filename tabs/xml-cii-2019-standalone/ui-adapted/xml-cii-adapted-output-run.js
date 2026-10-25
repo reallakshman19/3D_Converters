@@ -580,6 +580,8 @@ function renderRunControls(parent, stateRef, state, report, render) {
     }catch(error){
       if(current())stateRef.current=updateWorkflowState(stateRef.current,{
         result:{ok:false,error:String(error?.code||'NATIVE_CII_RECONCILIATION_FAILED'),
+          ...(error?.xml229NativeFailure?.schema==='XML229.NativeConverterFailure.v1'
+            ?{xml229NativeFailure:error.xml229NativeFailure}:{}),
           ...(error?.xml229NativeOwnerPreflight?.unsupportedOwners?.length
             ?{xml229NativeOwnerPreflight:error.xml229NativeOwnerPreflight}:{})}});
     }finally{
@@ -591,6 +593,31 @@ function renderRunControls(parent, stateRef, state, report, render) {
   });
   actionDiv.append(runReviewBtn,noteDiv,refreshBtn,exportEvidenceBtn,finalizeBtn);
   ctrlCard.appendChild(actionDiv);
+  // Scoped allowlisted evidence; never expose the native engine's raw logs.
+  const failure=state.result?.xml229NativeFailure;
+  if(failure?.schema==='XML229.NativeConverterFailure.v1'){
+    const category=['ENGINE_FAILED','CII_OUTPUT_MISSING','NATIVE_MASS_PROOF_MISSING']
+      .includes(failure.category)?failure.category:'ENGINE_FAILED';
+    const phase=['PYODIDE_INITIALIZE','SCRIPT_LOAD','BASE_MODULE_RESET',
+      'INPUT_PREPARATION','TOPOLOGY_STAGE','ENRICH_XML','CII_CONVERSION',
+      'MASS_PROOF_READ','MASS_PROOF_VERIFY','UNKNOWN']
+      .includes(failure.phase)?failure.phase:'UNKNOWN';
+    const code=/^[A-Z][A-Z0-9_]{2,79}$/.test(failure.code||'')
+      ?failure.code:'NATIVE_CANDIDATE_CONVERTER_FAILED';
+    const safe={schema:'XML229.NativeConverterFailure.v1',code,category,phase,
+      candidatePublished:false,nativeCiiReleaseAuthorized:false};
+    const panel=section(ctrlCard,'Native converter failure — diagnostic only');
+    panel.appendChild(createElement('div',
+      'Failure category: '+category+'; stage: '+phase+'; code: '+code+
+      '. No CII was published. Final decisions were not changed.',
+      'model-converters-workflow-detail-note'));
+    const exportBtn=button('download-native-failure-diagnostic',
+      'Download safe native failure diagnostic JSON');
+    exportBtn.addEventListener('click',()=>downloadTextFile(
+      'xml229-native-converter-failure.json',JSON.stringify(safe,null,2),
+      'application/json;charset=utf-8'));
+    panel.appendChild(exportBtn);
+  }
   // Show exact source locations for rejected instrument mass owners. Do not
   // turn optional Preview suggestions into approved RIGID classifications.
   const unsupported=rows(state.result?.xml229NativeOwnerPreflight?.unsupportedOwners);
