@@ -125,6 +125,7 @@ function ciiBendRadii(ciiText) {
     assert.strictEqual(analysis.ciiInputSource, 'original');
     assert.strictEqual(analysis.topoFixCommitted, false);
     assert.strictEqual(analysis.topoFixXmlText, '');
+    assert.strictEqual(analysis.topoFixLineageText, '');
     assert(analysisLog.some((line) => line.includes('topology analysis wrote')));
 
     const findings = JSON.parse(analysis.topologyFindingsText);
@@ -158,6 +159,16 @@ function ciiBendRadii(ciiText) {
     assert.strictEqual(stage.ciiInputSource, 'topofix');
     assert.strictEqual(stage.ciiInputPath, path.join(transactionDir, 'FirstpassXML.topofix.xml'));
     assert(stage.topoFixXmlText.includes('<PipeStressExport'));
+    const provenance = JSON.parse(stage.topoFixLineageText);
+    assert.strictEqual(provenance.schema, 'psi116-topofix-source-lineage/v1');
+    assert.strictEqual(provenance.counts.sourceNodeOccurrences, 216);
+    assert.strictEqual(provenance.counts.fixedNodeOccurrences, 215);
+    assert.strictEqual(provenance.counts.removedPlainPipeOccurrences, 1);
+    assert.strictEqual(provenance.state, 'PRE_FINAL_ONLY');
+    assert.strictEqual(provenance.requiresFreshWorkerBasis, true);
+    assert.strictEqual(provenance.nativeCiiReleaseAuthorized, false);
+    assert.strictEqual(provenance.acceptedFinalTransferred, false);
+    assert.strictEqual(provenance.fixedXmlSha256, sha256(Buffer.from(stage.topoFixXmlText, 'utf8')));
     assert(transactionLog.includes('CII conversion input switched to committed TopoFix XML.'));
 
     const transaction = JSON.parse(stage.topoFixTransactionText);
@@ -225,6 +236,8 @@ function ciiBendRadii(ciiText) {
     assert.strictEqual(report.manifest.artifacts.topologyFindings, true);
     assert.strictEqual(report.manifest.artifacts.topologyPlan, true);
     assert.strictEqual(report.manifest.artifacts.topoFixXml, true);
+    assert.strictEqual(report.manifest.artifacts.topoFixLineage, true);
+    assert.strictEqual(report.manifest.topology.preFinalLineageReceiptAvailable, true);
     fs.writeFileSync(path.join(proofRoot, 'xml-cii-run-manifest.json'), JSON.stringify(report.manifest, null, 2) + '\n', 'utf8');
 
     const sourceAfter = fs.readFileSync(fixtureXml);

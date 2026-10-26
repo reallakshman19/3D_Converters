@@ -112,3 +112,11 @@ The transaction requires:
 - no new duplicate span, collinear overlap or ambiguous coincidence.
 
 The source text and SHA-256 remain unchanged. A committed TopoFix XML must also pass the unchanged XML→CII converter and downstream parity gates before production use.
+
+## L2 — pre-Final source lineage qualification (Draft; nonreleasing)
+
+An explicitly reviewed, committed TopoFix also emits a topology lineage JSON sidecar. Every original Branch/Node occurrence is retained as its own source identity, including nodes renumbered to the same connected label. Safe plain-PIPE removal is recorded as an explicit original-ordinal removal, never as an implicit mass-owner rewrite.
+
+The verifier re-analyzes the original PSI116 source and replays the exact selected actions under the attested ResolverConfig. Original source, fixed XML, operation/validation receipts, and every original-to-fixed occurrence entry must agree. The result only qualifies a **new** source basis for subsequent GC-PW Weight/Final review: it does not transfer accepted Final decisions or authorize CII release. Reviewed action IDs are not equivalent to an authenticated Owner cutover.
+
+The source checksum covers the effective UTF-8 text consumed by the resolver, not necessarily the original browser upload bytes after newline/BOM decoding; capture upload-byte custody separately at the ingestion boundary. No governed native Run/Download changes are made in L2.
