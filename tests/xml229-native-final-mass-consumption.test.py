@@ -54,6 +54,93 @@ def model(kg):
     return SimpleNamespace(rigid_edges=[edge],edges=[edge])
 
 class NativeFinalMassTests(unittest.TestCase):
+
+    def test_l1_independent_typed_branch_connection_proof(self):
+        # Two physically distinct rigid mass owners share one junction port.
+        xml=('''<PipeStressExport><Pipe>
+<Branch><Branchname>HEADER</Branchname>
+<Node><NodeNumber>100</NodeNumber><ComponentType>PIPE</ComponentType><Position>0 0 0</Position></Node>
+<Node><NodeNumber>110</NodeNumber><ComponentType>RIGID</ComponentType><ComponentRefNo>A</ComponentRefNo><Endpoint>2</Endpoint><Rigid>2</Rigid><Position>1000 0 0</Position></Node>
+</Branch><Branch><Branchname>CHILD</Branchname>
+<Node><NodeNumber>110</NodeNumber><ComponentType>RIGID</ComponentType><ComponentRefNo>B</ComponentRefNo><Endpoint>1</Endpoint><Rigid>2</Rigid><Position>1000 0 0</Position></Node>
+<Node><NodeNumber>120</NodeNumber><ComponentType>RIGID</ComponentType><ComponentRefNo>C</ComponentRefNo><Endpoint>2</Endpoint><Rigid>2</Rigid><Position>1000 500 0</Position></Node>
+</Branch></Pipe></PipeStressExport>''')
+        def oid(bi, ordinal, ref, endpoint):
+            sig=json.dumps(['RIGID',ref,endpoint,''],separators=(',',':'))
+            return json.dumps(['SOURCE',bi,ordinal,sig],separators=(',',':'))
+        owner_a=oid(0,1,'A','2')
+        inlet=oid(1,0,'B','1')
+        owner_c=oid(1,1,'C','2')
+        with TemporaryDirectory() as td:
+            source=Path(td)/'source.xml'
+            manifest=Path(td)/'packet.json'
+            source.write_text(xml)
+            current=packet(xml)
+            current['sourceGenerationId']='frozen-l1-original'
+            current['physicalCount']=2
+            current['components']=[
+                {'occurrenceId':owner_a,'effectiveKg':10},
+                {'occurrenceId':owner_c,'effectiveKg':20}]
+            lineage={
+                'schema':'XML229.SourcePhysicalLineage.v1',
+                'sourceId':'SOURCE','basisId':current['basisId'],
+                'sourceXmlSha256':current['sourceXmlSha256'],
+                'sourceOriginalNodeOccurrences':4,'retainedNodeOccurrences':4,
+                'physicalOwnerOccurrenceIds':[owner_a,owner_c],
+                'componentEndpointPairs':[],
+                'branchConnectionAliases':[{
+                    'aliasBranchOccurrenceIndex':1,'aliasSourceNodeOrdinal':0,
+                    'aliasOccurrenceId':inlet,
+                    'terminalBranchOccurrenceIndex':0,'terminalSourceNodeOrdinal':1,
+                    'terminalOccurrenceId':owner_a}],
+                'counts':{'physicalOwners':2,'componentEndpointWitnesses':0,
+                          'branchConnectionAliases':1,
+                          'sourcePhysicalCandidateOccurrences':3},
+                'weightsAccepted':False,'nativeCiiReleaseAuthorized':False,
+            }
+            current['finalizedGeometry']={
+                'schema':'XML229.FinalizedWeightGeometry.v1',
+                'basisId':current['basisId'],
+                'sourceXmlSha256':current['sourceXmlSha256'],
+                'xmlText':xml,'sha256':hashlib.sha256(xml.encode()).hexdigest(),
+                'originalNodeCount':4,
+                'retainedSourceOrdinalsByBranch':[[0,1],[0,1]],
+                'physicalOwnerCardinality':{
+                    'schema':'XML229.PreAcceptancePhysicalPartCardinality.v2',
+                    'sourcePhysicalNodeOccurrences':2,
+                    'reviewedPhysicalNodeOccurrences':2,
+                    'pairedEndpointPhysicalParts':0,
+                    'distinctPhysicalPartCandidates':2,
+                    'weightsAccepted':False,'endpointPairs':[]},
+                'physicalLineage':lineage,
+            }
+            def check(record, failure=None):
+                manifest.write_text(json.dumps(record))
+                if failure is None:
+                    staged=stage_native_original_lineage(source,manifest)
+                    self.assertTrue(staged.exists())
+                    self.assertEqual(staged.read_text().count('<XML229OriginalPhysicalId>'),2)
+                else:
+                    with self.assertRaises(NativeMassError) as observed:
+                        stage_native_original_lineage(source,manifest)
+                    self.assertEqual(observed.exception.code,failure)
+            check(current)
+            tampered=json.loads(json.dumps(current))
+            del tampered['finalizedGeometry']['physicalLineage']
+            check(tampered,'NATIVE_PHYSICAL_LINEAGE_REQUIRED')
+            tampered=json.loads(json.dumps(current))
+            tampered['finalizedGeometry']['physicalLineage']['branchConnectionAliases']=[]
+            check(tampered,'NATIVE_PHYSICAL_LINEAGE_ALIAS_DRIFT')
+            tampered=json.loads(json.dumps(current))
+            tampered['finalizedGeometry']['physicalLineage']['branchConnectionAliases'][0]['terminalOccurrenceId']=owner_c
+            check(tampered,'NATIVE_PHYSICAL_LINEAGE_ALIAS_DRIFT')
+            tampered=json.loads(json.dumps(current))
+            tampered['finalizedGeometry']['physicalLineage']['counts']['branchConnectionAliases']=0
+            check(tampered,'NATIVE_PHYSICAL_LINEAGE_COUNT_DRIFT')
+            tampered=json.loads(json.dumps(current))
+            tampered['finalizedGeometry']['physicalLineage']['physicalOwnerOccurrenceIds']=[owner_a,inlet]
+            check(tampered,'NATIVE_PHYSICAL_LINEAGE_OWNER_DRIFT')
+
     def test_exact_original_owner_becomes_weighted_native_xml_and_is_reconciled(self):
         with TemporaryDirectory() as td:
             original=Path(td)/"source.xml"
