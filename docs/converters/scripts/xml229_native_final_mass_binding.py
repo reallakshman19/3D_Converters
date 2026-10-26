@@ -528,6 +528,27 @@ def _verify_source_physical_lineage(lineage, packet, original, finalized,
             "NATIVE_PHYSICAL_LINEAGE_OWNER_DRIFT")
     require(lineage.get("componentEndpointPairs") == expected_pairs,
             "NATIVE_PHYSICAL_LINEAGE_PAIR_DRIFT")
+    suppressed = lineage.get("suppressedComponentEndpointPairs")
+    require(isinstance(suppressed, list),
+            "NATIVE_PHYSICAL_LINEAGE_SUPPRESSED_PAIR_DRIFT")
+    known_pairs = set()
+    for pair in expected_pairs:
+        first = json.loads(pair["firstOccurrenceId"])
+        second = json.loads(pair["secondOccurrenceId"])
+        known_pairs.add((pair["branchOccurrenceIndex"], first[2], second[2],
+                         pair["componentType"], pair["componentRefNo"]))
+    suppressed_seen = set()
+    for pair in suppressed:
+        require(isinstance(pair, dict) and set(pair) == {
+            "branchOccurrenceIndex", "componentType", "componentRefNo",
+            "firstSourceNodeOrdinal", "secondSourceNodeOrdinal"},
+            "NATIVE_PHYSICAL_LINEAGE_SUPPRESSED_PAIR_DRIFT")
+        witness = (pair["branchOccurrenceIndex"],
+                   pair["firstSourceNodeOrdinal"], pair["secondSourceNodeOrdinal"],
+                   pair["componentType"], pair["componentRefNo"])
+        require(witness in known_pairs and witness not in suppressed_seen,
+                "NATIVE_PHYSICAL_LINEAGE_SUPPRESSED_PAIR_DRIFT")
+        suppressed_seen.add(witness)
     aliases = _expected_branch_aliases(
         original, finalized, retained, packet["sourceId"])
     require(lineage.get("branchConnectionAliases") == aliases,
@@ -544,9 +565,10 @@ def _verify_source_physical_lineage(lineage, packet, original, finalized,
             lineage.get("counts") == {
                 "physicalOwners": owner_count,
                 "componentEndpointWitnesses": pair_count,
+                "suppressedEndpointWitnesses": len(suppressed),
                 "branchConnectionAliases": alias_count,
                 "sourcePhysicalCandidateOccurrences":
-                    owner_count+pair_count+alias_count,
+                    owner_count+len(suppressed)+alias_count,
             },
             "NATIVE_PHYSICAL_LINEAGE_COUNT_DRIFT")
     return True

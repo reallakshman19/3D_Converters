@@ -88,13 +88,14 @@ class NativeFinalMassTests(unittest.TestCase):
                 'sourceOriginalNodeOccurrences':4,'retainedNodeOccurrences':4,
                 'physicalOwnerOccurrenceIds':[owner_a,owner_c],
                 'componentEndpointPairs':[],
+                'suppressedComponentEndpointPairs':[],
                 'branchConnectionAliases':[{
                     'aliasBranchOccurrenceIndex':1,'aliasSourceNodeOrdinal':0,
                     'aliasOccurrenceId':inlet,
                     'terminalBranchOccurrenceIndex':0,'terminalSourceNodeOrdinal':1,
                     'terminalOccurrenceId':owner_a}],
                 'counts':{'physicalOwners':2,'componentEndpointWitnesses':0,
-                          'branchConnectionAliases':1,
+                          'suppressedEndpointWitnesses':0,'branchConnectionAliases':1,
                           'sourcePhysicalCandidateOccurrences':3},
                 'weightsAccepted':False,'nativeCiiReleaseAuthorized':False,
             }
@@ -134,6 +135,12 @@ class NativeFinalMassTests(unittest.TestCase):
             tampered=json.loads(json.dumps(current))
             tampered['finalizedGeometry']['physicalLineage']['branchConnectionAliases'][0]['terminalOccurrenceId']=owner_c
             check(tampered,'NATIVE_PHYSICAL_LINEAGE_ALIAS_DRIFT')
+            tampered=json.loads(json.dumps(current))
+            tampered['finalizedGeometry']['physicalLineage']['suppressedComponentEndpointPairs']=[{
+                'branchOccurrenceIndex':1,'componentType':'RIGID',
+                'componentRefNo':'B','firstSourceNodeOrdinal':0,
+                'secondSourceNodeOrdinal':1}]
+            check(tampered,'NATIVE_PHYSICAL_LINEAGE_SUPPRESSED_PAIR_DRIFT')
             tampered=json.loads(json.dumps(current))
             tampered['finalizedGeometry']['physicalLineage']['counts']['branchConnectionAliases']=0
             check(tampered,'NATIVE_PHYSICAL_LINEAGE_COUNT_DRIFT')

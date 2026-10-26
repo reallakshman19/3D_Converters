@@ -173,7 +173,7 @@ function attestPhysicalEndpointPairs({physical,branches,prepared,sourceNodeByOrd
 
 export async function finalizeXml229WeightGeometry({
   basis,projection,branches,prepared,physical,sourceNodeByOrdinal,
-  nonOwnerEndpointStarts,sourceId,
+  nonOwnerEndpointStarts,componentSuppressionPairs=[],sourceId,
 },{children,field,fail,canonicalJson}){
   const assignedNodeNumbers=assignSourceNodeNumbers({
     projection,branches,prepared,children,field,fail,
@@ -190,6 +190,7 @@ export async function finalizeXml229WeightGeometry({
   });
   const physicalLineage=buildXml229PhysicalLineage({
     basis,projection,branches,prepared,physical,endpointPairs,
+    componentSuppressionPairs,
     nonOwnerEndpointStarts,sourceNodeByOrdinal,sourceId,
   },{children,field,fail,canonicalJson});
   // Legacy physical witness count excludes a cross-branch connection alias.

@@ -35,7 +35,7 @@ function fixture(){
        nodeOrdinal:ord,componentSignature})};
  });
  return {input:{basis:{basisId:'a'.repeat(64),sourceRefs:[{sha256:'b'.repeat(64)}]},
-   projection,prepared,branches,physical,sourceId,endpointPairs:[],
+   projection,prepared,branches,physical,sourceId,endpointPairs:[],componentSuppressionPairs:[],
    nonOwnerEndpointStarts:new Set(['[1,0]']),sourceNodeByOrdinal},
    ports:{children,field,canonicalJson,fail},physical};
 }
@@ -44,7 +44,7 @@ test('L1 distinguishes one cross-branch connection witness from two mass owners'
  const record=buildXml229PhysicalLineage(input,ports);
  assert.equal(record.schema,'XML229.SourcePhysicalLineage.v1');
  assert.deepEqual(record.counts,{physicalOwners:2,componentEndpointWitnesses:0,
-   branchConnectionAliases:1,sourcePhysicalCandidateOccurrences:3});
+   suppressedEndpointWitnesses:0,branchConnectionAliases:1,sourcePhysicalCandidateOccurrences:3});
  assert.equal(record.branchConnectionAliases.length,1);
  assert.equal(record.branchConnectionAliases[0].terminalOccurrenceId,physical[0].occurrenceId);
  assert(!record.physicalOwnerOccurrenceIds.includes(record.branchConnectionAliases[0].aliasOccurrenceId));

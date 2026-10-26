@@ -5,15 +5,17 @@ import {isXml229NonOwnerRigidBranchInlet}
 export const LINEAGE_SCHEMA='XML229.SourcePhysicalLineage.v1';
 export function buildXml229PhysicalLineage({
  basis,projection,branches,prepared,physical,endpointPairs,
- nonOwnerEndpointStarts,sourceNodeByOrdinal,sourceId,
+ componentSuppressionPairs,nonOwnerEndpointStarts,sourceNodeByOrdinal,sourceId,
 },{children,field,canonicalJson,fail}){
  const key=(bi,ordinal)=>JSON.stringify([bi,ordinal]);
- const pairedStarts=new Set(endpointPairs.map(p=>key(p.branchOccurrenceIndex,p.firstSourceNodeOrdinal)));
- // A geometrically witnessed 1→2 component pair is NOT necessarily a
- // suppressed Weight candidate (e.g. an unreviewable first instrument port).
- // Preserve that distinction; only actual suppressed candidates need typing.
- if(pairedStarts.size!==endpointPairs.length)
-   fail('PHYSICAL_LINEAGE_PAIR_DRIFT','A component first endpoint is paired twice');
+ // Geometric pairs are evidence-only. Suppression pairs specifically record
+ // which first source endpoint was excluded from the mass-owner census.
+ const suppressed=componentSuppressionPairs||[];
+ const pairedStarts=new Set(suppressed.map(p=>
+   key(p.branchOccurrenceIndex,p.firstSourceNodeOrdinal)));
+ if(pairedStarts.size!==suppressed.length||
+    [...pairedStarts].some(k=>!nonOwnerEndpointStarts.has(k)))
+   fail('PHYSICAL_LINEAGE_PAIR_DRIFT','Suppressed source pairs lack unique nonowner identities');
  const oid=(bi,ord,n)=>{
    const source=sourceNodeByOrdinal.get(key(bi,ord));
    if(!source)fail('PHYSICAL_LINEAGE_SOURCE_MISSING','Missing original source witness');
@@ -68,11 +70,13 @@ export function buildXml229PhysicalLineage({
    retainedNodeOccurrences:branches.reduce((n,b)=>n+children(b,'Node').length,0),
    physicalOwnerOccurrenceIds:Object.freeze(owners),
    componentEndpointPairs:Object.freeze(endpointPairs),
+   suppressedComponentEndpointPairs:Object.freeze(suppressed),
    branchConnectionAliases:Object.freeze(aliases),
    counts:Object.freeze({
      physicalOwners:owners.length,componentEndpointWitnesses:endpointPairs.length,
+     suppressedEndpointWitnesses:suppressed.length,
      branchConnectionAliases:aliases.length,
-     sourcePhysicalCandidateOccurrences:owners.length+endpointPairs.length+aliases.length,
+     sourcePhysicalCandidateOccurrences:owners.length+suppressed.length+aliases.length,
    }),
    weightsAccepted:false,nativeCiiReleaseAuthorized:false,
  });
