@@ -231,7 +231,10 @@ def verify_topofix_pre_final(
             len(set(selected)) == len(selected) and
             len(reviewed) == len(selected) and set(reviewed) == set(selected) and
             policy.get("apply_all_safe") is False and
-            policy.get("selected_action_ids") == selected and
+            isinstance(policy.get("selected_action_ids"), list) and
+            len(policy["selected_action_ids"]) == len(selected) and
+            len(set(policy["selected_action_ids"])) == len(selected) and
+            set(policy["selected_action_ids"]) == set(selected) and
             policy.get("require_no_blocking_plan_actions") is True,
             "TOPOFIX_LINEAGE_REVIEW_REQUIRED")
     try:
