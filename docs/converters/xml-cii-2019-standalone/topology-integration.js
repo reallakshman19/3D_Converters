@@ -7,6 +7,7 @@ const TOPOLOGY_PACKAGE_FILES = Object.freeze([
   'planner.py',
   'resolver.py',
   'transaction.py',
+  'lineage.py',
 ]);
 
 const TOPOLOGY_SNIPPET = `
@@ -14,6 +15,7 @@ from pathlib import Path
 import json
 from psi116_topology_resolver import ResolverConfig, resolve_psi116
 from psi116_topology_resolver.transaction import TransactionPolicy, apply_topofix_transaction
+from psi116_topology_resolver.lineage import build_topofix_source_lineage, verify_topofix_pre_final
 
 cfg = ResolverConfig()
 result = resolve_psi116(Path(job_topology_input_path))
@@ -32,6 +34,7 @@ status = {
     "committed": False,
     "rejectReasons": [],
     "fixedPath": "",
+    "lineagePath": "",
 }
 
 if job_generate_topofix:
@@ -51,8 +54,19 @@ if job_generate_topofix:
     status["committed"] = bool(transaction.committed)
     status["rejectReasons"] = list(transaction.reject_reasons)
     if transaction.committed and transaction.fixed_xml is not None:
+        lineage = build_topofix_source_lineage(transaction)
+        qualified = verify_topofix_pre_final(
+            result.document.source_text, transaction.fixed_xml,
+            transaction.transaction_payload(), transaction.validation_payload(),
+            lineage, reviewed_action_ids=tuple(job_topology_action_ids),
+        )
+        assert qualified["requiresFreshWorkerBasis"] and not qualified["nativeCiiReleaseAuthorized"]
         Path(job_topology_fixed_path).write_text(transaction.fixed_xml, encoding="utf-8")
+        Path(job_topology_lineage_path).write_text(
+            json.dumps(lineage, indent=2, sort_keys=True) + "\\n", encoding="utf-8",
+        )
         status["fixedPath"] = job_topology_fixed_path
+        status["lineagePath"] = job_topology_lineage_path
 
 Path(job_topology_status_path).write_text(
     json.dumps(status, indent=2, sort_keys=True) + "\\n",
@@ -116,6 +130,8 @@ export async function runPsi116TopologyStage(pyodide, job, inputPath, jobDir, st
       topoFixTransactionName: '',
       topoFixValidationText: '',
       topoFixValidationName: '',
+      topoFixLineageText: '',
+      topoFixLineageName: '',
       topoFixCommitted: false,
       ciiInputSource: 'original',
       topologySummary: null,
@@ -148,6 +164,7 @@ export async function runPsi116TopologyStage(pyodide, job, inputPath, jobDir, st
     transaction: `${stem}.topofix-transaction.json`,
     validation: `${stem}.topofix-validation.json`,
     fixed: `${stem}.topofix.xml`,
+    lineage: `${stem}.topofix-lineage.json`,
     status: `${stem}.topofix-status.json`,
   };
   const paths = Object.fromEntries(Object.entries(names).map(([key, name]) => [key, `${jobDir}/${name}`]));
@@ -158,6 +175,7 @@ export async function runPsi116TopologyStage(pyodide, job, inputPath, jobDir, st
   pyodide.globals.set('job_topology_transaction_path', paths.transaction);
   pyodide.globals.set('job_topology_validation_path', paths.validation);
   pyodide.globals.set('job_topology_fixed_path', paths.fixed);
+  pyodide.globals.set('job_topology_lineage_path', paths.lineage);
   pyodide.globals.set('job_topology_status_path', paths.status);
   pyodide.globals.set('job_generate_topofix', generateTopoFix);
   pyodide.globals.set('job_topology_action_ids', actionIds);
@@ -170,6 +188,9 @@ export async function runPsi116TopologyStage(pyodide, job, inputPath, jobDir, st
   const topoFixValidationText = generateTopoFix ? readOptional(pyodide, paths.validation) : '';
   const topoFixCommitted = status.committed === true;
   const topoFixXmlText = topoFixCommitted ? readOptional(pyodide, paths.fixed) : '';
+  const topoFixLineageText = topoFixCommitted ? readOptional(pyodide, paths.lineage) : '';
+  if(topoFixCommitted && !topoFixLineageText)
+    throw new Error('TOPOFIX_PRE_FINAL_LINEAGE_RECEIPT_MISSING');
 
   const rejectReasons = Array.isArray(status.rejectReasons) ? status.rejectReasons.map((value) => text(value)) : [];
   if (useTopoFixForCii && !topoFixCommitted) {
@@ -194,6 +215,8 @@ export async function runPsi116TopologyStage(pyodide, job, inputPath, jobDir, st
     topoFixTransactionName: generateTopoFix ? names.transaction : '',
     topoFixValidationText,
     topoFixValidationName: generateTopoFix ? names.validation : '',
+    topoFixLineageText,
+    topoFixLineageName: topoFixCommitted ? names.lineage : '',
     topoFixCommitted,
     ciiInputSource: useTopoFixForCii ? 'topofix' : 'original',
     topologySummary: {

@@ -513,9 +513,22 @@ def write_topofix_outputs(
     fixed_path = directory / f"{resolved_stem}.topofix.xml"
     transaction_path.write_text(json.dumps(transaction.transaction_payload(), indent=2, sort_keys=True) + "\n", encoding="utf-8")
     validation_path.write_text(json.dumps(transaction.validation_payload(), indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    lineage_path = directory / f"{resolved_stem}.topofix-lineage.json"
     if transaction.committed and transaction.fixed_xml is not None:
+        from .lineage import build_topofix_source_lineage, verify_topofix_pre_final
+        lineage = build_topofix_source_lineage(transaction)
+        verify_topofix_pre_final(
+            transaction.source_result.document.source_text,
+            transaction.fixed_xml,
+            transaction.transaction_payload(),
+            transaction.validation_payload(),
+            lineage, reviewed_action_ids=transaction.policy.selected_action_ids,
+        )
         fixed_path.write_text(transaction.fixed_xml, encoding="utf-8")
+        lineage_path.write_text(json.dumps(lineage, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         return transaction_path, validation_path, fixed_path
     if fixed_path.exists():
         fixed_path.unlink()
+    if lineage_path.exists():
+        lineage_path.unlink()
     return transaction_path, validation_path, None

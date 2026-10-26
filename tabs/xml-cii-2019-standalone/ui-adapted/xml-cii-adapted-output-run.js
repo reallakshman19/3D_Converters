@@ -205,6 +205,7 @@ function topologyArtifactRows(result) {
     { kind: 'topofix-xml', label: 'Committed TopoFix XML', filename: result?.topoFixXmlName, value: result?.topoFixXmlText, mime: 'application/xml;charset=utf-8' },
     { kind: 'topofix-transaction', label: 'TopoFix Transaction JSON', filename: result?.topoFixTransactionName, value: result?.topoFixTransactionText, mime: 'application/json;charset=utf-8' },
     { kind: 'topofix-validation', label: 'TopoFix Validation JSON', filename: result?.topoFixValidationName, value: result?.topoFixValidationText, mime: 'application/json;charset=utf-8' },
+    { kind: 'topofix-lineage', label: 'Pre-Final TopoFix Source Lineage JSON', filename: result?.topoFixLineageName, value: result?.topoFixLineageText, mime: 'application/json;charset=utf-8' },
   ].map((row) => ({ ...row, available: text(row.value).length > 0, bytes: new TextEncoder().encode(text(row.value)).length }));
 }
 
@@ -336,7 +337,7 @@ function renderRunOptions(parent, stateRef, state, render) {
   });
   actionField.appendChild(actionInput);
   topologyCard.append(topologyGrid, actionField, createElement('div', xmlMode
-    ? 'Analysis is non-mutating. TopoFix requires explicit reviewed action IDs and is used for CII only after the atomic transaction commits.'
+    ? 'Analysis is non-mutating. Reviewed TopoFix emits source-lineage evidence. GC-PW Weight/Final requires a fresh source basis; an accepted Final never transfers.'
     : 'Topology controls are available only for PSI116 XML source mode.', 'model-converters-workflow-detail-note'));
   parent.append(optCard, topologyCard);
 }

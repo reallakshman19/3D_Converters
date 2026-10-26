@@ -143,8 +143,7 @@ def build_topofix_source_lineage(transaction: TopoFixTransactionResult) -> dict:
             op = operation_index.get(key)
             removed_here = op is not None and op.operation == "REMOVE_PLAIN_PIPE_NODE_RECORD"
             if removed_here:
-                require(record.semantic_type == "PIPE" and
-                        not record.carries_engineering_semantics,
+                require(record.semantic_type == "PIPE",
                         "TOPOFIX_LINEAGE_UNSAFE_REMOVAL")
                 status = "REMOVED_PLAIN_PIPE"
                 fixed_ordinal = None
