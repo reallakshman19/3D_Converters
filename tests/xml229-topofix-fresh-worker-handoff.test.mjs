@@ -6,6 +6,7 @@ import {psi116TopoFixBranchNodes,psi116TopoFixNodeSha256}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-topofix-node-semantic-digest.mjs';
 import {
  attestXml229TopoFixFreshSource,startXml229TopoFixFreshWeightSession,
+ getXml229TopoFixFreshWorkerProvenance,
 } from '../tabs/xml-cii-2019-standalone/integration/xml229-topofix-fresh-worker-handoff.mjs';
 installWeightBasisXmlDom(globalThis);
 const ORIGINAL='<PipeStressExport><Pipe><Branch><Branchname>/A</Branchname>'+
@@ -88,6 +89,13 @@ test('L3 starts the existing GC-PW opener against a new O1 generation and basis'
  assert.equal(result.priorFinalDecisionsTransferred,false);
  assert.equal(result.reviewBackupRestored,false);
  assert.equal(result.nativeCiiReleaseAuthorized,false);
+ const custody=getXml229TopoFixFreshWorkerProvenance(h.session);
+ assert.equal(custody.basisId,master);
+ assert.equal(custody.newSourceXmlSha256,await digestUtf8(FIXED));
+ assert.equal(custody.originalSourceXmlSha256,await digestUtf8(ORIGINAL));
+ assert.equal(custody.acceptedFinalTransferred,false);
+ h.session.cancel();
+ assert.equal(getXml229TopoFixFreshWorkerProvenance(h.session),null);
 });
 test('L3 refuses stale source, reused generation, carried Final and forged source map',async()=>{
  const h=await harness();

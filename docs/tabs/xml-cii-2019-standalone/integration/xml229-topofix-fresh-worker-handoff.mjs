@@ -13,6 +13,15 @@ const LINEAGE='psi116-topofix-source-lineage/v1';
 const fail=code=>{const e=new Error(code);e.code=code;throw e;};
 const isObj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
 const nat=x=>Number.isSafeInteger(x)&&x>=0;
+const activeTopoFixProvenance=new WeakMap();
+export function getXml229TopoFixFreshWorkerProvenance(session){
+ if(!session||session.closed)return null;
+ const bound=activeTopoFixProvenance.get(session);
+ if(!bound||bound.basisId!==session.receipt?.basisId||
+    bound.sourceGenerationId!==session.receipt?.sourceGenerationId||
+    bound.sourceId!==session.receipt?.sourceId)return null;
+ return bound;
+}
 const exactRows=async({original,fixed,sourceMap,counts,originalXmlText,fixedXmlText})=>{
  if(!Array.isArray(sourceMap)||!isObj(counts)||
     original.nodes.length!==counts.sourceNodeOccurrences||
@@ -178,9 +187,19 @@ export async function startXml229TopoFixFreshWeightSession({
       earlier?.basisId===session.receipt.basisId)
      fail('TOPOFIX_HANDOFF_WORKER_NOT_FRESH');
  }catch(e){session?.cancel?.();throw e;}
+ const provenance=Object.freeze({
+   schema:'XML229.TopoFixFreshGC-PWWorkerProvenance.v1',
+   ...attestation,basisId:session.receipt.basisId,
+   sourceId:session.receipt.sourceId,
+   sourceGenerationId:session.receipt.sourceGenerationId,
+   originalJsonSha256:session.receipt.originalJsonSha256,
+   acceptedFinalTransferred:false,reviewBackupRestored:false,
+   nativeCiiReleaseAuthorized:false,
+ });
+ activeTopoFixProvenance.set(session,provenance);
  return Object.freeze({
    schema:'XML229.TopoFixFreshGC-PWWorkerHandoff.v1',
-   attestation,session,
+   attestation,provenance,session,
    basisId:session.receipt.basisId,
    sourceGenerationId:session.receipt.sourceGenerationId,
    priorFinalDecisionsTransferred:false,
