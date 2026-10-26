@@ -248,10 +248,14 @@ def verify_topofix_pre_final(
         reproduction = apply_topofix_transaction(baseline, policy=p, config=cfg)
     except (TypeError, ValueError, KeyError):
         raise TopoFixLineageError("TOPOFIX_LINEAGE_POLICY_INVALID") from None
-    require(reproduction.committed and reproduction.fixed_xml == fixed_xml and
-            json.loads(json.dumps(reproduction.transaction_payload())) == json.loads(json.dumps(transaction_receipt)) and
-            json.loads(json.dumps(reproduction.validation_payload())) == json.loads(json.dumps(validation_receipt)),
-            "TOPOFIX_LINEAGE_REPLAY_DRIFT")
+    require(reproduction.committed, "TOPOFIX_LINEAGE_REPLAY_REJECTED")
+    require(reproduction.fixed_xml == fixed_xml, "TOPOFIX_LINEAGE_FIXED_XML_DRIFT")
+    require(json.loads(json.dumps(reproduction.transaction_payload())) ==
+            json.loads(json.dumps(transaction_receipt)),
+            "TOPOFIX_LINEAGE_TRANSACTION_REPLAY_DRIFT")
+    require(json.loads(json.dumps(reproduction.validation_payload())) ==
+            json.loads(json.dumps(validation_receipt)),
+            "TOPOFIX_LINEAGE_VALIDATION_REPLAY_DRIFT")
     derived = build_topofix_source_lineage(reproduction)
     require(derived == lineage_receipt,
             "TOPOFIX_LINEAGE_RECEIPT_DRIFT")
