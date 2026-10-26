@@ -77,6 +77,7 @@ class TopoFixTransactionResult:
     checks: tuple[ValidationCheck, ...]
     reject_reasons: tuple[str, ...]
     fixed_xml: str | None
+    resolver_config: ResolverConfig = field(default_factory=ResolverConfig)
 
     @property
     def committed(self) -> bool:
@@ -91,6 +92,7 @@ class TopoFixTransactionResult:
                 "namespace": self.source_result.document.namespace,
             },
             "policy": asdict(self.policy),
+            "resolverConfig": asdict(self.resolver_config),
             "committed": self.committed,
             "atomic": True,
             "sourceXmlMutated": False,
@@ -453,7 +455,7 @@ def apply_topofix_transaction(
     actions = _selected_actions(before, policy)
     preflight_reasons = _preflight(before, actions, policy)
     if preflight_reasons:
-        return TopoFixTransactionResult(before, None, policy, actions, (), (), tuple(preflight_reasons), None)
+        return TopoFixTransactionResult(before, None, policy, actions, (), (), tuple(preflight_reasons), None, config)
 
     root = _parse_clone(before.document.source_text)
     locators = _build_locator_index(root, before)
@@ -478,7 +480,7 @@ def apply_topofix_transaction(
             else:
                 raise ValueError(f"Unsupported selected disposition {action.disposition}.")
     except (KeyError, TypeError, ValueError) as error:
-        return TopoFixTransactionResult(before, None, policy, actions, tuple(operations), (), (f"APPLY_FAILED:{error}",), None)
+        return TopoFixTransactionResult(before, None, policy, actions, tuple(operations), (), (f"APPLY_FAILED:{error}",), None, config)
 
     candidate_xml = _serialize(root, before.document.namespace)
     after = resolve_psi116(candidate_xml, config, source_name=f"{before.document.source_path}.topofix")
@@ -493,6 +495,7 @@ def apply_topofix_transaction(
         checks=checks,
         reject_reasons=reject_reasons,
         fixed_xml=candidate_xml if not reject_reasons else None,
+        resolver_config=config,
     )
 
 
