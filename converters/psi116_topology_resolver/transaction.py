@@ -212,7 +212,21 @@ def _finding_node_keys(result: ResolutionResult, action: FixAction) -> tuple[str
 
 
 def _record_sha(record: NodeRecord) -> str:
-    return sha256(record.raw_xml.encode("utf-8")).hexdigest()
+    """Digest exact XML node semantics, not process-global namespace prefixes.
+
+    ET.register_namespace() affects serializing raw fragments and must never
+    silently change a previously reviewed TopoFix operation receipt.
+    """
+    element = ET.fromstring(record.raw_xml)
+
+    def semantic(node: ET.Element):
+        return [node.tag, sorted(node.attrib.items()),
+                (node.text or "").strip(),
+                [semantic(child) for child in node if isinstance(child.tag, str)]]
+
+    canonical = json.dumps(semantic(element), sort_keys=True,
+                           separators=(",", ":"), ensure_ascii=False)
+    return sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _compatible_number(left: float | None, right: float | None, tolerance: float = 1e-9) -> bool:
