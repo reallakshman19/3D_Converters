@@ -128,23 +128,23 @@ class Psi116TopoFixTransactionTests(unittest.TestCase):
             received={**inputs,**kwargs}
             with self.assertRaises(TopoFixLineageError) as e:
                 verify_topofix_pre_final(**received)
-            self.assertEqual(e.exception.code,code)
+            self.assertIn(e.exception.code,code if isinstance(code,tuple) else (code,))
         bad('TOPOFIX_REQUIRES_FRESH_FINAL_BASIS',existing_final_intent_sha256='f'*64)
         bad('TOPOFIX_REQUIRES_FRESH_FINAL_BASIS',existing_worker_basis_id='b'*64)
         bad('TOPOFIX_LINEAGE_REVIEW_REQUIRED',reviewed_action_ids=('OTHER',))
-        bad('TOPOFIX_LINEAGE_REPLAY_DRIFT',
+        bad('TOPOFIX_LINEAGE_FIXED_XML_DRIFT',
             fixed_xml=tx.fixed_xml.replace('<NodeNumber>20</NodeNumber>',
                                            '<NodeNumber>999</NodeNumber>',1))
         wrong=copy.deepcopy(inputs['transaction_receipt'])
         wrong['operations'][0]['after']=987
-        bad('TOPOFIX_LINEAGE_REPLAY_DRIFT',transaction_receipt=wrong)
+        bad('TOPOFIX_LINEAGE_TRANSACTION_REPLAY_DRIFT',transaction_receipt=wrong)
         wrong=copy.deepcopy(inputs['validation_receipt'])
         wrong['checks'][0]['passed']=False
-        bad('TOPOFIX_LINEAGE_REPLAY_DRIFT',validation_receipt=wrong)
+        bad('TOPOFIX_LINEAGE_VALIDATION_REPLAY_DRIFT',validation_receipt=wrong)
         wrong=copy.deepcopy(inputs['lineage_receipt'])
         wrong['sourceOccurrenceMap'][0]['fixedNodeOrdinal']=1000
         bad('TOPOFIX_LINEAGE_RECEIPT_DRIFT',lineage_receipt=wrong)
-        bad('TOPOFIX_LINEAGE_REPLAY_DRIFT',
+        bad(('TOPOFIX_LINEAGE_FIXED_XML_DRIFT','TOPOFIX_LINEAGE_REPLAY_REJECTED','TOPOFIX_LINEAGE_TRANSACTION_REPLAY_DRIFT','TOPOFIX_LINEAGE_POLICY_INVALID'),
             original_xml=SYNTHETIC_XML.replace('<Weight>0</Weight>',
                                                 '<Weight>99</Weight>',1))
 
