@@ -18,16 +18,26 @@ export async function checkEf05OptionalAdviceAndSafety(page,record){
     'advisory must not imply changes to source geometry or accepted mass');
   assert.equal(await instrumentAdvice.count(),1,
     'exactly one instrument advisory should appear in the current session');
-  // The two pre-existing file controls restore GC-PW decisions and Applied
-  // Weight drafts. Neither is an instrument-approval/evidence prerequisite.
-  // Inspect their actual purpose rather than incorrectly forbidding all files.
+  // Distinguish the two pre-existing review/draft restore inputs from
+  // exactly three TopoFix pre-Final SOURCE handoff inputs. Those files convey
+  // no instrument approval, no accepted kg, and no native release. Anything
+  // else inside Weight remains prohibited as an approval/evidence file gate.
   const uploadPurposes=await page.locator(
     '[data-p4-weight-root] input[type="file"]').evaluateAll(inputs=>
-    inputs.map(input=>input.hasAttribute('data-p4-import-review')?'review-restore':
-      input.hasAttribute('data-p4-import-drafts')?'draft-restore':'unrecognized')
-      .sort());
-  assert.deepEqual(uploadPurposes,['draft-restore','review-restore'],
-    'no instrument approval/evidence file control may be introduced');
+    inputs.map(input=>{
+      if(input.hasAttribute('data-p4-import-review'))return 'review-restore';
+      if(input.hasAttribute('data-p4-import-drafts'))return 'draft-restore';
+      const key=input.getAttribute('data-xml229-topofix-file');
+      if(['original','lineage','handoff'].includes(key)&&
+         input.closest('details[data-xml229-topofix-fresh]')&&
+         input.closest('[data-p4-instrument-advisory]')===null)
+        return 'topofix-'+key;
+      return 'unrecognized';
+    }).sort());
+  assert.deepEqual(uploadPurposes,[
+    'draft-restore','review-restore',
+    'topofix-handoff','topofix-lineage','topofix-original',
+  ],'Only explicit pre-Final TopoFix source receipts and review/draft restores are allowed; no instrument evidence or approval upload');
   assert.equal(await page.locator('[data-p4-scope="all"]').count(),1,
     'normal Weight Match must remain available while all instruments are pending');
   record.stages.instrumentModeling={
