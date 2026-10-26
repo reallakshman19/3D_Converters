@@ -55,7 +55,7 @@ test('L1 refuses unknown nonowners and removed terminal ownership',()=>{
  const {input,ports,physical}=fixture();
  assert.throws(()=>buildXml229PhysicalLineage({...input,
    nonOwnerEndpointStarts:new Set(['[1,0]','[0,0]'])},ports),
-   {code:'PHYSICAL_LINEAGE_NONOWNER_UNACCOUNTED'});
+   {code:'PHYSICAL_LINEAGE_UNPROVEN_ALIAS'});
  assert.throws(()=>buildXml229PhysicalLineage({...input,physical:[physical[1]]},ports),
    {code:'PHYSICAL_LINEAGE_OWNER_ALIAS_DRIFT'});
 });

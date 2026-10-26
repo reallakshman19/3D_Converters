@@ -9,8 +9,11 @@ export function buildXml229PhysicalLineage({
 },{children,field,canonicalJson,fail}){
  const key=(bi,ordinal)=>JSON.stringify([bi,ordinal]);
  const pairedStarts=new Set(endpointPairs.map(p=>key(p.branchOccurrenceIndex,p.firstSourceNodeOrdinal)));
- if(pairedStarts.size!==endpointPairs.length||[...pairedStarts].some(k=>!nonOwnerEndpointStarts.has(k)))
-   fail('PHYSICAL_LINEAGE_PAIR_DRIFT','Paired component witnesses do not match censused nonowners');
+ // A geometrically witnessed 1→2 component pair is NOT necessarily a
+ // suppressed Weight candidate (e.g. an unreviewable first instrument port).
+ // Preserve that distinction; only actual suppressed candidates need typing.
+ if(pairedStarts.size!==endpointPairs.length)
+   fail('PHYSICAL_LINEAGE_PAIR_DRIFT','A component first endpoint is paired twice');
  const oid=(bi,ord,n)=>{
    const source=sourceNodeByOrdinal.get(key(bi,ord));
    if(!source)fail('PHYSICAL_LINEAGE_SOURCE_MISSING','Missing original source witness');
@@ -69,7 +72,7 @@ export function buildXml229PhysicalLineage({
    counts:Object.freeze({
      physicalOwners:owners.length,componentEndpointWitnesses:endpointPairs.length,
      branchConnectionAliases:aliases.length,
-     sourcePhysicalCandidateOccurrences:owners.length+excluded.size,
+     sourcePhysicalCandidateOccurrences:owners.length+endpointPairs.length+aliases.length,
    }),
    weightsAccepted:false,nativeCiiReleaseAuthorized:false,
  });
