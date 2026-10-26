@@ -19,6 +19,10 @@ const exactRows=({original,fixed,sourceMap,counts})=>{
     sourceMap.length!==original.nodes.length)
    fail('TOPOFIX_HANDOFF_NODE_CENSUS_DRIFT');
  const origKeys=new Set(),fixedKeys=new Set();
+ const originalsByKey=new Map(original.nodes.map(n=>[
+   JSON.stringify([n.branchOccurrenceIndex,n.nodeOrdinal]),n]));
+ const finalsByKey=new Set(fixed.nodes.map(n=>
+   JSON.stringify([n.branchOccurrenceIndex,n.nodeOrdinal])));
  let removed=0,changed=0;
  const validStatus=new Set(['RETAINED','RENUMBERED_CONNECTION',
    'RIGID_RECLASSIFIED','REMOVED_PLAIN_PIPE']);
@@ -29,9 +33,7 @@ const exactRows=({original,fixed,sourceMap,counts})=>{
       !row.sourceNodeKey)
      fail('TOPOFIX_HANDOFF_SOURCE_ROW_INVALID');
    const src=JSON.stringify([row.branchOccurrenceIndex,row.sourceNodeOrdinal]);
-   if(origKeys.has(src)||!original.nodes.some(n=>
-     n.branchOccurrenceIndex===row.branchOccurrenceIndex&&
-     n.nodeOrdinal===row.sourceNodeOrdinal))
+   if(origKeys.has(src)||!originalsByKey.has(src))
      fail('TOPOFIX_HANDOFF_SOURCE_ORDINAL_DRIFT');
    origKeys.add(src);
    if(row.status==='REMOVED_PLAIN_PIPE'){
@@ -43,9 +45,7 @@ const exactRows=({original,fixed,sourceMap,counts})=>{
      if(!nat(row.fixedNodeOrdinal)||!SHA.test(row.fixedNodeSha256))
        fail('TOPOFIX_HANDOFF_FIXED_ROW_INVALID');
      const dst=JSON.stringify([row.branchOccurrenceIndex,row.fixedNodeOrdinal]);
-     if(fixedKeys.has(dst)||!fixed.nodes.some(n=>
-       n.branchOccurrenceIndex===row.branchOccurrenceIndex&&
-       n.nodeOrdinal===row.fixedNodeOrdinal))
+     if(fixedKeys.has(dst)||!finalsByKey.has(dst))
        fail('TOPOFIX_HANDOFF_FIXED_ORDINAL_DRIFT');
      fixedKeys.add(dst);
      if(row.status==='RETAINED'){
