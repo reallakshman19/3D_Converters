@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {installWeightBasisXmlDom} from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
 import {digestUtf8} from '../contracts/gc-pw-v1/contract.mjs';
+import {psi116TopoFixBranchNodes,psi116TopoFixNodeSha256}
+ from '../tabs/xml-cii-2019-standalone/integration/xml229-topofix-node-semantic-digest.mjs';
 import {
  attestXml229TopoFixFreshSource,startXml229TopoFixFreshWeightSession,
 } from '../tabs/xml-cii-2019-standalone/integration/xml229-topofix-fresh-worker-handoff.mjs';
@@ -16,6 +18,9 @@ const FIXED=ORIGINAL.replace('<NodeNumber>10</NodeNumber>','<NodeNumber>20</Node
 const hash='a'.repeat(64),master='b'.repeat(64);
 async function evidence(){
  const source=await digestUtf8(ORIGINAL),fixed=await digestUtf8(FIXED);
+ const originalNodes=psi116TopoFixBranchNodes(ORIGINAL)[0];
+ const fixedNodes=psi116TopoFixBranchNodes(FIXED)[0];
+ const semantic=await Promise.all([...originalNodes,...fixedNodes].map(psi116TopoFixNodeSha256));
  const lineageReceipt={
   schema:'psi116-topofix-source-lineage/v1',
   sourceXmlSha256:source,fixedXmlSha256:fixed,
@@ -28,11 +33,11 @@ async function evidence(){
     changedRetainedOccurrences:1},
   sourceOccurrenceMap:[
    {branchOccurrenceIndex:0,sourceNodeOrdinal:0,sourceNodeKey:'B0:N10:S0',
-    sourceNodeSha256:hash,status:'RENUMBERED_CONNECTION',
-    fixedNodeOrdinal:0,fixedNodeSha256:hash,operationId:'OP-000001'},
+    sourceNodeSha256:semantic[0],status:'RENUMBERED_CONNECTION',
+    fixedNodeOrdinal:0,fixedNodeSha256:semantic[2],operationId:'OP-000001'},
    {branchOccurrenceIndex:0,sourceNodeOrdinal:1,sourceNodeKey:'B0:N20:S1',
-    sourceNodeSha256:hash,status:'RETAINED',
-    fixedNodeOrdinal:1,fixedNodeSha256:hash,operationId:null},
+    sourceNodeSha256:semantic[1],status:'RETAINED',
+    fixedNodeOrdinal:1,fixedNodeSha256:semantic[3],operationId:null},
   ],
  };
  const handoffReceipt={
@@ -98,7 +103,10 @@ test('L3 refuses stale source, reused generation, carried Final and forged sourc
   'TOPOFIX_HANDOFF_PRIOR_FINAL_MIGRATION_REFUSED');
  const fake=structuredClone(h.args.lineageReceipt);
  fake.sourceOccurrenceMap[0].fixedNodeOrdinal=1;
- await rejects({...h.args,lineageReceipt:fake},'TOPOFIX_HANDOFF_FIXED_ORDINAL_DRIFT');
+ await rejects({...h.args,lineageReceipt:fake},'TOPOFIX_HANDOFF_FIXED_NODE_SHA_DRIFT');
+ const forged=structuredClone(h.args.lineageReceipt);
+ forged.sourceOccurrenceMap[1].sourceNodeSha256=hash;
+ await rejects({...h.args,lineageReceipt:forged},'TOPOFIX_HANDOFF_SOURCE_NODE_SHA_DRIFT');
  assert.equal(h.calls(),0,'No Worker may open after a failed source handoff');
 });
 test('L3 destroys an opened candidate Worker if its receipt is stale',async()=>{

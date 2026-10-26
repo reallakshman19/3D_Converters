@@ -5,13 +5,15 @@
 import {digestUtf8} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {projectXmlCiiOccurrences}
  from '../ui-adapted/xml-cii-adapted-preview-facts-xml-source.js';
+import {psi116TopoFixBranchNodes,psi116TopoFixNodeSha256}
+ from './xml229-topofix-node-semantic-digest.mjs';
 const SHA=/^[0-9a-f]{64}$/;
 const SCHEMA='psi116-topofix-prefinal-handoff/v1';
 const LINEAGE='psi116-topofix-source-lineage/v1';
 const fail=code=>{const e=new Error(code);e.code=code;throw e;};
 const isObj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
 const nat=x=>Number.isSafeInteger(x)&&x>=0;
-const exactRows=({original,fixed,sourceMap,counts})=>{
+const exactRows=async({original,fixed,sourceMap,counts,originalXmlText,fixedXmlText})=>{
  if(!Array.isArray(sourceMap)||!isObj(counts)||
     original.nodes.length!==counts.sourceNodeOccurrences||
     fixed.nodes.length!==counts.fixedNodeOccurrences||
@@ -23,6 +25,11 @@ const exactRows=({original,fixed,sourceMap,counts})=>{
    JSON.stringify([n.branchOccurrenceIndex,n.nodeOrdinal]),n]));
  const finalsByKey=new Set(fixed.nodes.map(n=>
    JSON.stringify([n.branchOccurrenceIndex,n.nodeOrdinal])));
+ const sourceNodes=psi116TopoFixBranchNodes(originalXmlText);
+ const fixedNodes=psi116TopoFixBranchNodes(fixedXmlText);
+ if(sourceNodes.length!==original.branches.length||
+    fixedNodes.length!==fixed.branches.length)
+   fail('TOPOFIX_HANDOFF_SEMANTIC_BRANCH_CENSUS_DRIFT');
  let removed=0,changed=0;
  const validStatus=new Set(['RETAINED','RENUMBERED_CONNECTION',
    'RIGID_RECLASSIFIED','REMOVED_PLAIN_PIPE']);
@@ -36,6 +43,9 @@ const exactRows=({original,fixed,sourceMap,counts})=>{
    if(origKeys.has(src)||!originalsByKey.has(src))
      fail('TOPOFIX_HANDOFF_SOURCE_ORDINAL_DRIFT');
    origKeys.add(src);
+   const sourceNode=sourceNodes[row.branchOccurrenceIndex]?.[row.sourceNodeOrdinal];
+   if(!sourceNode||await psi116TopoFixNodeSha256(sourceNode)!==row.sourceNodeSha256)
+     fail('TOPOFIX_HANDOFF_SOURCE_NODE_SHA_DRIFT');
    if(row.status==='REMOVED_PLAIN_PIPE'){
      removed++;
      if(row.fixedNodeOrdinal!==null||row.fixedNodeSha256!==null||
@@ -48,6 +58,9 @@ const exactRows=({original,fixed,sourceMap,counts})=>{
      if(fixedKeys.has(dst)||!finalsByKey.has(dst))
        fail('TOPOFIX_HANDOFF_FIXED_ORDINAL_DRIFT');
      fixedKeys.add(dst);
+     const fixedNode=fixedNodes[row.branchOccurrenceIndex]?.[row.fixedNodeOrdinal];
+     if(!fixedNode||await psi116TopoFixNodeSha256(fixedNode)!==row.fixedNodeSha256)
+       fail('TOPOFIX_HANDOFF_FIXED_NODE_SHA_DRIFT');
      if(row.status==='RETAINED'){
        if(row.operationId!==null)fail('TOPOFIX_HANDOFF_OPERATION_DRIFT');
      }else{
@@ -105,7 +118,7 @@ export async function attestXml229TopoFixFreshSource({
     handoffReceipt.fixedNodeOccurrenceCount!==fixed.nodes.length||
     original.branches.length!==fixed.branches.length)
    fail('TOPOFIX_HANDOFF_REVIEW_OR_SOURCE_DRIFT');
- exactRows({original,fixed,sourceMap:lineageReceipt.sourceOccurrenceMap,counts:lc});
+ await exactRows({original,fixed,sourceMap:lineageReceipt.sourceOccurrenceMap,counts:lc,originalXmlText,fixedXmlText});
  return Object.freeze({
    schema:'XML229.TopoFixFreshSourceAttestation.v1',
    originalSourceXmlSha256:originalSha,newSourceXmlSha256:fixedSha,
