@@ -38,7 +38,7 @@ export function installXml229TopoFixFreshStartControl({
  start.dataset.action='xml229-topofix-fresh-worker';
  const status=document.createElement('p');
  status.setAttribute('role','status');details.append(start,status);
- build?.parentElement?.append(details);
+ root.append(details); // Existing-workflow Weight has no Build button.
  start.addEventListener('click',async()=>{
    if(isBusy())return;
    setBusy(true);start.disabled=true;
