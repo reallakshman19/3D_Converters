@@ -126,6 +126,7 @@ function ciiBendRadii(ciiText) {
     assert.strictEqual(analysis.topoFixCommitted, false);
     assert.strictEqual(analysis.topoFixXmlText, '');
     assert.strictEqual(analysis.topoFixLineageText, '');
+    assert.strictEqual(analysis.topoFixPreFinalHandoffText, '');
     assert(analysisLog.some((line) => line.includes('topology analysis wrote')));
 
     const findings = JSON.parse(analysis.topologyFindingsText);
@@ -160,10 +161,18 @@ function ciiBendRadii(ciiText) {
     assert.strictEqual(stage.ciiInputPath, path.join(transactionDir, 'FirstpassXML.topofix.xml'));
     assert(stage.topoFixXmlText.includes('<PipeStressExport'));
     const provenance = JSON.parse(stage.topoFixLineageText);
+    const handoff = JSON.parse(stage.topoFixPreFinalHandoffText);
+    assert.strictEqual(handoff.schema, 'psi116-topofix-prefinal-handoff/v1');
+    assert.strictEqual(handoff.requiresFreshWorkerBasis, true);
+    assert.strictEqual(handoff.acceptedFinalTransferred, false);
+    assert.strictEqual(handoff.nativeCiiReleaseAuthorized, false);
     assert.strictEqual(provenance.schema, 'psi116-topofix-source-lineage/v1');
     assert.strictEqual(provenance.counts.sourceNodeOccurrences, 216);
     assert.strictEqual(provenance.counts.fixedNodeOccurrences, 215);
     assert.strictEqual(provenance.counts.removedPlainPipeOccurrences, 1);
+    assert.strictEqual(handoff.sourceNodeOccurrenceCount,216);
+    assert.strictEqual(handoff.fixedNodeOccurrenceCount,215);
+    assert.strictEqual(handoff.transactionSha256,provenance.transactionSha256);
     assert.strictEqual(provenance.state, 'PRE_FINAL_ONLY');
     assert.strictEqual(provenance.requiresFreshWorkerBasis, true);
     assert.strictEqual(provenance.nativeCiiReleaseAuthorized, false);
@@ -208,6 +217,8 @@ function ciiBendRadii(ciiText) {
         },
       });
       assert.strictEqual(evidence.manifest.artifacts.topoFixLineage, true);
+      assert.strictEqual(evidence.manifest.artifacts.topoFixPreFinalHandoff, true);
+      assert.strictEqual(evidence.manifest.topology.freshBasisHandoffAvailable, true);
       assert.strictEqual(evidence.manifest.artifacts.cii, false);
       assert.strictEqual(evidence.manifest.topology.preFinalLineageReceiptAvailable, true);
       assert.strictEqual(sha256(fs.readFileSync(fixtureXml)), sourceHashBefore);

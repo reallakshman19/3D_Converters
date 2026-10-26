@@ -7,6 +7,8 @@ on:
       - 'converters/xml-cii-2019-standalone/topology-integration.js'
       - 'docs/converters/xml-cii-2019-standalone/topology-integration.js'
       - 'tests/psi116_topofix_transaction.py'
+      - 'tests/xml229-topofix-fresh-worker-handoff.test.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-topofix-fresh-worker-handoff.mjs'
       - 'tests/xml-cii-standalone-topofix-live-proof.test.js'
       - '.github/workflows/xml229-l2-psi116-prefinal-lineage.yml'
   workflow_dispatch:
@@ -38,5 +40,7 @@ jobs:
         run: |
           python -m py_compile converters/psi116_topology_resolver/*.py
           python tests/psi116_topofix_transaction.py
-      - name: Actual PSI116 Sidecar lineage + manifest without native CII
+      - name: Actual PSI116 Sidecar lineage + handoff manifest without native CII
         run: TOPOFIX_L2_PREFINAL_ONLY=1 node tests/xml-cii-standalone-topofix-live-proof.test.js
+      - name: L3 original-to-fixed handoff and fresh GC-PW Worker boundary
+        run: node --test tests/xml229-topofix-fresh-worker-handoff.test.mjs
