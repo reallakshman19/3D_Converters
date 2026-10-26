@@ -4,6 +4,8 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+import json
+import copy
 import xml.etree.ElementTree as ET
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -11,6 +13,9 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from converters.psi116_topology_resolver import ResolverConfig, resolve_psi116
+from converters.psi116_topology_resolver.lineage import (
+    TopoFixLineageError, build_topofix_source_lineage, verify_topofix_pre_final,
+)
 from converters.psi116_topology_resolver.transaction import (
     TransactionPolicy,
     apply_topofix_transaction,
@@ -66,6 +71,83 @@ class Psi116TopoFixTransactionTests(unittest.TestCase):
         self.assertEqual(transaction.source_result.document.source_text, SYNTHETIC_XML)
         self.assertTrue(all(check.passed for check in transaction.checks if check.blocking))
 
+
+    def test_l2_verified_alias_preserves_source_ordinals(self):
+        result=resolve_psi116(SYNTHETIC_XML,source_name='synthetic.xml')
+        action=action_for_nodes(result,'ALIAS_COINCIDENT_NODE',{10,20,50})
+        tx=apply_topofix_transaction(result,policy=TransactionPolicy(
+            selected_action_ids=(action.action_id,)))
+        self.assertTrue(tx.committed,tx.reject_reasons)
+        lineage=build_topofix_source_lineage(tx)
+        qualified=verify_topofix_pre_final(
+            SYNTHETIC_XML,tx.fixed_xml,tx.transaction_payload(),
+            tx.validation_payload(),lineage,reviewed_action_ids=(action.action_id,))
+        self.assertEqual(lineage['counts']['sourceNodeOccurrences'],5)
+        self.assertEqual(lineage['counts']['fixedNodeOccurrences'],5)
+        self.assertEqual(lineage['counts']['changedRetainedOccurrences'],2)
+        self.assertEqual(sum(row['status']=='RENUMBERED_CONNECTION'
+                             for row in lineage['sourceOccurrenceMap']),2)
+        self.assertEqual(len({(row['branchOccurrenceIndex'],row['sourceNodeOrdinal'])
+                              for row in lineage['sourceOccurrenceMap']}),5)
+        self.assertFalse(qualified['nativeCiiReleaseAuthorized'])
+        self.assertTrue(qualified['requiresFreshWorkerBasis'])
+        self.assertFalse(qualified['acceptedFinalTransferred'])
+
+    def test_l2_real_firstpass_safe_drop_preserves_lossless_receipt(self):
+        result=resolve_psi116(REPO_ROOT/'Benchmarks'/'1885Sjson'/'FirstpassXML')
+        drop=action_for_nodes(result,'SAFE_DROP_PIPE_GEOMETRY',{1600,1610})
+        alias=action_for_nodes(result,'ALIAS_COINCIDENT_NODE',{1570,2260})
+        selected=(drop.action_id,alias.action_id)
+        tx=apply_topofix_transaction(result,policy=TransactionPolicy(
+            selected_action_ids=selected))
+        self.assertTrue(tx.committed,tx.reject_reasons)
+        lineage=build_topofix_source_lineage(tx)
+        receipt=verify_topofix_pre_final(
+            result.document.source_text,tx.fixed_xml,tx.transaction_payload(),
+            tx.validation_payload(),lineage,reviewed_action_ids=selected)
+        self.assertEqual(lineage['counts']['sourceNodeOccurrences'],216)
+        self.assertEqual(lineage['counts']['fixedNodeOccurrences'],215)
+        self.assertEqual(lineage['counts']['removedPlainPipeOccurrences'],1)
+        self.assertEqual(sum(row['status']=='REMOVED_PLAIN_PIPE'
+                             for row in lineage['sourceOccurrenceMap']),1)
+        self.assertEqual(receipt['newSourceXmlSha256'],lineage['fixedXmlSha256'])
+        self.assertNotEqual(receipt['originalSourceXmlSha256'],receipt['newSourceXmlSha256'])
+
+    def test_l2_rejects_stale_final_and_tampered_provenance(self):
+        result=resolve_psi116(SYNTHETIC_XML,source_name='synthetic.xml')
+        action=action_for_nodes(result,'ALIAS_COINCIDENT_NODE',{10,20,50})
+        tx=apply_topofix_transaction(result,policy=TransactionPolicy(
+            selected_action_ids=(action.action_id,)))
+        self.assertTrue(tx.committed)
+        inputs={'original_xml':SYNTHETIC_XML,'fixed_xml':tx.fixed_xml,
+                'transaction_receipt':tx.transaction_payload(),
+                'validation_receipt':tx.validation_payload(),
+                'lineage_receipt':build_topofix_source_lineage(tx),
+                'reviewed_action_ids':(action.action_id,)}
+        def bad(code,**kwargs):
+            received={**inputs,**kwargs}
+            with self.assertRaises(TopoFixLineageError) as e:
+                verify_topofix_pre_final(**received)
+            self.assertEqual(e.exception.code,code)
+        bad('TOPOFIX_REQUIRES_FRESH_FINAL_BASIS',existing_final_intent_sha256='f'*64)
+        bad('TOPOFIX_REQUIRES_FRESH_FINAL_BASIS',existing_worker_basis_id='b'*64)
+        bad('TOPOFIX_LINEAGE_REVIEW_REQUIRED',reviewed_action_ids=('OTHER',))
+        bad('TOPOFIX_LINEAGE_REPLAY_DRIFT',
+            fixed_xml=tx.fixed_xml.replace('<NodeNumber>20</NodeNumber>',
+                                           '<NodeNumber>999</NodeNumber>',1))
+        wrong=copy.deepcopy(inputs['transaction_receipt'])
+        wrong['operations'][0]['after']=987
+        bad('TOPOFIX_LINEAGE_REPLAY_DRIFT',transaction_receipt=wrong)
+        wrong=copy.deepcopy(inputs['validation_receipt'])
+        wrong['checks'][0]['passed']=False
+        bad('TOPOFIX_LINEAGE_REPLAY_DRIFT',validation_receipt=wrong)
+        wrong=copy.deepcopy(inputs['lineage_receipt'])
+        wrong['sourceOccurrenceMap'][0]['fixedNodeOrdinal']=1000
+        bad('TOPOFIX_LINEAGE_RECEIPT_DRIFT',lineage_receipt=wrong)
+        bad('TOPOFIX_LINEAGE_REPLAY_DRIFT',
+            original_xml=SYNTHETIC_XML.replace('<Weight>0</Weight>',
+                                                '<Weight>99</Weight>',1))
+
     def test_transaction_requires_explicit_selection(self):
         result = resolve_psi116(SYNTHETIC_XML, source_name='synthetic.xml')
         with self.assertRaises(ValueError):
@@ -84,6 +166,7 @@ class Psi116TopoFixTransactionTests(unittest.TestCase):
             self.assertTrue(validation_path.is_file())
             self.assertIsNotNone(fixed_path)
             self.assertTrue(Path(fixed_path).is_file())
+            self.assertTrue((Path(directory)/'case.topofix-lineage.json').is_file())
 
     def test_real_1885_selected_aliases_commit_and_preserve_engineering_inventory(self):
         fixture = Path(__file__).resolve().parents[1] / 'Benchmarks' / '1885Sjson' / 'FirstpassXML'
