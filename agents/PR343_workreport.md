@@ -1,27 +1,27 @@
-# WIP-XML229-SOURCE-BINDING-20261026 — immutable source binding for fresh TopoFix Workers
+# PR #343 — immutable source binding for fresh TopoFix Workers
 
 ## Recovery header
 
-HANDOVER_READINESS: DEGRADED — initial Draft allocation pending
-PR_RECOVERY_STATE: RECOVERABLE
+HANDOVER_READINESS: READY — recovery-ready, not release approval
+PR_RECOVERY_STATE: HEALTHY
 TAKEOVER_AUTHORITY: WRITE_ALLOWED — exact Owner-approved scope only
-PR_HEAD_OBSERVED: abf507f6866e444fb7ed73055494f5e12d67a721 (parent #342)
-REPORT_BASIS_HEAD: abf507f6866e444fb7ed73055494f5e12d67a721 plus the prepared three-file delta below
+PR_HEAD_OBSERVED: 331abb23779e408d3d33796a2848884335db6d89 (published implementation commit)
+REPORT_BASIS_HEAD: 331abb23779e408d3d33796a2848884335db6d89 — subsequent synchronization commit changes own recovery metadata only
 MAIN_HEAD_LAST_CHECKED: 5a5eb118af161cf92450564e864f0ae408d4111a
 MERGE_BASE: abf507f6866e444fb7ed73055494f5e12d67a721 (new branch parent)
-REPORT_SYNC: STALE — update to the first published implementation commit after PR allocation
+REPORT_SYNC: CURRENT — source/test blobs match the tested implementation; the report synchronization commit is metadata only
 APPENDIX_A_STATUS: NOT_REQUIRED for this exact fix under Owner-scoped exception; no score awarded
 GROUNDING_EPOCH: GE-XML229-SOURCE-BINDING-20261026-01
-CURRENT_STAGE: PUBLISH_EXACT_REVIEWED_DRAFT
-CURRENT_BLOCKER: Initial publication/PR allocation only
+CURRENT_STAGE: DRAFT_OPEN_CURRENT_HEAD_VALIDATION
+CURRENT_BLOCKER: Direct post-publication browser evidence/CI observation pending; native Owner release remains outside scope
 HIGHEST_RISK: Direct post-publication source-race browser execution is not yet observed; private Owner native release is unqualified
-EXACT_NEXT_ACTION: Publish the prepared commit on fix/xml229-topofix-source-binding-20261026, open a Draft against #342's branch, then rename/synchronize this report and own status/claim records.
+EXACT_NEXT_ACTION: Inspect current PR-head CI, record the actual direct production-browser result if executed, and preserve Draft/native HOLD. Any additional source change needs new scoped review; do not merge.
 
 ## Handover in 60 seconds
 
 A mutable raw.sourceText could change while SHA attestation awaited, allowing the old source to be attested while a Worker opened against new inputs. The reviewed correction captures immutable fixedXmlText and rechecks current source after attestation, after input hydration, inside the deferred input callback and after Worker startup. A stale opened candidate is cancelled. Replacement UI objects with unchanged source bytes remain valid.
 
-The production delta is exactly the three files in the ledger. Both handoff modules equal reviewed candidate SHA-256 e18fb0749cd295c29fa7e69143df3cfd5c32988d80b70c40dc32e8600b36efb1. The full existing handoff suite plus five regressions passes 10/10 against the root module and the same 10 cases against docs/. The remote Chromium evidence ZIP is inspected and scoped PASS. No Owner Final mass, numerical rule, workflow or native release control changes.
+The published production delta is exactly the three files in the ledger. Both handoff modules equal reviewed candidate SHA-256 e18fb0749cd295c29fa7e69143df3cfd5c32988d80b70c40dc32e8600b36efb1. The full existing handoff suite plus five regressions passes 10/10 against the root module and the same 10 cases against docs/. The remote Chromium evidence ZIP is inspected and scoped PASS. No Owner Final mass, numerical rule, workflow or native release control changes.
 
 Oracle standalone (chat ID UNKNOWN) authored this scoped patch under the Owner's coding authorization. Independent Reviewer routing label 6adef8f2 supplied the separate Node review. A local Antigravity executor supplied Chromium evidence. Authorship and artifact inspection do not authenticate either participant's identity or constitute Owner release acceptance.
 
@@ -73,7 +73,7 @@ Direct docs verification reuses the same test suite with its handoff import redi
 
 ## Current issues and decisions
 
-- ISS-SB-01: source mutation across async handoff — resolved by the exact prepared fix within tested scope.
+- ISS-SB-01: source mutation across async handoff — resolved by the exact published fix within tested scope.
 - RISK-SB-01: direct post-publication browser route and the wider asynchronous master/source matrix remain separate evidence boundaries.
 - DEC-SB-01: publish a new stacked Draft; do not overwrite another active branch.
 - DEBT-CI-01: 13 pinned merge-base and two changed-file scope failures on the parent remain deferred; no test bypass or workflow change.
@@ -87,9 +87,9 @@ Direct docs verification reuses the same test suite with its handoff import redi
 | tabs/xml-cii-2019-standalone/integration/xml229-topofix-fresh-worker-handoff.mjs | Capture immutable fixed XML and guard asynchronous freshness |
 | docs/tabs/xml-cii-2019-standalone/integration/xml229-topofix-fresh-worker-handoff.mjs | Byte-identical served docs mirror |
 | tests/xml229-topofix-fresh-worker-handoff.test.mjs | Five source-race/replacement-state regressions |
-| agents/WIP-XML229-SOURCE-BINDING-20261026_workreport.md | Own recovery report, renamed after PR allocation |
-| agents/claims/WIP-XML229-SOURCE-BINDING-20261026.yaml | Own exact-path/branch claim, renamed after PR allocation |
-| agents/status/WIP-XML229-SOURCE-BINDING-20261026.yaml | Own state and qualification-exception receipt, renamed after PR allocation |
+| agents/PR343_workreport.md | Own recovery report, synchronized after PR allocation |
+| agents/claims/PR343.yaml | Own exact-path/branch claim, synchronized after PR allocation |
+| agents/status/PR343.yaml | Own state and qualification-exception receipt, synchronized after PR allocation |
 
 No masters, geometry, kilograms, native writer/verifier, workflow, Final ledger or release-control file changes.
 
@@ -102,3 +102,11 @@ No masters, geometry, kilograms, native writer/verifier, workflow, Final ledger 
 - [Core concepts and project checkpoint](https://drive.google.com/file/d/1JVh5-0Efal42c2PeTnrR2mHOkiyMtxkg/view)
 
 Publication, recipient retrieval, technical verification and Owner release acceptance remain distinct.
+
+## Publication receipt
+
+PR #343: https://github.com/reallakshman19/3D_Converters/pull/343
+Branch: fix/xml229-topofix-source-binding-20261026
+Base: #342 / feat/xml229-l3-topofix-fresh-gcpw-worker-20261026
+Implementation commit: 331abb23779e408d3d33796a2848884335db6d89
+Remote implementation blobs were fetched and matched to the locally tested source. A following commit only renames/synchronizes these three recovery records; it changes no source/test blob. No original branch or main was updated. Future incoming agents start with their applicable grounding/authority; this bounded exception is not general qualification transfer.
