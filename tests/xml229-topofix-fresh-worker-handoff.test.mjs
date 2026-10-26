@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {installWeightBasisXmlDom} from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
 import {digestUtf8} from '../contracts/gc-pw-v1/contract.mjs';
 import {psi116TopoFixBranchNodes,psi116TopoFixNodeSha256}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-topofix-node-semantic-digest.mjs';
 import {
  attestXml229TopoFixFreshSource,startXml229TopoFixFreshWeightSession,
- getXml229TopoFixFreshWorkerProvenance,
+ getXml229TopoFixFreshWorkerProvenance,canXml229AutoCommitSuggestedFinal,
 } from '../tabs/xml-cii-2019-standalone/integration/xml229-topofix-fresh-worker-handoff.mjs';
 installWeightBasisXmlDom(globalThis);
 const ORIGINAL='<PipeStressExport><Pipe><Branch><Branchname>/A</Branchname>'+
@@ -125,4 +126,25 @@ test('L3 destroys an opened candidate Worker if its receipt is stale',async()=>{
   ...h.args,openSession:async()=>session,
  }),{code:'TOPOFIX_HANDOFF_WORKER_NOT_FRESH'});
  assert.equal(session.closed,true);
+});
+
+// Worker provenance, unlike a panel-local marker, survives DOM reattachment.
+test('Topofix manual Final policy survives panel recreation and receipt drift',async()=>{
+ const h=await harness();
+ const ordinary={receipt:{basisId:master},closed:false};
+ assert.equal(canXml229AutoCommitSuggestedFinal(ordinary),true);
+ assert.equal(canXml229AutoCommitSuggestedFinal(ordinary,{suppressAutoCommit:true}),false);
+ await startXml229TopoFixFreshWeightSession(h.args);
+ const reinstallPanel=()=>()=>canXml229AutoCommitSuggestedFinal(h.session);
+ const first=reinstallPanel(),reattached=reinstallPanel();
+ assert.equal(first(),false);
+ assert.equal(reattached(),false,'re-installed panel must remain manual-only');
+ h.session.receipt={...h.session.receipt,basisId:hash};
+ assert.equal(getXml229TopoFixFreshWorkerProvenance(h.session),null);
+ assert.equal(reattached(),false,'receipt drift must not reauthorize suggested Final');
+ h.session.cancel();
+ assert.equal(reattached(),false);
+ const panel=readFileSync(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js',import.meta.url),'utf8');
+ assert.match(panel,/canXml229AutoCommitSuggestedFinal\(session,\{suppressAutoCommit\}\)/);
+ assert.doesNotMatch(panel,/topoFixFreshManualReviewSession/);
 });

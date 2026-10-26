@@ -14,6 +14,14 @@ const fail=code=>{const e=new Error(code);e.code=code;throw e;};
 const isObj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
 const nat=x=>Number.isSafeInteger(x)&&x>=0;
 const activeTopoFixProvenance=new WeakMap();
+/** A panel re-install must never re-enable implicit Final acceptance for L3.
+ * Bind the manual-only policy to the Worker session, not a transient UI flag.
+ * A tampered receipt must never restore suggested-weight auto-commits.
+ */
+export function canXml229AutoCommitSuggestedFinal(session,{suppressAutoCommit=false}={}){
+ return !!session&&!session.closed&&!suppressAutoCommit&&
+   !activeTopoFixProvenance.has(session);
+}
 export function getXml229TopoFixFreshWorkerProvenance(session){
  if(!session||session.closed)return null;
  const bound=activeTopoFixProvenance.get(session);

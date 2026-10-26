@@ -151,3 +151,27 @@ test('explicit zero INST uses one non-rigid CII element without making it RIGID'
  await assert.rejects(reconcileXml229ActualCiiAgainstFinal(pkg),
   {code:'NATIVE_WRITER_PROOF_CUSTODY_INVALID'});
 });
+
+// A second real pointer-referenced RIGID without a source Final owner.
+function ciiWithUnclaimedRigid(force){
+ const standard=cii();
+ const element=standard.split('#$ ELEMENTS\n')[1].split('#$ RIGID\n')[0];
+ const second=element.replace(/^10 20 /,'30 40 ')
+   .replace(/^0 1 0 0 0 0$/m,'0 2 0 0 0 0');
+ return standard.replace('#$ CONTROL\n1 0','#$ CONTROL\n2 0')
+   .replace('\n0 1 0 0 0 0\n','\n0 2 0 0 0 0\n')
+   .replace('#$ RIGID\n',second+'#$ RIGID\n')
+   .replace('#$ RIGID\n125 0\n','#$ RIGID\n125 0\n'+force+' 0\n');
+}
+test('independent CII forbids any unclaimed nonzero pointer-referenced RIGID mass',async()=>{
+ for(const force of ['5.000000E-07','5.000000E-03','1']){
+  const b=bundle(ciiWithUnclaimedRigid(force));
+  await assert.rejects(reconcileXml229ActualCiiAgainstFinal(b),
+   {code:'NATIVE_CII_UNCLAIMED_WEIGHT'});
+ }
+ const zero=bundle(ciiWithUnclaimedRigid('0'));
+ assert.equal((await reconcileXml229ActualCiiAgainstFinal(zero)).nativeCiiReleaseAuthorized,true);
+ const negative=bundle(ciiWithUnclaimedRigid('-5.000000E-07'));
+ await assert.rejects(reconcileXml229ActualCiiAgainstFinal(negative),
+   {code:'CII_RIGID_MASS_INVALID'});
+});

@@ -189,7 +189,7 @@ export async function reconcileXml229ActualCiiAgainstFinal({
     verifiedZeroInstrumentCount!==(writerDiagnostic.claimedZeroNonRigidInstrumentCount||0))
   fail('NATIVE_OUTPUT_MASS_POPULATION_DRIFT');
  for(let i=0;i<parsed.rigidCount;i++)
-  if(!claimedRigid.has(i)&&Math.abs(parsed.weights[i])>1e-6)
+  if(!claimedRigid.has(i)&&parsed.weights[i]!==0)
    fail('NATIVE_CII_UNCLAIMED_WEIGHT');
  return Object.freeze({
   schema:'XML229.IndependentActualCiiMassCheck.v1',
@@ -201,7 +201,7 @@ export async function reconcileXml229ActualCiiAgainstFinal({
   massConsumptionVerified:true,
   strictOneToOneOwnerMatch:true,
   splitGeometryIndependentlyVerified:false,
-  // Every positive mass has one verified RIGID pointer. Explicit Final-zero
+  // Every nonzero mass has one verified RIGID pointer. Explicit Final-zero
   // INST pairs have one source-linked unweighted ELEMENTS row with pointer=0.
   // Neither a missing kg nor an unclassified positive instrument is waived.
   nativeCiiReleaseAuthorized:true,

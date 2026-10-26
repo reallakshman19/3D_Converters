@@ -935,6 +935,46 @@ class NativeFinalMassTests(unittest.TestCase):
             self.assertEqual(e.exception.code,"CII_NATIVE_APPLIED_MASS_MISMATCH")
 
 
+    def test_unclaimed_native_rigid_must_be_exact_zero(self):
+        # A 5e-7 native force must not pass as an unclaimed zero by tolerance.
+        original_text=input_xml()
+        with TemporaryDirectory() as td:
+            d=Path(td)
+            original=d/"original.xml"
+            enriched=d/"engine.xml"
+            manifest=d/"packet.json"
+            original.write_text(original_text)
+            enriched.write_text(original_text)
+            manifest.write_text(json.dumps(packet(original_text)))
+            _,owners=bind_native_final_xml(original,enriched,manifest)
+            graph=model(12.5)
+            extra=SimpleNamespace(
+                branch_name="UNCLAIMED",
+                from_node=SimpleNamespace(node_number=30),
+                to_node=SimpleNamespace(node_number=40),
+            )
+            graph.edges.append(extra)
+            graph.rigid_edges.append(extra)
+            second=["30 40 0 0 0 0"]+["0 0 0 0 0 0"]*11+[
+                "0 2 0 0 0 0","0 0 0 0 0 0","0 0 0"]
+            def extra_cii(force):
+                text=cii()
+                text=text.replace("#$ CONTROL\n1 0","#$ CONTROL\n2 0",1)
+                text=text.replace("\n0 1 0 0 0 0\n",
+                                  "\n0 2 0 0 0 0\n",1)
+                text=text.replace("#$ RIGID\n",
+                                  "\n".join(second)+"\n#$ RIGID\n",1)
+                return text.replace("#$ RIGID\n125 0\n",
+                                    "#$ RIGID\n125 0\n"+force+" 0\n",1)
+            for force in ("5.000000E-07","5.000000E-03","1","-5.000000E-07"):
+                with self.subTest(force=force):
+                    with self.assertRaises(NativeMassError) as failure:
+                        verify_emitted_native_masses(extra_cii(force),owners,graph)
+                    self.assertEqual(failure.exception.code,
+                                     "CII_NATIVE_UNCLAIMED_POSITIVE_RIGID")
+            proof=verify_emitted_native_masses(extra_cii("0"),owners,graph)
+            self.assertEqual(proof["claimedNativeRigidCount"],1)
+
     def test_emitted_scientific_format_matches_actual_formatter(self):
         # Native formatter uses seven significant digits in E-notation, not
         # six; an unrelated tiny output deviation must still fail closed.
