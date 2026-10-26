@@ -68,7 +68,7 @@ try{
   const lineage={
    schema:'psi116-topofix-source-lineage/v1',
    sourceXmlSha256:sourceSha,fixedXmlSha256:fixedSha,
-   transactionSha256,reviewedActionIds,sourceXmlMutated:false,
+   transactionSha256:transactionSha,reviewedActionIds,sourceXmlMutated:false,
    state:'PRE_FINAL_ONLY',acceptedFinalTransferred:false,
    nativeCiiReleaseAuthorized:false,requiresFreshWorkerBasis:true,
    counts:{sourceNodeOccurrences:3,fixedNodeOccurrences:3,
@@ -78,7 +78,7 @@ try{
   const handoff={
    schema:'psi116-topofix-prefinal-handoff/v1',
    originalSourceXmlSha256:sourceSha,newSourceXmlSha256:fixedSha,
-   transactionSha256,sourceNodeOccurrenceCount:3,
+   transactionSha256:transactionSha,sourceNodeOccurrenceCount:3,
    fixedNodeOccurrenceCount:3,reviewedActionIds,
    requiresFreshWorkerBasis:true,acceptedFinalTransferred:false,
    nativeCiiReleaseAuthorized:false,
