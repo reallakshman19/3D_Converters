@@ -189,6 +189,8 @@ export function normalizeWorkflowResult(partial = {}) {
     topoFixValidationName: String(partial.topoFixValidationName || ''),
     topoFixLineageText: String(partial.topoFixLineageText || ''),
     topoFixLineageName: String(partial.topoFixLineageName || ''),
+    topoFixPreFinalHandoffText: String(partial.topoFixPreFinalHandoffText || ''),
+    topoFixPreFinalHandoffName: String(partial.topoFixPreFinalHandoffName || ''),
     topoFixCommitted: partial.topoFixCommitted === true,
     ciiInputSource: partial.ciiInputSource === 'topofix' ? 'topofix' : 'original',
     diagnostics: normalizedDiagnostics(partial.diagnostics, sourceKind, outputKind),

@@ -246,8 +246,9 @@ export function buildRunManifest(input = {}) {
       committed: result.topoFixCommitted === true,
       ciiInputSource: result.ciiInputSource || 'original',
       preFinalLineageReceiptAvailable: !!result.topoFixLineageText,
+      freshBasisHandoffAvailable: !!result.topoFixPreFinalHandoffText,
     },
-    artifacts: { enriched: !!result.enrichedText, cii: !!result.ciiText, topologyFindings: !!result.topologyFindingsText, topologyPlan: !!result.topologyFixPlanText, topoFixXml: !!result.topoFixXmlText, topoFixLineage: !!result.topoFixLineageText, diagnostics: !!result.diagnostics, manifest: hasResult(input) },
+    artifacts: { enriched: !!result.enrichedText, cii: !!result.ciiText, topologyFindings: !!result.topologyFindingsText, topologyPlan: !!result.topologyFixPlanText, topoFixXml: !!result.topoFixXmlText, topoFixLineage: !!result.topoFixLineageText, topoFixPreFinalHandoff: !!result.topoFixPreFinalHandoffText, diagnostics: !!result.diagnostics, manifest: hasResult(input) },
   };
 }
 

@@ -35,6 +35,7 @@ status = {
     "rejectReasons": [],
     "fixedPath": "",
     "lineagePath": "",
+    "handoffPath": "",
 }
 
 if job_generate_topofix:
@@ -66,7 +67,11 @@ if job_generate_topofix:
             json.dumps(lineage, indent=2, sort_keys=True) + "\\n", encoding="utf-8",
         )
         status["fixedPath"] = job_topology_fixed_path
+        Path(job_topology_handoff_path).write_text(
+            json.dumps(qualified, indent=2, sort_keys=True) + "\\n", encoding="utf-8",
+        )
         status["lineagePath"] = job_topology_lineage_path
+        status["handoffPath"] = job_topology_handoff_path
 
 Path(job_topology_status_path).write_text(
     json.dumps(status, indent=2, sort_keys=True) + "\\n",
@@ -132,6 +137,8 @@ export async function runPsi116TopologyStage(pyodide, job, inputPath, jobDir, st
       topoFixValidationName: '',
       topoFixLineageText: '',
       topoFixLineageName: '',
+      topoFixPreFinalHandoffText: '',
+      topoFixPreFinalHandoffName: '',
       topoFixCommitted: false,
       ciiInputSource: 'original',
       topologySummary: null,
@@ -165,6 +172,7 @@ export async function runPsi116TopologyStage(pyodide, job, inputPath, jobDir, st
     validation: `${stem}.topofix-validation.json`,
     fixed: `${stem}.topofix.xml`,
     lineage: `${stem}.topofix-lineage.json`,
+    handoff: `${stem}.topofix-prefinal-handoff.json`,
     status: `${stem}.topofix-status.json`,
   };
   const paths = Object.fromEntries(Object.entries(names).map(([key, name]) => [key, `${jobDir}/${name}`]));
@@ -176,6 +184,7 @@ export async function runPsi116TopologyStage(pyodide, job, inputPath, jobDir, st
   pyodide.globals.set('job_topology_validation_path', paths.validation);
   pyodide.globals.set('job_topology_fixed_path', paths.fixed);
   pyodide.globals.set('job_topology_lineage_path', paths.lineage);
+  pyodide.globals.set('job_topology_handoff_path', paths.handoff);
   pyodide.globals.set('job_topology_status_path', paths.status);
   pyodide.globals.set('job_generate_topofix', generateTopoFix);
   pyodide.globals.set('job_topology_action_ids', actionIds);
@@ -189,7 +198,8 @@ export async function runPsi116TopologyStage(pyodide, job, inputPath, jobDir, st
   const topoFixCommitted = status.committed === true;
   const topoFixXmlText = topoFixCommitted ? readOptional(pyodide, paths.fixed) : '';
   const topoFixLineageText = topoFixCommitted ? readOptional(pyodide, paths.lineage) : '';
-  if(topoFixCommitted && !topoFixLineageText)
+  const topoFixPreFinalHandoffText = topoFixCommitted ? readOptional(pyodide, paths.handoff) : '';
+  if(topoFixCommitted && (!topoFixLineageText || !topoFixPreFinalHandoffText))
     throw new Error('TOPOFIX_PRE_FINAL_LINEAGE_RECEIPT_MISSING');
 
   const rejectReasons = Array.isArray(status.rejectReasons) ? status.rejectReasons.map((value) => text(value)) : [];
@@ -217,6 +227,8 @@ export async function runPsi116TopologyStage(pyodide, job, inputPath, jobDir, st
     topoFixValidationName: generateTopoFix ? names.validation : '',
     topoFixLineageText,
     topoFixLineageName: topoFixCommitted ? names.lineage : '',
+    topoFixPreFinalHandoffText,
+    topoFixPreFinalHandoffName: topoFixCommitted ? names.handoff : '',
     topoFixCommitted,
     ciiInputSource: useTopoFixForCii ? 'topofix' : 'original',
     topologySummary: {

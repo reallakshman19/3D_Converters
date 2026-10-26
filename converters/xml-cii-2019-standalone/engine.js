@@ -102,7 +102,8 @@ function emptyTopologyResult() {
     topologyFindingsText: '', topologyFindingsName: '', topologyFixPlanText: '', topologyFixPlanName: '',
     topoFixXmlText: '', topoFixXmlName: '', topoFixTransactionText: '', topoFixTransactionName: '',
     topoFixValidationText: '', topoFixValidationName: '',
-    topoFixLineageText: '', topoFixLineageName: '', topoFixCommitted: false,
+    topoFixLineageText: '', topoFixLineageName: '',
+    topoFixPreFinalHandoffText: '', topoFixPreFinalHandoffName: '', topoFixCommitted: false,
     ciiInputSource: 'original', topologySummary: null,
   };
 }
