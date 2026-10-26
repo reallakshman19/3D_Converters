@@ -178,6 +178,19 @@ function ciiBendRadii(ciiText) {
     assert.strictEqual(provenance.nativeCiiReleaseAuthorized, false);
     assert.strictEqual(provenance.acceptedFinalTransferred, false);
     assert.strictEqual(provenance.fixedXmlSha256, sha256(Buffer.from(stage.topoFixXmlText, 'utf8')));
+    const xmlDom = await import(pathToFileURL(path.join(root,
+      'tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js')).href);
+    xmlDom.installWeightBasisXmlDom(globalThis);
+    const receiver = await import(pathToFileURL(path.join(root,
+      'tabs/xml-cii-2019-standalone/integration/xml229-topofix-fresh-worker-handoff.mjs')).href);
+    const reverified = await receiver.attestXml229TopoFixFreshSource({
+      originalXmlText:sourceBefore.toString('utf8'),
+      fixedXmlText:stage.topoFixXmlText,
+      lineageReceipt:provenance,handoffReceipt:handoff,
+    });
+    assert.strictEqual(reverified.sourceNodeCount,216);
+    assert.strictEqual(reverified.fixedNodeCount,215);
+    assert.strictEqual(reverified.nativeCiiReleaseAuthorized,false);
     assert(transactionLog.includes('CII conversion input switched to committed TopoFix XML.'));
 
     const transaction = JSON.parse(stage.topoFixTransactionText);
