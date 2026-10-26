@@ -951,7 +951,10 @@ class NativeFinalMassTests(unittest.TestCase):
             extra=SimpleNamespace(
                 branch_name="UNCLAIMED",
                 from_node=SimpleNamespace(node_number=30),
-                to_node=SimpleNamespace(node_number=40),
+                to_node=SimpleNamespace(
+                    source_node_number=None,node_number=40,
+                    component_type="RIGID",component_ref_no="UNCLAIMED",
+                    endpoint=2,position=(40.,0.,0.),weight=0),
             )
             graph.edges.append(extra)
             graph.rigid_edges.append(extra)
@@ -970,8 +973,9 @@ class NativeFinalMassTests(unittest.TestCase):
                 with self.subTest(force=force):
                     with self.assertRaises(NativeMassError) as failure:
                         verify_emitted_native_masses(extra_cii(force),owners,graph)
-                    self.assertEqual(failure.exception.code,
-                                     "CII_NATIVE_UNCLAIMED_POSITIVE_RIGID")
+                    expected=("CII_RIGID_VALUE_INVALID" if force.startswith("-")
+                              else "CII_NATIVE_UNCLAIMED_POSITIVE_RIGID")
+                    self.assertEqual(failure.exception.code,expected)
             proof=verify_emitted_native_masses(extra_cii("0"),owners,graph)
             self.assertEqual(proof["claimedNativeRigidCount"],1)
 
