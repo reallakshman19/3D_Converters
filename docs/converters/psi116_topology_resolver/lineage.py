@@ -231,7 +231,7 @@ def verify_topofix_pre_final(
             len(set(selected)) == len(selected) and
             len(reviewed) == len(selected) and set(reviewed) == set(selected) and
             policy.get("apply_all_safe") is False and
-            isinstance(policy.get("selected_action_ids"), list) and
+            isinstance(policy.get("selected_action_ids"), (list, tuple)) and
             len(policy["selected_action_ids"]) == len(selected) and
             len(set(policy["selected_action_ids"])) == len(selected) and
             set(policy["selected_action_ids"]) == set(selected) and
@@ -249,8 +249,8 @@ def verify_topofix_pre_final(
     except (TypeError, ValueError, KeyError):
         raise TopoFixLineageError("TOPOFIX_LINEAGE_POLICY_INVALID") from None
     require(reproduction.committed and reproduction.fixed_xml == fixed_xml and
-            reproduction.transaction_payload() == transaction_receipt and
-            reproduction.validation_payload() == validation_receipt,
+            json.loads(json.dumps(reproduction.transaction_payload())) == json.loads(json.dumps(transaction_receipt)) and
+            json.loads(json.dumps(reproduction.validation_payload())) == json.loads(json.dumps(validation_receipt)),
             "TOPOFIX_LINEAGE_REPLAY_DRIFT")
     derived = build_topofix_source_lineage(reproduction)
     require(derived == lineage_receipt,
