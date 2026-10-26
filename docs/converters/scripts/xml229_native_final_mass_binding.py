@@ -458,6 +458,100 @@ def audit_finalized_physical_endpoints(final_root, packet_components=None):
     }
 
 
+
+def _lineage_oid(source_id, bi, ordinal, node):
+    return json.dumps([source_id, bi, ordinal, signature(node)],
+                      separators=(",", ":"), ensure_ascii=False)
+
+
+def _expected_branch_aliases(original_branches, final_branches, retained, source_id):
+    """Independently reconstruct unique branch connections, not mass owners."""
+    result = []
+    for bi, branch in enumerate(final_branches):
+        entries = nodes(branch)
+        if bi == 0 or not entries:
+            continue
+        inlet = entries[0]
+        if (txt(inlet, "Endpoint") != "1" or txt(inlet, "Rigid") != "2" or
+                txt(inlet, "ComponentType").upper() != "RIGID"):
+            continue
+        number, position = txt(inlet, "NodeNumber"), txt(inlet, "Position")
+        try:
+            valid = int(number) > 0
+        except ValueError:
+            valid = False
+        if not valid or not position:
+            continue
+        matches = []
+        for prior in range(bi):
+            earlier = nodes(final_branches[prior])
+            if earlier:
+                terminal = earlier[-1]
+                if (txt(terminal, "Endpoint") == "2" and
+                        txt(terminal, "Rigid") == "2" and
+                        txt(terminal, "ComponentType").upper() == "RIGID" and
+                        txt(terminal, "NodeNumber") == number and
+                        txt(terminal, "Position") == position):
+                    matches.append((prior, len(earlier)-1))
+        if len(matches) != 1:
+            continue
+        prior, last_index = matches[0]
+        left, right = retained[bi][0], retained[prior][last_index]
+        result.append({
+            "aliasBranchOccurrenceIndex": bi,
+            "aliasSourceNodeOrdinal": left,
+            "aliasOccurrenceId": _lineage_oid(
+                source_id, bi, left, nodes(original_branches[bi])[left]),
+            "terminalBranchOccurrenceIndex": prior,
+            "terminalSourceNodeOrdinal": right,
+            "terminalOccurrenceId": _lineage_oid(
+                source_id, prior, right, nodes(original_branches[prior])[right]),
+        })
+    return result
+
+
+def _verify_source_physical_lineage(lineage, packet, original, finalized,
+                                    retained, expected_pairs):
+    require(isinstance(lineage, dict) and
+            lineage.get("schema") == "XML229.SourcePhysicalLineage.v1" and
+            lineage.get("sourceId") == packet.get("sourceId") and
+            lineage.get("basisId") == packet.get("basisId") and
+            lineage.get("sourceXmlSha256") == packet.get("sourceXmlSha256") and
+            lineage.get("weightsAccepted") is False and
+            lineage.get("nativeCiiReleaseAuthorized") is False,
+            "NATIVE_PHYSICAL_LINEAGE_SCHEMA_DRIFT")
+    accepted = {row["occurrenceId"] for row in packet["components"]}
+    owners = lineage.get("physicalOwnerOccurrenceIds")
+    require(isinstance(owners, list) and
+            len(owners) == packet["physicalCount"] and
+            len(set(owners)) == len(owners) and set(owners) == accepted,
+            "NATIVE_PHYSICAL_LINEAGE_OWNER_DRIFT")
+    require(lineage.get("componentEndpointPairs") == expected_pairs,
+            "NATIVE_PHYSICAL_LINEAGE_PAIR_DRIFT")
+    aliases = _expected_branch_aliases(
+        original, finalized, retained, packet["sourceId"])
+    require(lineage.get("branchConnectionAliases") == aliases,
+            "NATIVE_PHYSICAL_LINEAGE_ALIAS_DRIFT")
+    require(all(a["aliasOccurrenceId"] not in accepted and
+                a["terminalOccurrenceId"] in accepted for a in aliases),
+            "NATIVE_PHYSICAL_LINEAGE_OWNER_ALIAS_DRIFT")
+    owner_count, pair_count, alias_count = (
+        packet["physicalCount"], len(expected_pairs), len(aliases))
+    require(lineage.get("sourceOriginalNodeOccurrences") ==
+            sum(len(nodes(br)) for br in original) and
+            lineage.get("retainedNodeOccurrences") ==
+            sum(len(nodes(br)) for br in finalized) and
+            lineage.get("counts") == {
+                "physicalOwners": owner_count,
+                "componentEndpointWitnesses": pair_count,
+                "branchConnectionAliases": alias_count,
+                "sourcePhysicalCandidateOccurrences":
+                    owner_count+pair_count+alias_count,
+            },
+            "NATIVE_PHYSICAL_LINEAGE_COUNT_DRIFT")
+    return True
+
+
 def stage_native_original_lineage(original_path, packet_path):
     """Annotate exact original source occurrences BEFORE staged-JSON enrichment.
 
@@ -513,8 +607,9 @@ def stage_native_original_lineage(original_path, packet_path):
         "physicalOwnerCardinality")
     if card is not None:
         require(isinstance(card, dict) and
-                card.get("schema") ==
-                "XML229.PreAcceptancePhysicalPartCardinality.v1" and
+                card.get("schema") in (
+                    "XML229.PreAcceptancePhysicalPartCardinality.v1",
+                    "XML229.PreAcceptancePhysicalPartCardinality.v2") and
                 card.get("weightsAccepted") is False and
                 card.get("pairedEndpointPhysicalParts") ==
                 endpoint_audit["twoEndpointPhysicalParts"] and
@@ -559,6 +654,18 @@ def stage_native_original_lineage(original_path, packet_path):
         require(all(pair["firstOccurrenceId"] not in accepted
                     for pair in expected_pairs),
                 "NATIVE_NONCANONICAL_ENDPOINT_OWNER")
+        if card["schema"] == "XML229.PreAcceptancePhysicalPartCardinality.v2":
+            require(packet["finalizedGeometry"].get("physicalLineage") is not None,
+                    "NATIVE_PHYSICAL_LINEAGE_REQUIRED")
+    lineage = (packet.get("finalizedGeometry") or {}).get("physicalLineage")
+    if lineage is not None:
+        require(card is not None and
+                card.get("schema") == "XML229.PreAcceptancePhysicalPartCardinality.v2",
+                "NATIVE_PHYSICAL_LINEAGE_SCHEMA_DRIFT")
+        _verify_source_physical_lineage(
+            lineage, packet, source_branches, branches(final_source),
+            packet["finalizedGeometry"]["retainedSourceOrdinalsByBranch"],
+            expected_pairs)
     ns = final_source.tag.rsplit("}", 1)[0] + "}" if "}" in final_source.tag else ""
     ET.SubElement(final_source, ns + LINEAGE_STAGE).text = packet["basisId"]
     output = Path(original_path).with_name(
