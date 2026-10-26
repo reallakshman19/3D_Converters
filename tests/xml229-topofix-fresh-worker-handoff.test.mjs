@@ -148,3 +148,56 @@ test('Topofix manual Final policy survives panel recreation and receipt drift',a
  assert.match(panel,/canXml229AutoCommitSuggestedFinal\(session,\{suppressAutoCommit\}\)/);
  assert.doesNotMatch(panel,/topoFixFreshManualReviewSession/);
 });
+
+const changedFixed=()=>FIXED.replace('<Position>1 0 0</Position>','<Position>2 0 0</Position>');
+test('L3 rejects in-place source mutation while source SHA attestation awaits',async()=>{
+ const h=await harness();let opened=0;
+ h.args.openSession=async()=>{opened++;return h.session;};
+ const pending=startXml229TopoFixFreshWeightSession(h.args);
+ h.args.stateRef.current.sourceText=changedFixed();
+ h.input.xmlText=h.args.stateRef.current.sourceText;
+ await assert.rejects(pending,{code:'TOPOFIX_HANDOFF_STALE_SOURCE'});
+ assert.equal(opened,0);
+});
+test('L3 rejects source replacement during input hydration before opening a Worker',async()=>{
+ const h=await harness();let opened=0;
+ h.args.openSession=async()=>{opened++;return h.session;};
+ h.args.resolveInputs=async()=>{
+  h.args.stateRef.current.sourceText=changedFixed();
+  h.input.xmlText=h.args.stateRef.current.sourceText;return h.input;
+ };
+ await assert.rejects(startXml229TopoFixFreshWeightSession(h.args),
+  {code:'TOPOFIX_HANDOFF_FRESH_O1_AND_FULL_SCOPE_REQUIRED'});
+ assert.equal(opened,0);
+});
+test('L3 cancels a candidate if source changes during Worker startup',async()=>{
+ const h=await harness();
+ h.args.openSession=async({resolveInputs})=>{
+  await resolveInputs();h.args.stateRef.current.sourceText=changedFixed();
+  return h.session;
+ };
+ await assert.rejects(startXml229TopoFixFreshWeightSession(h.args),
+  {code:'TOPOFIX_HANDOFF_WORKER_NOT_FRESH'});
+ assert.equal(h.session.closed,true);
+ assert.equal(getXml229TopoFixFreshWorkerProvenance(h.session),null);
+});
+test('L3 rechecks source at the deferred Worker input callback',async()=>{
+ const h=await harness();
+ h.args.openSession=async({resolveInputs})=>{
+  h.args.stateRef.current.sourceText=changedFixed();
+  await resolveInputs();return h.session;
+ };
+ await assert.rejects(startXml229TopoFixFreshWeightSession(h.args),
+  {code:'TOPOFIX_HANDOFF_STALE_SOURCE'});
+ assert.equal(getXml229TopoFixFreshWorkerProvenance(h.session),null);
+});
+test('L3 permits replacement state objects with unchanged source bytes',async()=>{
+ const h=await harness();
+ h.args.resolveInputs=async()=>{
+  h.args.stateRef.current={...h.args.stateRef.current,unrelatedUiState:'new'};
+  return h.input;
+ };
+ const result=await startXml229TopoFixFreshWeightSession(h.args);
+ assert.equal(result.session,h.session);
+ assert.equal(canXml229AutoCommitSuggestedFinal(h.session),false);
+});
