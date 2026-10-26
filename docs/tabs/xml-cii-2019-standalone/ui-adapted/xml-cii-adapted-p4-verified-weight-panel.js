@@ -1,7 +1,5 @@
 /** XML229 source-attested Weight Match. Original JSON remains in the GC-PW Worker. */
-import {openXml229WorkerHeldOriginalWeightReview} from '../integration/xml229-original-blob-gcpw-client.mjs';
-import {startXml229TopoFixFreshWeightSession}
- from '../integration/xml229-topofix-fresh-worker-handoff.mjs';
+import {openXml229WorkerHeldOriginalWeightReview} from '../integration/xml229-original-blob-gcpw-client.mjs'; import {installXml229TopoFixFreshStartControl} from './xml229-topofix-fresh-worker-control.mjs';
 import {renderXml229VerifiedPanelShell} from './xml229-p4-panel-shell.mjs';
 import {resolveXml229CurrentPreviewBlob} from './xml-cii-adapted-lfj-o1-intake.js';
 import {xmlCiiEnrichedConfigFromState} from './xml-cii-adapted-state.js';
@@ -218,8 +216,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
  const table=root.querySelector('[data-p4-weight-table]');
  const build=root.querySelector('[data-p4-weight-build]');
  const key=stateRef?.modeABaseRef||stateRef;
- let active=getXml229CurrentWorkerHeldReview(stateRef),offset=0,busy=false;
- let topoFixFreshManualReviewSession=null;
+ let active=getXml229CurrentWorkerHeldReview(stateRef),offset=0,busy=false; let topoFixFreshManualReviewSession=null;
  let mode='rigid',query='',pendingBulk=null,searchTimer=null,renderSequence=0,minScorePercent=80,hideShortMm=false;
  let draftOwner=null,draftValues=new Map(),draftWorkspace=null,zeroPopup=null;
  const bindDrafts=session=>{
@@ -259,77 +256,6 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      'to verify the current XML, JSON Blob and four masters again. '+
      'No Match-1/Final decisions were restored or accepted automatically.',true);
  };
- // Explicit pre-Final rebase does not copy an old review backup or run a
- // recommended-weight auto-Final effect from a newly qualified geometry.
- const topofixDetails=document.createElement('details');
- topofixDetails.dataset.xml229TopofixFresh='true';
- topofixDetails.style.cssText='margin:12px 0;padding:8px;border:1px solid #64748b;border-radius:6px';
- const topofixSummary=document.createElement('summary');
- topofixSummary.textContent='TopoFix → new GC-PW Worker (pre-Final only)';
- topofixDetails.append(topofixSummary);
- const help=document.createElement('p');
- help.textContent='First load the committed TopoFix XML as the current Source, re-index the original O1 JSON and select all its branches. Attach the ORIGINAL PSI116 XML and the two committed TopoFix receipts. No previous Final or review backup transfers.';
- topofixDetails.append(help);
- const topofixFiles={};
- for(const [key,label,accept] of [
-   ['original','Original PSI116 XML','.xml,text/xml,application/xml'],
-   ['lineage','Committed TopoFix lineage JSON','.json,application/json'],
-   ['handoff','Verified pre-Final handoff JSON','.json,application/json'],
- ]){
-   const line=document.createElement('label');
-   line.textContent=label+' ';
-   line.style.cssText='display:block;margin:6px 0';
-   const input=document.createElement('input');
-   input.type='file';input.accept=accept;input.dataset.xml229TopofixFile=key;
-   line.append(input);topofixFiles[key]=input;topofixDetails.append(line);
- }
- const startTopofix=document.createElement('button');
- startTopofix.type='button';
- startTopofix.textContent='Verify and start NEW GC-PW Worker';
- startTopofix.dataset.action='xml229-topofix-fresh-worker';
- const topofixStatus=document.createElement('p');
- topofixStatus.setAttribute('role','status');
- topofixDetails.append(startTopofix,topofixStatus);
- build?.parentElement?.append(topofixDetails);
- startTopofix.addEventListener('click',async()=>{
-   if(busy)return;
-   busy=true;startTopofix.disabled=true;
-   root.dataset.p4ReadReady='false';
-   const previous=active;
-   try{
-     const [originalFile,lineageFile,handoffFile]=[
-       topofixFiles.original.files?.[0],topofixFiles.lineage.files?.[0],
-       topofixFiles.handoff.files?.[0]];
-     if(!originalFile||!lineageFile||!handoffFile||
-        [originalFile,lineageFile,handoffFile].some(file=>!file.size||file.size>24*1024*1024))
-       err('TOPOFIX_HANDOFF_FILES_REQUIRED',
-         'Original XML and both receipts must be selected (up to 24 MiB each)');
-     const [originalXmlText,lineageText,handoffText]=await Promise.all([
-       originalFile.text(),lineageFile.text(),handoffFile.text(),
-     ]);
-     const lineageReceipt=JSON.parse(lineageText);
-     const handoffReceipt=JSON.parse(handoffText);
-     const result=await startXml229TopoFixFreshWeightSession({
-       stateRef,originalXmlText,lineageReceipt,handoffReceipt,
-       previousSession:previous,resolveInputs,
-       openSession:({resolveInputs:qualifiedInputs})=>openXml229P4VerifiedSession(
-         stateRef,{resolveInputs:qualifiedInputs,
-           onProgress:stage=>{topofixStatus.textContent='New Worker: '+stage;}}),
-       isCurrent:()=>root.isConnected!==false,explicitUserAction:true,
-     });
-     active=result.session;
-     topoFixFreshManualReviewSession=active;
-     offset=0;clearDrafts();
-     await render({suppressAutoCommit:true});
-     root.dataset.p4ReadReady='true';
-     topofixStatus.textContent='Fresh source-bound Worker verified. No previous Final decisions transferred; engineering review remains required.';
-     say('TopoFix new GC-PW source basis ready. Final and native CII remain held.');
-   }catch(error){
-     const code=String(error?.code||'TOPOFIX_HANDOFF_FAILED');
-     topofixStatus.textContent='HOLD ['+code+']: source or receipts not independently attested.';
-     say('TopoFix handoff held ['+code+']. No Final decisions were transferred.',true);
-   }finally{busy=false;startTopofix.disabled=false;}
- });
  const render=async({suppressAutoCommit=false}={})=>{
    if(!active)return;
    const session=active,token=++renderSequence;
@@ -494,7 +420,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      void render().catch(error=>say('Source-bound filter unavailable: '+String(error.message||error),true));
    }
  });
- build?.addEventListener('click',async()=>{
+ installXml229TopoFixFreshStartControl({build,root,stateRef,resolveInputs,getPreviousSession:()=>active,isBusy:()=>busy,setBusy:v=>{busy=v;},say,openSession:qualifiedInputs=>openXml229P4VerifiedSession(stateRef,{resolveInputs:qualifiedInputs}),activateSession:async session=>{active=session;topoFixFreshManualReviewSession=session;offset=0;clearDrafts();await render({suppressAutoCommit:true});root.dataset.p4ReadReady='true';}});build?.addEventListener('click',async()=>{
    if(busy)return;busy=true;build.disabled=true;
    const prev=active;
    root.dataset.p4ReadReady='false';
