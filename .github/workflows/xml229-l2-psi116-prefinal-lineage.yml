@@ -38,5 +38,5 @@ jobs:
         run: |
           python -m py_compile converters/psi116_topology_resolver/*.py
           python tests/psi116_topofix_transaction.py
-      - name: Actual standalone PSI116 TopoFix / CII regression
-        run: node tests/xml-cii-standalone-topofix-live-proof.test.js
+      - name: Actual PSI116 Sidecar lineage + manifest without native CII
+        run: TOPOFIX_L2_PREFINAL_ONLY=1 node tests/xml-cii-standalone-topofix-live-proof.test.js

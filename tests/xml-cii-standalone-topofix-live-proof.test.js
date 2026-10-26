@@ -190,6 +190,31 @@ function ciiBendRadii(ciiText) {
     assert(fixedNodeNumbers.filter((value) => value === 1570).length >= 2);
     assert(fixedNodeNumbers.includes(1610));
 
+    // L2 is a PRE-FINAL topology-basis proof, not a legacy CII writer
+    // compatibility gate. Preserve the downstream native test by default.
+    if (process.env.TOPOFIX_L2_PREFINAL_ONLY === '1') {
+      const evidence = readiness.buildStandaloneOutputRunReadiness({
+        sourceKind: 'xml',
+        sourceText: sourceBefore.toString('utf8'),
+        supportConfigJson: '{}',
+        options: { ...transactionJob.options, useTopoFixForCii: false },
+        result: {
+          ok: true,
+          enrichedText: stage.topoFixXmlText,
+          enrichedName: stage.topoFixXmlName,
+          ciiText: null,
+          diagnostics: { topology: stage.topologySummary },
+          ...stage,
+        },
+      });
+      assert.strictEqual(evidence.manifest.artifacts.topoFixLineage, true);
+      assert.strictEqual(evidence.manifest.artifacts.cii, false);
+      assert.strictEqual(evidence.manifest.topology.preFinalLineageReceiptAvailable, true);
+      assert.strictEqual(sha256(fs.readFileSync(fixtureXml)), sourceHashBefore);
+      console.log('PSI116 L2 pre-Final lineage stage passed; native CII was NOT_RUN.');
+      return;
+    }
+
     const ciiPath = path.join(proofRoot, 'FirstpassXML.topofix.cii');
     const diagnosticsPath = path.join(proofRoot, 'FirstpassXML.topofix.cii.log');
     run('python', [
