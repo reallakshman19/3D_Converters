@@ -29,10 +29,16 @@ async function completion(page){return page.evaluate(async()=>
  (await window.journey.panel.getSession?.()?.readCompletion())||
  (await window.journey.worker().readCompletion()));}
 async function enterMass(page,value){
+ // A visible suggestion can already equal value. Clear/blur first so this is
+ // an explicit edit, then wait for the UI's completed authoritative write.
+ await page.locator('[data-p4-applied-weight]').fill('');
+ await page.locator('[data-p4-applied-weight]').press('Tab');
  await page.locator('[data-p4-applied-weight]').fill(String(value));
  await page.locator('[data-p4-applied-weight]').press('Tab');
- await page.waitForFunction(async()=>
-  (await window.journey.worker().readCompletion()).counts.final===1,null,{timeout:120000});
+ await page.waitForFunction(()=>/Applied Weight recorded in the verified Worker/.test(
+  document.querySelector('[data-p4-weight-status]')?.textContent||''),null,{timeout:120000});
+ const proof=await completion(page);
+ assert.equal(proof.counts.final,1);assert.equal(proof.counts.unresolved,0);
 }
 try{
  browser=await chromium.launch({headless:true});

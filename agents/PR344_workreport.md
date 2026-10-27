@@ -124,3 +124,7 @@ Added one pending-manual-fence line initially exceeded the existing <=620-line P
 Representative unrelated legacy checks fail before browser execution at pinned merge-base 4f14beb37bc0b719453c52a116c1c5d7183d2fd0 versus current base 0d4908eb. Existing narrow C05 changed-file scope gates also require classification. No workflow edits are authorized or attempted. Keep these separate from the introduced ratchet defect and native journey failure.
 
 Follow-up changed-file ledger additions: `agents/PR344_workreport.md`, root/docs `xml229-p4-config-equivalence.mjs`. Existing WIP status/claim filenames remain unique and explicitly point to PR344.
+
+## Native-wait isolation at 10d9d555
+
+Browser job 122206632639 (run40509293541) confirms fresh basis/generation, manual-only provenance and Final0→0 after panel recreation. At attempted Run its authoritative census remained unresolved=1, Final=0, so production correctly withheld conversion. The test had filled a field with the identical already-visible 12.5 kg draft and then relied on an async poll without confirming UI write completion. Such a draft is correctly not acceptance. The test is corrected to perform a deliberate clear/blur/edit and await the actual completed UI write, then explicitly assert Final=1/unresolved=0 before navigation. No production acceptance rule changes. Exact native journey remains FAIL until rerun. The P4 Node22/24 contract checks pass at10d9d555; ratchet regression is resolved.
