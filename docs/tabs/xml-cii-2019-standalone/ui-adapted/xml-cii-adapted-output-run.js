@@ -206,6 +206,7 @@ function topologyArtifactRows(result) {
     { kind: 'topofix-transaction', label: 'TopoFix Transaction JSON', filename: result?.topoFixTransactionName, value: result?.topoFixTransactionText, mime: 'application/json;charset=utf-8' },
     { kind: 'topofix-validation', label: 'TopoFix Validation JSON', filename: result?.topoFixValidationName, value: result?.topoFixValidationText, mime: 'application/json;charset=utf-8' },
     { kind: 'topofix-lineage', label: 'Pre-Final TopoFix Source Lineage JSON', filename: result?.topoFixLineageName, value: result?.topoFixLineageText, mime: 'application/json;charset=utf-8' },
+    { kind: 'topofix-handoff', label: 'Verified TopoFix Fresh-Basis Handoff JSON', filename: result?.topoFixPreFinalHandoffName, value: result?.topoFixPreFinalHandoffText, mime: 'application/json;charset=utf-8' },
   ].map((row) => ({ ...row, available: text(row.value).length > 0, bytes: new TextEncoder().encode(text(row.value)).length }));
 }
 

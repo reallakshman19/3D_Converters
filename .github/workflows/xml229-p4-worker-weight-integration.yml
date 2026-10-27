@@ -26,6 +26,7 @@ on:
       - 'scripts/xml-cii-229-p4-private-scope-audit.mjs'
       - 'tests/xml-cii-229-p4-worker-held-blob-review-browser.mjs'
       - 'tests/xml-cii-229-p4-worker-held-weight-panel-browser.mjs'
+      - 'tests/xml229-topofix-fresh-worker-reattach-browser.mjs'
       - 'converters/xml-cii2019-core/weight-family-eligibility.js'
       - 'docs/converters/xml-cii2019-core/weight-family-eligibility.js'
       - 'converters/xml-cii2019-core/weight-facts-xml-cii-adapter.js'
@@ -148,3 +149,4 @@ jobs:
           node tests/xml229-p4-two-click-real-worker-browser.mjs
           node tests/xml-cii-229-p4-worker-held-blob-review-browser.mjs
           node tests/xml-cii-229-p4-worker-held-weight-panel-browser.mjs
+          node tests/xml229-topofix-fresh-worker-reattach-browser.mjs

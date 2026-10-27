@@ -906,7 +906,7 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
 
     RIGID ownership must be unique, the ELEMENTS -> RIGID pointer must agree,
     and the actual row must equal accepted kg * 10 within 6-digit formatting.
-    Extra positive RIGID records or one-to-many ownership fail closed.
+    Any unclaimed nonzero RIGID record or one-to-many ownership fails closed.
     """
     require(scale == 10, "CII_NATIVE_MASS_SCALE_UNSUPPORTED")
     slots, emitted = emitted_sections(cii_text)
@@ -1006,7 +1006,7 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
             "CII_NATIVE_CENSUS_INCOMPLETE")
     for i, edge in enumerate(edges):
         if i not in used:
-            require(abs(emitted[i]) <= 1e-6,
+            require(emitted[i] == 0,
                     "CII_NATIVE_UNCLAIMED_POSITIVE_RIGID")
     return {"schema": "XML229.NativeRigidConsumptionDiagnostic.v1",
             "sourcePhysicalCount": len(owners),

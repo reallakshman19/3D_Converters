@@ -17,6 +17,12 @@ function prepareEsmFixture() {
   assert(imports.includes('./xml-cii-adapted-authority-migration.js'),
     'side-effect schema migration missing from ESM fixture dependency closure');
   assert(imports.includes('./xml-cii-adapted-preview-dryrun-core.js?v=1'));
+  const panelImports=staticModuleSpecifiers(read(
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js'));
+  assert(panelImports.includes('./xml229-topofix-fresh-worker-control.mjs'),
+    'Topofix UI control must be statically discoverable in ESM closure');
+  assert(panelImports.includes('../integration/xml229-topofix-fresh-worker-handoff.mjs'),
+    'Topofix persistent session policy must be discoverable in ESM closure');
   const fixture = createStaticEsmFixture(root, {
     prefix: 'xml-cii-output-run-test-',
     entryFiles: [
@@ -27,6 +33,12 @@ function prepareEsmFixture() {
       'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-state.js',
     ],
   });
+  assert(fixture.files.includes(
+    'tabs/xml-cii-2019-standalone/ui-adapted/xml229-topofix-fresh-worker-control.mjs'
+  ), 'Run UI fixture must include its Topofix control module');
+  assert(fixture.files.includes(
+    'tabs/xml-cii-2019-standalone/integration/xml229-topofix-fresh-worker-handoff.mjs'
+  ), 'Run UI fixture must include the persistent Topofix Final guard');
   assert(fixture.files.includes(
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-authority-migration.js'
   ), 'Run UI fixture must copy its real schema/cache migration side-effect import');

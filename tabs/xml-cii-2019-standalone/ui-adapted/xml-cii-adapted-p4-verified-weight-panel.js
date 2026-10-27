@@ -1,5 +1,6 @@
-/** XML229 source-attested Weight Match. Original JSON remains in the GC-PW Worker. */
 import {openXml229WorkerHeldOriginalWeightReview} from '../integration/xml229-original-blob-gcpw-client.mjs';
+import {installXml229TopoFixFreshStartControl} from './xml229-topofix-fresh-worker-control.mjs';
+import {canXml229AutoCommitSuggestedFinal} from '../integration/xml229-topofix-fresh-worker-handoff.mjs';
 import {renderXml229VerifiedPanelShell} from './xml229-p4-panel-shell.mjs';
 import {resolveXml229CurrentPreviewBlob} from './xml-cii-adapted-lfj-o1-intake.js';
 import {xmlCiiEnrichedConfigFromState} from './xml-cii-adapted-state.js';
@@ -226,8 +227,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    draftOwner=session;draftValues=draftWorkspace.drafts;
    showXml229DraftRecoveryNotice(root,draftWorkspace,downloadTextFile);
  };
- const persistDrafts=()=>{if(draftWorkspace&&draftOwner===active&&live()===active)
-     return saveXml229RecoveryDrafts(draftWorkspace);
+ const persistDrafts=()=>{if(draftWorkspace&&draftOwner===active&&live()===active)return saveXml229RecoveryDrafts(draftWorkspace);
    return 0;
  };
  const clearDrafts=()=>{draftOwner=null;draftWorkspace=null;draftValues=new Map();
@@ -269,7 +269,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const count=hydrateXml229WeightDraftInputs(table,page.rows,draftValues);
    persistDrafts(); // Source-basis-bound backup before any authoritative write.
    // Visible source-ranked selections go directly through protected Final CAS.
-   const {committed,stale}=suppressAutoCommit?{committed:0,stale:false}:await commitXml229VisibleSelectedFinal({
+   const {committed,stale}=(!canXml229AutoCommitSuggestedFinal(session,{suppressAutoCommit}))?{committed:0,stale:false}:await commitXml229VisibleSelectedFinal({
      session,rows:page.rows,drafts:draftValues,
      isCurrent:()=>token===renderSequence&&active===session&&live()===session,
      onError:error=>say('Applied Weight could not be recorded ['+
@@ -420,7 +420,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
      void render().catch(error=>say('Source-bound filter unavailable: '+String(error.message||error),true));
    }
  });
- build?.addEventListener('click',async()=>{
+ installXml229TopoFixFreshStartControl({build,root,stateRef,resolveInputs,getPreviousSession:()=>active,isBusy:()=>busy,setBusy:v=>{busy=v;},say,openSession:qualifiedInputs=>openXml229P4VerifiedSession(stateRef,{resolveInputs:qualifiedInputs}),activateSession:async session=>{active=session;offset=0;clearDrafts();await render({suppressAutoCommit:true});root.dataset.p4ReadReady='true';}});build?.addEventListener('click',async()=>{
    if(busy)return;busy=true;build.disabled=true;
    const prev=active;
    root.dataset.p4ReadReady='false';
