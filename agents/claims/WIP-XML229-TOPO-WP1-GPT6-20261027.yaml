@@ -1,0 +1,14 @@
+work_id: WIP-XML229-TOPO-WP1-GPT6-20261027
+owner: ChatGPT GPT-6 receiving implementation agent
+state: ACTIVE_WP1
+classification: ENGINEERING_CRITICAL
+base: 0e14160cb985247d97ee6ae673387f061eeed1f7
+branch: feat/xml229-topology-workspace-wp1-20261027
+report: agents/WIP-XML229-TOPO-WP1-GPT6-20261027_workreport.md
+scope: isolated standalone PSI116 topology XML loading, occurrence scene, picking, navigation, actual topology-only analysis, root/docs mirrors and focused tests
+intended_paths: topology-workspace.html, docs/topology-workspace.html, tabs/topology-workspace/**, docs/tabs/topology-workspace/**, tests/xml229-topology-workspace-wp1.test.mjs
+protected: engine.js, topology-integration.js, xml229 orchestration, 5B legacy panel, native writer, topology numerical solver/policy, GC-PW, masses, Final, workflows
+coordination: PR329 open shared engine/orchestration authority; no shared source edit. PR335 native simplification out of scope
+baseline: NOT_RUN checkout failed DNS exit 128; no product failure inferred
+private_model: NOT_AVAILABLE
+merge_authority: OWNER_ONLY
