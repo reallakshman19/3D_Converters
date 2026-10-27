@@ -20,7 +20,7 @@ function inspectRecord(record) {
     ['Source Weight (not Final)',record.weight || '(blank)'],
   ];
   return '<dl>'+facts.map(([name,value])=>'<dt>'+esc(name)+'</dt><dd>'+esc(value)+'</dd>').join('')+
-    '</dl><h3>Original source XML</h3><pre>'+esc(record.xmlFragment)+'</pre>';
+    '</dl><h3>Occurrence XML (DOM-serialized; not original bytes)</h3><pre>'+esc(record.xmlFragment)+'</pre>';
 }
 function recordButton(record,selected) {
   const name=record.nodeNumberRaw || '(no label)';
