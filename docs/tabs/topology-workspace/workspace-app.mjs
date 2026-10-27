@@ -115,7 +115,7 @@ export function mountTopologyWorkspace(root, {runEngine=runXmlCii2019StandaloneE
       state.source={sourceText,sourceSha256,rawSha256,name:file.name};
       state.scene=scene;canvas.setScene(scene);
       query(root,'[data-source-meta]').textContent=file.name+' · '+scene.branches.length+
-        ' branches · '+scene.records.length+' original occurrences · text SHA256 '+sourceSha256.slice(0,16)+
+        ' branches · '+scene.records.length+' original occurrences · text SHA256 '+sourceSha256+
         (rawSha256!==sourceSha256?' · raw bytes differ':'');
       updateStatus('Source loaded. Geometry is for inspection; select Analyze for real PSI116 findings.');
     } catch(error) {
