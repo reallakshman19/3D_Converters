@@ -209,11 +209,15 @@ try{
  assert.equal(backup.finalizedGeometrySha256,
               packet.finalizedGeometry.sha256);
  assert.equal(backup.physicalOwnerSchema,
-              'XML229.PreAcceptancePhysicalPartCardinality.v1');
+              'XML229.PreAcceptancePhysicalPartCardinality.v2');
  assert.equal(wrongGeometryRejected,'REVIEW_BACKUP_FINAL_GEOMETRY_MISMATCH');
  assert.equal(packet.physicalCount,1);
  assert.equal(packet.components[0].effectiveKg,35.5);
  assert.equal(packet.finalizedGeometry.schema,'XML229.FinalizedWeightGeometry.v1');
+ assert.equal(packet.finalizedGeometry.physicalLineage.schema,'XML229.SourcePhysicalLineage.v1');
+ assert.equal(packet.finalizedGeometry.physicalLineage.counts.physicalOwners,1);
+ assert.deepEqual(packet.finalizedGeometry.physicalLineage.branchConnectionAliases,[]);
+ assert.equal(packet.finalizedGeometry.physicalLineage.nativeCiiReleaseAuthorized,false);
  assert.equal(packet.finalizedGeometry.originalNodeCount,3);
  assert.deepEqual(packet.finalizedGeometry.retainedSourceOrdinalsByBranch,[[1,2]]);
  assert.ok(!packet.finalizedGeometry.xmlText.includes('<ComponentType>GASK</ComponentType>'));

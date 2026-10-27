@@ -272,7 +272,7 @@ export async function openXml229EngineeringFactModel({
     fail('FINALIZED_GEOMETRY_SERIALIZER_REQUIRED','XML serializer unavailable');
   const finalizedGeometry=await finalizeXml229WeightGeometry({
     basis,projection,branches,prepared,physical,sourceNodeByOrdinal,
-    nonOwnerEndpointStarts,sourceId,
+    nonOwnerEndpointStarts,componentSuppressionPairs:canonicalEndpointPairs,sourceId,
   },{children,field,fail,canonicalJson});
   const workerResult=Object.freeze({
     ...previewResult,

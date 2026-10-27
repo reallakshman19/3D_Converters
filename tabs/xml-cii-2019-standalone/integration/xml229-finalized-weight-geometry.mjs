@@ -6,6 +6,8 @@ import {physicalOccurrenceId} from '../../../contracts/gc-pw-v1/occurrence-bridg
 import {digestUtf8} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {isXmlCiiWeightReviewNode,isXmlCiiWeightReviewConnectionEligible}
   from '../../../converters/xml-cii2019-core/weight-match-model.js';
+import {buildXml229PhysicalLineage}
+  from './xml229-physical-component-lineage.mjs';
 
 function assignSourceNodeNumbers({projection,branches,prepared,children,field,fail}){
   // Pre-acceptance topology normalization: a nonpositive NodeNumber is an
@@ -171,7 +173,7 @@ function attestPhysicalEndpointPairs({physical,branches,prepared,sourceNodeByOrd
 
 export async function finalizeXml229WeightGeometry({
   basis,projection,branches,prepared,physical,sourceNodeByOrdinal,
-  nonOwnerEndpointStarts,sourceId,
+  nonOwnerEndpointStarts,componentSuppressionPairs=[],sourceId,
 },{children,field,fail,canonicalJson}){
   const assignedNodeNumbers=assignSourceNodeNumbers({
     projection,branches,prepared,children,field,fail,
@@ -186,9 +188,15 @@ export async function finalizeXml229WeightGeometry({
   const endpointPairs=attestPhysicalEndpointPairs({
     physical,branches,prepared,sourceNodeByOrdinal,sourceId,children,field,canonicalJson,
   });
+  const physicalLineage=buildXml229PhysicalLineage({
+    basis,projection,branches,prepared,physical,endpointPairs,
+    componentSuppressionPairs,
+    nonOwnerEndpointStarts,sourceNodeByOrdinal,sourceId,
+  },{children,field,fail,canonicalJson});
+  // Legacy physical witness count excludes a cross-branch connection alias.
   const physicalOwnerCardinality=Object.freeze({
-    schema:'XML229.PreAcceptancePhysicalPartCardinality.v1',
-    sourcePhysicalNodeOccurrences:physical.length+nonOwnerEndpointStarts.size,
+    schema:'XML229.PreAcceptancePhysicalPartCardinality.v2',
+    sourcePhysicalNodeOccurrences:physical.length+endpointPairs.length,
     reviewedPhysicalNodeOccurrences:physical.length,
     pairedEndpointPhysicalParts:endpointPairs.length,
     distinctPhysicalPartCandidates:physical.length,
@@ -198,6 +206,7 @@ export async function finalizeXml229WeightGeometry({
   const finalizedGeometry=Object.freeze({
     schema:'XML229.FinalizedWeightGeometry.v1',
     physicalOwnerCardinality,
+    physicalLineage,
     basisId:basis.basisId,sourceXmlSha256:basis.sourceRefs[0].sha256,
     xmlText:finalXmlText,sha256:await digestUtf8(finalXmlText),
     originalNodeCount:prepared.ledger.originalCount,
