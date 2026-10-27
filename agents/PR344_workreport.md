@@ -1,84 +1,81 @@
-# XML229 TopoFix → fresh Weight → native Run repair
+# XML229 TopoFix → fresh Weight → verified native Run
 
-REPORT_BASIS_HEAD: 3b1d783cd9fb59b1570ec5f26aa994ecf904a2a3
+REPORT_BASIS_HEAD: 2033d03fda2401a078f2d17d881626c05451bb9e
 PR: #344 · Draft · oracle/xml229-topology-fresh-run-20261027
-WORK_ID: WIP-XML229-TOPOLOGY-RUN-20261027
-WORK_INTENT: IMPLEMENT · NEW_PR_REQUIRED · WRITE_ALLOWED · ENGINEERING_CRITICAL
-Actor: Oracle standalone, chat ID UNKNOWN. Independent Reviewer routing label: 6adef8f2 (identity not authenticated here).
-Owner source task: “fix it” for missing TopoFix second review and native-final-intent NOT_REACHED.
-Merge authority: NOT_GRANTED for this new PR. Previous explicit 340–343 merge instruction was completed separately.
+WORK_INTENT: IMPLEMENT · ENGINEERING_CRITICAL · technical work complete; review/merge pending
+Actor: Oracle standalone, chat ID UNKNOWN. Independent Reviewer routing label 6adef8f2 is not Oracle and is not authenticated here.
+Owner instruction: “fix it” for missing TopoFix second Weight review and native-final-intent NOT_REACHED.
 
 ## Handover in 60 seconds
 
-Production implementation is published in Draft PR344. First real Chromium run completed the new topology analysis/explicit commit, genuine O1 reindex/new generation, old Worker revocation, new manual Worker with Final=0, panel recreation with Final still zero, and explicit fixture Final edit. Native download timed out: the full journey is FAIL pending diagnosis, not PASS. A follow-up adds early native-result diagnostics and fixes a controller size regression by extracting unchanged semantic config equality; no test limit is relaxed. No workflow edit. The original private Owner model is absent; never claim its mass release from fixture evidence. Do not enable Download by bypassing actual native verification.
+The complete new root AND docs browser journey PASSED at 2033d03f: actual topology analysis/explicit action commit → genuine O1 File reindex/new generation → old Worker revoked → new manual-only Worker with Final=0 → panel recreation stays Final0 → explicit fixture Final12.5kg → automatic actual WASM native Run → independent per-occurrence emitted-CII reconciliation → actual automatic browser .cii download. Both routes emitted SHA-256 dfb68211cc96feea6f6e25233df4eafdd91ae8a841ebed0cbd0eda29ec468f3c. This is a synthetic fixture, not the current private Owner model.
 
-Confirmed first wrong boundary: generateTopoFix=true with no reviewed IDs blocks native Run before topology can execute. The previous UI exposed only checkboxes/action-ID text; it offered no topology-only analysis/review/commit entry point. FINAL_INTENT_NOT_OBSERVED is a downstream symptom, not missing kilograms.
+Browser evidence: workflow run40510136527, job122209554983, Node22.23.3, Playwright1.52.0, status success. Exact machine receipt: agents/evidence/PR344-topology-browser-journey.json. Oracle inspected REMOTE_EXECUTION logs; no local browser run or independent reviewer identity is claimed.
 
-New UI provides explicit Analyze → select actual proposed actions → Commit → Open NEW Weight review. The serialized existing engine returns topology-only sidecars before enrichment/native conversion. The fixed-source transition attests exact L2 node lineage, revokes the old Worker, creates an actual File for committed XML, clears old Final/backup/override authority, re-indexes the original O1 File through existing real source Worker/IDB, and starts existing L3 with actual current four-master custody. It navigates to the existing Weight panel; the new Worker is manual-only. A failed transition keeps a pending fence and native HOLD even if request checkboxes are cleared; its later panels cannot auto-accept suggestions. Successful handoff clears pending topology flags, permitting existing automatic native Run only after fresh explicit Final decisions and exact output verification.
+PR344 remains unmerged and undeployed. Main is still 0d4908eb3af1fcafee4436671675d7790f6322b2. The previous instruction to merge 340–343 is completed and does not authorize this PR's merge. Current private Owner release remains INCOMPLETE—HOLD pending exact actual model proof. New Final values in CI are explicit synthetic test inputs only.
 
-## Ground truth and coordination
+## Diagnosis and production behavior
 
-Main remains 0d4908eb, tree d65d0a8ddf1edae06cdad901e36cc9bb5b66e013 (same production tree as reviewed PR343 b90d4856). PR340/341/342/343 are merged. This new Owner assignment is not a takeover of an incoming implementation PR: no inherited Appendix A grade or blanket exception is invented. Source tracing, independent failure isolation and protected invariants were inspected before mutation.
+Before: generateTopoFix=true with zero reviewed action IDs blocked native Run before topology could execute. The old Run UI exposed flags/action-ID text and downloads, but no usable topology-only Analyze/Review/Commit action before that gate. FINAL_INTENT_NOT_OBSERVED was a downstream symptom, not missing kilograms.
 
-88 live open PRs inventoried. #329 head 90f8a7b1287b31aae701278a3d0faf09d530029f overlaps engine/output UI/native orchestration: COORDINATION_REQUIRED; its branch and changes are not used. #335 concerns native short-element simplification, outside scope. agents/MASTER_INDEX.md and #329 status/claim paths returned 404 at main; no hidden exclusive claim inferred. Refresh overlap and base before any further stage or merge. No messages sent to other agents.
+After: Run provides Analyze topology, explicit eligible-action checkboxes, Commit selected actions, and Open NEW Weight review from TopoFix. No action is preselected. The existing serialized engine returns actual topology/transaction/lineage sidecars before enrichment/native conversion and refuses staged JSON/mass packets in this topology-only job. Committed XML is attested through L2 node coverage/semantic SHA. The transition clears old Final/backup/override authority, retains actual current master rows, revokes the old Worker, creates an actual committed-XML File, re-indexes the genuine O1 File through the existing source Worker and durable IDB commit, then uses the existing L3 attestation/current four-master resolver/engineering Worker opener. It navigates to the existing Weight panel. Persistent per-session manual provenance survives panel remounts.
 
-Workspace: xml229-run-topology-fix is an isolated partial materialization, not a complete Git checkout. Publish ONLY reviewed changed paths as Git-data overlay on exact remote base tree; never rebuild the repository from this partial snapshot. Original xml229-production and the verified rehearsal remain unchanged. Backups made with utils/backup.js; .backups/log.json is excluded from publication.
+A failed transition keeps a pending/manual/native fence even if request flags are cleared. No old Final is restored. A successful fresh handoff clears pending topology requests. Once explicit new-basis Final decisions are complete, the existing automatic native Run, actual writer, independent emitted-record parser and download controls operate normally. The waiting banner and HOLD audit show the true topology prerequisite instead of an unconditional automatic-start promise. Transient sidecar display cannot overwrite native bytes/proof.
 
-## Protected authority and limits
+## Protected authority / supported scope
 
-Geometry/planner/transaction policy, mass-owner predicates, kilograms, numerical tolerances, native writer, native Final protocol and actual emitted-CII reconciler are unchanged. Existing runtime and canvas implementation retained; the canvas edit changes only the waiting message. No action is preselected, no old Final ledger migrates, no CII is emitted by topology-only jobs, no release gate is weakened. The new pending/manual fence adds protection and cannot grant authority.
+No changes to geometry/planner/transaction policy, mass-owner predicates, kg formulas, numerical tolerances, native writer, native Final CAS protocol or independent actual-CII reconciler. Existing runtime/queue retained; canvas edit changes only status text. No workflow edits. Do not choose topology actions or accept real Owner weights, transfer old Final authority, guess ownership or bypass native proof.
 
-Only complete single-source PSI116 XML/O1 is supported by this new transition, matching existing O1 authority. Partial branch selections and ambiguous/blocked actions fail closed. Genuine O1 and all four current masters are required; explicit dependency ports are confined to tests. The private PL-01 source/O1/masters/current Final/native output packet has not been supplied. The nine separate public Firstpass native owner issues and other benchmark families are not certified by this PR.
+Only a complete single PSI116 XML/O1 source is supported by the new transition, matching existing O1 authority. Stale source/master/scope, invalid selections and blocked topology actions fail closed. The private PL-01 original/O1/four masters/current Final/native package was not supplied. Its acceptance, Node2810 relationship, separate nine Firstpass raw-source owner cases and other benchmark families are not certified by the synthetic browser success.
 
-## Current implementation / changed-file purpose
+## Ground truth / coordination / location
 
-- engine.js: existing serialized topology-only early return, refuses mass packets/staged JSON, no enrichment/writer invocation.
-- xml-cii-adapted-lfj-o1-intake.js: genuine O1 File rescan wrapper, new generation and same original JSON SHA required, stale/superseded scan revoked.
-- topology-review-controller.mjs + topology-review-ui.mjs: source-bound transient plan, explicit eligible action selection, commit and fresh-review controls, source-bound sidecar downloads. Does not replace native bytes/proof.
-- topology-fresh-review.mjs: actual L2 attestation and O1/L3 transition, old authority cleared, master rows retained, failure/pending fence and new Weight navigation.
-- p4-verified-weight-panel.js: suppress implicit Final while a failed fresh-source transition remains pending; successful L3 uses existing persistent session policy.
-- output-run.js: actual topology controls reachable before native gate; sidecars visible; existing independent governed Run path retained.
-- output-run-readiness.js + run-hold-audit.mjs + native-cii-candidate-run.mjs: identify/hold pending pre-Final topology before reading native Final intent; cannot silently ignore topology requests.
-- run-waiting-message.mjs + cii-preview-canvas.js: show the actual first blocking prerequisite instead of an unconditional automatic-start promise.
-- Every changed production path has a byte-identical docs/ mirror.
-- Existing output-run and Chromium test entrypoints invoke the new regressions without workflow edits.
+Base main0d4908eb, tree d65d0a8ddf1edae06cdad901e36cc9bb5b66e013. Merged 340/341/342/343 are dependencies. This was a new Owner assignment, not takeover of another implementation PR; no Appendix A grade or blanket exception is invented. A future engineering implementation takeover must re-ground and qualify under the repository protocol.
+
+88 prior open PRs inventoried before mutation; #329 at90f8a7b1287b31aae701278a3d0faf09d530029f overlaps orchestration authority (COORDINATION_REQUIRED). Its branch/code is untouched. #335 short-element simplification is outside scope. MASTER_INDEX and #329 status/claims returned404 at main; no exclusive claim inferred. Refresh before further implementation/merge. No subagents, timers or person-directed messages launched.
+
+Local xml229-run-topology-fix is an isolated partial materialization, not a full checkout. Publications overlay only reviewed paths onto the exact full remote base tree using Git data and expected-head leases. Never reconstruct the repository from the partial snapshot. Original xml229-production and the verified rehearsal remain unchanged. Mandatory backups exist locally; backup logs are excluded from the PR.
 
 ## Validation ledger
 
-All execution below uses local Node v24.22.1/Python 3, not an independent reviewer identity. Tests with explicit ports are implementation integration evidence; real-WASM/public-source and independent-native parse evidence are separately identified.
-
-| Check | Status / observation | Evidence / oracle / limitation |
+| Check | Result / observation | Boundary |
 | --- | --- | --- |
-| Original stall reproduction | PASS LOCAL_EXECUTION | Production readiness and auto-run predicates with explicitly synthetic receipts isolate zero-ID pre-run gate. |
-| Output/Run fixture dependency closure + 17 new regressions | PASS LOCAL_EXECUTION | node tests/xml-cii-standalone-output-run.test.js. Explicit race ports, real public Python TopoFix, actual source transition and real vendored WASM engine. |
-| Real WASM topology-only engine | PASS LOCAL_EXECUTION | Exact engine text loaded through VM, only file-URL transport adapted for Node. Actual public transaction 216→215; mass/staged/nonXML inputs refused; no enriched/CII/native diagnostic. |
-| Fresh transition adversarial cases | PASS LOCAL_EXECUTION | Source/master/selection drift before Worker, candidate cancellation, clearing old authority, retaining actual master rows; explicit boundary ports disclosed. |
-| Existing L3 source-binding regressions | PASS LOCAL_EXECUTION | 10/10, stale awaits/candidate cancellation/provenance/manual policy. |
-| Actual native CLI + independent JS reconciliation | PASS LOCAL_EXECUTION | 3/3 existing synthetic tests; actual native CII bytes and tampered mass rejection. Not private Owner proof. |
-| Native mass Python | PASS LOCAL_EXECUTION | 21/21 existing tests. |
-| Public topology Python | PASS LOCAL_EXECUTION | 7/7, including actual public source/lineage transactions. |
-| Public L2 pre-Final live path | PASS LOCAL_EXECUTION | TOPOFIX_L2_PREFINAL_ONLY=1 node tests/xml-cii-standalone-topofix-live-proof.test.js; its native conversion explicitly NOT_RUN. |
-| Root/docs syntax and parity | PASS LOCAL_EXECUTION / REMOTE_EXECUTION | All initially changed 12 production pairs exact; new equality helper also mirrored. |
-| New real Chromium root/docs full journey | FAIL REMOTE_EXECUTION at 3b1d783c; locally NOT_RUN | Existing CI entrypoint now invokes xml229-topology-run-journey-browser.mjs: real O1/IDB, four fixture masters, actual Workers, WASM topology/native engine, explicit fixture Final edits, independent native proof and actual download. Initial root route reached fresh manual Worker and explicit fixture Final, then timed out on download. New diagnostics must locate missing native proof. Docs full journey not reached in that failed run. |
-| Current private Owner Final-to-CII | NOT_RUN | Exact private custody package/current native output unavailable. |
+| Original zero-ID Run stall | PASS LOCAL_EXECUTION | Production readiness and auto-run predicates, explicitly synthetic receipts. |
+| Output/Run closure + new regressions | PASS LOCAL_EXECUTION and Node22/24 CI | 17 cases: source/master/selection races, candidate cancellation, explicit selection, authority clearing, native pending fence, real public Python and exact WASM engine. |
+| Actual vendored WASM topology-only engine | PASS LOCAL_EXECUTION | Exact engine text in VM with only Node file-URL transport adapted. Actual public216→215 transaction; no enriched/CII output, mass packet or staged JSON admitted. |
+| Existing L3 source-binding suite | PASS LOCAL_EXECUTION / CI | 10/10; stale awaits, receipt/basis reuse refusal, cancellation and persistent manual policy. |
+| Existing actual native CLI/independent parse | PASS LOCAL_EXECUTION / CI | 3/3 synthetic cases; actual CII and tampered-mass rejection. |
+| Native Python | PASS LOCAL_EXECUTION / CI | 21/21. |
+| Topology Python | PASS LOCAL_EXECUTION / CI | 7/7, public occurrence lineage/replay. |
+| Custody export/panel guard | PASS LOCAL_EXECUTION / CI | 5/5; existing <=620 ratchet retained, panel617 lines after extracting unchanged config equality. |
+| Public L2 live pre-Final route | PASS LOCAL_EXECUTION | TOPOFIX_L2_PREFINAL_ONLY=1; its native output deliberately NOT_RUN. |
+| Root/docs syntax and parity | PASS LOCAL_EXECUTION / CI | All13 changed production pairs exact; all new JS<300 lines. |
+| Full new Chromium journey | PASS REMOTE_EXECUTION, Oracle log inspection | Both root and docs, real O1/IDB/four fixture masters/Workers/WASM engine/independent parser/download; same CII SHA, exactly one native mass owner for explicitly entered12.5kg. No Worker/resolver/engine mocks in this browser test. |
+| Current private Owner Final-to-CII | NOT_RUN | Exact custody package/current private output absent. |
 
-Local logs: tmp/topology-review-tests/{output-run,native-and-handoff,native-python,topology-python,public-live}.log. Initial expectation-only null/undefined failures were corrected to the existing invalidation contract; native ownership or tolerance oracles were not changed. A preexisting source-text assertion required retaining its existing session-policy call form; protected behavior remains intact.
+Explicit test ports are disclosed in Node transition/race tests. The browser test uses actual production implementations. Oracle authored this PR and inspected CI; this is not Independent Reviewer6adef8f2 acceptance. Logs locally: tmp/topology-review-tests/. Author tests, independent native parser and actual browser evidence remain distinct.
 
-## Active risks / decisions
+## CI classification / remaining gates
 
-RISK-1 Highest: real Chromium root journey reaches the new Weight review but native download is not yet established. Collect the actual state/typed error before changing production. Do not label full browser completion from partial success or Node tests.
-RISK-2 Private Owner acceptance remains unverified even if the synthetic full journey succeeds.
-RISK-3 Existing #329 broad authority overlap requires reconciliation before merge; no #329 code borrowed.
-DEC-1 Preserve separate pre-Final topology and fresh explicit Final review; never run geometry changes inside accepted native packet processing.
-DEC-2 No workflow mutation. Add tests to already executed runners.
-DEC-3 No automatic recovery to old Final on a failed source transition. Pending fence remains; current-source evidence must be re-established.
-QST-1 Actual production private source may reveal additional native owner cases; handle from exact custody rather than assumed counts or IDs.
+At inspected tested head2033d03f, all27 observed failed logs were read:24 stop at unchanged hard-coded merge-base4f14beb37bc0b719453c52a116c1c5d7183d2fd0 versus current main0d4908eb;3 stop at legacy C05.1/C05.5.4/C06 changed-file/runtime-scope gates. Downstream product tests in those jobs did not execute and are not counted PASS. Several unrelated browser checks were still running in the initial final snapshot. The full new P4 root/docs browser journey, P4 contracts, stage-truth and native checks passed. Do not describe all CI as green. No workflow bypass/edit or relaxed test threshold.
 
-## Exact continuation
+The first candidate3b1d added one P4 guard line and exceeded its existing620-line ratchet; resolved by extracting unchanged semantic config equality into a small mirrored named-export helper, without raising limits. Initial browser download waits also failed because the test did not complete an explicit Final edit when a visible draft already equaled12.5; the corrected test waits for the actual UI write and explicitly verifies Final1/unresolved0 before Run. Production's refusal of that unresolved draft was correct. The successful2033d03f receipts supersede those incomplete runs.
 
-EXACT_NEXT_ACTION: Push the bounded follow-up to PR344 and inspect its root/docs actual browser native-result diagnostics. Resolve the first actual missing boundary, rerun the full journey, then reconcile all failures (including unchanged legacy ancestry/scope gates). Fix failures in this PR, refresh changed-file ledger/status and maintain native Owner release HOLD until actual private proof exists. Do not merge without explicit new authorization.
+## Risks and continuation
+
+RISK-1 Private Owner mass acceptance is still unverified; fixture success cannot grant its release authority.
+RISK-2 Legacy ancestry/scope gates remain red and require separate Owner-scoped workflow maintenance/requalification, not changes to engineering behavior.
+RISK-3 Existing#329 broad authority overlap must be reconciled before integration; no competing branch changed.
+DEC-1 Topology always precedes a fresh Final basis. Keep native geometry mutation disabled after Final.
+DEC-2 A suggestion is a draft even when the displayed number is unchanged; require explicit UI acceptance.
+DEC-3 No restoration of old Final after failed transition; no weakening or hidden mocks.
+Appendix A: no further implementation takeover is requested by this review-ready handover; re-ground/qualify if a new implementation assignment or takeover occurs.
+
+EXACT_NEXT_ACTION: Owner/independent review PR344 against tested2033d03f and the committed receipt, refresh live main/head/checks/overlap, then obtain explicit authorization before merging/deploying this new PR. After approved deployment, validate the exact private Owner custody/Final/native packet. Do not re-run unchanged successful tests merely because the recovery report is synchronized.
 
 ## Exact changed-file ledger
+
+Production pairs: engine topology-only early return; intake genuine O1 rescan; review controller/UI; guarded source transition; config equality extraction; P4 pending-manual fence; output Run integration; readiness/audit/native-candidate prerequisite; waiting message/canvas status. Tests are integrated into existing Node/Chromium runners; helper fixture is explicitly synthetic. Agent records and machine receipt contain recovery/evidence only.
 
 - `converters/xml-cii-2019-standalone/engine.js`
 - `tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js`
@@ -114,17 +111,7 @@ EXACT_NEXT_ACTION: Push the bounded follow-up to PR344 and inspect its root/docs
 - `agents/WIP-XML229-TOPOLOGY-RUN-20261027_workreport.md`
 - `agents/claims/WIP-XML229-TOPOLOGY-RUN-20261027.yaml`
 - `agents/status/WIP-XML229-TOPOLOGY-RUN-20261027.yaml`
-
-## First CI execution / active failure
-
-Head 3b1d783cd9fb59b1570ec5f26aa994ecf904a2a3, P4 workflow run 40508194904, browser job 122202869988. Existing real-Worker and manual reattach checks passed. New browser test reached its final native wait, then download event timed out. Do not infer why until diagnostic is read. Stage-truth Node22/24 and native Python/JS CI passed at this head.
-
-Added one pending-manual-fence line initially exceeded the existing <=620-line P4 ratchet in several unchanged tests. Follow-up extracts unchanged semantic config equality into xml229-p4-config-equivalence.mjs (root/docs), reducing panel to 617 lines. The original custody + L3 tests now pass locally, 15/15. Test thresholds are unchanged.
-
-Representative unrelated legacy checks fail before browser execution at pinned merge-base 4f14beb37bc0b719453c52a116c1c5d7183d2fd0 versus current base 0d4908eb. Existing narrow C05 changed-file scope gates also require classification. No workflow edits are authorized or attempted. Keep these separate from the introduced ratchet defect and native journey failure.
-
-Follow-up changed-file ledger additions: `agents/PR344_workreport.md`, root/docs `xml229-p4-config-equivalence.mjs`. Existing WIP status/claim filenames remain unique and explicitly point to PR344.
-
-## Native-wait isolation at 10d9d555
-
-Browser job 122206632639 (run40509293541) confirms fresh basis/generation, manual-only provenance and Final0→0 after panel recreation. At attempted Run its authoritative census remained unresolved=1, Final=0, so production correctly withheld conversion. The test had filled a field with the identical already-visible 12.5 kg draft and then relied on an async poll without confirming UI write completion. Such a draft is correctly not acceptance. The test is corrected to perform a deliberate clear/blur/edit and await the actual completed UI write, then explicitly assert Final=1/unresolved=0 before navigation. No production acceptance rule changes. Exact native journey remains FAIL until rerun. The P4 Node22/24 contract checks pass at10d9d555; ratchet regression is resolved.
+- `tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-config-equivalence.mjs`
+- `docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-config-equivalence.mjs`
+- `agents/PR344_workreport.md`
+- `agents/evidence/PR344-topology-browser-journey.json`
