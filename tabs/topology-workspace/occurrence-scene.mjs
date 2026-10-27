@@ -17,7 +17,9 @@ export function parseOccurrenceScene(xmlText, sourceSha256, Parser = globalThis.
   if (typeof Parser !== 'function') throw Error('XML DOM parser unavailable');
   const doc = new Parser().parseFromString(xmlText, 'application/xml');
   if (doc.querySelector('parsererror')) throw Error('Malformed XML source');
-  const branches = [...doc.getElementsByTagName('*')].filter(el => local(el) === 'Branch');
+  const all = [...doc.getElementsByTagName('*')];
+  const branches = (all.length ? all : [...doc.getElementsByTagName('Branch')])
+    .filter(el => local(el) === 'Branch');
   if (!branches.length) throw Error('Expected PSI116 <Branch>/<Node> XML');
   const records = [], segments = [], branchList = [];
   branches.forEach((branch, branchIndex) => {
