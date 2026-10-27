@@ -161,12 +161,15 @@ export async function startXml229TopoFixFreshWeightSession({
  if(!raw||raw.xml229XmlOnlyApproval||raw.xml229AcceptedFinalIntent||
     raw.xml229FinalReviewBackup)
    fail('TOPOFIX_HANDOFF_PRIOR_FINAL_MIGRATION_REFUSED');
+ const fixedXmlText=raw.sourceText;
+ const sourceIsCurrent=()=>isCurrent()&&
+   (stateRef?.modeABaseRef?.current||stateRef?.current)?.sourceText===fixedXmlText;
  const attestation=await attestXml229TopoFixFreshSource({
-   originalXmlText,fixedXmlText:raw.sourceText,lineageReceipt,handoffReceipt,
+   originalXmlText,fixedXmlText,lineageReceipt,handoffReceipt,
  });
- if(!isCurrent())fail('TOPOFIX_HANDOFF_STALE_SOURCE');
+ if(!sourceIsCurrent())fail('TOPOFIX_HANDOFF_STALE_SOURCE');
  const inputs=await resolveInputs();
- if(!isCurrent()||inputs?.xmlText!==raw.sourceText||
+ if(!sourceIsCurrent()||inputs?.xmlText!==fixedXmlText||
     inputs?.originalStagedSourceReceipt?.schema!=='XML229.OriginalStagedSourceReceipt.v1'||
     inputs.originalStagedSourceReceipt.phase!=='INDEX_COMMITTED'||
     inputs.originalStagedSourceReceipt.rightsBasis!=='SOURCE_FACTS_ONLY'||
@@ -183,9 +186,13 @@ export async function startXml229TopoFixFreshWeightSession({
  if(earlier&&(!earlier.basisId||
     earlier.sourceGenerationId===inputs.originalStagedSourceReceipt.generationId))
    fail('TOPOFIX_HANDOFF_OLD_GENERATION_REUSE');
- const session=await openSession({resolveInputs:async()=>inputs});
+ const session=await openSession({resolveInputs:async()=>{
+   if(!sourceIsCurrent()||!inputs.isCurrent())
+     fail('TOPOFIX_HANDOFF_STALE_SOURCE');
+   return inputs;
+ }});
  try{
-   if(!isCurrent()||!inputs.isCurrent()||
+   if(!sourceIsCurrent()||!inputs.isCurrent()||
       session?.closed||session?.receipt?.sourceId!==inputs.sourceId||
       session?.receipt?.sourceGenerationId!==inputs.originalStagedSourceReceipt.generationId||
       session?.receipt?.originalJsonSha256!==inputs.originalStagedSourceReceipt.sha256||
