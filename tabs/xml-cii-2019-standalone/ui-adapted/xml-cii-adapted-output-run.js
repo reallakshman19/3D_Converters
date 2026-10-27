@@ -9,6 +9,9 @@ import {runXml229NativeCiiMassCandidate} from './xml229-native-cii-candidate-run
 import {buildXml229NativeOwnerBlockerEvidence} from './xml229-native-owner-blocker-evidence.mjs';
 import {createXml229RunMassReviewButton} from './xml229-run-mass-review-button.mjs';
 import {offerXml229AutomaticNativeRun} from './xml229-run-auto-native.mjs';
+import {renderXml229TopologyReview} from './xml229-topology-review-ui.mjs';
+import {xml229TopologyDisplayState} from './xml229-topology-review-controller.mjs';
+import {xml229NativeRunWaitingMessage} from './xml229-run-waiting-message.mjs';
 import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js';
 import {ensureXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace,getXml229CandidateAttempt} from './xml229-flow-trace-registry.mjs';
 import {buildXml229RunHoldAudit} from '../integration/xml229-run-hold-audit.mjs';
@@ -84,6 +87,8 @@ function valueFor(item, header) {
 }
 
 function reportFromState(state,stateRef) {
+  const display=xml229TopologyDisplayState(state,stateRef),hasSidecars=display!==state;
+  state=display;
   const session=getXml229CurrentWorkerHeldReview(stateRef);
   const sessionState=session?(session.closed?'CLOSED':'LIVE'):'MISSING';
   const leaseDiagnosis=inspectXml229EngineeringLease(stateRef);
@@ -92,7 +97,7 @@ function reportFromState(state,stateRef) {
   // read; its native CII release HOLD is preserved throughout.
   return hasOriginalJsonSourceOnlyRunHold(state)
     ? buildStandaloneOutputRunReadiness(state,{sessionState,leaseDiagnosis})
-    : state.outputRunReadinessReport || buildStandaloneOutputRunReadiness(state);
+    : (!hasSidecars&&state.outputRunReadinessReport) || buildStandaloneOutputRunReadiness(state);
 }
 
 function renderSummary(parent, report) {
@@ -289,10 +294,6 @@ function actualSourceKind(state) {
   return state.sourceKind === 'auto' ? detectXmlCiiWorkflowSourceKind(state.sourceText || '', 'xml') : (state.sourceKind || 'xml');
 }
 
-function parseActionIds(value) {
-  return [...new Set(String(value ?? '').split(/[\s,;]+/).map((entry) => entry.trim()).filter(Boolean))];
-}
-
 function topologyOptionsPatch(options, key, checked) {
   const next = { [key]: checked };
   if (key === 'analyzeTopology' && !checked) Object.assign(next, { generateTopoFix: false, useTopoFixForCii: false });
@@ -324,22 +325,10 @@ function renderRunOptions(parent, stateRef, state, render) {
     optionCheckbox('generateTopoFix', 'Generate reviewed TopoFix XML', state.options?.generateTopoFix === true, stateRef, render, !xmlMode, topologyOptionsPatch),
     optionCheckbox('useTopoFixForCii', 'Use committed TopoFix XML for CII', state.options?.useTopoFixForCii === true, stateRef, render, !xmlMode, topologyOptionsPatch),
   );
-  const actionField = createElement('label', '', 'model-converters-workflow-regex-field');
-  actionField.appendChild(createElement('span', 'Reviewed TopoFix action IDs'));
-  const actionInput = createElement('textarea');
-  actionInput.dataset.field = 'topology-action-ids';
-  actionInput.rows = 3;
-  actionInput.placeholder = 'ACT-000184, ACT-000185';
-  actionInput.value = rows(state.options?.topologyActionIds).join('\n');
-  actionInput.disabled = !xmlMode || state.options?.generateTopoFix !== true;
-  actionInput.addEventListener('change', (event) => {
-    stateRef.current = updateWorkflowOptions(stateRef.current, { topologyActionIds: parseActionIds(event.target.value) });
-    if (typeof render === 'function') render();
-  });
-  actionField.appendChild(actionInput);
-  topologyCard.append(topologyGrid, actionField, createElement('div', xmlMode
+  topologyCard.append(topologyGrid, createElement('div', xmlMode
     ? 'Analysis is non-mutating. Reviewed TopoFix emits source-lineage evidence. GC-PW Weight/Final requires a fresh source basis; an accepted Final never transfers.'
     : 'Topology controls are available only for PSI116 XML source mode.', 'model-converters-workflow-detail-note'));
+  if(xmlMode)renderXml229TopologyReview(topologyCard,{stateRef,render});
   parent.append(optCard, topologyCard);
 }
 
@@ -453,7 +442,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
       ?'XML-only selected for this exact XML, branch selection, config and master basis. Staged JSON, Preview, GC-PW and accepted Weight/Final decisions are excluded from native conversion; source or master changes require new explicit selection.'
       :(report.raw.xml229NativeOutputVerified
         ?'Current accepted engineering weights are consumed by verified native CII output. Download is permitted while this Worker source and Final intent remain unchanged.'
-        :'When Run is active with verified Final masses, native conversion starts automatically once per Worker. Download is enabled only after independent output mass/lineage verification; manual retry remains available. XML-only testing excludes these weights.'),
+        :xml229NativeRunWaitingMessage(report)),
     'model-converters-workflow-detail-note'));
   const actionDiv = createElement('div');
   if (actionDiv.style) Object.assign(actionDiv.style, { marginTop: '12px', display: 'flex', gap: '8px', flexDirection: 'column' });
@@ -725,7 +714,7 @@ function projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint){
    // independently verified Worker RPC is pending. Challenge the *latest*
    // state against the Worker proof rather than requiring object identity.
    const latest=stateRef.current;
-   const verifiedReport=buildStandaloneOutputRunReadiness(latest,{
+   const verifiedReport=buildStandaloneOutputRunReadiness(xml229TopologyDisplayState(latest,stateRef),{
      verifiedEngineering:{sessionReceipt:session.receipt,proof,finalIntent,
         nativeOutput:latest.result?.xml229NativeOutput||null},
    });
@@ -779,7 +768,7 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
     renderRunOptions(card, stateRef, renderState, render);
     renderRunControls(card, stateRef, renderState, report, render);
     renderArtifacts(card, renderState, report);
-    renderTopologyArtifacts(card, renderState);
+    renderTopologyArtifacts(card, xml229TopologyDisplayState(renderState,stateRef));
     renderLogs(card, report);
     renderManifest(card, report);
     renderRaw(card, report);

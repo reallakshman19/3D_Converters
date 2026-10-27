@@ -269,6 +269,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const count=hydrateXml229WeightDraftInputs(table,page.rows,draftValues);
    persistDrafts(); // Source-basis-bound backup before any authoritative write.
    // Visible source-ranked selections go directly through protected Final CAS.
+   suppressAutoCommit=suppressAutoCommit||!!(stateRef?.modeABaseRef||stateRef)?.current?.xml229TopoFixFreshReviewPending;
    const {committed,stale}=(!canXml229AutoCommitSuggestedFinal(session,{suppressAutoCommit}))?{committed:0,stale:false}:await commitXml229VisibleSelectedFinal({
      session,rows:page.rows,drafts:draftValues,
      isCurrent:()=>token===renderSequence&&active===session&&live()===session,

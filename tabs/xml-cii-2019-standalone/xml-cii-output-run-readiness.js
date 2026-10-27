@@ -39,13 +39,18 @@ function optionRows(input, kind) {
 
 function topologyRows(input, kind) {
   const options = input.options || {};
-  const requested = options.analyzeTopology === true || options.generateTopoFix === true || options.useTopoFixForCii === true;
+  const requested = options.analyzeTopology === true || options.generateTopoFix === true || options.useTopoFixForCii === true || !!input.xml229TopoFixFreshReviewPending;
   if (!requested) return [];
   const ids = topologyActionIds(input);
   return [
     row('topology-source-mode', 'PSI116 topology source mode', kind === 'xml', kind === 'xml' ? 'Topology analysis will run against the effective PSI116 XML.' : 'Topology analysis is not available for InputXML source mode.', { blocking: true, severity: 'error' }),
     row('topology-analysis-enabled', 'Analyze PSI116 topology', options.analyzeTopology === true, 'Analyze topology must be enabled before correction.', { blocking: options.generateTopoFix === true || options.useTopoFixForCii === true, severity: 'error' }),
     row('topofix-action-ids', 'Reviewed TopoFix action IDs', options.generateTopoFix !== true || ids.length > 0, options.generateTopoFix === true ? `${ids.length} reviewed action ID(s) selected.` : 'No correction requested; action IDs are optional.', { blocking: options.generateTopoFix === true, severity: 'error' }),
+    ...(hasOriginalJsonSourceOnlyRunHold(input) &&
+      (options.generateTopoFix === true || options.useTopoFixForCii === true || input.xml229TopoFixFreshReviewPending)
+      ? [row('topofix-prefinal-review', 'TopoFix and fresh Weight review', false,
+        'Analyze topology, review and commit selected actions, then start a fresh Weight review from the committed XML. Prior Final decisions do not transfer.',
+        {blocking:true,severity:'warning',status:'held'})] : []),
     row('topofix-use-dependency', 'Use committed TopoFix for CII dependency', options.useTopoFixForCii !== true || options.generateTopoFix === true, options.useTopoFixForCii === true ? 'CII will use the fixed XML only after the transaction commits.' : 'CII will use the original effective XML.', { blocking: options.useTopoFixForCii === true, severity: 'error' }),
     row('topofix-output-mode', 'TopoFix CII output mode', options.useTopoFixForCii !== true || ['cii-only', 'both'].includes(options.outputMode), options.useTopoFixForCii === true ? `Output mode ${options.outputMode || 'not selected'} must include CII.` : 'TopoFix is not selected as CII input.', { blocking: options.useTopoFixForCii === true, severity: 'error' }),
   ];

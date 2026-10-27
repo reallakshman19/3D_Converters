@@ -206,3 +206,5 @@ try{
  await browser?.close();
  await new Promise(resolve=>server.close(resolve));
 }
+// Keep the complete new journey under the existing Chromium CI entrypoint.
+await import('./xml229-topology-run-journey-browser.mjs');

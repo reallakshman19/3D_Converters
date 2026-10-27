@@ -175,4 +175,16 @@ function readyXmlState() {
   assert(runWorkflowSource.includes('runXmlCii2019Workflow(await buildXmlCiiWorkflowJobFromUiState'));
 
   console.log('XML CII standalone Output / Run checks passed.');
+  // Existing CI entrypoint also exercises the production topology-only engine,
+  // review controller and stale-source transitions. No workflow broadening.
+  const regression = require('child_process').spawnSync(process.execPath, [
+    '--experimental-vm-modules', '--test',
+    'tests/xml229-topology-review-flow.test.mjs',
+    'tests/xml229-topology-fresh-transition.test.mjs',
+    'tests/xml229-topology-only-engine.test.mjs',
+  ], {cwd: root, encoding: 'utf8', timeout: 120000});
+  if (regression.stdout) process.stdout.write(regression.stdout);
+  if (regression.stderr) process.stderr.write(regression.stderr);
+  assert.strictEqual(regression.status, 0, 'topology review production regressions failed');
 })().catch((error) => { console.error(error); process.exitCode = 1; });
+

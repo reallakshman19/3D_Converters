@@ -396,3 +396,33 @@ export function resolveXml229CurrentPreviewBlob(stateRef,expectedReceipt) {
     sourceRefId:live.sourceRefId,generationId:live.generationId,
     byteLength:live.byteLength});
 }
+
+/** Explicit fresh-source transition: re-index the SAME genuine original File.
+ * A new native scan/IDB commit creates its generation; no receipt is fabricated.
+ */
+export async function reindexXml229OriginalBlobForTopoFix(stateRef,{
+ expectedReceipt,container,isCurrent=()=>false,
+}={}){
+ const original=resolveXml229CurrentPreviewBlob(stateRef,expectedReceipt);
+ if(!eligibleSource(stateRef.current)||!isCurrent())
+   throw error('TOPOFIX_FRESH_SOURCE_STALE');
+ const session=getSession(stateRef),request=session.requestSeq+1;
+ try{
+   await scan(original.blob,session,stateRef,container);
+   if(!isCurrent()||session.requestSeq!==request)
+     throw error('TOPOFIX_FRESH_SOURCE_STALE');
+   const current=resolveXml229CurrentPreviewBlob(stateRef,
+     stateRef.current.xml229StagedSourceReceipt);
+   if(current.receipt.generationId===expectedReceipt.generationId||
+      current.receipt.sha256!==expectedReceipt.sha256)
+     throw error('TOPOFIX_FRESH_O1_IDENTITY_DRIFT');
+   return current;
+ }catch(e){
+   if(session.requestSeq===request){
+     session.requestSeq++;
+     revokeJsonSourceReceipt(stateRef,container);
+     const job=session.job;session.job=null;await revoke(job);
+   }
+   throw e;
+ }
+}
