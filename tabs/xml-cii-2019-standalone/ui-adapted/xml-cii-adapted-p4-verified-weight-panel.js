@@ -1,12 +1,13 @@
 import {openXml229WorkerHeldOriginalWeightReview} from '../integration/xml229-original-blob-gcpw-client.mjs';
 import {installXml229TopoFixFreshStartControl} from './xml229-topofix-fresh-worker-control.mjs';
 import {canXml229AutoCommitSuggestedFinal} from '../integration/xml229-topofix-fresh-worker-handoff.mjs';
+import {xml229P4ConfigEquivalent as configEquivalent} from './xml229-p4-config-equivalence.mjs';
 import {renderXml229VerifiedPanelShell} from './xml229-p4-panel-shell.mjs';
 import {resolveXml229CurrentPreviewBlob} from './xml-cii-adapted-lfj-o1-intake.js';
 import {xmlCiiEnrichedConfigFromState} from './xml-cii-adapted-state.js';
 import {materializeXmlCiiDatasetBackedConfig} from '../xml-cii-dataset-backed-config.js';
 import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-custody.mjs';
-import {digestCanonical,canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
+import {digestCanonical} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-scope.js';
 import {renderXml229WeightReviewPage} from './xml229-p4-weight-review-presentation.mjs';
 import {installXml229WeightExcelAutoFilter} from './xml229-p4-excel-autofilter.mjs';
@@ -32,10 +33,6 @@ const labelKg=n=>typeof n==='number'&&Number.isFinite(n)&&n>=0?n+' kg':'—';
 /** InputBasis tracks real XML/JSON/master changes, not UI navigation or File wrapper churn. */
 const ownerScope=value=>{const s=String(value??'').trim();
  return !s||s==='ALL'||s==='__ALL__'?'__ALL__':s;
-};
-const configEquivalent=(a,b)=>{if(a===b)return true;
- try{return canonicalJson(JSON.parse(a||'{}'))===canonicalJson(JSON.parse(b||'{}'));}
- catch{return false;}
 };
 export const captureXml229P4LiveSourceSnapshot=(raw,sourceId)=>({
  sourceId,
@@ -269,6 +266,7 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
    const count=hydrateXml229WeightDraftInputs(table,page.rows,draftValues);
    persistDrafts(); // Source-basis-bound backup before any authoritative write.
    // Visible source-ranked selections go directly through protected Final CAS.
+   suppressAutoCommit=suppressAutoCommit||!!(stateRef?.modeABaseRef||stateRef)?.current?.xml229TopoFixFreshReviewPending;
    const {committed,stale}=(!canXml229AutoCommitSuggestedFinal(session,{suppressAutoCommit}))?{committed:0,stale:false}:await commitXml229VisibleSelectedFinal({
      session,rows:page.rows,drafts:draftValues,
      isCurrent:()=>token===renderSequence&&active===session&&live()===session,

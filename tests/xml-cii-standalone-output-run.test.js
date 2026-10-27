@@ -162,6 +162,8 @@ function readyXmlState() {
   for (const label of ['Pre-run Checklist', 'Run Conversion', 'Output Artifacts / Downloads', 'Logs', 'Run Manifest', 'Raw JSON advanced/debug', 'PSI116 Topology Sidecar', 'Analyze PSI116 topology', 'Generate reviewed TopoFix XML', 'Use committed TopoFix XML for CII', 'Reviewed TopoFix action IDs', 'Topology Sidecars / Downloads', 'Download Topology Findings JSON', 'Download Committed TopoFix XML']) {
     assert(card.textContent.includes(label), `Output / Run panel missing ${label}`);
   }
+  for (const label of ['1. Analyze topology','2. Commit selected TopoFix actions',
+    '3. Open NEW Weight review from TopoFix']) assert(card.textContent.includes(label));
 
   const coreSource = read('tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js');
   for (const token of ['document', 'querySelector', 'createElement', 'window']) assert(!coreSource.includes(token), `output readiness helper must remain DOM-free: ${token}`);
@@ -175,4 +177,16 @@ function readyXmlState() {
   assert(runWorkflowSource.includes('runXmlCii2019Workflow(await buildXmlCiiWorkflowJobFromUiState'));
 
   console.log('XML CII standalone Output / Run checks passed.');
+  // Existing CI entrypoint also exercises the production topology-only engine,
+  // review controller and stale-source transitions. No workflow broadening.
+  const regression = require('child_process').spawnSync(process.execPath, [
+    '--experimental-vm-modules', '--test',
+    'tests/xml229-topology-review-flow.test.mjs',
+    'tests/xml229-topology-fresh-transition.test.mjs',
+    'tests/xml229-topology-only-engine.test.mjs',
+  ], {cwd: root, encoding: 'utf8', timeout: 120000});
+  if (regression.stdout) process.stdout.write(regression.stdout);
+  if (regression.stderr) process.stderr.write(regression.stderr);
+  assert.strictEqual(regression.status, 0, 'topology review production regressions failed');
 })().catch((error) => { console.error(error); process.exitCode = 1; });
+

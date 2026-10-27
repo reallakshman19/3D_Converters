@@ -17,6 +17,8 @@ import {diagnoseXml229NativeConverterFailure} from './xml229-native-converter-fa
 const fail=(code)=>{const error=new Error(code);error.code=code;throw error;};
 
 export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=()=>true}={}){
+ if(state?.options?.generateTopoFix===true||state?.options?.useTopoFixForCii===true||state?.xml229TopoFixFreshReviewPending)
+  fail('NATIVE_TOPOFIX_PREFINAL_REVIEW_REQUIRED');
  if(!state||typeof session?.readNativeFinalPacket!=='function'||
     typeof session?.readCompletion!=='function'||
     typeof isCurrent!=='function'||!isCurrent())

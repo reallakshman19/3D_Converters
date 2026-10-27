@@ -1,4 +1,5 @@
 import { createElement, downloadTextFile } from './xml-cii-adapted-dom.js';
+import {xml229NativeRunWaitingMessage} from './xml229-run-waiting-message.mjs';
 
 function text(value) {
   return String(value ?? '');
@@ -164,7 +165,7 @@ export function renderAdaptedCiiPreviewCanvas(parent, state, report) {
     : state?.running
       ? 'Native conversion in progress. Download remains locked until independent CII verification succeeds.'
       : report?.raw?.xml229VerifiedEngineering===true
-        ? 'Verified Final masses ready. Native Run starts automatically in the active Run tab; Download unlocks after output reconciliation.'
+        ? xml229NativeRunWaitingMessage(report)
         : 'Run conversion to enable the .cii preview and download.';
   card.append(head, geometryHost, geometryMeta, host, createElement('div', metaText, 'xml-cii-adapted-cii-preview-meta model-converters-preview-meta'));
   parent.appendChild(card);

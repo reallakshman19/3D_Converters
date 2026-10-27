@@ -85,6 +85,7 @@ function classify({hold,source,sessionState,proofValid,proof,readError,finalInte
   const c=proof.counts;
   if(c.unresolved>0)return 'UNRESOLVED_PHYSICAL_MASS';
   if(c.match1>0)return 'MATCH1_NOT_FINAL';
+  if(source.topologyPending)return 'TOPOFIX_PREFINAL_REVIEW_REQUIRED';
   if(finalIntent?.eligibleForEngineBinding===false)
     return 'FINAL_INTENT_NOT_ELIGIBLE';
   if(finalIntent&&finalIntent.eligibleForEngineBinding!==true)
@@ -102,6 +103,8 @@ export function buildXml229RunHoldAudit({
  readError=null,candidate=null,flowTrace=null,
 }={}){
  const source=sourceSnapshot(input);
+ source.topologyPending=!!input.xml229TopoFixFreshReviewPending||input.options?.generateTopoFix===true||
+   input.options?.useTopoFixForCii===true;
  const hold=report?.checklistRows?.some(x=>
    x.id==='xml229-original-json-engineering-authority'&&x.blocking===true)===true;
  const leaseReason=leaseReasons.has(leaseDiagnosis?.reason)?leaseDiagnosis.reason:'NO_BOUND_WORKER';
@@ -135,6 +138,9 @@ export function buildXml229RunHoldAudit({
      !valid?'WORKER_COMPLETION_NOT_VERIFIED':
      mass.unresolved?'UNRESOLVED_PHYSICAL_MASS':
      mass.match1?'MATCH1_NOT_FINAL':'ALL_PHYSICAL_MASSES_RESOLVED',mass),
+   ...(source.topologyPending?[stage('pre-final-topology-review','HELD',
+     (input.options?.topologyActionIds?.length||0)>0
+       ?'TOPOFIX_FRESH_WEIGHT_BASIS_REQUIRED':'TOPOFIX_ACTION_SELECTION_REQUIRED')]:[]),
    stage('native-final-intent',
      !finalIntent?'NOT_REACHED':
      finalIntent.eligibleForEngineBinding===true?'VERIFIED':'HELD',

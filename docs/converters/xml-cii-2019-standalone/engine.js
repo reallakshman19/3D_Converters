@@ -208,6 +208,11 @@ async function runSerializedXmlCii2019Engine(job) {
   const partial = { enrichedText: '', enrichedName: '', ...emptyTopologyResult() };
   let nativeFailurePhase='PYODIDE_INITIALIZE';
   try {
+    if (normalizedJob.topologyPreFinalOnly === true &&
+        (sourceKind !== 'xml' || !topologyRequested(normalizedJob) ||
+         normalizedJob.xml229NativeFinalPacket || normalizedJob.stagedJsonText)) {
+      throw new Error('TOPOFIX_PREFINAL_ONLY_SOURCE_REQUIRED');
+    }
     const pyodide = await getPyodide();
     nativeFailurePhase='SCRIPT_LOAD';
     await ensureScripts(pyodide);
@@ -245,6 +250,19 @@ async function runSerializedXmlCii2019Engine(job) {
       topology = await runPsi116TopologyStage(pyodide, normalizedJob, inputPath, jobDir, stdout);
       Object.assign(partial, topology);
       postprocess.push({ branch: 'psi116-topology-sidecars', ...topology.topologySummary, findingsName: topology.topologyFindingsName, planName: topology.topologyFixPlanName });
+    }
+
+    // Explicit pre-Final review is usable while governed native output is held.
+    // Return before enrichment or any native writer; no mass packet is admitted.
+    if (normalizedJob.topologyPreFinalOnly === true) {
+      return { ok: true, sourceKind, outputKind: 'topology-sidecars',
+        enrichedText: '', enrichedName: '', ciiText: null, ciiName: null,
+        ...topology, acceptedFinalTransferred: false,
+        nativeCiiReleaseAuthorized: false,
+        diagnostics: diagnostics(normalizedJob, { postprocess,
+          topologyPreFinalOnly: true, nativeCiiReleaseAuthorized: false }),
+        logs: stdout.map(message => ({ level: 'info', source: 'topology', message })),
+      };
     }
 
     if (outputMode !== 'cii-only') {
