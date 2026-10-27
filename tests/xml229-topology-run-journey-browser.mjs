@@ -100,15 +100,37 @@ try{
   assert(fresh.oldClosed&&fresh.newGeneration&&fresh.newBasis&&fresh.manualOnly&&fresh.provenance);
   assert.equal(fresh.counts.final,0);assert.equal(fresh.counts.unresolved,1);
   assert(fresh.oldFinalCleared);assert.equal(fresh.hasCii,false);
+  console.log(JSON.stringify({stage:'fresh-topofix-weight',route:prefix||'root',...fresh}));
   await page.evaluate(()=>window.journey.draw());
   await page.waitForFunction(()=>document.querySelector('[data-p4-weight-root]')?.dataset.p4ReadReady==='true');
   assert.equal((await completion(page)).counts.final,0,'panel recreation must not accept Final');
   await enterMass(page,12.5); // Explicit synthetic new-basis Final via the actual UI.
-  const download=page.waitForEvent('download',{timeout:180000});
+  // Attach rejection immediately so timeout cannot hide the actual Run error.
+  const download=page.waitForEvent('download',{timeout:195000}).then(
+   event=>({event}),error=>({error:String(error)}));
   await page.evaluate(()=>{const j=window.journey;j.ref.current={...j.ref.current,activePhaseId:'run'};j.draw();});
-  await page.waitForFunction(()=>window.journey.ref.current.result?.xml229NativeOutput?.nativeCiiReleaseAuthorized===true,
-   null,{timeout:180000});
-  assert.match((await download).suggestedFilename(),/\.cii$/);
+  try{
+   await page.waitForFunction(()=>window.journey.ref.current.running===true||!!window.journey.ref.current.result,
+    null,{timeout:15000});
+   await page.waitForFunction(()=>!!window.journey.ref.current.result,
+    null,{timeout:180000});
+   const result=await page.evaluate(()=>window.journey.ref.current.result);
+   assert.equal(result?.xml229NativeOutput?.nativeCiiReleaseAuthorized,true,JSON.stringify(result));
+  }catch(error){
+   const diagnostic=await page.evaluate(async()=>{
+    const j=window.journey,s=j.worker(),proof=await s.readCompletion();
+    const {buildStandaloneOutputRunReadiness}=await import(j.base.replace('ui-adapted/','')+'xml-cii-output-run-readiness.js');
+    const report=buildStandaloneOutputRunReadiness(j.ref.current,{
+     verifiedEngineering:{sessionReceipt:s.receipt,proof,finalIntent:await s.readNativeFinalIntent()}});
+    return {running:j.ref.current.running,result:j.ref.current.result,
+     counts:proof.counts,blocks:report.checklistRows.filter(r=>r.blocking),
+     runAction:document.querySelector('[data-action="xml229-native-run"]')?.disabled,
+     topologyPending:!!j.ref.current.xml229TopoFixFreshReviewPending};
+   });
+   throw Error('Native journey failed: '+JSON.stringify({route:prefix||'root',diagnostic,errors})+' | '+String(error));
+  }
+  const received=await download;assert.equal(received.error,undefined,received.error);
+  assert.match(received.event.suggestedFilename(),/\.cii$/);
   const emitted=await page.evaluate(()=>{
    const result=window.journey.ref.current.result,proof=result.xml229NativeOutput;
    return {ok:result.ok,hasCii:!!result.ciiText,physicalCount:proof.physicalCount,

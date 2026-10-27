@@ -6,3 +6,8 @@ owner_authorization: fix it
 native_release: PRIVATE_OWNER_PROOF_HELD
 merge_authority: NOT_GRANTED_FOR_NEW_PR
 next: publish isolated Draft and inspect full root/docs Chromium journey in existing CI
+
+pr_number: 344
+branch: oracle/xml229-topology-fresh-run-20261027
+report: agents/PR344_workreport.md
+ci_state: NATIVE_BROWSER_JOURNEY_FAIL_DIAGNOSING

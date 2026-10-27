@@ -85,9 +85,14 @@ test('Sidecar display cannot replace a verified native CII payload',async()=>{
 });
 test('Native candidate refuses pending topology before querying any Final packet',async()=>{
  let reads=0;
- await assert.rejects(runXml229NativeCiiMassCandidate({state:base().current,
-  session:{readNativeFinalPacket:async()=>{reads++;}},isCurrent:()=>true}),
-  {code:'NATIVE_TOPOFIX_PREFINAL_REVIEW_REQUIRED'});
+ for(const state of [base().current,{...base().current,options:{outputMode:'both'},
+  xml229TopoFixFreshReviewPending:{requiresFreshWorkerBasis:true}}]){
+  await assert.rejects(runXml229NativeCiiMassCandidate({state,
+   session:{readNativeFinalPacket:async()=>{reads++;}},isCurrent:()=>true}),
+   {code:'NATIVE_TOPOFIX_PREFINAL_REVIEW_REQUIRED'});
+  assert(buildStandaloneOutputRunReadiness(state).checklistRows.some(
+   row=>row.id==='topofix-prefinal-review'&&row.blocking));
+ }
  assert.equal(reads,0);
 });
 test('Run message reports an actual blocker instead of promising automatic start',()=>{
