@@ -6,9 +6,17 @@ import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {createContext,SourceTextModule,SyntheticModule} from 'node:vm';
 import {loadPyodide} from '../vendor/pyodide/pyodide.mjs';
+import {createHash} from 'node:crypto';
+import {installWeightBasisXmlDom} from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
+import {runXml229TopologyReview,getXml229TopologyReview,selectXml229TopologyActions}
+ from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-topology-review-controller.mjs';
+import {attestXml229TopoFixFreshSource}
+ from '../tabs/xml-cii-2019-standalone/integration/xml229-topofix-fresh-worker-handoff.mjs';
 
 const engineUrl=new URL('../converters/xml-cii-2019-standalone/engine.js',import.meta.url);
+let engine;
 async function loadEngine(){
+ if(engine)return engine;
  const context=createContext({URL,Date,Math,console,fetch:async(input,options)=>{
   const url=input instanceof URL?input:new URL(String(input));
   return url.protocol==='file:'?new Response(await readFile(fileURLToPath(url))):fetch(input,options);
@@ -25,7 +33,7 @@ async function loadEngine(){
    for(const [name,value] of Object.entries(exports))this.setExport(name,value);
   },{context});
  });
- await module.evaluate();return module.namespace.runXmlCii2019StandaloneEngine;
+ await module.evaluate();engine=module.namespace.runXmlCii2019StandaloneEngine;return engine;
 }
 
 test('Exact production engine returns actual TopoFix sidecars before enrichment/native output',async()=>{
@@ -56,5 +64,41 @@ test('Exact production engine returns actual TopoFix sidecars before enrichment/
    assert.equal(result.acceptedFinalTransferred,false);
    assert.equal(result.xml229NativeMassDiagnostic,undefined);
   }
+ }finally{globalThis.fetch=originalFetch;}
+});
+
+test('Actual controller, WASM plan and L3 keep exact newline/BOM source hashes',async t=>{
+ installWeightBasisXmlDom(globalThis);
+ const run=await loadEngine(),originalFetch=globalThis.fetch;
+ const lf=(await readFile(new URL('../Benchmarks/1885Sjson/FirstpassXML',import.meta.url),'utf8'))
+  .replace(/\r\n|\r/g,'\n');
+ const variants={lf,crlf:lf.replace(/\n/g,'\r\n'),cr:lf.replace(/\n/g,'\r'),
+  mixed:lf.replace('\n','\r\n'),bomUnicode:'\ufeff'+lf.replace('</PipeStressExport>',
+   '<!-- café Δ -->\r\n</PipeStressExport>').replace(/(?<!\r)\n/g,'\r\n')};
+ globalThis.fetch=async(input,options)=>{
+  const url=input instanceof URL?input:new URL(String(input));
+  return url.protocol==='file:'?new Response(await readFile(fileURLToPath(url))):originalFetch(input,options);
+ };
+ try{
+  for(const [format,sourceText] of Object.entries(variants))await t.test(format,async()=>{
+   const expected=createHash('sha256').update(sourceText,'utf8').digest('hex');
+   const ref={current:{sourceKind:'xml',sourceText,sourceFile:{name:format+'.xml'},
+    xmlProcessingMode:'single',modeASourceId:'FORMAT-TEST',supportConfigJson:'{}',branchSelection:{}}};
+   await runXml229TopologyReview(ref,{engineJob:run});
+   const plan=JSON.parse(getXml229TopologyReview(ref).result.topologyFixPlanText);
+   assert.equal(plan.source.sha256,expected);
+   const action=plan.actions.find(a=>a.disposition==='SAFE_DROP_PIPE_GEOMETRY'&&a.node_numbers.includes(1600));
+   assert(action);selectXml229TopologyActions(ref,[action.action_id]);
+   await runXml229TopologyReview(ref,{commit:true,engineJob:run});
+   const result=getXml229TopologyReview(ref).result;
+   const lineageReceipt=JSON.parse(result.topoFixLineageText),handoffReceipt=JSON.parse(result.topoFixPreFinalHandoffText);
+   assert.equal(lineageReceipt.sourceXmlSha256,expected);assert.equal(handoffReceipt.originalSourceXmlSha256,expected);
+   const inputs={originalXmlText:sourceText,fixedXmlText:result.topoFixXmlText,lineageReceipt,handoffReceipt};
+   await attestXml229TopoFixFreshSource(inputs);
+   await assert.rejects(attestXml229TopoFixFreshSource({...inputs,
+    originalXmlText:sourceText+'\n<!-- actual source change -->'}),{code:'TOPOFIX_HANDOFF_SOURCE_SHA_DRIFT'});
+   assert.equal(ref.current.sourceText,sourceText);assert.equal(ref.current.result,null);
+   assert.equal(result.ciiText,null);
+  });
  }finally{globalThis.fetch=originalFetch;}
 });
