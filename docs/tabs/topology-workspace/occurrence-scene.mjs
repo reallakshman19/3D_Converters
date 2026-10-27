@@ -49,8 +49,8 @@ export function parseOccurrenceScene(xmlText, sourceSha256, Parser = globalThis.
   });
   const located = records.filter(record => record.position);
   const axes = ['x', 'y', 'z'];
-  const min = Object.fromEntries(axes.map(a => [a, Math.min(...located.map(r => r.position[a]))]));
-  const max = Object.fromEntries(axes.map(a => [a, Math.max(...located.map(r => r.position[a]))]));
+  const min = Object.fromEntries(axes.map(a => [a, located.reduce((v,r) => Math.min(v,r.position[a]),Infinity)]));
+  const max = Object.fromEntries(axes.map(a => [a, located.reduce((v,r) => Math.max(v,r.position[a]),-Infinity)]));
   const center = Object.fromEntries(axes.map(a => [a, located.length ? (min[a] + max[a]) / 2 : 0]));
   const span = located.length ? Math.max(1, ...axes.map(a => max[a] - min[a])) : 1;
   return { sourceSha256, records, segments, branches: branchList,
