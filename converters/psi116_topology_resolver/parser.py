@@ -76,7 +76,10 @@ def _iter_named(root: ET.Element, name: str) -> Iterable[ET.Element]:
 def read_psi116_xml(source: str | Path, *, source_name: str | None = None) -> Psi116Document:
     if isinstance(source, Path) or (isinstance(source, str) and "<" not in source):
         path = Path(source)
-        source_text = path.read_text(encoding="utf-8")
+        # Source custody hashes the exact UTF-8 input, including CRLF/lone CR.
+        # Text-mode universal-newline translation would forge a different SHA
+        # from the browser/Worker even though the source file was unchanged.
+        source_text = path.read_bytes().decode("utf-8")
         resolved_source_name = source_name or str(path)
     else:
         source_text = str(source)

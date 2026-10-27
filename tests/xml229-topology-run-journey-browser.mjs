@@ -9,6 +9,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const require=createRequire(import.meta.url),{chromium}=require('playwright');
 const root=path.resolve(fileURLToPath(new URL('..',import.meta.url)));
+export const xml229TopologyRunJourneyResults=[];
 const server=createServer(async(req,res)=>{
  try{
   const pathname=new URL(req.url,'http://localhost').pathname;
@@ -42,20 +43,24 @@ async function enterMass(page,value){
 }
 try{
  browser=await chromium.launch({headless:true});
- for(const prefix of ['', '/docs']){
+ for(const [prefix,inputFormat] of [['','LF'],['/docs','LF'],['','CRLF'],['/docs','CRLF']]){
   const page=await browser.newPage(),errors=[];
   page.on('pageerror',error=>errors.push(String(error)));
   await page.goto('http://127.0.0.1:'+server.address().port+'/journey.html');
-  await page.evaluate(async prefix=>{
+  await page.evaluate(async({prefix,inputFormat})=>{
    const {xml229TopologyJourneyState}=await import('/tests/helpers/xml229-topology-journey-fixture.mjs');
    const base=prefix+'/tabs/xml-cii-2019-standalone/ui-adapted/';
    const intake=await import(base+'xml-cii-adapted-lfj-o1-intake.js');
    const p4=await import(base+'xml-cii-adapted-p4-verified-weight-panel.js');
    const ui=await import(base+'xml-cii-adapted-output-run.js');
    const ref={current:xml229TopologyJourneyState()};
+   if(inputFormat==='CRLF')ref.current.sourceText=ref.current.sourceText.replace(/></g,'>\r\n<')+'\r\n';
    ref.current.sourceFile=new File([ref.current.sourceText],'synthetic.xml',{type:'application/xml'});
    const run=document.querySelector('#run'),weight=document.querySelector('#weight');
    const j=window.journey={ref,p4,base,panel:null,worker:()=>p4.getXml229CurrentWorkerHeldReview(ref)};
+   j.originalText=ref.current.sourceText;
+   j.originalSha=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',
+    new TextEncoder().encode(j.originalText))),n=>n.toString(16).padStart(2,'0')).join('');
    j.draw=()=>{
     j.panel?.dispose();j.panel=null;run.replaceChildren();weight.replaceChildren();
     if(ref.current.activePhaseId==='weight-match')
@@ -63,7 +68,7 @@ try{
     else ui.renderStandaloneOutputRunPanel(run,ref,j.draw);
    };
    intake.installLfjO1SourceIntake(document.querySelector('#source'),ref);
-  },prefix);
+  },{prefix,inputFormat});
   await page.locator('[data-field="staged-json-file"]').setInputFiles({
    name:'synthetic-original.json',mimeType:'application/json',
    buffer:Buffer.from('{"name":"synthetic-original","children":[{"name":"TEST-1","attributes":{"TYPE":"RIGID","POS":"0 500 0"}}]}'),
@@ -83,14 +88,25 @@ try{
   await page.waitForFunction(()=>document.querySelectorAll('[data-topofix-action-id]').length>0,null,{timeout:120000});
   assert.equal(await page.locator('[data-topofix-action-id]:checked').count(),0);
   assert.equal(await page.locator('[data-action="xml229-topology-commit"]').isDisabled(),true);
-  const actionId=await page.evaluate(async()=>{
+  const plan=await page.evaluate(async()=>{
    const {getXml229TopologyReview}=await import(window.journey.base+'xml229-topology-review-controller.mjs');
-   return JSON.parse(getXml229TopologyReview(window.journey.ref).result.topologyFixPlanText)
-    .actions.find(a=>a.disposition==='SAFE_DROP_PIPE_GEOMETRY').action_id;
+   const plan=JSON.parse(getXml229TopologyReview(window.journey.ref).result.topologyFixPlanText);
+   return {actionId:plan.actions.find(a=>a.disposition==='SAFE_DROP_PIPE_GEOMETRY').action_id,
+    planSha:plan.source.sha256,originalSha:window.journey.originalSha};
   });
-  await page.locator('[data-topofix-action-id="'+actionId+'"]').check();
+  assert.equal(plan.planSha,plan.originalSha,'plan must bind exact input UTF-8 bytes');
+  await page.locator('[data-topofix-action-id="'+plan.actionId+'"]').check();
   await page.locator('[data-action="xml229-topology-commit"]').click();
   await page.waitForFunction(()=>document.querySelector('[data-action="xml229-topology-fresh-weight"]')?.disabled===false,null,{timeout:120000});
+  const committedSource=await page.evaluate(async()=>{
+   const j=window.journey,{getXml229TopologyReview}=await import(j.base+'xml229-topology-review-controller.mjs');
+   const result=getXml229TopologyReview(j.ref).result;
+   return {sourceUnchanged:j.ref.current.sourceText===j.originalText,
+    lineageSha:JSON.parse(result.topoFixLineageText).sourceXmlSha256,
+    handoffSha:JSON.parse(result.topoFixPreFinalHandoffText).originalSourceXmlSha256};
+  });
+  assert(committedSource.sourceUnchanged);assert.equal(committedSource.lineageSha,plan.originalSha);
+  assert.equal(committedSource.handoffSha,plan.originalSha);
   await page.locator('[data-action="xml229-topology-fresh-weight"]').click();
   await page.waitForFunction(()=>window.journey.ref.current.activePhaseId==='weight-match'&&
    document.querySelector('[data-p4-weight-root]')?.dataset.p4ReadReady==='true',null,{timeout:120000});
@@ -106,7 +122,7 @@ try{
   assert(fresh.oldClosed&&fresh.newGeneration&&fresh.newBasis&&fresh.manualOnly&&fresh.provenance);
   assert.equal(fresh.counts.final,0);assert.equal(fresh.counts.unresolved,1);
   assert(fresh.oldFinalCleared);assert.equal(fresh.hasCii,false);
-  console.log(JSON.stringify({stage:'fresh-topofix-weight',route:prefix||'root',...fresh}));
+  console.log(JSON.stringify({stage:'fresh-topofix-weight',route:prefix||'root',inputFormat,...fresh}));
   await page.evaluate(()=>window.journey.draw());
   await page.waitForFunction(()=>document.querySelector('[data-p4-weight-root]')?.dataset.p4ReadReady==='true');
   assert.equal((await completion(page)).counts.final,0,'panel recreation must not accept Final');
@@ -145,8 +161,9 @@ try{
   });
   assert(emitted.ok&&emitted.hasCii&&emitted.exact&&emitted.massVerified);assert.equal(emitted.physicalCount,1);
   assert.deepEqual(errors,[]);
+  xml229TopologyRunJourneyResults.push({route:prefix||'root',inputFormat,status:'PASS'});
   console.log(JSON.stringify({schema:'XML229.TopoFixToNativeBrowserJourney.v1',route:prefix||'root',
-   status:'PASS',realChromium:true,realO1:true,realEngineeringWorkers:true,realWasmPython:true,
+   inputFormat,sourceHashBinding:'EXACT_INPUT_UTF8',status:'PASS',realChromium:true,realO1:true,realEngineeringWorkers:true,realWasmPython:true,
    originalFixtureKg:7,freshFinalBeforeExplicitSelection:0,finalFixtureKg:12.5,...emitted}));
   await page.evaluate(()=>window.journey.worker()?.cancel());await page.close();
  }

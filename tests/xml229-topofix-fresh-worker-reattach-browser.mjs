@@ -206,5 +206,9 @@ try{
  await browser?.close();
  await new Promise(resolve=>server.close(resolve));
 }
-// Keep the complete new journey under the existing Chromium CI entrypoint.
-await import('./xml229-topology-run-journey-browser.mjs');
+// Require both source byte forms on each served route, not only the LF fixture.
+const {xml229TopologyRunJourneyResults}=await import('./xml229-topology-run-journey-browser.mjs');
+assert.deepEqual(xml229TopologyRunJourneyResults,[
+ {route:'root',inputFormat:'LF',status:'PASS'},{route:'/docs',inputFormat:'LF',status:'PASS'},
+ {route:'root',inputFormat:'CRLF',status:'PASS'},{route:'/docs',inputFormat:'CRLF',status:'PASS'},
+]);

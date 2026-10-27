@@ -6,6 +6,7 @@ import tempfile
 import unittest
 import json
 import copy
+from hashlib import sha256
 import xml.etree.ElementTree as ET
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -54,6 +55,39 @@ def node_numbers(xml_text):
 
 
 class Psi116TopoFixTransactionTests(unittest.TestCase):
+    def test_path_and_memory_keep_exact_source_bytes_and_replay_receipts(self):
+        lf = SYNTHETIC_XML.replace("\r\n", "\n").replace("\r", "\n")
+        unicode_xml = lf.replace("</PipeStressExport>", "<!-- café Δ -->\n</PipeStressExport>")
+        variants = {"lf": lf, "crlf": lf.replace("\n", "\r\n"),
+                    "cr": lf.replace("\n", "\r"),
+                    "mixed": lf.replace("\n", "\r\n", 3),
+                    "bom_unicode": "\ufeff" + unicode_xml.replace("\n", "\r\n")}
+        with tempfile.TemporaryDirectory() as folder:
+            for label, original in variants.items():
+                with self.subTest(format=label):
+                    raw = original.encode("utf-8")
+                    path = Path(folder) / (label + ".xml")
+                    path.write_bytes(raw)
+                    memory = resolve_psi116(original, source_name=str(path))
+                    disk = resolve_psi116(path)
+                    expected = sha256(raw).hexdigest()
+                    self.assertEqual(disk.document.source_text, original)
+                    self.assertEqual(disk.document.source_sha256, expected)
+                    self.assertEqual(memory.document.source_sha256, expected)
+                    self.assertEqual(disk.fix_plan_payload(ResolverConfig()),
+                                     memory.fix_plan_payload(ResolverConfig()))
+                    action = action_for_nodes(disk, 'ALIAS_COINCIDENT_NODE', {10, 20, 50})
+                    tx = apply_topofix_transaction(disk, policy=TransactionPolicy(
+                        selected_action_ids=(action.action_id,)))
+                    self.assertTrue(tx.committed, tx.reject_reasons)
+                    lineage = build_topofix_source_lineage(tx)
+                    receipt = verify_topofix_pre_final(original, tx.fixed_xml,
+                        tx.transaction_payload(), tx.validation_payload(), lineage,
+                        reviewed_action_ids=(action.action_id,))
+                    self.assertEqual(lineage['sourceXmlSha256'], expected)
+                    self.assertEqual(receipt['originalSourceXmlSha256'], expected)
+                    self.assertEqual(path.read_bytes(), raw)
+
     def test_explicit_alias_action_commits_without_deleting_component_records(self):
         result = resolve_psi116(SYNTHETIC_XML, source_name='synthetic.xml')
         action = action_for_nodes(result, 'ALIAS_COINCIDENT_NODE', {10, 20, 50})

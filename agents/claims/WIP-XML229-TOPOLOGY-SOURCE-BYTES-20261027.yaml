@@ -1,0 +1,9 @@
+work_id: WIP-XML229-TOPOLOGY-SOURCE-BYTES-20261027
+actor: Oracle standalone UNKNOWN
+base: 30e555e3d39db57b6b07e3720b54751f8ab73238
+state: LOCAL_PASS_BROWSER_CI_PENDING
+scope: exact topology source UTF-8 hash, root/docs parser and encoding regressions
+protected: geometry, kg, owner rules, Final CAS, native writer/reconciler, workflows
+merge_authority: NOT_GRANTED
+private_output_verified: false
+report: agents/WIP-XML229-TOPOLOGY-SOURCE-BYTES-20261027_workreport.md
