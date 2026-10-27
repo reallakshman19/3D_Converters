@@ -3,6 +3,11 @@
 from .models import ResolverConfig, ResolutionResult
 from .parser import read_psi116_xml
 from .resolver import analyze_document, resolve_psi116, write_sidecars
+from .lineage import (
+    TopoFixLineageError,
+    build_topofix_source_lineage,
+    verify_topofix_pre_final,
+)
 from .transaction import (
     TopoFixTransactionResult,
     TransactionPolicy,
@@ -21,4 +26,7 @@ __all__ = [
     "resolve_psi116",
     "write_sidecars",
     "write_topofix_outputs",
+    "TopoFixLineageError",
+    "build_topofix_source_lineage",
+    "verify_topofix_pre_final",
 ]

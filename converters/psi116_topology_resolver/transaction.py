@@ -77,6 +77,7 @@ class TopoFixTransactionResult:
     checks: tuple[ValidationCheck, ...]
     reject_reasons: tuple[str, ...]
     fixed_xml: str | None
+    resolver_config: ResolverConfig = field(default_factory=ResolverConfig)
 
     @property
     def committed(self) -> bool:
@@ -91,6 +92,7 @@ class TopoFixTransactionResult:
                 "namespace": self.source_result.document.namespace,
             },
             "policy": asdict(self.policy),
+            "resolverConfig": asdict(self.resolver_config),
             "committed": self.committed,
             "atomic": True,
             "sourceXmlMutated": False,
@@ -210,7 +212,21 @@ def _finding_node_keys(result: ResolutionResult, action: FixAction) -> tuple[str
 
 
 def _record_sha(record: NodeRecord) -> str:
-    return sha256(record.raw_xml.encode("utf-8")).hexdigest()
+    """Digest exact XML node semantics, not process-global namespace prefixes.
+
+    ET.register_namespace() affects serializing raw fragments and must never
+    silently change a previously reviewed TopoFix operation receipt.
+    """
+    element = ET.fromstring(record.raw_xml)
+
+    def semantic(node: ET.Element):
+        return [node.tag, sorted(node.attrib.items()),
+                (node.text or "").strip(),
+                [semantic(child) for child in node if isinstance(child.tag, str)]]
+
+    canonical = json.dumps(semantic(element), sort_keys=True,
+                           separators=(",", ":"), ensure_ascii=False)
+    return sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _compatible_number(left: float | None, right: float | None, tolerance: float = 1e-9) -> bool:
@@ -453,7 +469,7 @@ def apply_topofix_transaction(
     actions = _selected_actions(before, policy)
     preflight_reasons = _preflight(before, actions, policy)
     if preflight_reasons:
-        return TopoFixTransactionResult(before, None, policy, actions, (), (), tuple(preflight_reasons), None)
+        return TopoFixTransactionResult(before, None, policy, actions, (), (), tuple(preflight_reasons), None, config)
 
     root = _parse_clone(before.document.source_text)
     locators = _build_locator_index(root, before)
@@ -478,7 +494,7 @@ def apply_topofix_transaction(
             else:
                 raise ValueError(f"Unsupported selected disposition {action.disposition}.")
     except (KeyError, TypeError, ValueError) as error:
-        return TopoFixTransactionResult(before, None, policy, actions, tuple(operations), (), (f"APPLY_FAILED:{error}",), None)
+        return TopoFixTransactionResult(before, None, policy, actions, tuple(operations), (), (f"APPLY_FAILED:{error}",), None, config)
 
     candidate_xml = _serialize(root, before.document.namespace)
     after = resolve_psi116(candidate_xml, config, source_name=f"{before.document.source_path}.topofix")
@@ -493,6 +509,7 @@ def apply_topofix_transaction(
         checks=checks,
         reject_reasons=reject_reasons,
         fixed_xml=candidate_xml if not reject_reasons else None,
+        resolver_config=config,
     )
 
 
@@ -510,9 +527,22 @@ def write_topofix_outputs(
     fixed_path = directory / f"{resolved_stem}.topofix.xml"
     transaction_path.write_text(json.dumps(transaction.transaction_payload(), indent=2, sort_keys=True) + "\n", encoding="utf-8")
     validation_path.write_text(json.dumps(transaction.validation_payload(), indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    lineage_path = directory / f"{resolved_stem}.topofix-lineage.json"
     if transaction.committed and transaction.fixed_xml is not None:
+        from .lineage import build_topofix_source_lineage, verify_topofix_pre_final
+        lineage = build_topofix_source_lineage(transaction)
+        verify_topofix_pre_final(
+            transaction.source_result.document.source_text,
+            transaction.fixed_xml,
+            transaction.transaction_payload(),
+            transaction.validation_payload(),
+            lineage, reviewed_action_ids=transaction.policy.selected_action_ids,
+        )
         fixed_path.write_text(transaction.fixed_xml, encoding="utf-8")
+        lineage_path.write_text(json.dumps(lineage, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         return transaction_path, validation_path, fixed_path
     if fixed_path.exists():
         fixed_path.unlink()
+    if lineage_path.exists():
+        lineage_path.unlink()
     return transaction_path, validation_path, None

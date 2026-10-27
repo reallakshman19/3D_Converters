@@ -1,0 +1,42 @@
+name: XML229 L2 PSI116 TopoFix Pre-Final Lineage (nonreleasing)
+on:
+  pull_request:
+    paths:
+      - 'converters/psi116_topology_resolver/**'
+      - 'docs/converters/psi116_topology_resolver/**'
+      - 'converters/xml-cii-2019-standalone/topology-integration.js'
+      - 'docs/converters/xml-cii-2019-standalone/topology-integration.js'
+      - 'tests/psi116_topofix_transaction.py'
+      - 'tests/xml-cii-standalone-topofix-live-proof.test.js'
+      - '.github/workflows/xml229-l2-psi116-prefinal-lineage.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  topology-prefinal-lineage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Source and live-served mirror parity
+        run: |
+          for f in converters/psi116_topology_resolver/{__init__,models,parser,analysis,geometry_analysis,planner,resolver,transaction,lineage}.py; do
+            diff -u "$f" "docs/$f"
+          done
+          for f in converters/xml-cii-2019-standalone/{topology-integration,engine}.js; do
+            diff -u "$f" "docs/$f"
+          done
+      - name: Compile and independently replay TopoFix receipt
+        run: |
+          python -m py_compile converters/psi116_topology_resolver/*.py
+          python tests/psi116_topofix_transaction.py
+      - name: Actual PSI116 Sidecar lineage + manifest without native CII
+        run: TOPOFIX_L2_PREFINAL_ONLY=1 node tests/xml-cii-standalone-topofix-live-proof.test.js
