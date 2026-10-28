@@ -121,3 +121,37 @@ On a network-enabled clone of PR346 HEAD run baseline and new Node/Chromium test
 - **Classification:** **RUNNABLE / HOLD**. PR #346 remains DRAFT / HOLD; no merge without explicit Owner authorization. No self-claim of OWNER_TRIED or OWNER_ACCEPTED.
 - **EXACT_NEXT_ACTION:** Owner runs `python -m http.server 4173 --bind 127.0.0.1` locally, opens `http://127.0.0.1:4173/topology-workspace.html` (and `/docs/topology-workspace.html`), loads their real PSI116 XML file, inspects findings and projected canvas, and confirms acceptance before authorizing any merge or opening WP2.
 
+## 2026-10-28 06:35 UTC — Reconciliation of fixture hash, selection-status fix, console coverage & S1-F05.xml analysis
+
+- **Reconciled Candidate Head:** `732357f7aee4edb61b80071d49d63871ed451d59`
+- **Reconciliation of Input Fixture (`Benchmarks/1885Sjson/FirstpassXML`):**
+  - Git blob object in repo: `9baed223d1fe10644bc4ea6be1b9e36b10eb3e1f`
+  - Exact Git blob byte length: **144,471 bytes** (LF line endings)
+  - Exact Git blob SHA256: `feee5a5a6399207337e63bc56c8afb001fe37ab30c6a7a9283333ec60f6eea38`
+  - Discrepancy diagnosis: Windows default checkout converted the 4,257 LF line breaks to CRLF, yielding 148,728 bytes with SHA256 `b6eab643734bd503c0eccec67c31c3a2de1493a767764a81c7ae50446418f341`. Setting `core.autocrlf false` in the working copy restored exact LF bytes matching the Git blob (`feee5a5a...`, 144,471 bytes). The previous "82,246 bytes" mention was an agent typographical prose error, not a different file.
+- **Repair of Selection-Status Inconsistency:**
+  - Defect: When clicking a node occurrence from the list (`data-occ-id`), `displayMessage('')` was not called, leaving the previous action's witness text (e.g. `Source-qualified action witnesses: 2`) lingering in `[data-hits]`.
+  - Fix: Added `displayMessage('')` on `data-occ-id` selection in `workspace-app.mjs` and mirrored to `docs/tabs/topology-workspace/workspace-app.mjs`.
+  - Regression Test: Added in `tests/xml229-topology-workspace-controller.test.mjs` verifying `data-hits` clears when another occurrence is selected.
+- **Expanded Browser Error Coverage:**
+  - Added dedicated console error listener (`page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); })`) alongside `pageerror` in `tests/xml229-topology-workspace-wp1-browser.mjs`.
+  - Both `pageErrorCount` and `consoleErrorCount` are asserted and recorded as 0 across root and docs paths.
+  - Browser journey also explicitly verifies that selecting an occurrence clears prior action witness text.
+- **Separate Trial of Owner's `S1-F05.xml`:**
+  - File located at `C:\Users\reall\Downloads\S1-F05.xml` (882,735 bytes, SHA256 `1154c980d08344b1f803cda3bd9884b169753148b150641a745c9bfcb15de995`).
+  - Actual Admission / Rejection Reason:
+    `S1-F05.xml` is a CAESAR II / CII RichInput XML file (`<CAESARII XML_TYPE="RichInput" DIALECT="CII-V14" SCHEMA="RichInputXML-P1.v1.1">`), containing `<PIPINGMODEL>` and zero `<Branch>` elements.
+    The WP1 occurrence parser fail-closes on non-PSI116 formats: `parseOccurrenceScene` throws `Expected PSI116 <Branch>/<Node> XML`.
+    UI status reflects `Source rejected: Expected PSI116 <Branch>/<Node> XML` and `No admissible source`.
+    As instructed, parser semantics are preserved without broadening.
+- **Validation Run Outcomes on `732357f7aee4edb61b80071d49d63871ed451d59`:**
+  - `baseline` (`tests/xml229-topology-only-engine.test.mjs`): **PASS** (exit code 0; 7/7 tests passed)
+  - `wp1-unit` (`tests/xml229-topology-workspace-wp1.test.mjs`, `tests/xml229-topology-workspace-controller.test.mjs`): **PASS** (exit code 0; 8/8 tests passed)
+  - `wp1-browser` (`tests/xml229-topology-workspace-wp1-browser.mjs`): **PASS** (exit code 0; 0 page errors, 0 console errors)
+  - `mirror parity`: **PASS** (all 5 root vs docs file pairs verified identical)
+  - `verify script` (`scripts/verify-xml229-topology-workspace-wp1.mjs`): **PASS** (exit code 0)
+- **Validation Records Location:**
+  - `ValidationRecords/xml229-wp1-exact-head/732357f7aee4edb61b80071d49d63871ed451d59/`
+- **EXACT_NEXT_ACTION:** Owner runs local trial on `http://127.0.0.1:4173/topology-workspace.html` using their real PSI116 XML file; verify findings and projected canvas; PR #346 remains DRAFT / HOLD pending Owner acceptance.
+
+

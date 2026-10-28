@@ -1,0 +1,58 @@
+TAP version 13
+# (node:19104) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/reall/Documents/antigravity/radiant-brahmagupta/3D_Converters/tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to C:\\Users\\reall\\Documents\\antigravity\\radiant-brahmagupta\\3D_Converters\\package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:19104) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# Subtest: Exact production engine returns actual TopoFix sidecars before enrichment/native output
+ok 1 - Exact production engine returns actual TopoFix sidecars before enrichment/native output
+  ---
+  duration_ms: 2889.6114
+  type: 'test'
+  ...
+# Subtest: Actual controller, WASM plan and L3 keep exact newline/BOM source hashes
+    # Subtest: lf
+    ok 1 - lf
+      ---
+      duration_ms: 907.4841
+      type: 'test'
+      ...
+    # Subtest: crlf
+    ok 2 - crlf
+      ---
+      duration_ms: 867.1646
+      type: 'test'
+      ...
+    # Subtest: cr
+    ok 3 - cr
+      ---
+      duration_ms: 905.7952
+      type: 'test'
+      ...
+    # Subtest: mixed
+    ok 4 - mixed
+      ---
+      duration_ms: 856.2902
+      type: 'test'
+      ...
+    # Subtest: bomUnicode
+    ok 5 - bomUnicode
+      ---
+      duration_ms: 945.0057
+      type: 'test'
+      ...
+    1..5
+ok 2 - Actual controller, WASM plan and L3 keep exact newline/BOM source hashes
+  ---
+  duration_ms: 4486.1279
+  type: 'test'
+  ...
+1..2
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8518.0011
