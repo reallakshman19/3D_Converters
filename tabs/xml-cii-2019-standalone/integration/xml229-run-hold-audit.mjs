@@ -182,8 +182,7 @@ export function buildXml229RunHoldAudit({
      finalIntent.eligibleForEngineBinding===true?'VERIFIED':'HELD',
      finalIntentReadError?safeCode(finalIntentReadError.code):
      !finalIntent?'FINAL_INTENT_NOT_QUERIED':
-     intentIssue:
-       intentIssue||
+     intentIssue?intentIssue:
        (finalIntent.eligibleForEngineBinding===true?
        'SOURCE_BOUND_ENGINE_BINDING_ELIGIBLE_ONLY':'FINAL_INTENT_NOT_ELIGIBLE')),
    stage('worker-r2-and-native-candidate',
