@@ -519,6 +519,16 @@ function renderRunControls(parent, stateRef, state, report, render) {
           readError:{code:'RUN_AUDIT_UNEXPECTED_FAILURE'},
           flowTrace:getXml229FlowTrace(stateRef)?.snapshot()||null,
         });
+        if(auditPanel.isConnected!==false){
+          auditStatus.textContent='Fresh audit failed: '+failed.diagnosisCode+
+            '. The current Worker/source proof is not verified. Native release remains HELD.';
+          const fresh=table(['Stage','Status','Evidence / reason'],
+            failed.evidence.map(e=>({Stage:e.name,Status:e.status,
+              'Evidence / reason':e.reason})),
+            'No evidence boundaries available.');
+          auditStages.replaceWith(fresh);
+          auditStages=fresh;
+        }
         downloadTextFile('xml229-run-hold-audit.json',
           JSON.stringify(failed,null,2),'application/json;charset=utf-8');
       }finally{auditBtn.disabled=false;}
