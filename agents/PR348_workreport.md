@@ -3,17 +3,17 @@
 HANDOVER_READINESS: READY
 PR_RECOVERY_STATE: HEALTHY
 TAKEOVER_AUTHORITY: WRITE_ALLOWED (direct Owner continuation; new follow-up, no takeover of an open PR)
-PR_HEAD_OBSERVED: 95a82a9d80b810da5c4207d472971634a0d6634f
-REPORT_BASIS_HEAD: 95a82a9d80b810da5c4207d472971634a0d6634f
+PR_HEAD_OBSERVED: 1098e1bd85b1ebe6000350ba24508e5bff1e8eb6
+REPORT_BASIS_HEAD: 1098e1bd85b1ebe6000350ba24508e5bff1e8eb6
 REPORT_SYNC: CURRENT
 APPENDIX_A_STATUS: CURRENT (continuation challenges below; incoming implementer must independently qualify)
 MERGE_BASE: e83a7bae22a1ab91e671c56072c9777c86ba1477
 MAIN_HEAD_LAST_CHECKED: e83a7bae22a1ab91e671c56072c9777c86ba1477
 GROUNDING_EPOCH: GE-NATIVE-RUN-20261028-1
-CURRENT_STAGE: VALIDATE / DRAFT DELIVERY
-CURRENT_BLOCKER: Owner private source/session is not available; audit omits actual Run eligibility and the production action does not record candidate attempts.
+CURRENT_STAGE: HANDOVER / DRAFT REVIEW
+CURRENT_BLOCKER: Owner private source/session is not available; live private native output is NOT_RUN. Broader historical CI scope/ancestry checks fail separately from the passing targeted suites.
 HIGHEST_RISK: Mistaking completed Weight/Final review for verified native output.
-EXACT_NEXT_ACTION: Verify targeted exact-head GitHub Node22/24 and Chromium checks; inspect Owner live native execution after integration. Never clear the native gate from this report.
+EXACT_NEXT_ACTION: Owner/reviewer assesses PR348 and runs the private original source through Finalise and Run Conversion after authorized integration; inspect actual candidate/failure evidence. No merge or native release from this report.
 
 ## Mission and authority
 
@@ -72,3 +72,18 @@ Branch: fix/xml229-native-run-dispatch-20261028. Implementation head: 95a82a9d80
 Appendix A continuation challenge anchors: A1 trace executeXml229NativeRun -> runXml229NativeCiiMassCandidate -> reconcileXml229ActualCiiAgainstFinal -> buildStandaloneOutputRunReadiness and prove no release from candidate telemetry; A2 reproduce why an enriched-only result suppresses the predecessor auto-run and verify once-only dispatch; A3 mutate original source/selected receipt/Worker during the native await and prove zero downloads; A4 distinguish explicitly fake runner control-flow tests from real native byte/owner reconciliation and obtain actual original-source evidence; A5 keep the next diff in the exact Run orchestration domain, preserve native writer/Final authority and reconcile older PR329/312 before integration. Required evidence: exact-head execution, source anchors, expected result and falsifier for each. Scoring follows root AGENTS.md (6+5+4+3+2 per challenge; >=92 total, >=17 each); no independent takeover score claimed here.
 
 CI correction checkpoint: tests/xml229-native-cii-real-cli-e2e.test.mjs added to changed-file ledger solely to follow the generation guard into its extracted production module; genuine Python converter and tampered-byte expectations are unchanged. Current implementation still 95a82a9; next commit contains test-anchor correction plus recovery/status/claim metadata. Exact new-head checks are required.
+
+## Latest exact-head validation — 1098e1bd85b1ebe6000350ba24508e5bff1e8eb6
+
+- XML229 Native Final to CII Mass Consumption: https://github.com/reallakshman19/3D_Converters/actions/runs/40666778150 — all three jobs PASS, actual Python source transfer plus independent JS checks on Node22 and Node24. REMOTE_EXECUTION / regression + independent emitted-byte reconciliation on synthetic public fixtures, not private Owner acceptance.
+- XML229 Run HOLD audit: https://github.com/reallakshman19/3D_Converters/actions/runs/40666778410 — Node22 and Node24 PASS; Chromium in progress at this checkpoint. Earlier identical-production 95a82a9 served root/docs Chromium PASS: https://github.com/reallakshman19/3D_Converters/actions/runs/40666542084.
+- No PR348 review or inline review comments observed. Main remains e83a7bae; PR348 open Draft and mergeable. Changed files reconciled: 12 paired production paths, five test files, and four recovery/status/claim files = 21 paths. No workflow, original fixture, converter/writer or native reconciliation diff.
+- Broader repository checks are not blanket green. Historical C05/C06/served-entry workflows have failures; inspect logs and classify separately rather than claim them passed or weaken unrelated gates.
+
+## Final exact-head disposition
+
+At 1098e1bd85b1ebe6000350ba24508e5bff1e8eb6, targeted XML229 Run HOLD audit run 40666778410 is SUCCESS: Node22, Node24 and real Chromium root/docs module-loading + audit download PASS. Native Final-to-CII run 40666778150 is SUCCESS: real Python native source transfer plus independent JS emitted-CII checks on Node22 and Node24. Earlier test-anchor failure is RESOLVED_BY_PR in the latest exact head. Local 50/50 regression rerun and git diff --check also PASS. No Owner private engineering trial or independent project acceptance is claimed.
+
+Representative broader CI failures inspected: C06 reports Unexpected runtime/docs-runtime change against its historical scope; C05.1 reports production/out-of-scope changes; the actual-default Worker route workflow asserts a fixed historical merge base 4f14beb37bc0b719453c52a116c1c5d7183d2fd0 and exits before its browser command on current-main lineage. These are workflow scope/ancestry preconditions, not observed native conversion failures. Overall repository checks remain mixed; no unrelated workflow is edited or waived. Other uninspected failing workflows remain UNKNOWN_ORIGIN.
+
+Final review status: Draft / open / unmerged; zero review/inline comments observed. Final report/status/claim synchronization is metadata-only after tested source/test head 1098e1bd. Root and docs six changed pairs are identical. Changed-file ledger reconciled to all 21 GitHub paths. Protected PR346, original inputs, source mass decisions and native release gate remain unchanged. Handover READY for this bounded candidate; integrate only with actual Owner authority and review.

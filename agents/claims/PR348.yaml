@@ -13,4 +13,4 @@ files:
 authority_domains: [native Run UI orchestration, non-authorizing diagnostics]
 protected: [native writer, actual mass reconciliation, Final decisions, original fixtures, workflow files]
 coordination: Direct Owner current-main follow-up; reconcile older PR329 and PR312 before integration
-last_verified_head: 95a82a9d80b810da5c4207d472971634a0d6634f
+last_verified_head: 1098e1bd85b1ebe6000350ba24508e5bff1e8eb6
