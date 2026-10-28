@@ -72,3 +72,52 @@ On a network-enabled clone of PR346 HEAD run baseline and new Node/Chromium test
 - Prior 29 passing isolated V8 assertions were executed against older WP1 source blobs and remain useful historical isolated evidence, but **not** an exact-HEAD real-engine/browser PASS for today's modified code.
 
 **NEXT:** in permitted unrestricted runner, check out PR #346's **current** head, install Playwright/Chromium, and execute `EXACT_HEAD="$(git rev-parse HEAD)" node scripts/verify-xml229-topology-workspace-wp1.mjs` (subject to independently verifying expected SHA). Review the real FirstpassXML 216-source-occurrence outputs, action witness, root/docs screenshots and logs, and then qualify or fix WP1. PR346 stays **DRAFT / HOLD**, no WP2. Workflow definitions are protected and unchanged.
+
+## 2026-10-28 06:05 UTC — WP1 exact-head validation completed (PASS / RUNNABLE / HOLD)
+
+- **Exact candidate SHA:** `e88c2dc3812aadc6fefad95c2ac7e03bdeacaa42`
+- **Changed-file ledger:**
+  - `topology-workspace.html` and `docs/topology-workspace.html` (mirrored standalone root and docs app shells)
+  - `tabs/topology-workspace/occurrence-scene.mjs` and `docs/tabs/topology-workspace/occurrence-scene.mjs` (source-qualified occurrence parser)
+  - `tabs/topology-workspace/projected-canvas.mjs` and `docs/tabs/topology-workspace/projected-canvas.mjs` (projected canvas 2D navigation and picking)
+  - `tabs/topology-workspace/workspace-app.mjs` and `docs/tabs/topology-workspace/workspace-app.mjs` (fail-closed standalone controller)
+  - `tabs/topology-workspace/workspace.css` and `docs/tabs/topology-workspace/workspace.css` (layout stylesheet)
+  - `tests/xml229-topology-workspace-wp1.test.mjs` (unit test: duplicates, coincident XYZ, ATTA/SREF, malformed positions)
+  - `tests/xml229-topology-workspace-controller.test.mjs` (controller test: no-master engine, stale results, SHA drift, no-Final guards)
+  - `tests/xml229-topology-workspace-wp1-browser.mjs` (real Chromium browser journey test against FirstpassXML)
+  - `scripts/verify-xml229-topology-workspace-wp1.mjs` (exact-head validation runner and evidence generator)
+  - `agents/PR346_workreport.md` (this report)
+  - `agents/claims/WIP-XML229-TOPO-WP1-GPT6-20261027.yaml` (WIP claim ledger)
+  - `ValidationRecords/xml229-wp1-exact-head/e88c2dc3812aadc6fefad95c2ac7e03bdeacaa42/` (exact-head logs, screenshots, manifest)
+- **Real input name and measured SHA256:**
+  - Input: `Benchmarks/1885Sjson/FirstpassXML`
+  - Raw size: 82,246 bytes
+  - Measured SHA256: `b6eab643734bd503c0eccec67c31c3a2de1493a767764a81c7ae50446418f341`
+  - Records: 216 original source occurrences across 5 branches.
+- **Trace of engineering rule & contrary observations:**
+  - *Engineering Rule:* Original Branch/Node records become source-qualified occurrence keys `B<branchIndex>:N<nodeNumber>:S<sourceIndex>`. A `NodeNumber` label is only a textual property, not an identity.
+  - *Fixture Inspection:* Node 1600 in `FirstpassXML` is uniquely keyed as `B3:N1600:S2` in branch `/ASIM-1885-8"-S8810103-91261M7-HC-01`, ComponentType `PIPE`, at position `(445580.151, -1159925, 2904.55)`.
+  - *Contrary Case (Coincident XYZ):* In `FirstpassXML`, there are 49 coincident XYZ coordinate clusters where multiple distinct nodes share identical coordinates (e.g., `(421773.221, -1141354, 1184.15)` contains `B0:N10:S0`, `B2:N1350:S17`, `B2:N1370:S19`; `(422420.992, -1141125, 1184.15)` contains 4 nodes in Branch 0). The canvas hit detector and inspector list every distinct source occurrence rather than collapsing them to a single node.
+  - *Contrary Case (Duplicate NodeNumbers):* In synthetic test cases (`tests/xml229-topology-workspace-wp1.test.mjs`), identical NodeNumbers across branches (`B0:N2050:S0` vs `B1:N2050:S0`) yield distinct IDs and selectable occurrences.
+  - *Authoritative Finding Keys:* PSI116 action witnesses are mapped strictly through `finding.node_keys`, never ambiguous NodeNumber matching. Selecting `SAFE_DROP_PIPE_GEOMETRY` activates exactly 2 source-qualified witnesses.
+- **Exact-head validation test outcomes:**
+  - `baseline` (`tests/xml229-topology-only-engine.test.mjs`): **PASS** (exit code 0; 7/7 tests pass; WASM Pyodide loads, FirstpassXML analyzed and committed, sidecars verified, newline/BOM hash preservation verified).
+  - `wp1-unit` (`tests/xml229-topology-workspace-wp1.test.mjs` + `tests/xml229-topology-workspace-controller.test.mjs`): **PASS** (exit code 0; 8/8 tests pass; duplicate NodeNumbers, coincident XYZ, ATTA/SREF support, absent/malformed XYZ, source-qualified finding keys, epoch cancel, source drift, fail closed on unexpected TopoFix/accepted Final/native release/CII output).
+  - `wp1-browser` (`tests/xml229-topology-workspace-wp1-browser.mjs`): **PASS** (exit code 0; real headless Chromium against root and docs URLs; 216 occurrences loaded; authoritative topology analysis completed with 190 plan entries, 106 KEEP; pan/orbit/zoom verified; Node 1600 searched, selected, and focused; `SAFE_DROP_PIPE_GEOMETRY` witness verified; 0 console/page errors; screenshots captured).
+  - `mirror parity`: **PASS** (all 5 pairs between root and docs verified byte-for-byte identical).
+  - Overall `verify-xml229-topology-workspace-wp1.mjs`: **PASS** (`status: PASS` in manifest).
+- **Actual browser screenshots and evidence location:**
+  - `ValidationRecords/xml229-wp1-exact-head/e88c2dc3812aadc6fefad95c2ac7e03bdeacaa42/screenshots/root-wp1.png`
+  - `ValidationRecords/xml229-wp1-exact-head/e88c2dc3812aadc6fefad95c2ac7e03bdeacaa42/screenshots/docs-wp1.png`
+  - `ValidationRecords/xml229-wp1-exact-head/e88c2dc3812aadc6fefad95c2ac7e03bdeacaa42/screenshots/owner-demo-root.png`
+  - `ValidationRecords/xml229-wp1-exact-head/e88c2dc3812aadc6fefad95c2ac7e03bdeacaa42/screenshots/owner-demo-docs.png`
+  - Full run logs: `baseline.stdout.log`, `wp1-unit.stdout.log`, `wp1-browser.stdout.log` (all stderr logs 0 bytes).
+- **One plausible wrong result that could still escape the checks:**
+  - If an authoring tool outputs non-contiguous route nodes within a single `<Branch>` element without explicit branch splits or break markers, illustrative source-order rendering in `occurrence-scene.mjs` (`segments.push({a: routePrevious.id, b: record.id})`) connects consecutive route nodes in document order. This could draw an illustrative stroke across physically disconnected points in 3D space, which a human operator might misinterpret as a piping connection (even though labels and UI explicitly state strokes are illustrative rather than solver connectivity).
+- **Root/docs parity and remaining coordination risks:**
+  - Root/docs parity is 100% verified across all 5 deployed assets.
+  - PR #329 coordination risk: PR #329 modifies shared XML229 engine and orchestration. WP1 calls only the public `runXmlCii2019StandaloneEngineJob` interface with `topologyPreFinalOnly: true` and does not mutate shared engine files. Ongoing coordination is required when integrating orchestration in future work packages.
+  - PR #335 coordination risk: downstream native simplification; completely distinct and untouched.
+- **Classification:** **RUNNABLE / HOLD**. PR #346 remains DRAFT / HOLD; no merge without explicit Owner authorization. No self-claim of OWNER_TRIED or OWNER_ACCEPTED.
+- **EXACT_NEXT_ACTION:** Owner runs `python -m http.server 4173 --bind 127.0.0.1` locally, opens `http://127.0.0.1:4173/topology-workspace.html` (and `/docs/topology-workspace.html`), loads their real PSI116 XML file, inspects findings and projected canvas, and confirms acceptance before authorizing any merge or opening WP2.
+
