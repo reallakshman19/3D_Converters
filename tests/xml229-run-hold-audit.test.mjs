@@ -5,6 +5,8 @@ import {buildStandaloneOutputRunReadiness}
  from '../tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js';
 import {buildXml229RunHoldAudit}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-run-hold-audit.mjs';
+import {readXml229NativeFinalObservation}
+ from '../tabs/xml-cii-2019-standalone/integration/xml229-native-final-observation.mjs';
 import {createXml229CrossWorkerFlowTrace}
  from '../contracts/xml229-flow-trace-v1/trace.mjs';
 import {beginXml229VerifiedEngineeringBuild,publishXml229VerifiedEngineeringBuild,
@@ -249,4 +251,61 @@ test('ordinary Output Run source contains current-Worker Final read and no relea
  const helper=await readFile(new URL('../tabs/xml-cii-2019-standalone/integration/xml229-native-final-observation.mjs',import.meta.url),'utf8');
  const mirrored=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/integration/xml229-native-final-observation.mjs',import.meta.url),'utf8');
  assert.equal(helper,mirrored);
+});
+
+test('CI: current Worker Final intent is observed after complete Source/Final mass census',async()=>{
+ let intentReads=0;
+ const observed=await readXml229NativeFinalObservation({
+  readCompletion:async()=>proof({source:0,match1:0,final:2,unresolved:0}),
+  readNativeFinalIntent:async()=>{intentReads++;return final();},
+ });
+ assert.equal(observed.stale,false);
+ assert.equal(intentReads,1);
+ const x=buildStandaloneOutputRunReadiness(input(),{verifiedEngineering:{
+  sessionReceipt:receipt(),proof:observed.completion,finalIntent:observed.finalIntent,
+ }});
+ assert.equal(x.runHoldAudit.diagnosisCode,'INDEPENDENT_NATIVE_RELEASE_AUTHORITY_ABSENT');
+ assert.equal(x.runHoldAudit.evidence.find(e=>e.name==='native-final-intent').status,'VERIFIED');
+ assert.equal(x.summary.blockingCount,1);
+});
+test('CI: Final RPC failures never erase valid Weight and redact unrecognized codes',async()=>{
+ for(const [code,expected] of [
+  ['FINAL_INTENT_CHANGED_DURING_HASH','FINAL_INTENT_CHANGED_DURING_HASH'],
+  ['OWNER_PRIVATE_SOURCE_PATH','FINAL_INTENT_READ_FAILED'],
+ ]){
+  const observed=await readXml229NativeFinalObservation({
+   readCompletion:async()=>proof({source:0,match1:0,final:2,unresolved:0}),
+   readNativeFinalIntent:async()=>{throw Object.assign(new Error('/private-owner.xml'),
+    {code});},
+  });
+  const x=buildStandaloneOutputRunReadiness(input(),{verifiedEngineering:{
+   sessionReceipt:receipt(),proof:observed.completion,
+   finalIntentReadError:observed.finalIntentReadError,
+  }});
+  assert.equal(x.runHoldAudit.diagnosisCode,'FINAL_INTENT_READ_FAILED');
+  assert.equal(x.runHoldAudit.worker.finalIntentReadFailureCode,expected);
+  assert.equal(x.runHoldAudit.evidence.find(e=>e.name==='weight-final-readiness').status,'VERIFIED');
+  assert.equal(x.summary.blockingCount,1);
+  assert.doesNotMatch(JSON.stringify(x.runHoldAudit),/private-owner|OWNER_PRIVATE/);
+ }
+});
+test('CI: source replacement, missing intent reader, and unresolved Match-1 remain fail closed',async()=>{
+ let live=true;
+ const stale=await readXml229NativeFinalObservation({
+  readCompletion:async()=>proof({source:2,match1:0,final:0,unresolved:0}),
+  readNativeFinalIntent:async()=>{live=false;return final(true,2);},
+ },()=>live);
+ assert.equal(stale.stale,true);
+ assert.equal(stale.finalIntent,null);
+ const missing=await readXml229NativeFinalObservation({
+  readCompletion:async()=>proof({source:2,match1:0,final:0,unresolved:0}),
+ });
+ assert.equal(missing.finalIntentReadError.code,'FINAL_INTENT_READ_UNAVAILABLE');
+ let calls=0;
+ const unresolved=await readXml229NativeFinalObservation({
+  readCompletion:async()=>proof({source:0,match1:2,final:0,unresolved:0}),
+  readNativeFinalIntent:async()=>{calls++;return final();},
+ });
+ assert.equal(calls,0);
+ assert.equal(unresolved.finalIntent,null);
 });
