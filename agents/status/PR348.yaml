@@ -1,0 +1,19 @@
+schema: AgentPrStatus.v1
+repository: reallakshman19/3D_Converters
+pr_or_wip: PR348
+mission: Observable governed native Run dispatch after verified Final masses
+branch: fix/xml229-native-run-dispatch-20261028
+pr_head: 95a82a9d80b810da5c4207d472971634a0d6634f
+main_head_last_checked: e83a7bae22a1ab91e671c56072c9777c86ba1477
+work_intent: IMPLEMENT
+criticality: ENGINEERING_CRITICAL
+agent_state: VALIDATING
+pr_recovery_state: HEALTHY
+handover_readiness: READY
+report_path: agents/PR348_workreport.md
+report_basis_head: 95a82a9d80b810da5c4207d472971634a0d6634f
+appendix_a_status: CURRENT
+grounding_epoch: GE-NATIVE-RUN-20261028-1
+blocker: Private Owner native execution not observed; exact-head CI pending
+highest_risk: Promoting a diagnostic or fake runner to engineering authority
+exact_next_action: Inspect exact-head Node22/24 and Chromium evidence; retain native release gate
