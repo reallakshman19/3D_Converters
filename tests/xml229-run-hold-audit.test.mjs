@@ -30,11 +30,11 @@ const proof=(c={source:0,match1:0,final:0,unresolved:2})=>({
  verifiedFactCount:14,counts:c,engineeringFactsVerified:true,
  previewStatus:'FULL_SOURCE_FACTS_VERIFIED',ciiReleaseAuthorized:false,
 });
-const final=(eligible=true)=>({
+const final=(eligible=true,sourceCount=0)=>({
  schema:'XML229.NativeFinalPhysicalIntent.v1',
  basisId:basis,originalJsonSha256:hash,sourceGenerationId:'G1',
  physicalCount:2,verifiedFactCount:14,
- sourceAcceptedCount:0,acceptedFinalCount:2,match1OnlyCount:0,unresolvedCount:0,
+ sourceAcceptedCount:sourceCount,acceptedFinalCount:2-sourceCount,match1OnlyCount:0,unresolvedCount:0,
  intentSha256:'c'.repeat(64),eligibleForEngineBinding:eligible,
  nativeCiiReleaseAuthorized:false,
 });
@@ -92,7 +92,7 @@ test('unresolved, Match-1 only and source-complete stages are separate',()=>{
 });
 test('successful nonreleasing candidate is diagnosed but release stays permanently HELD',()=>{
  const params={sr:receipt(),p:proof({source:2,match1:0,final:0,unresolved:0}),
-  intent:final(),sessionState:'LIVE'};
+  intent:final(true,2),sessionState:'LIVE'};
  const failed=audit({...params,candidate:{status:'FAILED',code:'NATIVE_PYODIDE_SCRIPT_FAILED'}});
  assert.equal(failed.diagnostic.diagnosisCode,'NATIVE_CANDIDATE_FAILED');
  assert.equal(failed.diagnostic.nativeCandidate.failureCode,'NATIVE_PYODIDE_SCRIPT_FAILED');
