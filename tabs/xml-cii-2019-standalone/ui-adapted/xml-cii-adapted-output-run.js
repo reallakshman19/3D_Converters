@@ -407,6 +407,26 @@ async function collectXml229RunHoldAudit(stateRef,report){
  });
 }
 
+function xml229RunHoldPlainMeaning(audit){
+ const code=audit?.diagnosisCode||'';
+ const weights=audit?.evidence?.find(x=>x.name==='weight-final-readiness');
+ const mass=weights?.status==='VERIFIED'
+   ?'The current Worker reports a complete accepted Source/Final mass census. '
+   :'Weight/Final evidence is not fully verified for this snapshot. ';
+ if(code==='FINAL_INTENT_NOT_OBSERVED')
+   return mass+'Native Final intent has not been read for this display; it is not a missing-weight verdict.';
+ if(code==='FINAL_INTENT_READ_FAILED')
+   return mass+'The Worker Final-intent read failed; the audit keeps Weight evidence separate and native Run remains unverified.';
+ if(code==='INDEPENDENT_NATIVE_RELEASE_AUTHORITY_ABSENT')
+   return mass+'Final intent is eligible. Actual native CII output and independent mass reconciliation are still required.';
+ if(code==='FINAL_INTENT_SOURCE_OR_BASIS_DRIFT'||code==='FINAL_INTENT_POPULATION_DRIFT')
+   return mass+'The returned Final intent contradicts the current source, Worker basis or mass census; rebuild on one source revision.';
+ if(code==='FINAL_INTENT_INVALID')
+   return mass+'The returned Final-intent receipt is malformed; do not use it to run or release CII.';
+ if(code==='FINAL_INTENT_NOT_ELIGIBLE')
+   return mass+'The current Worker has not authorized this Final mass population for native binding; inspect the accepted review decisions.';
+ return mass+'Inspect the first unverified stage. Diagnostic evidence alone cannot authorize native CII.';
+}
 function renderRunControls(parent, stateRef, state, report, render) {
   const ctrlCard = section(parent, 'Run Conversion');
   const routeLabel=createElement('label','','model-converters-workflow-regex-field');
@@ -480,7 +500,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
     const auditStatus=createElement('div',
       'Current diagnosis: '+snapshot.diagnosisCode+
       '. First missing/held boundary: '+(snapshot.firstUnverifiedBoundary||'unknown')+
-      '. The native release HOLD cannot be cleared by a diagnostic.',
+      '. '+xml229RunHoldPlainMeaning(snapshot)+' Native release remains separately governed.',
       'model-converters-workflow-detail-note');
     auditPanel.appendChild(auditStatus);
     let auditStages=table(
@@ -499,7 +519,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
         if(auditPanel.isConnected!==false){
           auditStatus.textContent='Current diagnosis: '+evidence.diagnosisCode+
             '. First missing/held boundary: '+(evidence.firstUnverifiedBoundary||'unknown')+
-            '. Source/Worker snapshot refreshed; native release still requires independent output verification.';
+            '. '+xml229RunHoldPlainMeaning(evidence)+' Native release remains separately governed.';
           const fresh=table(['Stage','Status','Evidence / reason'],
             evidence.evidence.map(e=>({Stage:e.name,Status:e.status,
               'Evidence / reason':e.reason})),
