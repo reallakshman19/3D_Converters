@@ -136,7 +136,9 @@ export function mountTopologyWorkspace(root, {runEngine=runXmlCii2019StandaloneE
           useTopoFixForCii:false,topologyActionIds:[]}});
       if(generation!==state.epoch)return;
       if(result?.ok!==true||result.outputKind!=='topology-sidecars'||
-          result.ciiText||result.nativeCiiReleaseAuthorized!==false)
+          result.ciiText||result.acceptedFinalTransferred!==false||
+          result.nativeCiiReleaseAuthorized!==false||result.topoFixCommitted===true||
+          result.topoFixXmlText)
         throw Error(result?.error||'Topology-only engine contract rejected');
       const plan=JSON.parse(result.topologyFixPlanText||'null');
       const findings=JSON.parse(result.topologyFindingsText||'null');
