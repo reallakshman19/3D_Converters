@@ -33,7 +33,9 @@ const proof=(c={source:0,match1:0,final:0,unresolved:2})=>({
 const final=(eligible=true)=>({
  schema:'XML229.NativeFinalPhysicalIntent.v1',
  basisId:basis,originalJsonSha256:hash,sourceGenerationId:'G1',
- physicalCount:2,eligibleForEngineBinding:eligible,
+ physicalCount:2,verifiedFactCount:14,
+ sourceAcceptedCount:0,acceptedFinalCount:2,match1OnlyCount:0,unresolvedCount:0,
+ intentSha256:'c'.repeat(64),eligibleForEngineBinding:eligible,
  nativeCiiReleaseAuthorized:false,
 });
 function audit({state=input(),sr=null,p=null,intent=null,candidate=null,
@@ -193,4 +195,58 @@ test('source and served docs audit/Run/registry contract mirrors are byte identi
   const docs=await readFile(new URL('../docs/'+path,import.meta.url),'utf8');
   assert.equal(root,docs,path);
  }
+});
+
+test('canonical readiness observes qualified live Final intent without clearing governed native HOLD',()=>{
+ const x=buildStandaloneOutputRunReadiness(input(),{verifiedEngineering:{
+  sessionReceipt:receipt(),
+  proof:proof({source:0,match1:0,final:2,unresolved:0}),
+  finalIntent:final(),
+ }});
+ assert.equal(x.runHoldAudit.diagnosisCode,'INDEPENDENT_NATIVE_RELEASE_AUTHORITY_ABSENT');
+ assert.equal(x.runHoldAudit.evidence.find(e=>e.name==='native-final-intent').status,'VERIFIED');
+ assert.equal(x.summary.blockingCount,1);
+ assert.equal(x.raw.xml229NativeOutputVerified,false);
+});
+test('Final-intent RPC failure does not erase verified Weight census or invent missing weights',()=>{
+ const x=buildStandaloneOutputRunReadiness(input(),{verifiedEngineering:{
+  sessionReceipt:receipt(),
+  proof:proof({source:0,match1:0,final:2,unresolved:0}),
+  finalIntentReadError:{code:'FINAL_INTENT_CHANGED_DURING_HASH',
+    message:'private owner path',stack:'/private/owner.xml'},
+ }});
+ assert.equal(x.runHoldAudit.diagnosisCode,'FINAL_INTENT_READ_FAILED');
+ assert.equal(x.runHoldAudit.firstUnverifiedBoundary,'native-final-intent');
+ assert.equal(x.runHoldAudit.evidence.find(e=>e.name==='weight-final-readiness').status,'VERIFIED');
+ assert.equal(x.runHoldAudit.evidence.find(e=>e.name==='native-final-intent').status,'FAILED');
+ assert.equal(x.runHoldAudit.worker.finalIntentReadFailureCode,'FINAL_INTENT_CHANGED_DURING_HASH');
+ assert.doesNotMatch(JSON.stringify(x.runHoldAudit),/private owner|private\/owner/);
+ assert.equal(x.summary.blockingCount,1);
+});
+test('incorrect basis, source generation, population, schema and forged eligibility fail closed',()=>{
+ const complete=proof({source:0,match1:0,final:2,unresolved:0});
+ const cases=[
+  [{...final(),sourceGenerationId:'G-STALE'},'FINAL_INTENT_SOURCE_OR_BASIS_DRIFT'],
+  [{...final(),basisId:'d'.repeat(64)},'FINAL_INTENT_SOURCE_OR_BASIS_DRIFT'],
+  [{...final(),physicalCount:3},'FINAL_INTENT_POPULATION_DRIFT'],
+  [{...final(),acceptedFinalCount:1},'FINAL_INTENT_POPULATION_DRIFT'],
+  [{...final(),schema:'UNKNOWN'},'FINAL_INTENT_INVALID'],
+  [{...final(),eligibleForEngineBinding:false},'FINAL_INTENT_POPULATION_DRIFT'],
+ ];
+ for(const [intent,diagnosis] of cases){
+  const result=audit({sr:receipt(),p:complete,intent,sessionState:'LIVE'});
+  assert.equal(result.diagnostic.diagnosisCode,diagnosis);
+  assert.notEqual(result.diagnostic.evidence.find(e=>e.name==='native-final-intent').status,'VERIFIED');
+  assert.equal(result.diagnostic.nativeCiiReleaseAuthorized,false);
+ }
+});
+test('ordinary Output Run source contains current-Worker Final read and no release bypass',async()=>{
+ const ui=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',import.meta.url),'utf8');
+ assert.match(ui,/readXml229NativeFinalObservation\(session/);
+ assert.match(ui,/finalIntentReadError,nativeOutput/);
+ assert.match(ui,/auditStatus.textContent='Current diagnosis: '/);
+ assert.match(ui,/verified.nativeCiiReleaseAuthorized!==true/);
+ const helper=await readFile(new URL('../tabs/xml-cii-2019-standalone/integration/xml229-native-final-observation.mjs',import.meta.url),'utf8');
+ const mirrored=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/integration/xml229-native-final-observation.mjs',import.meta.url),'utf8');
+ assert.equal(helper,mirrored);
 });
