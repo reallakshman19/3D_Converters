@@ -13,7 +13,9 @@ from xml229_native_final_mass_binding import (
     NativeMassError, bind_native_final_xml, stage_native_original_lineage,
     assert_preaccepted_geometry_unchanged, assert_native_model_geometry_unchanged,
     verify_emitted_native_masses, audit_finalized_physical_endpoints,
+    emitted_sections, _cii_elements,
 )
+from xml_to_cii2019 import _row, _format_auto_float
 
 def input_xml(weight="0"):
     return ("""<PipeStressExport><Pipe><Branch><Branchname>BR-1</Branchname>
@@ -1127,5 +1129,39 @@ class NativeFinalMassTests(unittest.TestCase):
                 stage_native_original_lineage(original,packet_path)
             self.assertEqual(e.exception.code,"NATIVE_UNTRUSTED_LINEAGE_TAG")
 
+class FixedWidthCiiTests(unittest.TestCase):
+    def test_actual_writer_signed_scientific_coordinates(self):
+        for value in (-0.01, -1e-7, -1e12):
+            for axis in range(3):
+                with self.subTest(value=value, axis=axis):
+                    values = [10, 20, 0, 0, 0, 26.7]
+                    values[2 + axis] = value
+                    first = _row([_format_auto_float(x) for x in values])
+                    self.assertEqual(len(first), 80)
+                    self.assertLess(len(first.split()), 6)
+                    text = cii().replace('10 20 0 0 0 0', first, 1)
+                    self.assertEqual(emitted_sections(text), ({0: (0, '10.0000', '20.0000')}, [125.0]))
+                    self.assertEqual(_cii_elements(text), [('10.0000', '20.0000', 1)])
+
+    def test_malformed_fixed_columns_remain_rejected(self):
+        valid = _row(['10', '20', '-1.000000E-02', '0', '0', '26.7'])
+        cases = [valid + '7', valid.replace('-1.000000E-02', '-1.000000E+XX'),
+                 _row(['10', '20', _format_auto_float(-1e100), '0', '0', '26.7']),
+                 valid[:28] + ' ' * 13 + valid[41:],
+                 valid[:28] + ' 1 2'.rjust(13) + valid[41:],
+                 valid[:28] + 'NaN'.rjust(13) + valid[41:]]
+        for first in cases:
+            with self.subTest(first=first):
+                for parser in (emitted_sections, _cii_elements):
+                    with self.assertRaises(NativeMassError):
+                        parser(cii().replace('10 20 0 0 0 0', first, 1))
+
+    def test_whitespace_fixture_contract_is_preserved(self):
+        self.assertEqual(emitted_sections(cii().replace('10 20 0 0 0 0', '10 20 0 0 0 26.7', 1)),
+                         ({0: (0, '10', '20')}, [125.0]))
+
+
+
 if __name__=="__main__":
     unittest.main()
+

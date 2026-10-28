@@ -41,6 +41,29 @@ test('independent byte parser reconciles accepted kg and authorizes strict nativ
  assert.equal(proof.physicalCount,1);
  assert.equal(proof.actualCiiSha256,sha(cii()));
 });
+test('fixed-width signed scientific coordinates retain all six fields',async()=>{
+ for(const value of ['-1.000000E-02','-1.000000E-07','-1.000000E+12']){
+  for(let axis=0;axis<3;axis++){
+   const values=['10','20','0','0','0','26.7'];values[2+axis]=value;
+   const first=values.map((v,i)=>v.padStart(i?13:15)).join('');
+   assert.equal(first.length,80);assert(first.trim().split(/\s+/).length<6);
+   const b=bundle(cii().replace('10 20 0 0 0 0',first));
+   assert.equal((await reconcileXml229ActualCiiAgainstFinal(b)).nativeCiiReleaseAuthorized,true);
+  }
+ }
+});
+test('malformed fixed columns cannot be rescued by whitespace tokenization',async()=>{
+ const values=['10','20','-1.000000E-02','0','0','26.7'];
+ const first=values.map((v,i)=>v.padStart(i?13:15)).join('');
+ for(const bad of [first+'7',first.replace('-1.000000E-02','-1.000000E+100'),
+  first.replace('-1.000000E-02','-1.000000E+XX'),
+  first.slice(0,28)+' '.repeat(13)+first.slice(41),
+  first.slice(0,28)+'1 2'.padStart(13)+first.slice(41),
+  first.slice(0,28)+'NaN'.padStart(13)+first.slice(41)]){
+  await assert.rejects(reconcileXml229ActualCiiAgainstFinal(
+   bundle(cii().replace('10 20 0 0 0 0',bad))));
+ }
+});
 test('tampered emitted mass, pointer, force units, or native element ancestry fail closed',async()=>{
  for(const [text,code] of [
   [cii({mass:'130'}),'NATIVE_CII_MASS_CONSUMPTION_MISMATCH'],
@@ -175,3 +198,4 @@ test('independent CII forbids any unclaimed nonzero pointer-referenced RIGID mas
  await assert.rejects(reconcileXml229ActualCiiAgainstFinal(negative),
    {code:'CII_RIGID_MASS_INVALID'});
 });
+

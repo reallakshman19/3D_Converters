@@ -7,6 +7,7 @@ never accepts a proposal or guesses an original physical owner.
 import hashlib
 import json
 import math
+import re
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
@@ -824,6 +825,22 @@ def bind_native_final_xml(original_path, enriched_path, packet_path,
     return output, owners
 
 
+def _cii_six_fields(line):
+    """Decode native 15/13-column fields, including adjacent signed numbers."""
+    require(len(line) <= 80, "CII_ELEMENTS_FORMAT_INVALID")
+    if len(line) == 80:
+        fields = [line[:15].strip()]
+        fields += [line[15+i*13:28+i*13].strip() for i in range(5)]
+    else:
+        # Retain compact whitespace fixtures; never rescue bad full-width rows.
+        fields = line.split()
+    number = r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[Ee][+-]?[0-9]+)?"
+    require(len(fields) == 6 and all(
+        re.fullmatch(number, field) and math.isfinite(float(field))
+        for field in fields), "CII_ELEMENTS_FORMAT_INVALID")
+    return fields
+
+
 def emitted_sections(text):
     sections = {}
     current = None
@@ -851,9 +868,7 @@ def emitted_sections(text):
     slots = {}
     for i in range(nr_elements):
         element = sections["ELEMENTS"][i*15:(i+1)*15]
-        row1, row13 = element[0].split(), element[12].split()
-        require(len(row1) == 6 and len(row13) == 6,
-                "CII_ELEMENTS_FORMAT_INVALID")
+        row1, row13 = _cii_six_fields(element[0]), _cii_six_fields(element[12])
         try:
             pointer = int(row13[1])
         except ValueError:
@@ -886,13 +901,12 @@ def _cii_elements(cii_text):
         stop = next(i for i in range(start, len(lines)) if lines[i].startswith("#$ "))
     except (ValueError, StopIteration):
         raise NativeMassError("CII_ELEMENTS_SECTION_INVALID") from None
-    rows = [line.split() for line in lines[start:stop] if line.strip()]
+    rows = [line for line in lines[start:stop] if line.strip()]
     require(len(rows) % 15 == 0, "CII_ELEMENTS_RECORD_INVALID")
     result = []
     for i in range(len(rows) // 15):
-        first, pointer = rows[15*i], rows[15*i+12]
-        require(len(first) == 6 and len(pointer) == 6,
-                "CII_ELEMENTS_FORMAT_INVALID")
+        first = _cii_six_fields(rows[15*i])
+        pointer = _cii_six_fields(rows[15*i+12])
         try:
             value = int(pointer[1])
         except ValueError:
@@ -1020,3 +1034,4 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
             "claims": sorted(claims, key=lambda c: c["occurrenceId"]),
             "independentNativeChildLineageVerified": False,
             "nativeCiiReleaseAuthorized": False}
+

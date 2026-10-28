@@ -36,6 +36,19 @@ function exactInteger(value){
  if(!int(n))fail('CII_INTEGER_INVALID');
  return n;
 }
+function numericElementFields(line){
+ if(line.length>80)fail('CII_ELEMENT_ROW_INVALID');
+ // Native records concatenate one 15-column field and five 13-column fields.
+ // A negative scientific number can fill its field without leading whitespace.
+ const fields=line.length===80
+  ?[line.slice(0,15).trim(),...Array.from({length:5},(_,i)=>
+     line.slice(15+13*i,28+13*i).trim())]
+  :line.trim().split(/\s+/);
+ const number=/^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[Ee][+-]?[0-9]+)?$/;
+ if(fields.length!==6||fields.some(field=>!number.test(field)||
+    !Number.isFinite(Number(field))))fail('CII_ELEMENT_ROW_INVALID');
+ return fields;
+}
 function parseNativeCii(cii){
  if(typeof cii!=='string'||!cii.trim())fail('CII_BYTES_REQUIRED');
  const s=sections(cii),control=s.get('CONTROL');
@@ -48,9 +61,8 @@ function parseNativeCii(cii){
   fail('CII_RECORD_POPULATION_DRIFT');
  const slots=new Map(),weights=[],elementOwners=[];
  for(let i=0;i<elementCount;i++){
-  const row1=elements[i*15].trim().split(/\s+/);
-  const row13=elements[i*15+12].trim().split(/\s+/);
-  if(row1.length!==6||row13.length!==6)fail('CII_ELEMENT_ROW_INVALID');
+  const row1=numericElementFields(elements[i*15]);
+  const row13=numericElementFields(elements[i*15+12]);
   const p=exactInteger(row13[1]);
   elementOwners.push({from:row1[0],to:row1[1],rigidPointer:p});
   if(p>rigidCount)fail('CII_RIGID_POINTER_OUT_OF_RANGE');
@@ -208,3 +220,4 @@ export async function reconcileXml229ActualCiiAgainstFinal({
   status:'STRICT_ONE_TO_ONE_NATIVE_CII_RECONCILED',
  });
 }
+

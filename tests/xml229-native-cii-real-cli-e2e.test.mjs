@@ -90,4 +90,36 @@ test('REAL Python native converter CII independently reconciles against exact so
   }),{code:'NATIVE_CII_MASS_CONSUMPTION_MISMATCH'});
  }finally{rmSync(folder,{recursive:true,force:true});}
 });
+test('REAL native conversion accepts signed scientific displacement and independently verifies its CII',async()=>{
+ const signedSource=source.replace('<Position>5 0 0</Position>',
+  '<Position>-0.01 500 0</Position>');
+ const signedPacket={...packet,sourceXmlSha256:sha(signedSource)};
+ const folder=mkdtempSync(join(tmpdir(),'xml229-fixed-columns-'));
+ try{
+  const input=join(folder,'source.xml'),output=join(folder,'emitted.cii');
+  const manifest=join(folder,'packet.json'),proofPath=join(folder,'proof.json');
+  writeFileSync(input,signedSource);writeFileSync(manifest,JSON.stringify(signedPacket));
+  const proc=spawnSync('python3',['converters/scripts/xml_to_cii2019_runtime_custody.py',
+   '--input',input,'--output',output,'--weight-scale','10',
+   '--xml229-native-final-packet',manifest,'--xml229-native-mass-proof',proofPath],
+   {cwd:fileURLToPath(new URL('../',import.meta.url)),encoding:'utf8',timeout:45000});
+  assert.equal(proc.status,0,(proc.stderr||'').slice(-2300));
+  const ciiText=readFileSync(output,'utf8');
+  const first=ciiText.split('#$ ELEMENTS\n')[1].split('\n')[0];
+  assert.equal(first.length,80);
+  assert(first.trim().split(/\s+/).length<6,'exercise the actual formerly rejected row');
+  assert.match(first,/-1\.000000E-02/);
+  const writerDiagnostic=JSON.parse(readFileSync(proofPath,'utf8'));
+  const proof=await reconcileXml229ActualCiiAgainstFinal({
+   originalXmlText:signedSource,packet:signedPacket,ciiText,writerDiagnostic});
+  assert.equal(proof.physicalCount,1);assert.equal(proof.massConsumptionVerified,true);
+  assert.equal(proof.nativeCiiReleaseAuthorized,true);
+  const tampered=ciiText.replace(/(#\$ RIGID\r?\n)([^\r\n]+)/,
+   (_all,prefix,row)=>prefix+row.replace(/^\s*\S+/,'126'));
+  await assert.rejects(reconcileXml229ActualCiiAgainstFinal({
+   originalXmlText:signedSource,packet:signedPacket,ciiText:tampered,
+   writerDiagnostic:{...writerDiagnostic,actualCiiSha256:sha(tampered)}}),
+   {code:'NATIVE_CII_MASS_CONSUMPTION_MISMATCH'});
+ }finally{rmSync(folder,{recursive:true,force:true});}
+});
 
