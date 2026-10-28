@@ -6,10 +6,10 @@ TAKEOVER_AUTHORITY: WRITE_ALLOWED (direct Owner continuation; new follow-up, no 
 REPORT_BASIS_HEAD: e83a7bae22a1ab91e671c56072c9777c86ba1477
 MAIN_HEAD_LAST_CHECKED: e83a7bae22a1ab91e671c56072c9777c86ba1477
 GROUNDING_EPOCH: GE-NATIVE-RUN-20261028-1
-CURRENT_STAGE: BASELINE / INVESTIGATE
+CURRENT_STAGE: VALIDATE / DRAFT DELIVERY
 CURRENT_BLOCKER: Owner private source/session is not available; audit omits actual Run eligibility and the production action does not record candidate attempts.
 HIGHEST_RISK: Mistaking completed Weight/Final review for verified native output.
-EXACT_NEXT_ACTION: Exercise source-currentness and dispatch through the real wrapper modules; implement a bounded native Run action with observable attempts and explicit blocker presentation.
+EXACT_NEXT_ACTION: Verify targeted exact-head GitHub Node22/24 and Chromium checks; inspect Owner live native execution after integration. Never clear the native gate from this report.
 
 ## Mission and authority
 
@@ -45,3 +45,17 @@ Validation ledger: current real-wrapper read reproduction PASS/LOCAL_EXECUTION/I
 Not a takeover of PR347: merged predecessor retained. New implementation uses exact-main source. A1 trace: Worker completion -> Final packet -> native converter -> independent emitted-byte reconciliation -> currentness -> publication. A2 falsifier: real wrapper showed no unconditional master churn; next isolates explicit equivalent replacement, source drift and no-op dispatch. A3 protect readNativeFinalPacket, independent reconciliation and native output re-attestation. A4 mocked converter responses are control-flow evidence only, never engineering acceptance. A5 surgical scope: output Run action wiring, a small action/context module, automatic scheduling diagnostics, paired docs and focused tests. Future incoming engineering implementer must re-ground and qualify independently; these notes are not model answers or delegated authority.
 
 Changed-file ledger at this checkpoint: this unique report only. No implementation mutation yet.
+
+## Implementation checkpoint
+
+- Extracted the native click action into a bounded real production consumer; retains actual runXml229NativeCiiMassCandidate -> native converter -> independent reconciliation. Session-specific attempt receipt and bounded chronology now record requested/succeeded/failed, including initial refusals.
+- Source-currentness captures original XML/JSON/file identity, configuration/master values, selected-source receipts, scope/options and Worker identity. Equivalent immutable replacements/config key order no longer falsely invalidate; real changes still discard output. Filtered views refuse full-source native execution.
+- Finally clears the action-owned running indicator even after source/Worker drift. Same-session errors are visible and explicit retry is possible. Duplicate dispatch cannot publish twice.
+- An enriched-only or topology-only prior result no longer prevents a first automatic native attempt; failed results/CII/attempted sessions remain non-retrying.
+- UI and exported audit show execution blockers separately from the passive native release HOLD. Canonical readiness receives actual attempt evidence. No native output authorization rules changed.
+
+Validation: Node24 local 50/50 PASS via `node --experimental-vm-modules --test tests/xml229-run-hold-audit.test.mjs tests/xml-cii-229-canonical-output-run-readiness.test.mjs tests/xml229-run-auto-native.test.mjs`; LOCAL_EXECUTION / IMPLEMENTATION_COUPLED. Includes 13 new action/control tests through the real state wrappers, existing source-bound re-attestation, failure redaction and root/docs assertions. Initial test fixture used Name instead of Branchname and failed a selection-drift assertion; corrected the synthetic fixture to the actual schema, no production gate weakened. Earlier missing mirror files were workspace materialization gaps, then retrieved and rerun. Root/docs original parity verified before changes, six changed pairs synchronized. Syntax and whitespace checks PASS. Node22, full served module graph/Chromium and real private native output remain NOT_RUN locally until CI/Owner execution.
+
+Changed-file ledger: output-run.js root/docs (wire action, controls/audit evidence); output-run-readiness.js root/docs (forward candidate); run-auto-native.mjs root/docs (enriched-only scheduling); native-run-action/context/eligibility.mjs root/docs (new orchestration/currentness/blockers); native-run-action.test.mjs (explicitly fake converter for control-flow tests only); run-hold-audit.test.mjs (include dispatch tests and verify moved guard); run-auto-native.test.mjs (follow moved guard); output-run-audit-browser.mjs (downloaded execution blockers); this recovery report. Backup utility receipts retained locally; unchanged fetched dependencies and workflow are not part of the PR.
+
+Disposition: implementation candidate complete for this bounded follow-up; no claim that Owner private conversion is reproduced or repaired. A decisive new audit contains execution.blockerIds and actual nativeCandidate/failureCode. Continued native engineering HOLD until real source-bound output passes existing independent reconciliation.

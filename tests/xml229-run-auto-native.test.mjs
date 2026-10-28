@@ -41,9 +41,12 @@ test('actual Download .cii remains coupled to emitted artifact, not checklist re
  assert.match(canvas,/download\.disabled = !available/);
  const run=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',import.meta.url),'utf8');
  assert.match(run,/runXml229NativeCiiMassCandidate/);
- assert.match(run,/verified\.nativeCiiReleaseAuthorized!==true/);
+ const action=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-action.mjs',import.meta.url),'utf8');
+ assert.match(run,/executeXml229NativeRun/);
+ assert.match(action,/verified\?\.nativeCiiReleaseAuthorized!==true/);
  assert.match(run,/offerXml229AutomaticNativeRun/);
- assert.match(run,/downloadTextFile\(result\.ciiName,result\.ciiText/);
+ assert.match(run,/download:downloadTextFile/);
+ assert.match(action,/download\(result\.ciiName,result\.ciiText/);
  const helper=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-auto-native.mjs',import.meta.url),'utf8');
  const mirror=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-auto-native.mjs',import.meta.url),'utf8');
  assert.equal(helper,mirror);
@@ -95,9 +98,10 @@ test('engine failure, missing CII and missing mass proof remain distinct and non
 });
 test('UI and engine expose bounded failure phase without weakening publication',async()=>{
  const ui=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',import.meta.url),'utf8');
- assert.match(ui,/xml229NativeFailure:error\.xml229NativeFailure/);
+ const action=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-action.mjs',import.meta.url),'utf8');
+ assert.match(action,/xml229NativeFailure:error\.xml229NativeFailure/);
  assert.match(ui,/Download safe native failure diagnostic JSON/);
- assert.match(ui,/verified\.nativeCiiReleaseAuthorized!==true/);
+ assert.match(action,/verified\?\.nativeCiiReleaseAuthorized!==true/);
  const engine=await readFile(new URL('../converters/xml-cii-2019-standalone/engine.js',import.meta.url),'utf8');
  for(const phase of ['CII_CONVERSION','MASS_PROOF_READ','MASS_PROOF_VERIFY'])
    assert.ok(engine.includes("nativeFailurePhase='"+phase+"'"));
@@ -164,3 +168,4 @@ test('native Python runner resets typed receipts per attempt and root/docs remai
  assert.equal(engine,await readFile(new URL('../docs/converters/xml-cii-2019-standalone/engine.js',import.meta.url),'utf8'));
  assert.equal(py,await readFile(new URL('../docs/converters/scripts/xml_to_cii2019_runtime_custody.py',import.meta.url),'utf8'));
 });
+

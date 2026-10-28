@@ -95,6 +95,9 @@ try{
   assert.equal(evidence.schema,'XML229.RunHoldAudit.v1');
   assert.equal(evidence.diagnosisCode,'LIVE_WORKER_SESSION_MISSING');
   assert.equal(evidence.worker.sessionState,'MISSING');
+  assert.equal(evidence.execution.canExecute,false);
+  assert(evidence.execution.blockerIds.includes('native-live-worker-required'));
+  assert.equal(evidence.execution.ciiDownloadAuthorized,false);
   assert.equal(evidence.chronology.available,true);
   assert(evidence.chronology.events.some(e=>e.kind==='RUN_AUDIT_REQUESTED'));
   assert.equal(evidence.nativeCiiReleaseAuthorized,false);
@@ -113,3 +116,4 @@ try{
  await browser?.close();
  await new Promise(resolve=>server.close(resolve));
 }
+

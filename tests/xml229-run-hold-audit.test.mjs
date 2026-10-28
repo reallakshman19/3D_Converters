@@ -1,4 +1,5 @@
 import test from 'node:test';
+import './xml229-native-run-action.test.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {buildStandaloneOutputRunReadiness}
@@ -210,6 +211,15 @@ test('canonical readiness observes qualified live Final intent without clearing 
  assert.equal(x.summary.blockingCount,1);
  assert.equal(x.raw.xml229NativeOutputVerified,false);
 });
+test('canonical report shows the actual failed native attempt without losing accepted Weight evidence',()=>{
+ const x=buildStandaloneOutputRunReadiness(input(),{candidate:{status:'FAILED',
+  code:'NATIVE_FINAL_MASS_REQUIRED'},verifiedEngineering:{sessionReceipt:receipt(),
+   proof:proof({source:0,match1:0,final:2,unresolved:0}),finalIntent:final()}});
+ assert.equal(x.runHoldAudit.diagnosisCode,'NATIVE_CANDIDATE_FAILED');
+ assert.equal(x.runHoldAudit.nativeCandidate.failureCode,'NATIVE_FINAL_MASS_REQUIRED');
+ assert.equal(x.runHoldAudit.evidence.find(e=>e.name==='weight-final-readiness').status,'VERIFIED');
+ assert.equal(x.runHoldAudit.nativeCiiReleaseAuthorized,false);
+});
 test('Final-intent RPC failure does not erase verified Weight census or invent missing weights',()=>{
  const x=buildStandaloneOutputRunReadiness(input(),{verifiedEngineering:{
   sessionReceipt:receipt(),
@@ -247,7 +257,9 @@ test('ordinary Output Run source contains current-Worker Final read and no relea
  assert.match(ui,/readXml229NativeFinalObservation\(session/);
  assert.match(ui,/finalIntentReadError,nativeOutput/);
  assert.match(ui,/auditStatus.textContent='Current diagnosis: '/);
- assert.match(ui,/verified.nativeCiiReleaseAuthorized!==true/);
+ const action=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-action.mjs',import.meta.url),'utf8');
+ assert.match(ui,/executeXml229NativeRun/);
+ assert.match(action,/verified\?\.nativeCiiReleaseAuthorized!==true/);
  const helper=await readFile(new URL('../tabs/xml-cii-2019-standalone/integration/xml229-native-final-observation.mjs',import.meta.url),'utf8');
  const mirrored=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/integration/xml229-native-final-observation.mjs',import.meta.url),'utf8');
  assert.equal(helper,mirrored);
@@ -309,3 +321,4 @@ test('CI: source replacement, missing intent reader, and unresolved Match-1 rema
  assert.equal(calls,0);
  assert.equal(unresolved.finalIntent,null);
 });
+
