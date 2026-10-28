@@ -1,8 +1,17 @@
 /** Read-only observation of the current Worker Final intent.
  * This does not accept a Weight draft, trigger conversion, or authorize CII.
  */
-const safeCode = value => typeof value==='string' &&
-  /^[A-Z][A-Z0-9_]{2,79}$/.test(value) ? value : 'FINAL_INTENT_READ_FAILED';
+const approvedCodes=new Set([
+  'FINAL_INTENT_CHANGED_DURING_HASH',
+  'FINAL_INTENT_CRYPTO_UNAVAILABLE',
+  'COMPLETE_FINAL_POPULATION_REQUIRED',
+  'SOURCE_BASIS_REQUIRED',
+  'STALE_WORKER_LEASE',
+  'FINAL_INTENT_READ_UNAVAILABLE',
+  'FINAL_INTENT_EMPTY_RESPONSE',
+]);
+const safeCode = value => approvedCodes.has(value)
+  ? value : 'FINAL_INTENT_READ_FAILED';
 const whole = n => Number.isSafeInteger(n) && n>=0;
 
 export async function readXml229NativeFinalObservation(session, isCurrent=()=>true) {
