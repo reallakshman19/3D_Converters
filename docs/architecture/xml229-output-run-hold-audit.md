@@ -85,3 +85,28 @@ All evidence is ephemeral; it is exported only when the Owner clicks.
 - Root `tabs/` and public `docs/tabs/` files remain byte-for-byte mirrored.
 - Release authority remains false in all reports and cannot be modified by
   any audit, report, or stale cached result.
+
+## Current-Worker Final intent observation — review branch (28 Oct 2026)
+
+The ordinary Run-panel Worker projection now requests a **read-only native Final
+intent** when its current Worker completion census is complete (no unresolved
+or Match-1 physicals). Previously this request was conditional on already
+having a native output, so the display could continue reporting
+`FINAL_INTENT_NOT_OBSERVED` despite accepted Weight/Final mass completion.
+
+The Final intent is challenged against exact Worker/source generation, basis,
+physical and seven-Fact census, accepted Source/Final counts and a valid intent
+SHA. This is an **observation only**: neither accepting a Weight draft nor
+creating a release credential. If the intent cannot be read, the current
+verified Weight census remains visible; the audit reports
+`FINAL_INTENT_READ_FAILED` and a sanitized `worker.finalIntentReadFailureCode`.
+Stale/contradictory intents fail with a distinct `FINAL_INTENT_*_DRIFT` or
+`FINAL_INTENT_INVALID` finding, never `VERIFIED`.
+
+Downloading a fresh Run HOLD audit now updates the visible diagnosis and stage
+table as well as exporting the evidence. Source replacement or Worker closure
+fences in-flight reads. The governed native CII release gate is unchanged:
+actual converter output, current Worker Final intent and independent emitted
+mass reconciliation are still mandatory. A complete Weight Match is **not**
+equivalent to native output acceptance; an unresolved Final draft still requires
+the user's explicit review. This change does not grant CII download authority.

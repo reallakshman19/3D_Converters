@@ -323,6 +323,8 @@ export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineeri
     input,report:{checklistRows:releaseRows},sessionState,leaseDiagnosis,
     sessionReceipt:verifiedEngineering?.sessionReceipt,
     completion:verifiedEngineering?.proof,
+    finalIntent:verifiedEngineering?.finalIntent,
+    finalIntentReadError:verifiedEngineering?.finalIntentReadError,
     readError:verifiedEngineering?.readError,
   });
   const verifiedMass=verifiedEngineering?.proof?.counts;

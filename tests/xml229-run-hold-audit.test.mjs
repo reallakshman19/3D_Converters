@@ -5,6 +5,8 @@ import {buildStandaloneOutputRunReadiness}
  from '../tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js';
 import {buildXml229RunHoldAudit}
  from '../tabs/xml-cii-2019-standalone/integration/xml229-run-hold-audit.mjs';
+import {readXml229NativeFinalObservation}
+ from '../tabs/xml-cii-2019-standalone/integration/xml229-native-final-observation.mjs';
 import {createXml229CrossWorkerFlowTrace}
  from '../contracts/xml229-flow-trace-v1/trace.mjs';
 import {beginXml229VerifiedEngineeringBuild,publishXml229VerifiedEngineeringBuild,
@@ -30,10 +32,12 @@ const proof=(c={source:0,match1:0,final:0,unresolved:2})=>({
  verifiedFactCount:14,counts:c,engineeringFactsVerified:true,
  previewStatus:'FULL_SOURCE_FACTS_VERIFIED',ciiReleaseAuthorized:false,
 });
-const final=(eligible=true)=>({
+const final=(eligible=true,sourceCount=0)=>({
  schema:'XML229.NativeFinalPhysicalIntent.v1',
  basisId:basis,originalJsonSha256:hash,sourceGenerationId:'G1',
- physicalCount:2,eligibleForEngineBinding:eligible,
+ physicalCount:2,verifiedFactCount:14,
+ sourceAcceptedCount:sourceCount,acceptedFinalCount:2-sourceCount,match1OnlyCount:0,unresolvedCount:0,
+ intentSha256:'c'.repeat(64),eligibleForEngineBinding:eligible,
  nativeCiiReleaseAuthorized:false,
 });
 function audit({state=input(),sr=null,p=null,intent=null,candidate=null,
@@ -90,7 +94,7 @@ test('unresolved, Match-1 only and source-complete stages are separate',()=>{
 });
 test('successful nonreleasing candidate is diagnosed but release stays permanently HELD',()=>{
  const params={sr:receipt(),p:proof({source:2,match1:0,final:0,unresolved:0}),
-  intent:final(),sessionState:'LIVE'};
+  intent:final(true,2),sessionState:'LIVE'};
  const failed=audit({...params,candidate:{status:'FAILED',code:'NATIVE_PYODIDE_SCRIPT_FAILED'}});
  assert.equal(failed.diagnostic.diagnosisCode,'NATIVE_CANDIDATE_FAILED');
  assert.equal(failed.diagnostic.nativeCandidate.failureCode,'NATIVE_PYODIDE_SCRIPT_FAILED');
@@ -193,4 +197,115 @@ test('source and served docs audit/Run/registry contract mirrors are byte identi
   const docs=await readFile(new URL('../docs/'+path,import.meta.url),'utf8');
   assert.equal(root,docs,path);
  }
+});
+
+test('canonical readiness observes qualified live Final intent without clearing governed native HOLD',()=>{
+ const x=buildStandaloneOutputRunReadiness(input(),{verifiedEngineering:{
+  sessionReceipt:receipt(),
+  proof:proof({source:0,match1:0,final:2,unresolved:0}),
+  finalIntent:final(),
+ }});
+ assert.equal(x.runHoldAudit.diagnosisCode,'INDEPENDENT_NATIVE_RELEASE_AUTHORITY_ABSENT');
+ assert.equal(x.runHoldAudit.evidence.find(e=>e.name==='native-final-intent').status,'VERIFIED');
+ assert.equal(x.summary.blockingCount,1);
+ assert.equal(x.raw.xml229NativeOutputVerified,false);
+});
+test('Final-intent RPC failure does not erase verified Weight census or invent missing weights',()=>{
+ const x=buildStandaloneOutputRunReadiness(input(),{verifiedEngineering:{
+  sessionReceipt:receipt(),
+  proof:proof({source:0,match1:0,final:2,unresolved:0}),
+  finalIntentReadError:{code:'FINAL_INTENT_CHANGED_DURING_HASH',
+    message:'private owner path',stack:'/private/owner.xml'},
+ }});
+ assert.equal(x.runHoldAudit.diagnosisCode,'FINAL_INTENT_READ_FAILED');
+ assert.equal(x.runHoldAudit.firstUnverifiedBoundary,'native-final-intent');
+ assert.equal(x.runHoldAudit.evidence.find(e=>e.name==='weight-final-readiness').status,'VERIFIED');
+ assert.equal(x.runHoldAudit.evidence.find(e=>e.name==='native-final-intent').status,'FAILED');
+ assert.equal(x.runHoldAudit.worker.finalIntentReadFailureCode,'FINAL_INTENT_CHANGED_DURING_HASH');
+ assert.doesNotMatch(JSON.stringify(x.runHoldAudit),/private owner|private\/owner/);
+ assert.equal(x.summary.blockingCount,1);
+});
+test('incorrect basis, source generation, population, schema and forged eligibility fail closed',()=>{
+ const complete=proof({source:0,match1:0,final:2,unresolved:0});
+ const cases=[
+  [{...final(),sourceGenerationId:'G-STALE'},'FINAL_INTENT_SOURCE_OR_BASIS_DRIFT'],
+  [{...final(),basisId:'d'.repeat(64)},'FINAL_INTENT_SOURCE_OR_BASIS_DRIFT'],
+  [{...final(),physicalCount:3},'FINAL_INTENT_POPULATION_DRIFT'],
+  [{...final(),acceptedFinalCount:1},'FINAL_INTENT_POPULATION_DRIFT'],
+  [{...final(),schema:'UNKNOWN'},'FINAL_INTENT_INVALID'],
+  [{...final(),eligibleForEngineBinding:false},'FINAL_INTENT_POPULATION_DRIFT'],
+ ];
+ for(const [intent,diagnosis] of cases){
+  const result=audit({sr:receipt(),p:complete,intent,sessionState:'LIVE'});
+  assert.equal(result.diagnostic.diagnosisCode,diagnosis);
+  assert.notEqual(result.diagnostic.evidence.find(e=>e.name==='native-final-intent').status,'VERIFIED');
+  assert.equal(result.diagnostic.nativeCiiReleaseAuthorized,false);
+ }
+});
+test('ordinary Output Run source contains current-Worker Final read and no release bypass',async()=>{
+ const ui=await readFile(new URL('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js',import.meta.url),'utf8');
+ assert.match(ui,/readXml229NativeFinalObservation\(session/);
+ assert.match(ui,/finalIntentReadError,nativeOutput/);
+ assert.match(ui,/auditStatus.textContent='Current diagnosis: '/);
+ assert.match(ui,/verified.nativeCiiReleaseAuthorized!==true/);
+ const helper=await readFile(new URL('../tabs/xml-cii-2019-standalone/integration/xml229-native-final-observation.mjs',import.meta.url),'utf8');
+ const mirrored=await readFile(new URL('../docs/tabs/xml-cii-2019-standalone/integration/xml229-native-final-observation.mjs',import.meta.url),'utf8');
+ assert.equal(helper,mirrored);
+});
+
+test('CI: current Worker Final intent is observed after complete Source/Final mass census',async()=>{
+ let intentReads=0;
+ const observed=await readXml229NativeFinalObservation({
+  readCompletion:async()=>proof({source:0,match1:0,final:2,unresolved:0}),
+  readNativeFinalIntent:async()=>{intentReads++;return final();},
+ });
+ assert.equal(observed.stale,false);
+ assert.equal(intentReads,1);
+ const x=buildStandaloneOutputRunReadiness(input(),{verifiedEngineering:{
+  sessionReceipt:receipt(),proof:observed.completion,finalIntent:observed.finalIntent,
+ }});
+ assert.equal(x.runHoldAudit.diagnosisCode,'INDEPENDENT_NATIVE_RELEASE_AUTHORITY_ABSENT');
+ assert.equal(x.runHoldAudit.evidence.find(e=>e.name==='native-final-intent').status,'VERIFIED');
+ assert.equal(x.summary.blockingCount,1);
+});
+test('CI: Final RPC failures never erase valid Weight and redact unrecognized codes',async()=>{
+ for(const [code,expected] of [
+  ['FINAL_INTENT_CHANGED_DURING_HASH','FINAL_INTENT_CHANGED_DURING_HASH'],
+  ['OWNER_PRIVATE_SOURCE_PATH','FINAL_INTENT_READ_FAILED'],
+ ]){
+  const observed=await readXml229NativeFinalObservation({
+   readCompletion:async()=>proof({source:0,match1:0,final:2,unresolved:0}),
+   readNativeFinalIntent:async()=>{throw Object.assign(new Error('/private-owner.xml'),
+    {code});},
+  });
+  const x=buildStandaloneOutputRunReadiness(input(),{verifiedEngineering:{
+   sessionReceipt:receipt(),proof:observed.completion,
+   finalIntentReadError:observed.finalIntentReadError,
+  }});
+  assert.equal(x.runHoldAudit.diagnosisCode,'FINAL_INTENT_READ_FAILED');
+  assert.equal(x.runHoldAudit.worker.finalIntentReadFailureCode,expected);
+  assert.equal(x.runHoldAudit.evidence.find(e=>e.name==='weight-final-readiness').status,'VERIFIED');
+  assert.equal(x.summary.blockingCount,1);
+  assert.doesNotMatch(JSON.stringify(x.runHoldAudit),/private-owner|OWNER_PRIVATE/);
+ }
+});
+test('CI: source replacement, missing intent reader, and unresolved Match-1 remain fail closed',async()=>{
+ let live=true;
+ const stale=await readXml229NativeFinalObservation({
+  readCompletion:async()=>proof({source:2,match1:0,final:0,unresolved:0}),
+  readNativeFinalIntent:async()=>{live=false;return final(true,2);},
+ },()=>live);
+ assert.equal(stale.stale,true);
+ assert.equal(stale.finalIntent,null);
+ const missing=await readXml229NativeFinalObservation({
+  readCompletion:async()=>proof({source:2,match1:0,final:0,unresolved:0}),
+ });
+ assert.equal(missing.finalIntentReadError.code,'FINAL_INTENT_READ_UNAVAILABLE');
+ let calls=0;
+ const unresolved=await readXml229NativeFinalObservation({
+  readCompletion:async()=>proof({source:0,match1:2,final:0,unresolved:0}),
+  readNativeFinalIntent:async()=>{calls++;return final();},
+ });
+ assert.equal(calls,0);
+ assert.equal(unresolved.finalIntent,null);
 });

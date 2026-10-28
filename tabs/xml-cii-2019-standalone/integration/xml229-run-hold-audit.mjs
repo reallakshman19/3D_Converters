@@ -74,7 +74,38 @@ function workerMismatch(input,sessionReceipt,proof){
     return 'WORKER_ENGINEERING_ATTESTATION_INVALID';
   return 'WORKER_COMPLETION_UNVERIFIED';
 }
-function classify({hold,source,sessionState,proofValid,proof,readError,finalIntent,candidate}){
+function finalIntentProblem(intent,sessionReceipt,proof){
+  if(!intent)return null;
+  if(intent.schema!=='XML229.NativeFinalPhysicalIntent.v1'||
+     !SHA.test(intent.intentSha256||'')||
+     typeof intent.eligibleForEngineBinding!=='boolean')
+    return 'FINAL_INTENT_INVALID';
+  if(!sessionReceipt||!proof||
+     intent.basisId!==sessionReceipt.basisId||
+     intent.basisId!==proof.basisId||
+     intent.originalJsonSha256!==sessionReceipt.originalJsonSha256||
+     intent.originalJsonSha256!==proof.originalJsonSha256||
+     intent.sourceGenerationId!==sessionReceipt.sourceGenerationId||
+     intent.sourceGenerationId!==proof.sourceGenerationId)
+    return 'FINAL_INTENT_SOURCE_OR_BASIS_DRIFT';
+  if(![intent.physicalCount,intent.verifiedFactCount,
+        intent.sourceAcceptedCount,intent.acceptedFinalCount,
+        intent.match1OnlyCount,intent.unresolvedCount].every(whole)||
+     intent.physicalCount!==proof.verifiedPhysicalCount||
+     intent.verifiedFactCount!==proof.verifiedFactCount||
+     intent.sourceAcceptedCount!==proof.counts?.source||
+     intent.acceptedFinalCount!==proof.counts?.final||
+     intent.match1OnlyCount!==proof.counts?.match1||
+     intent.unresolvedCount!==proof.counts?.unresolved||
+     intent.sourceAcceptedCount+intent.acceptedFinalCount+
+       intent.match1OnlyCount+intent.unresolvedCount!==intent.physicalCount||
+     intent.eligibleForEngineBinding!==(intent.match1OnlyCount===0&&
+       intent.unresolvedCount===0))
+    return 'FINAL_INTENT_POPULATION_DRIFT';
+  return null;
+}
+function classify({hold,source,sessionState,proofValid,proof,readError,
+ finalIntent,finalIntentReadError,intentIssue,candidate}){
   if(!hold)return 'NO_GOVERNED_NATIVE_HOLD';
   if(source.issue)return source.issue;
   if(sessionState==='CLOSED')return 'WORKER_SESSION_CLOSED';
@@ -86,6 +117,8 @@ function classify({hold,source,sessionState,proofValid,proof,readError,finalInte
   if(c.unresolved>0)return 'UNRESOLVED_PHYSICAL_MASS';
   if(c.match1>0)return 'MATCH1_NOT_FINAL';
   if(source.topologyPending)return 'TOPOFIX_PREFINAL_REVIEW_REQUIRED';
+  if(finalIntentReadError)return 'FINAL_INTENT_READ_FAILED';
+  if(intentIssue)return intentIssue;
   if(finalIntent?.eligibleForEngineBinding===false)
     return 'FINAL_INTENT_NOT_ELIGIBLE';
   if(finalIntent&&finalIntent.eligibleForEngineBinding!==true)
@@ -100,7 +133,7 @@ function classify({hold,source,sessionState,proofValid,proof,readError,finalInte
 export function buildXml229RunHoldAudit({
  input={},report=null,sessionState='UNKNOWN',leaseDiagnosis=null,
  sessionReceipt=null,completion=null,finalIntent=null,
- readError=null,candidate=null,flowTrace=null,
+ finalIntentReadError=null,readError=null,candidate=null,flowTrace=null,
 }={}){
  const source=sourceSnapshot(input);
  source.topologyPending=!!input.xml229TopoFixFreshReviewPending||input.options?.generateTopoFix===true||
@@ -109,8 +142,9 @@ export function buildXml229RunHoldAudit({
    x.id==='xml229-original-json-engineering-authority'&&x.blocking===true)===true;
  const leaseReason=leaseReasons.has(leaseDiagnosis?.reason)?leaseDiagnosis.reason:'NO_BOUND_WORKER';
  const valid=isXml229VerifiedCompletionForInput(input,sessionReceipt,completion);
+ const intentIssue=finalIntentProblem(finalIntent,sessionReceipt,completion);
  const code=classify({hold,source,sessionState,proofValid:valid,
-   proof:completion,readError,finalIntent,candidate});
+   proof:completion,readError,finalIntent,finalIntentReadError,intentIssue,candidate});
  const mass=valid?Object.freeze({
    physicalCount:count(completion.verifiedPhysicalCount),
    factCount:count(completion.verifiedFactCount),
@@ -142,11 +176,15 @@ export function buildXml229RunHoldAudit({
      (input.options?.topologyActionIds?.length||0)>0
        ?'TOPOFIX_FRESH_WEIGHT_BASIS_REQUIRED':'TOPOFIX_ACTION_SELECTION_REQUIRED')]:[]),
    stage('native-final-intent',
+     finalIntentReadError?'FAILED':
      !finalIntent?'NOT_REACHED':
+     intentIssue?(intentIssue==='FINAL_INTENT_INVALID'?'FAILED':'STALE'):
      finalIntent.eligibleForEngineBinding===true?'VERIFIED':'HELD',
+     finalIntentReadError?safeCode(finalIntentReadError.code):
      !finalIntent?'FINAL_INTENT_NOT_QUERIED':
-     finalIntent.eligibleForEngineBinding===true?
-     'SOURCE_BOUND_ENGINE_BINDING_ELIGIBLE_ONLY':'FINAL_INTENT_NOT_ELIGIBLE'),
+     intentIssue?intentIssue:
+       (finalIntent.eligibleForEngineBinding===true?
+       'SOURCE_BOUND_ENGINE_BINDING_ELIGIBLE_ONLY':'FINAL_INTENT_NOT_ELIGIBLE')),
    stage('worker-r2-and-native-candidate',
      candidate?.status==='SUCCEEDED'?'VERIFIED':
      candidate?.status==='FAILED'?'FAILED':
@@ -190,7 +228,9 @@ export function buildXml229RunHoldAudit({
    worker:{sessionState,completionAccepted:valid,
      leaseReason,leaseGeneration:count(leaseDiagnosis?.generation),
      leasePresent:leaseDiagnosis?.leasePresent===true,
-     readFailureCode:readError?safeCode(readError.code):null},
+     readFailureCode:readError?safeCode(readError.code):null,
+     finalIntentReadFailureCode:finalIntentReadError?
+       safeCode(finalIntentReadError.code):null},
    nativeCandidate:candidate?{
      status:candidate.status,
      ...(candidate.code?{failureCode:safeCode(candidate.code)}:{}),

@@ -15,6 +15,7 @@ import {xml229NativeRunWaitingMessage} from './xml229-run-waiting-message.mjs';
 import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js';
 import {ensureXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace,getXml229CandidateAttempt} from './xml229-flow-trace-registry.mjs';
 import {buildXml229RunHoldAudit} from '../integration/xml229-run-hold-audit.mjs';
+import {readXml229NativeFinalObservation} from '../integration/xml229-native-final-observation.mjs';
 import {inspectXml229EngineeringLease} from '../integration/xml229-engineering-basis-authority.mjs';
 import {syncXml229CanonicalOutputHeaderBadges} from './xml229-canonical-output-header-badges.mjs';
 import {captureXml229XmlOnlyApproval,isXml229XmlOnlyApproved}
@@ -357,23 +358,24 @@ async function collectXml229RunHoldAudit(stateRef,report){
  ensureXml229FlowTrace(stateRef);
  recordXml229FlowTrace(stateRef,{kind:'RUN_AUDIT_REQUESTED',actor:'output-ui'});
  const session=getXml229CurrentWorkerHeldReview(stateRef);
- let completion=null,finalIntent=null,readError=null;
+ let completion=null,finalIntent=null,finalIntentReadError=null,readError=null;
  let sessionState=session?(session.closed?'CLOSED':'LIVE'):'MISSING';
  if(session&&!session.closed){
    try{
-     completion=await session.readCompletion();
-     if(getXml229CurrentWorkerHeldReview(stateRef)!==session||session.closed)
+     const observed=await readXml229NativeFinalObservation(session,
+       ()=>getXml229CurrentWorkerHeldReview(stateRef)===session&&!session.closed);
+     if(observed.stale)
        throw Object.assign(new Error('STALE_WORKER_LEASE'),{code:'STALE_WORKER_LEASE'});
-     finalIntent=await session.readNativeFinalIntent();
-     if(getXml229CurrentWorkerHeldReview(stateRef)!==session||session.closed)
-       throw Object.assign(new Error('STALE_WORKER_LEASE'),{code:'STALE_WORKER_LEASE'});
+     completion=observed.completion;
+     finalIntent=observed.finalIntent;
+     finalIntentReadError=observed.finalIntentReadError;
      recordXml229FlowTrace(stateRef,{kind:'RUN_AUDIT_COMPLETED',actor:'output-ui',
        counts:{physical:completion?.verifiedPhysicalCount,
          facts:completion?.verifiedFactCount,
          sourceMass:completion?.counts?.source,match1:completion?.counts?.match1,
          final:completion?.counts?.final,unresolved:completion?.counts?.unresolved}});
    }catch(error){
-     completion=null;finalIntent=null;
+     completion=null;finalIntent=null;finalIntentReadError=null;
      readError={code:error?.code||'WORKER_READ_UNAVAILABLE'};
      sessionState=session.closed?'CLOSED':'LIVE';
      recordXml229FlowTrace(stateRef,{kind:'RUN_AUDIT_FAILED',actor:'output-ui',
@@ -385,14 +387,14 @@ async function collectXml229RunHoldAudit(stateRef,report){
  const input=stateRef.current;
  const freshReport=buildStandaloneOutputRunReadiness(input,{
    verifiedEngineering:completion
-     ?{sessionReceipt:session.receipt,proof:completion}
+     ?{sessionReceipt:session.receipt,proof:completion,finalIntent,finalIntentReadError}
      :readError?{readError}:null,
  });
  const params={
    input,report:freshReport,sessionState,
    leaseDiagnosis:inspectXml229EngineeringLease(stateRef),
    sessionReceipt:session?.closed?null:session?.receipt||null,
-   completion,finalIntent,readError,
+   completion,finalIntent,finalIntentReadError,readError,
    candidate:getXml229CandidateAttempt(stateRef,session),
  };
  const provisional=buildXml229RunHoldAudit({
@@ -405,6 +407,26 @@ async function collectXml229RunHoldAudit(stateRef,report){
  });
 }
 
+function xml229RunHoldPlainMeaning(audit){
+ const code=audit?.diagnosisCode||'';
+ const weights=audit?.evidence?.find(x=>x.name==='weight-final-readiness');
+ const mass=weights?.status==='VERIFIED'
+   ?'The current Worker reports a complete accepted Source/Final mass census. '
+   :'Weight/Final evidence is not fully verified for this snapshot. ';
+ if(code==='FINAL_INTENT_NOT_OBSERVED')
+   return mass+'Native Final intent has not been read for this display; it is not a missing-weight verdict.';
+ if(code==='FINAL_INTENT_READ_FAILED')
+   return mass+'The Worker Final-intent read failed; the audit keeps Weight evidence separate and native Run remains unverified.';
+ if(code==='INDEPENDENT_NATIVE_RELEASE_AUTHORITY_ABSENT')
+   return mass+'Final intent is eligible. Actual native CII output and independent mass reconciliation are still required.';
+ if(code==='FINAL_INTENT_SOURCE_OR_BASIS_DRIFT'||code==='FINAL_INTENT_POPULATION_DRIFT')
+   return mass+'The returned Final intent contradicts the current source, Worker basis or mass census; rebuild on one source revision.';
+ if(code==='FINAL_INTENT_INVALID')
+   return mass+'The returned Final-intent receipt is malformed; do not use it to run or release CII.';
+ if(code==='FINAL_INTENT_NOT_ELIGIBLE')
+   return mass+'The current Worker has not authorized this Final mass population for native binding; inspect the accepted review decisions.';
+ return mass+'Inspect the first unverified stage. Diagnostic evidence alone cannot authorize native CII.';
+}
 function renderRunControls(parent, stateRef, state, report, render) {
   const ctrlCard = section(parent, 'Run Conversion');
   const routeLabel=createElement('label','','model-converters-workflow-regex-field');
@@ -475,16 +497,18 @@ function renderRunControls(parent, stateRef, state, report, render) {
     const auditPanel=createElement('details','','xml-cii-weight-panel');
     auditPanel.appendChild(createElement('summary',
       'Why is native Run HELD? — source/Worker audit trail'));
-    auditPanel.appendChild(createElement('div',
+    const auditStatus=createElement('div',
       'Current diagnosis: '+snapshot.diagnosisCode+
       '. First missing/held boundary: '+(snapshot.firstUnverifiedBoundary||'unknown')+
-      '. The native release HOLD cannot be cleared by a diagnostic.',
-      'model-converters-workflow-detail-note'));
-    auditPanel.appendChild(table(
+      '. '+xml229RunHoldPlainMeaning(snapshot)+' Native release remains separately governed.',
+      'model-converters-workflow-detail-note');
+    auditPanel.appendChild(auditStatus);
+    let auditStages=table(
       ['Stage','Status','Evidence / reason'],
       snapshot.evidence.map(e=>({Stage:e.name,Status:e.status,
         'Evidence / reason':e.reason})),
-      'No evidence boundaries available.'));
+      'No evidence boundaries available.');
+    auditPanel.appendChild(auditStages);
     const auditBtn=button('xml229-download-run-hold-audit',
       'Download fresh Run HOLD audit trail JSON');
     auditBtn.addEventListener('click',async()=>{
@@ -492,6 +516,17 @@ function renderRunControls(parent, stateRef, state, report, render) {
       auditBtn.disabled=true;
       try{
         const evidence=await collectXml229RunHoldAudit(stateRef,report);
+        if(auditPanel.isConnected!==false){
+          auditStatus.textContent='Current diagnosis: '+evidence.diagnosisCode+
+            '. First missing/held boundary: '+(evidence.firstUnverifiedBoundary||'unknown')+
+            '. '+xml229RunHoldPlainMeaning(evidence)+' Native release remains separately governed.';
+          const fresh=table(['Stage','Status','Evidence / reason'],
+            evidence.evidence.map(e=>({Stage:e.name,Status:e.status,
+              'Evidence / reason':e.reason})),
+            'No evidence boundaries available.');
+          auditStages.replaceWith(fresh);
+          auditStages=fresh;
+        }
         downloadTextFile('xml229-run-hold-audit.json',
           JSON.stringify(evidence,null,2),'application/json;charset=utf-8');
       }catch{
@@ -504,6 +539,16 @@ function renderRunControls(parent, stateRef, state, report, render) {
           readError:{code:'RUN_AUDIT_UNEXPECTED_FAILURE'},
           flowTrace:getXml229FlowTrace(stateRef)?.snapshot()||null,
         });
+        if(auditPanel.isConnected!==false){
+          auditStatus.textContent='Fresh audit failed: '+failed.diagnosisCode+
+            '. The current Worker/source proof is not verified. Native release remains HELD.';
+          const fresh=table(['Stage','Status','Evidence / reason'],
+            failed.evidence.map(e=>({Stage:e.name,Status:e.status,
+              'Evidence / reason':e.reason})),
+            'No evidence boundaries available.');
+          auditStages.replaceWith(fresh);
+          auditStages=fresh;
+        }
         downloadTextFile('xml229-run-hold-audit.json',
           JSON.stringify(failed,null,2),'application/json;charset=utf-8');
       }finally{auditBtn.disabled=false;}
@@ -703,11 +748,10 @@ function projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint){
  if(enabled?.length===1&&enabled[0].sourceId!==activeId)return;
  // An older in-flight Worker completion must never repaint a newer Run panel.
  const token=card.__xml229ReadinessToken;
- void Promise.resolve().then(async()=>({
-    proof:await session.readCompletion(),
-    finalIntent:stateRef.current?.result?.xml229NativeOutput
-      ?await session.readNativeFinalIntent():null,
-  })).then(({proof,finalIntent})=>{
+ void readXml229NativeFinalObservation(session,
+   ()=>getXml229CurrentWorkerHeldReview(stateRef)===session&&!session.closed
+ ).then(({stale,completion:proof,finalIntent,finalIntentReadError})=>{
+   if(stale)return;
    if(card.isConnected===false||card.__xml229ReadinessToken!==token||
       getXml229CurrentWorkerHeldReview(stateRef)!==session)return;
    // Ordinary immutable UI updates may replace the state object while an
@@ -716,7 +760,7 @@ function projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint){
    const latest=stateRef.current;
    const verifiedReport=buildStandaloneOutputRunReadiness(xml229TopologyDisplayState(latest,stateRef),{
      verifiedEngineering:{sessionReceipt:session.receipt,proof,finalIntent,
-        nativeOutput:latest.result?.xml229NativeOutput||null},
+        finalIntentReadError,nativeOutput:latest.result?.xml229NativeOutput||null},
    });
    recordXml229FlowTrace(stateRef,{kind:'OUTPUT_READ_VERIFIED',actor:'output-ui',
      counts:{physical:proof?.verifiedPhysicalCount,facts:proof?.verifiedFactCount,
