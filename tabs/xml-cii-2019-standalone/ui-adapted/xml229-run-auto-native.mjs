@@ -15,7 +15,8 @@ const currentWorker=(session,stateRef)=>!!session&&!session.closed&&
 export function xml229CanAutoRunVerifiedFinal({state,report,session}={}){
  const checks=Array.isArray(report?.checklistRows)?report.checklistRows:[];
  return !!state&&state.activePhaseId==='run'&&state.running!==true&&
-   !state.result&&!state.xml229XmlOnlyApproval&&
+   !state.result?.ciiText&&!state.result?.xml229NativeOutput&&
+   state.result?.ok!==false&&!state.result?.error&&!state.xml229XmlOnlyApproval&&
    report?.raw?.xml229VerifiedEngineering===true&&
    checks.some(r=>r.id==='weight-match'&&r.status==='ready'&&
      r.blocking!==true)&&
@@ -42,3 +43,4 @@ export function offerXml229AutomaticNativeRun({
  });
  return true;
 }
+

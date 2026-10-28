@@ -48,7 +48,15 @@ test('Run diagnostic binds to stable live GC-PW authority, not mutable state.cur
   import.meta.url)),'utf8');
  assert.match(ui,/const session=getXml229CurrentWorkerHeldReview\(stateRef\);/);
  assert.doesNotMatch(ui,/getXml229CurrentWorkerHeldReview\(stateRef\.current\)/);
- assert.match(ui,/receipt\.generationId/);
+ const context=readFileSync(fileURLToPath(new URL(
+  '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-context.mjs',
+  import.meta.url)),'utf8');
+ const action=readFileSync(fileURLToPath(new URL(
+  '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-action.mjs',
+  import.meta.url)),'utf8');
+ assert.match(ui,/executeXml229NativeRun/);
+ assert.match(action,/captureXml229NativeRunContext/);
+ assert.match(context,/receipt\.generationId===session\.receipt\?\.sourceGenerationId/);
  assert.match(ui,/runXml229NativeCiiMassCandidate/);
 });
 test('REAL Python native converter CII independently reconciles against exact source Final kg',async()=>{
@@ -82,3 +90,4 @@ test('REAL Python native converter CII independently reconciles against exact so
   }),{code:'NATIVE_CII_MASS_CONSUMPTION_MISMATCH'});
  }finally{rmSync(folder,{recursive:true,force:true});}
 });
+

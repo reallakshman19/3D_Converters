@@ -9,10 +9,11 @@ import {runXml229NativeCiiMassCandidate} from './xml229-native-cii-candidate-run
 import {buildXml229NativeOwnerBlockerEvidence} from './xml229-native-owner-blocker-evidence.mjs';
 import {createXml229RunMassReviewButton} from './xml229-run-mass-review-button.mjs';
 import {offerXml229AutomaticNativeRun} from './xml229-run-auto-native.mjs';
+import {executeXml229NativeRun} from './xml229-native-run-action.mjs';
+import {inspectXml229NativeRunEligibility} from './xml229-native-run-eligibility.mjs';
 import {renderXml229TopologyReview} from './xml229-topology-review-ui.mjs';
 import {xml229TopologyDisplayState} from './xml229-topology-review-controller.mjs';
 import {xml229NativeRunWaitingMessage} from './xml229-run-waiting-message.mjs';
-import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js';
 import {ensureXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace,getXml229CandidateAttempt} from './xml229-flow-trace-registry.mjs';
 import {buildXml229RunHoldAudit} from '../integration/xml229-run-hold-audit.mjs';
 import {readXml229NativeFinalObservation} from '../integration/xml229-native-final-observation.mjs';
@@ -97,7 +98,8 @@ function reportFromState(state,stateRef) {
   // This conservative baseline is replaced only after a live verified Worker
   // read; its native CII release HOLD is preserved throughout.
   return hasOriginalJsonSourceOnlyRunHold(state)
-    ? buildStandaloneOutputRunReadiness(state,{sessionState,leaseDiagnosis})
+    ? buildStandaloneOutputRunReadiness(state,{sessionState,leaseDiagnosis,
+        candidate:getXml229CandidateAttempt(stateRef,session)})
     : (!hasSidecars&&state.outputRunReadinessReport) || buildStandaloneOutputRunReadiness(state);
 }
 
@@ -402,9 +404,10 @@ async function collectXml229RunHoldAudit(stateRef,report){
  });
  recordXml229FlowTrace(stateRef,{kind:'RUN_GATE_DIAGNOSED',actor:'native-gate',
    code:provisional.diagnosisCode});
- return buildXml229RunHoldAudit({
+ return {...buildXml229RunHoldAudit({
    ...params,flowTrace:getXml229FlowTrace(stateRef)?.snapshot()||null,
- });
+ }),execution:inspectXml229NativeRunEligibility({
+   state:input,report:freshReport,session,candidate:params.candidate})};
 }
 
 function xml229RunHoldPlainMeaning(audit){
@@ -557,15 +560,21 @@ function renderRunControls(parent, stateRef, state, report, render) {
     actionDiv.appendChild(auditPanel);
   }
   const governed=hasOriginalJsonSourceOnlyRunHold(state);
-  const enabled=state.sourceBatch?.sources?.filter(x=>x.enabled!==false);
-  const single=xmlCiiProcessingMode(state)!=='mode-b'&&(!enabled||enabled.length===1);
-  const otherBlocks=report.checklistRows.filter(r=>r.blocking&&
-    r.id!=='xml229-original-json-engineering-authority');
   const weightsReady=report.raw.xml229VerifiedEngineering===true&&
     report.checklistRows.some(r=>r.id==='weight-match'&&r.status==='ready');
-  const blocked=state.running||(governed
-    ?(!single||!weightsReady||otherBlocks.length>0)
-    :report.summary.blockingCount>0);
+  const execution=inspectXml229NativeRunEligibility({state,report,
+    session:getXml229CurrentWorkerHeldReview(stateRef),
+    candidate:getXml229CandidateAttempt(stateRef,getXml229CurrentWorkerHeldReview(stateRef))});
+  const blocked=state.running||(governed?!execution.canExecute:report.summary.blockingCount>0);
+  if(governed){
+    const detail=createElement('div',execution.canExecute
+      ?'Accepted weights are ready. Use Finalise and Run Conversion to generate and verify CII; Download enables after verification.'
+      :'Native conversion is waiting: '+execution.blockerIds.map(id=>
+        report.checklistRows.find(row=>row.id===id)?.message||id).join(' '),
+      'model-converters-workflow-detail-note');
+    detail.dataset.xml229NativeExecution='true';
+    actionDiv.appendChild(detail);
+  }
   const finalizeBtn=createElement('button',state.running?'Running...':
     'Finalise and Run Conversion','model-converters-download-btn');
   if(finalizeBtn.style)Object.assign(finalizeBtn.style,{
@@ -575,57 +584,13 @@ function renderRunControls(parent, stateRef, state, report, render) {
   finalizeBtn.dataset.action=governed&&weightsReady?'xml229-native-run':'run';
   if(governed)finalizeBtn.addEventListener('click',async()=>{
     if(finalizeBtn.disabled)return;
-    const session=getXml229CurrentWorkerHeldReview(stateRef);
-    const initial=stateRef.current;
-    const receipt=initial?.xml229StagedSourceReceipt;
-    const singleSource=initial.sourceBatch?.sources?.filter(x=>x.enabled!==false);
-    const current=()=>!!session&&!session.closed&&
-      getXml229CurrentWorkerHeldReview(stateRef)===session&&
-      receipt?.schema==='XML229.OriginalStagedSourceReceipt.v1'&&
-      stateRef.current?.xml229StagedSourceReceipt?.sha256===receipt.sha256&&
-      stateRef.current?.xml229StagedSourceReceipt?.generationId===receipt.generationId&&
-      stateRef.current?.sourceFile===initial.sourceFile&&
-      stateRef.current?.sourceText===initial.sourceText&&
-      stateRef.current?.stagedJsonFile===initial.stagedJsonFile&&
-      stateRef.current?.stagedJsonText===initial.stagedJsonText&&
-      stateRef.current?.supportConfigJson===initial.supportConfigJson&&
-      stateRef.current?.masterContext===initial.masterContext&&
-      stateRef.current?.branchSelection===initial.branchSelection&&
-      stateRef.current?.options===initial.options&&
-      xmlCiiProcessingMode(stateRef.current)!=='mode-b'&&
-      (!singleSource||singleSource.length===1);
-    if(!current())return;
     finalizeBtn.disabled=true;
-    stateRef.current=updateWorkflowState(stateRef.current,{running:true,result:null});
-    if(typeof render==='function')render();
-    try{
-      // Current accepted Worker mass -> actual converter -> independent CII
-      // ELEMENTS/RIGID byte check; no additional human verification stage.
-      const verified=await runXml229NativeCiiMassCandidate({
-        state:initial,session,isCurrent:current});
-      if(!current()||verified.nativeCiiReleaseAuthorized!==true)
-        throw Object.assign(new Error('NATIVE_RUN_SOURCE_CHANGED'),
-          {code:'NATIVE_RUN_SOURCE_CHANGED'});
-      const result={ok:true,ciiText:verified.ciiText,
-        ciiName:'xml229-verified-native.cii',
-        xml229ActualCiiSha256:verified.actualCiiSha256,
-        xml229NativeOutput:verified};
-      stateRef.current=updateWorkflowState(stateRef.current,{result});
-      try{downloadTextFile(result.ciiName,result.ciiText,'text/plain;charset=utf-8');}
-      catch{recordXml229FlowTrace(stateRef,{kind:'AUTO_DOWNLOAD_UNAVAILABLE',actor:'output-ui'});}
-    }catch(error){
-      if(current())stateRef.current=updateWorkflowState(stateRef.current,{
-        result:{ok:false,error:String(error?.code||'NATIVE_CII_RECONCILIATION_FAILED'),
-          ...(error?.xml229NativeFailure?.schema==='XML229.NativeConverterFailure.v1'
-            ?{xml229NativeFailure:error.xml229NativeFailure}:{}),
-          ...(error?.xml229NativeOwnerPreflight?.unsupportedOwners?.length
-            ?{xml229NativeOwnerPreflight:error.xml229NativeOwnerPreflight}:{})}});
-    }finally{
-      if(current()){
-        stateRef.current=updateWorkflowState(stateRef.current,{running:false});
-        if(typeof render==='function')render();
-      }
-    }
+    await executeXml229NativeRun({stateRef,
+      session:getXml229CurrentWorkerHeldReview(stateRef),
+      liveWorker:()=>getXml229CurrentWorkerHeldReview(stateRef),
+      runCandidate:runXml229NativeCiiMassCandidate,updateState:updateWorkflowState,
+      render,download:downloadTextFile});
+    if(finalizeBtn.isConnected!==false)finalizeBtn.disabled=!!stateRef.current.running;
   });
   actionDiv.append(runReviewBtn,noteDiv,refreshBtn,exportEvidenceBtn,finalizeBtn);
   ctrlCard.appendChild(actionDiv);
@@ -759,6 +724,7 @@ function projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint){
    // state against the Worker proof rather than requiring object identity.
    const latest=stateRef.current;
    const verifiedReport=buildStandaloneOutputRunReadiness(xml229TopologyDisplayState(latest,stateRef),{
+     candidate:getXml229CandidateAttempt(stateRef,session),
      verifiedEngineering:{sessionReceipt:session.receipt,proof,finalIntent,
         finalIntentReadError,nativeOutput:latest.result?.xml229NativeOutput||null},
    });
@@ -827,3 +793,4 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
   paint(reportFromState(state,stateRef));
   projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint);
 }
+
