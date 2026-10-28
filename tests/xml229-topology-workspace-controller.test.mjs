@@ -43,7 +43,8 @@ function fakeView(){
   return {root,canvas,fields,handlers};
 }
 const engineResponse=sourceText=>({
-  ok:true,outputKind:'topology-sidecars',nativeCiiReleaseAuthorized:false,ciiText:null,
+  ok:true,outputKind:'topology-sidecars',nativeCiiReleaseAuthorized:false,
+  acceptedFinalTransferred:false,topoFixCommitted:false,topoFixXmlText:'',ciiText:null,
   topologyFixPlanText:JSON.stringify({source:{sha256:hash(sourceText)},actions:[
     {action_id:'ACT-1',disposition:'KEEP',status:'PROPOSED'},
     {action_id:'ACT-2',disposition:'SAFE_DROP_PIPE_GEOMETRY',status:'PROPOSED',finding_ids:['F-1']},
@@ -112,4 +113,24 @@ test('fail closed when a returned real-engine source SHA differs',async()=>{
     assert.equal(work.getState().actions,0);
     assert.match(fields['[data-status]'].textContent,/TOPOFIX_PLAN_SOURCE_DRIFT/);
   }finally{work.dispose();}
+});
+
+test('fail closed on an unexpected committed TopoFix or accepted Final',async()=>{
+  for(const contamination of [
+    {topoFixCommitted:true,topoFixXmlText:'<XML/>'},
+    {acceptedFinalTransferred:true},
+    {nativeCiiReleaseAuthorized:true},
+    {ciiText:'NOT_ALLOWED'},
+  ]){
+    const {root,fields}=fakeView();
+    const work=mountTopologyWorkspace(root,{runEngine:async()=>({
+      ...engineResponse(xml),...contamination,
+    })});
+    try{
+      await work.load(file(xml,'first.xml'));
+      await work.analyze();
+      assert.equal(work.getState().actions,0,'Rejected unexpected engineering authority');
+      assert.match(fields['[data-status]'].textContent,/contract rejected/);
+    }finally{work.dispose();}
+  }
 });
