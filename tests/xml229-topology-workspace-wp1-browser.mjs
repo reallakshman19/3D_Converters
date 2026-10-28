@@ -34,7 +34,9 @@ try{
   for(const prefix of ['','/docs']){
     const page=await browser.newPage({viewport:{width:1440,height:920}});
     const errors=[];
+    const consoleErrors=[];
     page.on('pageerror',error=>errors.push(String(error)));
+    page.on('console',msg=>{if(msg.type()==='error')consoleErrors.push(msg.text());});
     const pathName=prefix+'/topology-workspace.html';
     await page.goto('http://127.0.0.1:'+server.address().port+pathName);
     assert.equal(await page.locator('[data-analyze]').isDisabled(),true);
@@ -63,6 +65,8 @@ try{
     assert((await drop.count())>0);
     await drop.first().click();
     assert.match(await page.locator('[data-hits]').innerText(),/Source-qualified action witnesses/);
+    await page.locator('[data-occurrences] button').first().click();
+    assert.equal(await page.locator('[data-hits]').innerText(),'','Selecting an occurrence must clear previous action witnesses');
     const canvas=page.locator('[data-canvas]'),bbox=await canvas.boundingBox();
     assert(bbox&&bbox.width>400);
     await page.locator('[data-mode=pan]').click();
@@ -78,8 +82,10 @@ try{
     await page.locator('[data-view=iso]').click();
     await page.screenshot({path:path.join(screenshots,prefix?'docs-wp1.png':'root-wp1.png')});
     assert.deepEqual(errors,[]);
+    assert.deepEqual(consoleErrors,[]);
     responses.push({path:pathName,result,sourceCount:216,screenshot:path.join(screenshots,
-      prefix?'docs-wp1.png':'root-wp1.png'),errorCount:errors.length});
+      prefix?'docs-wp1.png':'root-wp1.png'),pageErrorCount:errors.length,
+      consoleErrorCount:consoleErrors.length});
     await page.close();
   }
   console.log(JSON.stringify({status:'PASS',scope:'public-fixture-real-engine-no-masters',

@@ -85,6 +85,9 @@ test('admit an exact source and bind real engine contract without masters or Fin
     assert.equal(work.getState().selected.length,1);
     assert.match(work.getState().selected[0],/B0:N2050:S0$/);
     assert.match(fields['[data-selection]'].textContent,/1 source occurrence/);
+    assert.equal(fields['[data-hits]'].textContent,'Source-qualified action witnesses: 1');
+    click(root,'data-occ-id','occId',hash(xml)+':B0:N2060:S1');
+    assert.equal(fields['[data-hits]'].textContent,'','Selecting an occurrence must clear stale action witness message');
   }finally{work.dispose();}
 });
 test('reject stale topology analysis after explicit source replacement',async()=>{

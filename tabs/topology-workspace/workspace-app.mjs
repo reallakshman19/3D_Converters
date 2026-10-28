@@ -161,7 +161,7 @@ export function mountTopologyWorkspace(root, {runEngine=runXmlCii2019StandaloneE
     if(target.hasAttribute('data-analyze'))analyze();
     else if(target.hasAttribute('data-cancel')){state.epoch++;state.busy=false;refresh();
       updateStatus('Pending analysis result invalidated. Original source remains available.');}
-    else if(target.hasAttribute('data-occ-id'))select([target.dataset.occId],event.shiftKey);
+    else if(target.hasAttribute('data-occ-id')){select([target.dataset.occId],event.shiftKey);displayMessage('');}
     else if(target.hasAttribute('data-hit-id')){select([target.dataset.hitId],event.shiftKey);displayMessage('');}
     else if(target.hasAttribute('data-action-id')){
       const action=state.plan?.actions.find(a=>a.action_id===target.dataset.actionId);
