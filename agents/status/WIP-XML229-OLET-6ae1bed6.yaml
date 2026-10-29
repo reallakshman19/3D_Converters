@@ -1,0 +1,11 @@
+schema: AgentStatus.v1
+work_id: WIP-XML229-OLET-6ae1bed6
+state: LOCAL_VALIDATION_PASS_DRAFT_PENDING
+governing_wbs: CIIFR-R4-6.4
+source: https://github.com/reallakshman19/3D_Converters/issues/351#issuecomment-6498100565
+base: 59df118588837f70ca22dfe0d0573ef874e07dd0
+report: agents/WIP-XML229-OLET-6ae1bed6_workreport.md
+native_import: NOT_RUN
+owner_trial: NOT_RUN
+independent_review: NOT_RUN
+exact_next_action: publish draft PR and inspect exact-head CI
