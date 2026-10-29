@@ -1,3 +1,4 @@
+import './xml229-component-bore-source.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtempSync,writeFileSync,readFileSync,rmSync} from 'node:fs';

@@ -145,6 +145,7 @@ class Edge:
     branch_fluid_density: float
     branch_name: str
     branch_material_number: int | None
+    connected_port_outside_diameter: float | None = None
 
 
 @dataclass(frozen=True)
@@ -752,9 +753,41 @@ def _drop_short_element_nodes(
     return new_branches
 
 
+
+
+def connected_inlets(branches):
+    ports = {}
+    for index, branch in enumerate(branches):
+        if not branch.nodes:
+            continue
+        node = branch.nodes[0]
+        if (node.component_type == 'BRAN' and node.endpoint == 1
+                and math.isfinite(node.outside_diameter) and node.outside_diameter > 0):
+            ports.setdefault(node.node_number, []).append((index, node))
+    return ports
+
+
+def olet_port_diameter(left, right, branch_index, ports):
+    if not (left.component_type == right.component_type == 'OLET'
+            and left.endpoint == 3 and right.endpoint == 0
+            and left.component_ref_no
+            and left.component_ref_no == right.component_ref_no):
+        return None
+    matches = [node.outside_diameter
+               for index, node in ports.get(right.node_number, [])
+               if index != branch_index
+               and math.dist(node.position, right.position) <= 1e-6]
+    if not matches:
+        return None
+    if any(not math.isclose(od, matches[0], rel_tol=0, abs_tol=1e-9) for od in matches):
+        raise ValueError('AMBIGUOUS_OLET_PORT_DIAMETER: conflicting connected inlet ODs')
+    return matches[0]
+
+
 def _build_edges(branches: list[XmlBranch]) -> list[Edge]:
+    ports = connected_inlets(branches)
     edges: list[Edge] = []
-    for branch in branches:
+    for branch_index, branch in enumerate(branches):
         if len(branch.nodes) < 2:
             continue
         for index in range(len(branch.nodes) - 1):
@@ -767,6 +800,8 @@ def _build_edges(branches: list[XmlBranch]) -> list[Edge]:
                     branch_fluid_density=branch.branch_fluid_density,
                     branch_name=branch.branch_name,
                     branch_material_number=branch.material_number,
+                    connected_port_outside_diameter=olet_port_diameter(
+                        branch.nodes[index], branch.nodes[index + 1], branch_index, ports),
                 )
             )
     if not edges:
@@ -1152,6 +1187,8 @@ def _build_version_payload(metadata: XmlMetadata, version_header_line: str) -> l
 
 
 def _element_outside_diameter(edge: Edge) -> float:
+    if edge.connected_port_outside_diameter is not None:
+        return edge.connected_port_outside_diameter
     if edge.to_node.component_type == "BRAN" and edge.to_node.endpoint == 2:
         return edge.to_node.outside_diameter
     return edge.from_node.outside_diameter
