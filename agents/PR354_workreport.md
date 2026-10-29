@@ -9,7 +9,7 @@ CRITICALITY: ENGINEERING_CRITICAL (artifact publication)
 MAIN_HEAD_LAST_CHECKED: 59df118588837f70ca22dfe0d0573ef874e07dd0
 REPORT_BASIS_HEAD: bdd5e581d7c3cc9f6b719454c3a75d395dbc5d3a
 CURRENT_STAGE: REVIEW_PENDING
-EXACT_NEXT_ACTION: export the exact post-binding native XML to a job-specific path, then retain it through engine/candidate/UI success and later CII failure without publishing CII on failure.
+EXACT_NEXT_ACTION: review PR354 and applicable CI policy; after Owner merge/deployment rerun the model and click Download Enriched XML/InputXML.
 HIGHEST_RISK: publishing stale source/Final XML or presenting a separately enriched original as the actual native input.
 
 ## Live grounding and diagnosis
@@ -48,3 +48,7 @@ LOCAL_EXECUTION of the full current-main public PL-BM1 Preview/Worker plus actua
 Reconciled20 intended PR paths against GitHub list. No unexplained path. Canonical recovery moves to agents/PR354_workreport.md; WIP files remain historical pointers. Only recovery metadata follows the tested implementation head. Source/docs code stays byte-identical.
 
 EXACT_NEXT_ACTION: independently review PR354; Owner may merge the concrete candidate after resolving applicable review/CI policy. Then rerun the current model and click Download Enriched XML/InputXML. No merge authority granted to this agent.
+
+## Final recovery reconciliation
+
+All implementation-head checks finished: existing-stages-browser also PASS. Native/Preview/EF05 checks above apply to the unchanged implementation code; later commits contain recovery metadata only. Final GitHub changed-file census23 =20 original intended paths +canonical PR354 report/status/claim. Historical WIP pointers remain intentional. No unexplained files. CI overall still contains the documented historical guard failures. Current report/header and exact next action are reconciled; HANDOVER_READINESS=READY.
