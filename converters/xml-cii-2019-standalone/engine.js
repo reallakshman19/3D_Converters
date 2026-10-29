@@ -1,3 +1,4 @@
+import {readNativeEnrichedArtifact} from './native-enriched-artifact.js';
 import { loadPyodide } from '../../vendor/pyodide/pyodide.mjs';
 import { buildStandaloneCiiInvocation, outputStem } from './invocation-builder.js';
 import { applyStandaloneSifFacts } from '../../tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js';
@@ -237,7 +238,8 @@ async function runSerializedXmlCii2019Engine(job) {
     const xml229NativeMassProofPath = massPacket
       ? `${jobDir}/xml229-native-mass-proof.json` : null;
     const paths = { inputPath, stagedJsonPath,
-      xml229NativeFinalPacketPath,xml229NativeMassProofPath };
+      xml229NativeFinalPacketPath,xml229NativeMassProofPath,
+      xml229NativeEnrichedPath:massPacket?`${jobDir}/${enrichedNameFor(normalizedJob)}`:null };
     let enrichedText = '';
     let enrichedName = '';
     let ciiText = null;
@@ -265,7 +267,7 @@ async function runSerializedXmlCii2019Engine(job) {
       };
     }
 
-    if (outputMode !== 'cii-only') {
+    if (outputMode !== 'cii-only' && !massPacket) {
       if (sourceKind === 'xml') {
         nativeFailurePhase='ENRICH_XML';
         const enriched = await runEnrichedXml(pyodide, normalizedJob, paths, jobDir, stdout);
@@ -287,7 +289,13 @@ async function runSerializedXmlCii2019Engine(job) {
     if (outputMode === 'cii-only' || outputMode === 'both') {
       const ciiPaths = { ...paths, inputPath: topology.ciiInputPath || paths.inputPath };
       nativeFailurePhase='CII_CONVERSION';
-      const cii = await runCii(pyodide, normalizedJob, ciiPaths, jobDir, stdout, stderr);
+      let cii;
+      try { cii = await runCii(pyodide, normalizedJob, ciiPaths, jobDir, stdout, stderr); }
+      finally {
+        Object.assign(partial,readNativeEnrichedArtifact(pyodide,
+          paths.xml229NativeEnrichedPath,enrichedNameFor(normalizedJob)));
+      }
+      if(massPacket){enrichedText=partial.enrichedText;enrichedName=partial.enrichedName;}
       ciiText = cii.ciiText;
       ciiName = cii.ciiName;
       if (massPacket) {

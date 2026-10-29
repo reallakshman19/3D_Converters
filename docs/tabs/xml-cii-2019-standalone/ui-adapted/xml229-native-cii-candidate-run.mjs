@@ -14,6 +14,16 @@ import {reconcileXml229ActualCiiAgainstFinal}
 import {requireXml229NativeOwnerPreflight} from './xml229-native-owner-preflight.mjs';
 import {diagnoseXml229NativeConverterFailure} from './xml229-native-converter-failure-diagnostic.mjs';
 
+import {nativeEnrichedFields} from '../../../converters/xml-cii-2019-standalone/native-enriched-artifact.js';
+
+async function currentEnrichedArtifact(native,packet,session,isCurrent){
+ try {
+  const intent=await session.readNativeFinalIntent();
+  return isCurrent()&&intent?.intentSha256===packet.finalIntentSha256
+   ?nativeEnrichedFields(native):{};
+ } catch {return {};}
+}
+
 const fail=(code)=>{const error=new Error(code);error.code=code;throw error;};
 
 export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=()=>true}={}){
@@ -68,12 +78,17 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   const diagnosis=diagnoseXml229NativeConverterFailure(native);
   throw Object.assign(new Error(diagnosis.code),{
     code:diagnosis.code,xml229NativeFailure:diagnosis,
+    xml229EnrichedArtifact:await currentEnrichedArtifact(native,packet,session,isCurrent),
   });
  }
- const independent=await reconcileXml229ActualCiiAgainstFinal({
+ let independent;
+ try { independent=await reconcileXml229ActualCiiAgainstFinal({
   originalXmlText:sourceText,packet,ciiText:native.ciiText,
   writerDiagnostic:native.xml229NativeMassDiagnostic,
- });
+ }); } catch(error) {
+  error.xml229EnrichedArtifact=await currentEnrichedArtifact(native,packet,session,isCurrent);
+  throw error;
+ }
  const after=await session.readNativeFinalIntent();
  const finished=await session.readCompletion();
  if(!isCurrent()||after?.intentSha256!==packet.finalIntentSha256||
@@ -88,6 +103,7 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   fail('NATIVE_CANDIDATE_FINAL_CHANGED_OR_OUTPUT_UNVERIFIED');
  return Object.freeze({
   schema:'XML229.GovernedNativeCandidateResult.v1',
+  ...nativeEnrichedFields(native),
   status:independent.status,
   basisId:packet.basisId,sourceId:packet.sourceId,
   sourceGenerationId:packet.sourceGenerationId,

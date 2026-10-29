@@ -1,3 +1,4 @@
+import './xml229-native-enriched-artifact.test.mjs';
 import './xml229-component-bore-source.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -64,14 +65,19 @@ test('REAL Python native converter CII independently reconciles against exact so
  const folder=mkdtempSync(join(tmpdir(),'xml229-custody-'));
  try{
   const input=join(folder,'source.xml'),output=join(folder,'emitted.cii'),
-        manifest=join(folder,'packet.json'),proofPath=join(folder,'native-proof.json');
+        manifest=join(folder,'packet.json'),proofPath=join(folder,'native-proof.json'),
+        xmlPath=join(folder,'actual-enriched.xml');
   writeFileSync(input,source);
   writeFileSync(manifest,JSON.stringify(packet));
   const proc=spawnSync('python3',['converters/scripts/xml_to_cii2019_runtime_custody.py',
     '--input',input,'--output',output,'--weight-scale','10',
     '--xml229-native-final-packet',manifest,'--xml229-native-mass-proof',proofPath,
+    '--enriched-output',xmlPath,
   ],{cwd:fileURLToPath(new URL('../',import.meta.url)),encoding:'utf8',timeout:45000});
   assert.equal(proc.status,0,(proc.stderr||'').slice(-2300));
+  const enriched=readFileSync(xmlPath,'utf8');
+  assert.match(enriched,/<Weight>12\.5<\/Weight>/,'export contains accepted Final kg, not original zero');
+  assert.equal(readFileSync(input,'utf8'),source,'source bytes are unchanged');
   const ciiText=readFileSync(output,'utf8');
   const writerDiagnostic=JSON.parse(readFileSync(proofPath,'utf8'));
   const independent=await reconcileXml229ActualCiiAgainstFinal({
@@ -123,4 +129,3 @@ test('REAL native conversion accepts signed scientific displacement and independ
    {code:'NATIVE_CII_MASS_CONSUMPTION_MISMATCH'});
  }finally{rmSync(folder,{recursive:true,force:true});}
 });
-

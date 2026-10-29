@@ -3,6 +3,8 @@ import {captureXml229NativeRunContext} from './xml229-native-run-context.mjs';
 import {ensureXml229FlowTrace,recordXml229FlowTrace,
  recordXml229CandidateAttempt} from './xml229-flow-trace-registry.mjs';
 
+import {nativeEnrichedFields} from '../../../converters/xml-cii-2019-standalone/native-enriched-artifact.js';
+
 const active=new WeakMap();
 const owner=ref=>ref?.modeABaseRef||ref;
 const codeOf=error=>/^[A-Z][A-Z0-9_]{2,79}$/.test(error?.code||'')
@@ -17,6 +19,7 @@ function record(ref,session,status,code){
 }
 function failedResult(error){
  return {ok:false,error:codeOf(error),
+  ...nativeEnrichedFields(error?.xml229EnrichedArtifact),
   ...(error?.xml229NativeFailure?.schema==='XML229.NativeConverterFailure.v1'
    ?{xml229NativeFailure:error.xml229NativeFailure}:{}),
   ...(error?.xml229NativeOwnerPreflight?.unsupportedOwners?.length
@@ -43,7 +46,7 @@ export async function executeXml229NativeRun({
      verified?.massConsumptionVerified!==true||
      verified?.strictOneToOneOwnerMatch!==true||!verified?.ciiText?.trim())
    throw {code:'NATIVE_RUN_SOURCE_CHANGED_OR_OUTPUT_UNVERIFIED'};
-  const result={ok:true,ciiText:verified.ciiText,
+  const result={ok:true,...nativeEnrichedFields(verified),ciiText:verified.ciiText,
    ciiName:'xml229-verified-native.cii',
    xml229ActualCiiSha256:verified.actualCiiSha256,xml229NativeOutput:verified};
   stateRef.current=updateState(stateRef.current,{result});
