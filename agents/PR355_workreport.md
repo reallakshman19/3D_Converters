@@ -4,7 +4,7 @@ Governing WBS: Progress Page CIIFR R4 WBS6, extension6.4 BM2 OLET connectivity/s
 
 ## Recovery header / Handover in 60 Seconds
 
-WORK_INTENT=IMPLEMENT; REPOSITORY_STATE=EXISTING_PR; MUTATION_AUTHORITY=WRITE_ALLOWED (bounded Owner repair); CRITICALITY=ENGINEERING_CRITICAL. Base main59df118588837f70ca22dfe0d0573ef874e07dd0, tree15f44df4be6a8595a010984a5201c0f10c9dddc8. Branch fix/xml229-olet-helper-route-6ae1bed6. REPORT_BASIS_HEAD=af40c23396b5ef2d2868a866f221d84d84c99540. PR355 draft/open; implementation commit af40c23396b5ef2d2868a866f221d84d84c99540, tree1305cc34a49b44729ea4e024a99f1c85e726e6b0. Metadata-only continuation follows this tested implementation. No merge authority.
+WORK_INTENT=IMPLEMENT; REPOSITORY_STATE=EXISTING_PR; MUTATION_AUTHORITY=WRITE_ALLOWED (bounded Owner repair); CRITICALITY=ENGINEERING_CRITICAL. Base main59df118588837f70ca22dfe0d0573ef874e07dd0, tree15f44df4be6a8595a010984a5201c0f10c9dddc8. Branch fix/xml229-olet-helper-route-6ae1bed6. REPORT_BASIS_HEAD=c0e1b88598bf8925e5bc4e025d4d50608a129f9a. PR355 draft/open; implementation commit af40c23396b5ef2d2868a866f221d84d84c99540, tree1305cc34a49b44729ea4e024a99f1c85e726e6b0. Metadata-only continuation follows this tested implementation. No merge authority.
 
 User can: regenerate BM2 without the artificial OLET out-and-back pipe spans while retaining actual junctions, branches, supports and physical mass owners. Prototype production path executed locally; Owner trial NOT_RUN. Source original BM2 blob2008bbcc344ef48dde95addd6a72dc9e08aee56c,629889bytes. Images are not native CII byte evidence.
 
@@ -63,3 +63,9 @@ History: initial diagnosis/assignment anchored in #351 comment6498100565 before 
 ## Appendix A
 
 NOT_REQUIRED_FOR_TAKEOVER: same continuing Owner-directed builder, new bounded assignment. No self-awarded qualification score or independent approval. Independent engineering review/native import remain NOT_RUN.
+
+## Final reconciliation at metadata basis c0e1b885
+
+All checks completed at c0e1b88598bf8925e5bc4e025d4d50608a129f9a:66 PASS/16 FAIL. Native Python, independent JS22/24, actual Preview, existing-stages Chromium and EF05 native XML-only E2E PASS again. Additional issue905 c06-final fails its preflight comparing against fixed historical base71d3a1a53b9274f8491704367fe9330d526a8cc9 and rejecting any runtime/docs-runtime paths. This joins13 old4f14beb base pins and835/884 qualification-only fences. All16 failure classes inspected; no product failure observed; overall CI is FAIL. No workflow changed. Compare af40c233...c0e1b885 proves only six recovery records changed. Review threads still empty; main remains59df1185; PR355 is open/draft/unmerged.
+
+Page PR84 final f4b29e1522d8cd0d6cd8ee875338b94c6f4b587c: Page data checker and tests PASS remotely. Five paths: four audited data files plus strict WBS expected-list regression updated to include new M28/6.4 and exact card binding. Existing duplicate/lost milestone protections preserved. Initial stale expected M24–M27 fixture failure is resolved. Events0499–0506 retained. Page publication and visual browser QA remain NOT_RUN. Subsequent changes to this report are recovery metadata only; tested production remains af40c233, unchanged at c0e1b885.
