@@ -27,6 +27,8 @@ import {isXmlCiiWeightReviewNode,isXmlCiiWeightReviewConnectionEligible}
 import {isXml229NonOwnerRigidBranchInlet}
  from '../../../converters/xml-cii2019-core/xml229-nonowner-rigid-branch-inlet.mjs';
 
+import {indexXml229PhysicalBores,xml229PhysicalBore} from './xml229-physical-bore-authority.mjs';
+
 const good=v=>typeof v==='string'&&v.trim().length>0;
 const num=v=>v===null||v===undefined||String(v).trim()===''?null:
   Number.isFinite(Number(v))?Number(v):null;
@@ -103,6 +105,7 @@ export async function openXml229EngineeringFactModel({
   const branches=[...prepared.document.getElementsByTagName('Branch')];
   const sourceNodeByOrdinal=new Map(projection.nodes.map(row=>[
     JSON.stringify([row.branchOccurrenceIndex,row.nodeOrdinal]),row]));
+  const boreRows=indexXml229PhysicalBores(previewResult.nodeBoreWallRows,sourceNodeByOrdinal,fail);
   const weightRows=new Map();
   for(const row of previewResult.nodeRows){
     if(!Number.isSafeInteger(row.branchOccurrenceIndex)||
@@ -215,7 +218,7 @@ export async function openXml229EngineeringFactModel({
       expected.push(owner);
       const matched=weightRows.get(JSON.stringify([branchIndex,origin.sourceNodeOrdinal]))||null;
       const xmlWeight=positive(num(field(node,'Weight')));
-      const bore=positive(num(computed.sizeMm));
+      const bore=xml229PhysicalBore(boreRows.get(JSON.stringify([branchIndex,origin.sourceNodeOrdinal])),matched,fail);
       const rating=String(computed.rating??'').trim();
       // Only use length that was actually computed for the SAME original
       // component or explicitly present in its source. Never guess length.
@@ -226,7 +229,7 @@ export async function openXml229EngineeringFactModel({
         fail('PHYSICAL_LENGTH_DRIFT','Preview and original source ElementLengthMm disagree');
       const length=derivedLength??explicitLength;
       add(owner,'source.occurrence',true,'source');
-      add(owner,'bore.mm',bore,'derived','mm','Preview resolved branch bore');
+      add(owner,'bore.mm',bore,'derived','mm','Preview resolved original component node bore');
       add(owner,'length.mm',length,derivedLength===null?'source':'derived','mm',
         derivedLength===null?'Original explicit ElementLengthMm':'Preview computed original source geometry');
       add(owner,'rating',rating||null,'derived',null,'Preview resolved branch rating');
