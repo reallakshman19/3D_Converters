@@ -1,15 +1,5 @@
 schema: AgentClaim.v1
 pr_or_wip: WIP-XML229-ENRICHED-DOWNLOAD-6ae1bed6
-claim_state: ACTIVE
-claim_modes: [COORDINATED]
-files:
-  exact:
-    - converters/scripts/xml_to_cii2019_patched.py
-    - converters/scripts/xml_to_cii2019_runtime_custody.py
-    - converters/xml-cii-2019-standalone/engine.js
-    - converters/xml-cii-2019-standalone/invocation-builder.js
-    - tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs
-    - tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-action.mjs
-authority_domains: [native enriched XML artifact retention]
-protected: [CII bytes, Final kg decisions, source identity, native release checks, workflows]
-last_verified_head: 59df118588837f70ca22dfe0d0573ef874e07dd0
+claim_state: RELEASED
+superseded_by: PR354
+active_claim_record: agents/claims/PR354.yaml
