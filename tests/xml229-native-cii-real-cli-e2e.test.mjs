@@ -1,3 +1,4 @@
+import './xml229-restraint-prefinal.test.mjs';
 import './xml229-component-bore-source.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';

@@ -573,10 +573,10 @@ function xmlTypeAllowsRealFriction(type) {
 }
 
 function frictionForEntry(entry, type, existingFriction, config = {}) {
-  if (typeof entry === 'string') return existingFriction || toText(config.defaultFriction || '0.3') || '0.3';
+  if (typeof entry === 'string') return existingFriction || toText(config.defaultFriction ?? '0.3') || '0.3';
   if (toText(entry?.friction)) return toText(entry.friction);
   const mode = toText(entry?.frictionMode || 'default').toLowerCase();
-  const defaultFriction = toText(config.defaultFriction || '0.3') || '0.3';
+  const defaultFriction = toText(config.defaultFriction ?? '0.3') || '0.3';
   if (mode === 'fixed' && toText(entry?.fixedFriction)) return toText(entry.fixedFriction);
   if (mode === 'existing' && toText(existingFriction)) return toText(existingFriction);
   if (mode === 'sentinel' && config.useFrictionSentinelForNonYSupports !== false && !xmlTypeAllowsRealFriction(type)) return '-1.010100';
@@ -590,7 +590,7 @@ export function applyXmlRestraints(document, nodeElement, entries, config = {}) 
   const nodeSupportGap = parseGapValue(nodeSupportGapText);
   let stiffness = config.defaultStiffness || '1.751270E+12';
   let gap = '0';
-  let friction = config.defaultFriction || '0.3';
+  let friction = config.defaultFriction ?? '0.3';
   let existingDirection = null;
   if (existing.length > 0) {
     const r0 = existing[0];

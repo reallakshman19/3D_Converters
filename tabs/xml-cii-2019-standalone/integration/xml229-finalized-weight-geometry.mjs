@@ -1,3 +1,4 @@
+import {closeGovernedAttaDefaultRestraints} from '../../../converters/xml-cii2019-core/atta-default-restraint-closure.js';
 /** Pre-acceptance XML229 geometry: source-attested IDs, witnessed edges,
  * optional instrument suggestions and one-part physical mass-owner census.
  * These operations never accept kilograms or authorize native CII Run.
@@ -173,7 +174,7 @@ function attestPhysicalEndpointPairs({physical,branches,prepared,sourceNodeByOrd
 
 export async function finalizeXml229WeightGeometry({
   basis,projection,branches,prepared,physical,sourceNodeByOrdinal,
-  nonOwnerEndpointStarts,componentSuppressionPairs=[],sourceId,
+  nonOwnerEndpointStarts,componentSuppressionPairs=[],sourceId,config={},
 },{children,field,fail,canonicalJson}){
   const assignedNodeNumbers=assignSourceNodeNumbers({
     projection,branches,prepared,children,field,fail,
@@ -184,6 +185,7 @@ export async function finalizeXml229WeightGeometry({
   const instrumentModelingSuggestions=discoverOptionalInstruments({
     branches,prepared,children,field,
   });
+  const restraintClosure=closeGovernedAttaDefaultRestraints(prepared.document,config);
   const finalXmlText=new XMLSerializer().serializeToString(prepared.document);
   const endpointPairs=attestPhysicalEndpointPairs({
     physical,branches,prepared,sourceNodeByOrdinal,sourceId,children,field,canonicalJson,
@@ -206,6 +208,7 @@ export async function finalizeXml229WeightGeometry({
   const finalizedGeometry=Object.freeze({
     schema:'XML229.FinalizedWeightGeometry.v1',
     physicalOwnerCardinality,
+    restraintClosure:Object.freeze(restraintClosure.stats),
     physicalLineage,
     basisId:basis.basisId,sourceXmlSha256:basis.sourceRefs[0].sha256,
     xmlText:finalXmlText,sha256:await digestUtf8(finalXmlText),
