@@ -1,4 +1,5 @@
 import test from 'node:test';
+import './xml229-tee-port-route.test.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';

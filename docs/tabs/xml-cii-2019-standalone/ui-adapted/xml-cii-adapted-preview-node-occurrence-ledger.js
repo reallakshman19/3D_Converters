@@ -6,6 +6,7 @@
  */
 import {xmlCiiNumberText} from '../../../converters/xml-cii2019-core/weight-match-model.js?v=20261006-p2810042-weight-review-1';
 import {xml229OletRouteHelpers} from '../integration/xml229-olet-helper-route.mjs';
+import {xml229TeeBranchPortWitnesses} from '../integration/xml229-tee-port-route.mjs';
 
 const str=x=>x==null?'':String(x).trim();
 const localName=x=>str(x?.localName||x?.nodeName).replace(/^.*:/,'');
@@ -57,9 +58,11 @@ export function preparePreviewNodeOccurrenceDocument({
     const retained=[],all=[];
     const branchNodes=children(branch,'Node');
     const oletHelpers=xml229OletRouteHelpers(branchNodes);
+    const teeBranchPorts=xml229TeeBranchPortWitnesses(branchNodes);
     for(const [sourceNodeOrdinal,node] of branchNodes.entries()){
       visited.add(node);
       const reason=oletHelpers.has(node)?'OLET_GEOMETRY_HELPER':
+        teeBranchPorts.has(node)?'TEE_BRANCH_PORT_WITNESS':
         dropReason(node,config,thresholdMm);
       const row=Object.freeze({
         branchOccurrenceIndex,sourceNodeOrdinal,
