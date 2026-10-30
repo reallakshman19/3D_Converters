@@ -29,3 +29,13 @@ EXACT_NEXT_ACTION: implement source-qualified TEE branch-port exclusion and orig
 ## Appendix A
 
 NOT_REQUIRED_FOR_TAKEOVER: same continuing direct-Owner builder, newly scoped assignment; no incoming agent or PR takeover. Engineering/native import acceptance remains separate.
+
+## Prototype checkpoint
+
+Local bounded helper and shared root/docs integration implemented. Focused tests11/11 PASS including original31 tees, malformed/positive-port/authority contrasts and unchanged49 OLET groups. Genuine xmldom0.9.8 with actual production Preview/canonical Worker, original BM2 and shipped config executed on unchanged live-main sparse dependencies:31 branch-port witnesses excluded,847→816 retained nodes;139 physical owners. Native runtime custody CLI emitted785 elements/69 restraints versus fresh main baseline816/69, with all guards unchanged. Controlled test Final0kg values are not Owner session decisions.
+
+Independent audit scripts/audit-xml229-bm2-tee-output.py PASS:31 parent detours replaced,62 run vectors match original coordinates; all remaining source fields/edges, RIGID/BEND/SIF/REDUCERS payloads,139 owners and69 restraint slots unchanged. Real B4110009 junction3120 remains degree3. Exact target emitted vectors:2690 DX64/DY0;3120 DX64/DY−0.32. Auditor source-branch disambiguation was corrected after initial expected-coordinate ambiguity:four original branch edges share main tee branch-port coordinates; their distinct labels must remain. No production or tolerance change was needed.
+
+Current audit receipt: {"status": "PASS", "sourceGitBlob": "2008bbcc344ef48dde95addd6a72dc9e08aee56c", "teeGroups": 31, "runVectorsVerified": 62, "baselineElements": 816, "correctedElements": 785, "physicalOwnersUnchanged": 139, "restraintSlotsUnchanged": 69, "otherSourceFieldsAndEdgesUnchanged": true, "rigidBendSifReducerPayloadsUnchanged": true, "actualBranch3120Degree": 3, "witnesses": [{"ref": "=134234934/28025", "nodes": [6680, 2690], "actualCiiVectorMm": [64.0, 0.0, 0.0]}, {"ref": "=134234934/18024", "nodes": [7210, 3120], "actualCiiVectorMm": [64.0, -0.32, 0.0]}], "actualCiiSha256": "19e97f058c4633553002363d9784267b98c9fb7c81984bc72399e2a26e34b5a8", "nativeImport": "NOT_RUN"}
+
+Page PR84 WBS extension headf7388938af7741c6f98af9f8923d956f0e04507c;events0507–0510, Page checker and8 WBS tests PASS locally. Publication NOT_PERFORMED. Broader Node/native tests in progress. EXACT_NEXT_ACTION: resolve local test-dependency availability, run mass/support/PL-BM1 contrasts and the negative audit, publish implementation PR and inspect CI.
