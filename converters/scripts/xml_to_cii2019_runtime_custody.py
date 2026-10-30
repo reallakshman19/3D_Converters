@@ -377,6 +377,20 @@ def _mark_native_failure_stage(stage: str) -> None:
     sys._xml229_native_failure_stage = stage
 
 
+def _export_native_enriched_xml(args, input_xml) -> None:
+    """Copy the exact consumed XML before CII serialization; never rerun enrichment."""
+    destination = args.enriched_output
+    if destination is None:
+        return
+    protected = [args.input, args.output, args.staged_json,
+                 args.xml229_native_final_packet, args.xml229_native_mass_proof,
+                 input_xml]
+    if any(path is not None and destination.resolve() == path.resolve()
+           for path in protected):
+        raise ValueError("NATIVE_ENRICHED_OUTPUT_PATH_COLLISION")
+    destination.write_bytes(input_xml.read_bytes())
+
+
 def main() -> None:
     global _PUBLISH_BEND_RADIUS_1_5D, _XML229_FINALIZED_GEOMETRY_ACTIVE
 
@@ -424,6 +438,7 @@ def main() -> None:
             require_staged_lineage=True)
     elif args.xml229_native_mass_proof is not None:
         raise ValueError("XML229_NATIVE_FINAL_PACKET_REQUIRED")
+    _export_native_enriched_xml(args, input_xml)
     for row in bend_policy.get("rows", []):
         print(
             "BEND_RADIUS_POLICY "

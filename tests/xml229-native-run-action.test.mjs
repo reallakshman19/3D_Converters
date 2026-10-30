@@ -11,6 +11,7 @@ import {inspectXml229NativeRunEligibility}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-eligibility.mjs';
 import {xml229CanAutoRunVerifiedFinal,offerXml229AutomaticNativeRun}
  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-auto-native.mjs';
+import {buildOutputArtifactRows} from '../tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js';
 
 // Explicit control-flow fake. These bytes do NOT certify native engineering output.
 const fakeVerified=()=>({schema:'XML229.GovernedNativeCandidateResult.v1',
@@ -67,6 +68,42 @@ test('the production action records an attempt and publishes only a verified run
  assert.equal(getXml229CandidateAttempt(f.stateRef,f.session).status,'SUCCEEDED');
  assert.deepEqual(getXml229FlowTrace(f.stateRef).snapshot().events.map(e=>e.kind),
   ['NATIVE_CANDIDATE_REQUESTED','NATIVE_CANDIDATE_SUCCEEDED']);
+});
+test('native success exposes enriched XML through the real artifact table',async()=>{
+ const f=setup(),xml='<PipeStressExport><Weight>12.5</Weight></PipeStressExport>';
+ f.ports.runCandidate=async()=>({...fakeVerified(),enrichedName:'source_enriched.xml',enrichedText:xml});
+ assert.equal(await executeXml229NativeRun(f.ports),true);
+ const row=buildOutputArtifactRows(f.stateRef.current).find(r=>r.kind==='enriched');
+ assert.equal(row.available,true);assert.equal(row.filename,'source_enriched.xml');
+ assert.equal(row.bytes,new TextEncoder().encode(xml).length);
+ assert.equal(row.downloadAction,'download-enriched');
+ assert.equal(f.downloads.length,1,'XML remains an explicit download, CII auto-download unchanged');
+});
+test('later native failure retains produced XML without CII publication or release',async()=>{
+ const f=setup(),xml='<PipeStressExport><Weight>0</Weight></PipeStressExport>';
+ f.ports.runCandidate=async()=>{throw {code:'CII_ELEMENTS_FORMAT_INVALID',
+  xml229EnrichedArtifact:{enrichedText:xml,enrichedName:'source_enriched.xml',
+   ciiText:'MUST NOT LEAK',nativeCiiReleaseAuthorized:true}};};
+ assert.equal(await executeXml229NativeRun(f.ports),false);
+ assert.equal(f.stateRef.current.result.enrichedText,xml);
+ assert.equal(f.stateRef.current.result.ok,false);
+ assert.equal(f.stateRef.current.result.ciiText,undefined);
+ assert.equal(f.stateRef.current.result.nativeCiiReleaseAuthorized,undefined);
+ const rows=buildOutputArtifactRows(f.stateRef.current);
+ assert.equal(rows.find(r=>r.kind==='enriched').available,true);
+ assert.equal(rows.find(r=>r.kind==='cii').available,false);
+ assert.equal(f.downloads.length,0);
+});
+test('changed source rejects even a retained XML from a failed native run',async()=>{
+ const f=setup();
+ f.ports.runCandidate=async()=>{
+  f.raw.current={...f.raw.current,sourceText:'different source'};
+  throw {code:'CII_ELEMENTS_FORMAT_INVALID',xml229EnrichedArtifact:{
+   enrichedName:'old.xml',enrichedText:'<old/>'}};
+ };
+ assert.equal(await executeXml229NativeRun(f.ports),false);
+ assert.equal(f.stateRef.current.result.enrichedText,undefined);
+ assert.equal(f.stateRef.current.result.error,'NATIVE_RUN_SOURCE_CHANGED');
 });
 test('a typed converter failure remains visible, clears running, and permits an explicit retry',async()=>{
  const f=setup();

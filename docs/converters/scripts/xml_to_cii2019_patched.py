@@ -766,6 +766,7 @@ def _parse_args() -> argparse.Namespace:
     # emitted CII postcheck. Never inferred from a suggestion or cache.
     parser.add_argument("--xml229-native-final-packet", required=False, type=Path, default=None)
     parser.add_argument("--xml229-native-mass-proof", required=False, type=Path, default=None)
+    parser.add_argument("--enriched-output", required=False, type=Path, default=None)
     parser.add_argument("--diagnostics-out", required=False, type=Path, default=None)
     parser.add_argument("--use-restraint-type-based-on-json", dest="use_restraint_type_based_on_json", action="store_true", default=True)
     parser.add_argument("--no-use-restraint-type-based-on-json", dest="use_restraint_type_based_on_json", action="store_false")

@@ -28,6 +28,7 @@ export function buildStandaloneCiiInvocation(job, paths, jobDir) {
     if (options.kgToNewton === false) throw new Error('XML229_NATIVE_FORCE_UNIT_REQUIRED');
     argv.push('--xml229-native-final-packet', paths.xml229NativeFinalPacketPath,
       '--xml229-native-mass-proof', paths.xml229NativeMassProofPath);
+    if(paths.xml229NativeEnrichedPath)argv.push('--enriched-output',paths.xml229NativeEnrichedPath);
   }
   if (options.useRestraintTypeBasedOnJson === false) argv.push('--no-use-restraint-type-based-on-json');
   else argv.push('--use-restraint-type-based-on-json');
