@@ -1,5 +1,6 @@
 import './xml229-native-enriched-artifact.test.mjs';
 import './xml229-component-bore-source.test.mjs';
+import './xml229-olet-helper-route.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtempSync,writeFileSync,readFileSync,rmSync} from 'node:fs';
