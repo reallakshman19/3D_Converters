@@ -21,8 +21,8 @@ function set(n,key,value){
   if(existing)existing.textContent=String(value);
   else n.childNodes.push(...node({[key]:value}).childNodes);
 }
-function sourceBranches(){
-  const path=fileURLToPath(new URL('../Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml',import.meta.url));
+function sourceBranches(file='GLRD-1000-PI-01 - BM2.xml'){
+  const path=fileURLToPath(new URL('../Benchmarks/XML-CII-2019/revamped/'+file,import.meta.url));
   return JSON.parse(execFileSync('python3',['-c',
     "import xml.etree.ElementTree as E,json,sys; r=E.parse(sys.argv[1]).getroot(); "+
     "print(json.dumps([[{c.tag.split('}')[-1]:(c.text or '').strip() for c in n} "+
@@ -89,6 +89,25 @@ test('independent source run vectors retain zero DY and real−0.32mm slope',()=
     const d=[b[0]-a[0],b[2]-a[2],a[1]-b[1]];
     d.forEach((v,i)=>assert(Math.abs(v-expected[i])<1e-8));
   }
+});
+
+test('original PL-BM1 spatial tees qualify; five wholly coincident templates stay unchanged',()=>{
+  const branches=sourceBranches('PL-BM1.xml'),selected=[],coincident=[];
+  for(const branch of branches){
+    const rows=branch.map(node),witnesses=xml229TeeBranchPortWitnesses(rows);
+    selected.push(...witnesses);
+    for(let i=0;i+3<rows.length;i++){
+      const group=rows.slice(i,i+4);
+      if(group.map(n=>field(n,'Endpoint')).join(',')!=='1,3,0,2'||
+         !group.every(n=>field(n,'ComponentType')==='TEE'))continue;
+      if(new Set(group.map(n=>field(n,'Position'))).size===1){
+        coincident.push(group);assert(group.every(n=>!witnesses.has(n)));
+      }
+    }
+  }
+  assert.deepEqual(selected.map(n=>field(n,'ComponentRefNo')),
+    ['=1006649755/1751','=1006657947/1467','=1006649755/11162']);
+  assert.equal(coincident.length,5);
 });
 
 test('root/docs integration matches and records original TEE occurrence drop reason',()=>{

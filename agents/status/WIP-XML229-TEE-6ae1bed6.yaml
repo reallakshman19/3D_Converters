@@ -1,8 +1,4 @@
 schema: AgentStatus.v1
 pr_or_wip: WIP-XML229-TEE-6ae1bed6
-state: IMPLEMENTING
-report: agents/WIP-XML229-TEE-6ae1bed6_workreport.md
-base: 690400a012d2bbc8f53a4e192ce80addacfa1439
-wbs: CIIFR-R4-6.5-M29
-source: https://github.com/reallakshman19/3D_Converters/issues/351#issuecomment-6528178717
-exact_next_action: Implement bounded TEE port classification before Final and verify real original BM2 native vectors, branch, owners and restraints.
+state: RELEASED_TO_PR356
+successor: agents/status/PR356.yaml
