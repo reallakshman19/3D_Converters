@@ -1,0 +1,8 @@
+schema: AgentStatus.v1
+pr_or_wip: WIP-XML229-FORMAT-ENABLE-6ae1bed6
+state: BASELINE
+report: agents/WIP-XML229-FORMAT-ENABLE-6ae1bed6_workreport.md
+branch: fix/xml229-explicit-format-enable-6ae1bed6
+base: d98723600c11df8fa13f010cb1080b9eb76d2749
+next_action: Implement explicit format participation and verify all41 with conflicts held
+merge_authority: OWNER_ONLY_NOT_GRANTED
