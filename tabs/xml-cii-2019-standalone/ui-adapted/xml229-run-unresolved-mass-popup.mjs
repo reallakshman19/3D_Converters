@@ -2,6 +2,7 @@
 import {commitXml229SelectedAppliedWeight} from './xml229-p4-applied-weight-owner-selection.mjs';
 import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
 import {hasXml229GovernedNativeHold} from '../integration/xml229-output-participation.mjs';
+import {xml229WeightSuggestionTooltip} from './xml229-weight-suggestion-basis.mjs';
 
 const deny=code=>{const e=new Error(code);e.code=code;throw e;};
 const str=x=>String(x??'');
@@ -140,7 +141,8 @@ function populate(tbody,rows){
      const chip=document.createElement('button');
      chip.type='button';chip.dataset.runZeroSuggestion='true';
      chip.textContent=(p.value===maximum?'MAX ':'')+(p.qualified?'★ ':'≈ ')+str(p.value)+' kg';
-     chip.title=p.qualified?'Source-qualified suggestion':'Estimated suggestion';
+     chip.title=xml229WeightSuggestionTooltip(physical,p,maximum);
+     chip.setAttribute('aria-description',chip.title);
      chip.style.cssText='padding:4px 6px;margin:2px;border:1px solid #64748b;border-radius:5px;cursor:pointer';
      chip.addEventListener('click',()=>{input.value=str(p.value);});
      suggestions.appendChild(chip);

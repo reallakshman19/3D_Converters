@@ -9,6 +9,19 @@ const fail=(code,detail)=>{const e=new Error(detail);e.code=code;throw e;};
 const text=x=>String(x??'').trim();
 const finite=x=>typeof x==='number'&&Number.isFinite(x);
 const positive=x=>finite(x)&&x>0;
+const CANDIDATE_BASIS_FIELDS=Object.freeze([
+ 'type','typeDesc','masterRowId','masterRowOrdinal','rowBore','rowRating',
+ 'rowLength','masterWeight','lengthDelta','lengthToleranceMm','extrapolationRatio',
+ 'weightMethod','semanticReason','semanticSource','warning','specialFactorCode',
+]);
+/** Display evidence only: no raw master row or scoring/acceptance changes. */
+export function projectXml229WeightCandidateBasis(proposal){
+ const candidate=proposal?.extensions?.candidate||{};
+ return Object.freeze(Object.fromEntries(CANDIDATE_BASIS_FIELDS.map(key=>{
+   const value=candidate[key];
+   return [key,typeof value==='string'||finite(value)?value:null];
+ })));
+}
 function allFacts(review,basisId,sourceId){
   const rows=[];let cursor=null,total=null;const seen=new Set();
   do{
@@ -175,6 +188,7 @@ export function buildXml229VerifiedWeightRowProjection({
      evidenceRefs:p.evidenceRefs||[],
      familyEligibility:p.extensions?.familyEligibility||null,
      masterRowOrdinal:p.extensions?.candidate?.masterRowOrdinal??null,
+     candidateBasis:projectXml229WeightCandidateBasis(p),
     }));
    }
    for(const entries of indexed.values())entries.sort((a,b)=>a.ranking-b.ranking);

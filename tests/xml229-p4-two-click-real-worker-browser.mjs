@@ -188,6 +188,8 @@ try{
   const handoff=await session.readNativeOriginalJsonForEngine({packet});
   const autoJsonVerified=handoff.sha256===packet.originalJsonSha256&&
     await handoff.file.text()===await window.__options.originalStagedBlob.text();
+  const page=await session.readPage({offset:0,limit:25,filter:'all',query:''});
+  const displayedBasis=page.rows[0]?.proposals?.[0]?.candidateBasis;
   const optionalAdvice=await session.readInstrumentModelingSuggestions();
   const backup=await session.exportReviewBackup();
   let wrongGeometryRejected=null;
@@ -196,11 +198,16 @@ try{
       ...backup,finalizedGeometrySha256:'0'.repeat(64)}});
   }catch(error){wrongGeometryRejected=error?.code||String(error);}
   return {originalXmlText:window.__options.xmlText,
-   packet,backup,wrongGeometryRejected,optionalAdvice,autoJsonVerified,
+   packet,backup,wrongGeometryRejected,optionalAdvice,autoJsonVerified,displayedBasis,
    stagedJsonText:await handoff.file.text(),supportConfigJson:JSON.stringify(window.__options.config)};
  });
- const {originalXmlText,packet,backup,wrongGeometryRejected,optionalAdvice,autoJsonVerified,
+ const {originalXmlText,packet,backup,wrongGeometryRejected,optionalAdvice,autoJsonVerified,displayedBasis,
   stagedJsonText,supportConfigJson}=sourceAndFinal;
+ assert.equal(displayedBasis.rowBore,200);
+ assert.equal(displayedBasis.rowLength,112);
+ assert.equal(displayedBasis.masterWeight,35);
+ assert.equal(displayedBasis.masterRowOrdinal,0);
+ assert(!Object.hasOwn(displayedBasis,'rowData'),'full master row must remain in Worker');
  assert.equal(autoJsonVerified,true,'native Run reuses exact O1 JSON without re-upload');
  assert.equal(optionalAdvice.schema,'XML229.OptionalInstrumentModelSuggestions.v1');
  assert.equal(optionalAdvice.approvalRequired,false);
