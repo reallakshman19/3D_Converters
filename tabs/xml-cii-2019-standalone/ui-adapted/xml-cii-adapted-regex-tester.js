@@ -4,6 +4,7 @@ import { renderBranchSamples, renderMatched, renderRejected, renderDiagnostics }
 import { renderRatingSequenceEditor } from './xml-cii-adapted-regex-rating.js?v=20261001-weight-output-2';
 import { updateRegexTesterConfig, applyStandaloneRegexTesterResult } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { clearUnlockedRegexRoleClaims } from '../xml-cii-regex-smart-suggestions.js?v=20261001-weight-rating-1';
+import { createRegexFormatEnableControl } from './xml229-regex-format-control.mjs';
 
 function text(value, fallback = '') {
   const out = String(value ?? '').trim();
@@ -143,6 +144,9 @@ function renderRegexRules(parent, state, stateRef, render) {
   const idx = cfg.activeFormatIndex || 0;
   const activeF = formats[idx] || cfg;
 
+  section.appendChild(createRegexFormatEnableControl(activeF, idx, stateRef && render
+    ? value => { applyEditedRegexRule(stateRef, 'regex-format-enabled', value); render(); }
+    : null));
   appendInput(section, 'Token delimiter fallback:', 'regex-token-delimiter', activeF.tokenDelimiter || '-', 'text', stateRef, render);
   appendInput(section, 'Line key joiner:', 'regex-line-key-joiner', activeF.lineKeyJoiner || '', 'text', stateRef, render);
   

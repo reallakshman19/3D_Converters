@@ -44,3 +44,9 @@ Recovery report, status and claim are the only initial commit files.
 ## Appendix A
 Same assigned builder continuation; self-scoring not applicable. Successor must independently re-ground and qualify before engineering-sensitive changes.
 Merge authority OWNER_ONLY_NOT_GRANTED.
+
+## Implementation checkpoint 2026-10-31
+Production patch implemented: explicit UI checkbox per format; enabled boolean preserved in normalization and both committed arrays; disabled first/alternative omitted by shared extractor; legacy projections follow first enabled format. Missing flags retain historical configured behavior; untouched second editor slot stays unconfigured. No preference or automatic exclusion added.
+Validation: RED three focused cases on main (flag lost, disabled first ignored, all disabled not held); GREEN35 local tests in live-regex acceptance + Run diagnostics + shared extraction + actual Preview multi-format suites. Initial local acceptance failed only from absent sparse-checkout smart-ui import; fetched exact main dependency and reran35PASS. Syntax and five root/docs pairs PASS. Real Chromium root/docs participation/persistence cases added to existing CI browser harness; NOT_RUN locally because Chromium absent; remote execution pending.
+Changed ledger: ten production paths (five mirror pairs), four test paths (two existing entries plus two new cases), three recovery records;17 initial patch paths. No workflow or private input files.
+EXACT_NEXT_ACTION: publish focused PR and inspect real browser/regression CI; any introduced failure blocks completion. This tests format identity only and is not Owner native output proof.

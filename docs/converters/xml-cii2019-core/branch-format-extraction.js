@@ -123,10 +123,17 @@ function unusedAlternativeTemplate(format, index) {
     && !text(format.lineKeyJoiner);
 }
 
+/** Explicit participation wins; legacy configured formats retain their behavior. */
+export function isBranchFormatEnabled(formatInput, index = 0) {
+  const format = record(formatInput);
+  return format.enabled !== false && !unusedAlternativeTemplate(format, index);
+}
+
 function evaluate(source, formatInput, index, sequence, legacy) {
-  if (unusedAlternativeTemplate(record(formatInput), index)) {
+  if (!isBranchFormatEnabled(formatInput, index)) {
     return { formatIndex: index, status: 'REJECTED', lineKey: '', pipingClass: '',
-      rating: '', bore: '', fieldMethods: {}, reasons: { format: 'UNCONFIGURED_ALTERNATIVE' } };
+      rating: '', bore: '', fieldMethods: {}, reasons: { format:
+        record(formatInput).enabled === false ? 'FORMAT_DISABLED' : 'UNCONFIGURED_ALTERNATIVE' } };
   }
   const format = record(formatInput);
   const delimiter = text(format.tokenDelimiter) || '-';
