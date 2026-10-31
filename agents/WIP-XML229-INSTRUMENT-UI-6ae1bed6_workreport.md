@@ -33,4 +33,14 @@ Planned paths: root/docs integration/xml229-instrument-source-review.mjs and sou
 
 Appendix A: direct same-builder continuation, not a takeover; no self-awarded qualification. Successor implementation requires independent re-grounding and repository-specific qualification.
 
-EXACT_NEXT_ACTION: implement source-bound lossless browser review and controlled tests, then publish production checkpoint and allocate draft PR; do not alter native preflight or classify private source.
+## Production checkpoint
+
+Implemented Run blocker action with unchecked per-pair controls and NEW XML/receipt downloads. Exact-source SHA/pair/span validation and syntax-aware closing-tag offsets precede insertion; no source serialization, live source activation, kg or Final writes. Native preflight/writer remain unchanged. Source SHA change forces fresh source review; old receipt cannot be borrowed. Superseded controls/source refuse download.
+
+PASS / LOCAL_EXECUTION / ANALYTICAL:8 focused cases, including exact expected byte insertion, BOM/comment/CRLF preservation, no-choice identity, stale SHA/ref/ordinal/span/duplicate guards, malformed lexical syntax and root/docs parity. PASS / LOCAL_EXECUTION / INDEPENDENT_REPRODUCTION: existing Python expat CLI selected-revision bytes equal browser helper bytes on controlled source. PASS / LOCAL_EXECUTION / ARTIFACT_INSPECTION: genuine xmldom0.9.8 validated all14 actual uploaded pair anchors against new evidence hash; zero-selection JS control retained every byte and selectedCount0. Owner source not classified.
+
+NOT_RUN local Chromium (executable absent); real browser cases wired into existing Run-popup job with actual namespaced BOM/comment/CDATA source and real downloads, old source/Final preservation and stale-source checks. New unit cases are imported by existing CI native-source-custody suite without workflow changes. Broader local custody suite is blocked by sparse unrelated UI imports. An attempted old preflight suite separately revealed its PREEXISTING source-string assertion expects nativeCiiReleaseAuthorized!==true in Run UI although release orchestration moved to a separate module on main; that test is restored byte-identical and not changed to obtain green.
+
+Current publication ledger:8 production root/docs paths;4 test paths (new unit and browser cases, existing source-custody and Run-popup harness imports);3 WIP recovery paths. No raw private source/evidence/selected Owner XML, unrelated fetched imports, or workflows published.
+
+EXACT_NEXT_ACTION: publish production checkpoint and allocate draft PR; inspect actual Chromium/native source-custody CI and any introduced failures before handover. Do not alter native preflight or classify private source.
