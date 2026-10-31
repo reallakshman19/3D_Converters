@@ -1,6 +1,6 @@
 schema: AgentClaim.v1
 pr_or_wip: PR359
-claim_state: ACTIVE_OWNER_CONTINUATION
+claim_state: SUBMITTED_REVIEW_HELD
 branch: fix/xml229-browser-instrument-model-review-6ae1bed6
 files:
   exact:

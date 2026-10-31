@@ -1,9 +1,9 @@
 # XML229 browser instrument source review
 
-REPORT_BASIS_HEAD: 118a16f365e14d1d59a4a0543f35eb458172875a
-BUILDER: 6ae1bed6-e084-83ed-85ee-8b4fac6d27b4 (same Owner-assigned builder; no takeover)
+REPORT_BASIS_HEAD: 3295444f208cf3cb1fbd5966ea1a3d1570c194fd
+BUILDER: 6ae1bed6 (same Owner-assigned builder; no takeover)
 WORK_INTENT: IMPLEMENT; NEW_PR_REQUIRED; WRITE_ALLOWED; ENGINEERING_CRITICAL
-PR: 359; RECOVERY_STATE: VALIDATING; MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
+PR: 359; RECOVERY_STATE: SUBMITTED_REVIEW_HELD; MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
 
 ## Handover in 60 seconds
 
@@ -64,3 +64,17 @@ EXACT_NEXT_ACTION: publish File-input browser regression and verify exact new-he
 ## Raw-file negative control correction
 
 At7dc0591c Chromium job124452652583 executed the real File/BOM XML and receipt downloads successfully, then FAILED the negative-control wait: changing cached text while retaining the old File correctly trips INSTRUMENT_SOURCE_REVIEW_STALE before SHA validation; the test still expected source-only SHA_MISMATCH. This is an INTRODUCED_BY_PR test expectation failure, not hidden as a PASS. Add an explicit file/text-conflict assertion, then replace the real File with matching changed text and independently require rejection by the old SHA. No production guard/tolerance/behavior changed. Both negative controls must pass at the next head.
+
+## Current handover — tested source3295444f
+
+Production bytes unchanged since118a16f3. Test/production source head3295444f208cf3cb1fbd5966ea1a3d1570c194fd passes real-original-worker-chromium job124453229527. Its logged BrowserInstrumentSourceReviewProof.v1 proves actual uploaded File bytes, NEW XML and receipt downloads, unchecked defaults, one explicit choice, exact namespace/BOM/comment/CDATA preservation, separate file/text conflict and oldSHA refusals, and unchanged source/Final ledger. The introduced7dc negative-control expectation failure is RESOLVED_BY_PR; no production guards changed. Existing actual Worker and popup/tooltip controls also pass.
+
+Native source-custody/independent CII suite:99/99 PASS on Node24 job124453109599 and Node22 job124453109552. Python source-transfer job124453109371 PASS. All16failed logs at3295444f individually read:13historical4f14beb37bc0b719453c52a116c1c5d7183d2fd0 merge-base pins;C05.1 path allowlist124453110359;C05.5.4 qualification allowlist124453109471;C06runtime fence124453110025 against71d3a1a. No workflows changed or bypassed; overall green/merge readiness not claimed. Snapshot88checks:70PASS/16FAIL/2running (existing-stages-browser124453110624 and EF05native124453110594). Engineering/CAESAR acceptance NOT_RUN; no Owner source classification or CII release performed.
+
+Actual18path GitHub diff equals explicit publication ledger:8production root/docs paths,4tests,6recovery metadata. Original old preflight test restored byte-identical and excluded; no private uploads, generated selected XML, original benchmarks, master data or workflows in diff. New JS modules62/96/117lines; tests116/88lines. Root/docs identical. No review threads at last read; non-author review not claimed. Main remains efe57c03; same-builder continuation, no takeover/self-qualification scores.
+
+Existing Page PR84, branch pp/ciifr-production-return-6ae1bed6, updated to496793b5e8922be6c0aca8e0c008e72c2d75852e with WBS6.9/M33, Test page observations and7append-only events0536–0542. CLI dry-runs/apply/check validated;105Node and41Python PASS/1skip. No private inputs hosted. Page main independently bac64e7e; Page remains draft/unpublished and needs base reconciliation. No duplicate WBS or engineering acceptance inferred.
+
+Remaining risk: the browser action intentionally downloads a separate revision; user must reopen it and make fresh Final choices. Arbitrary source hashes/pairs/file-text conflicts cannot be borrowed or inferred. The original14pairs remain unclassified until the Owner makes explicit justified modeling choices.
+
+EXACT_NEXT_ACTION: review PR359 diff and historical CI holds, read the two remaining aggregate browser jobs when complete, and after separately authorized merge/deployment verify the new Run review action on the Owner's source. Deliberately selected RIGID rows require a NEW XML/Preview/Final basis before governed native release. Do not auto-classify the private source or migrate old Final masses. Any successor must re-ground live state and qualify before engineering-sensitive mutation.
