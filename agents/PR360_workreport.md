@@ -51,3 +51,5 @@ EXACT_NEXT_ACTION: inspect PR360 real-original-worker-chromium; require fresh ge
 ## First browser isolation
 
 At4ef4d8e actual O1 index and real GC-PW Worker opened; added fixture failed before activation because it requested50rows while the production read port allows1..25. Correct test request to25 (all14controlled owners fit). This is an INTRODUCED_BY_PR test-call failure, not product PASS; no paging guard altered. Native/Node suites pass;14instrument activation/native/download remains pending.
+
+Source inspection isolated a production race: readiness-only reads can replace state.current without changing XML/config/master inputs. Activation now compares the actual source lease snapshot and original File/Worker identity instead of rejecting every object replacement. A new independent negative/positive test accepts a readiness-only refresh and refuses a config change. No late source/config/JSON change is accepted. Local source/activation cases14PASS.

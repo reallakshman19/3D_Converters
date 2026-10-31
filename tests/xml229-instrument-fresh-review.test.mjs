@@ -97,6 +97,20 @@ test('source changes or failed genuine re-index never publish a fresh reviewed b
  }
 });
 
+test('readiness-only state replacement keeps the source lease, while changed config is rejected',async()=>{
+ for(const changed of [false,true]){
+  const f=await fixture();
+  f.ports.resolveBlob=()=>{
+   f.stateRef.current={...f.stateRef.current,outputRunReadinessReport:{refreshed:true},
+    ...(changed?{supportConfigJson:'{"defaultGap":99}'}:{})};
+   return {isCurrent:()=>true};
+  };
+  if(changed){await assert.rejects(()=>startXml229InstrumentFreshReview(f),/INSTRUMENT_FRESH_SOURCE_STALE/);
+   assert.equal(f.old.closed,false);}
+  else {const proof=await startXml229InstrumentFreshReview(f);assert.equal(proof.basisId,'new');}
+ }
+});
+
 test('served activation module matches source and Run wires the real action',async()=>{
  const path='tabs/xml-cii-2019-standalone/ui-adapted/xml229-instrument-fresh-review.mjs';
  assert.deepEqual(await readFile(new URL('../'+path,import.meta.url)),

@@ -88,13 +88,16 @@ export async function startXml229InstrumentFreshReview({stateRef,sourceText,repo
  const enabled=original.sourceBatch?.sources?.filter(s=>s.enabled!==false);
  if(enabled&&enabled.length!==1)fail('INSTRUMENT_FRESH_SINGLE_SOURCE_REQUIRED');
  p.fullSelection(original);
- const checked=await attestRevision({sourceText,report,revision});
- const oldReceipt=original.xml229StagedSourceReceipt,source=p.resolveBlob(raw,oldReceipt);
- if(!sourceIsCurrent()||raw.current!==original||!source.isCurrent())
-  fail('INSTRUMENT_FRESH_SOURCE_STALE');
  const sourceId=original.modeASourceId||original.sourceBatch?.activeSourceId||previous.receipt?.sourceId;
  if(!sourceId)fail('INSTRUMENT_FRESH_SOURCE_ID_REQUIRED');
- const next=replacement(p,original,checked,sourceName,sourceId);
+ const before=p.capture(original,sourceId);
+ const checked=await attestRevision({sourceText,report,revision});
+ const oldReceipt=original.xml229StagedSourceReceipt,source=p.resolveBlob(raw,oldReceipt);
+ if(!sourceIsCurrent()||!p.compare(before,raw.current,{verifyFullSelection:()=>false})||
+  raw.current.sourceFile!==original.sourceFile||raw.current.running||
+  p.getWorker(raw)!==previous||!source.isCurrent())
+  fail('INSTRUMENT_FRESH_SOURCE_STALE');
+ const next=replacement(p,raw.current,checked,sourceName,sourceId);
  p.revoke(raw,{expectedSession:previous});p.clearCaches();raw.current=next;
  const snapshot=p.capture(raw.current,sourceId);
  const isCurrent=()=>p.compare(snapshot,raw.current,{verifyFullSelection:state=>{
