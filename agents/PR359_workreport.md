@@ -50,3 +50,13 @@ EXACT_NEXT_ACTION: publish production checkpoint and allocate draft PR; inspect 
 PR359 draft allocated at production head118a16f365e14d1d59a4a0543f35eb458172875a. Live changed-file list15 matches explicit publication manifest exactly. No review threads at first read. CI queued/in progress; no browser PASS claimed. New canonical report/status/claim and WIP forwarders are recovery-only updates. Native source-custody combined local run remains NOT_RUN due sparse unrelated imports;8 standalone new cases PASS. New source selection API is source modeling, not classification inference or native release.
 
 EXACT_NEXT_ACTION: inspect PR359 exact-head real-original-worker-chromium and independent-js-cii-mass-check Node22/24 results, correct any introduced failure and reconcile CI before returning to Owner. Merge remains owner-only.
+
+## Remote validation checkpoint
+
+PASS / REMOTE_EXECUTION / ARTIFACT_INSPECTION at production118a16f3: actual real-original-worker-chromium job124452064156 prints BrowserInstrumentSourceReviewProof.v1: unchecked defaults, one explicit selection, real XML and receipt downloads, prefixed BOM/comment/CDATA preservation, stale source refused, old source and Final masses unchanged. Existing Run popup/tooltip/85Final controls also PASS.
+
+PASS / REMOTE_EXECUTION / INDEPENDENT_REPRODUCTION at recovery4857c482: native source-custody and independent CII suite99 cases in Node24 job124452181917; Python job124452181831 includes24native mass tests and9optional source-revision tests PASS. The8new source-review cases executed in that99case suite, including Python byte equivalence. Native writer/reconciler unchanged. New browser case now explicitly exercises a real uploaded File (arrayBuffer/BOM preservation), resolving previously untested production input path; await new-head Chromium.
+
+Initial source CI89checks:72success/15failed/2running. Every15failed log inspected:13historical4f14beb merge-base pins,2olderC05 qualification/path allowlists. No product failure observed, no overall green claimed. New metadata/File-test checkpoint supersedes initial head for final validation; engineering/CAESAR acceptance NOT_RUN.
+
+EXACT_NEXT_ACTION: publish File-input browser regression and verify exact new-head real-original-worker-chromium and native source-custody jobs; reconcile final ledger and historical failures, then hand over draft PR359.

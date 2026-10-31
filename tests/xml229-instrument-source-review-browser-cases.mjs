@@ -19,7 +19,8 @@ async function mountReview(page){
    componentType:'INST',componentRefNo:ref,spanMm:305,
    reason:'INSTRUMENT_RIGID_CLASSIFICATION_NOT_IN_SOURCE'});
   const report={sourceXmlSha256:await digestUtf8(source),unsupportedOwners:[owner(1,'A'),owner(3,'B')]};
-  window.__instrumentSource={sourceText:source,sourceName:'controlled.xml',report};
+  window.__instrumentSource={sourceText:source,sourceName:'controlled.xml',report,
+   sourceFile:new File([source],'controlled.xml',{type:'application/xml'})};
   window.__instrumentOriginal=source;
   window.__instrumentFinals={A:17,B:17};
   const host=document.createElement('section');document.body.appendChild(host);
