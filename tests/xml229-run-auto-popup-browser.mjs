@@ -49,6 +49,14 @@ try{
     {value:3,unit:'kg',qualified:true},
     {value:80,unit:'kg',qualified:false}]:[],
   }));
+  // Explicit synthetic display evidence; this browser harness does not score
+  // engineering data. The separate tooltip unit invokes the real scorer.
+  rows[90].componentType='INST';rows[90].boreMm=100;
+  rows[90].rating='300';rows[90].lengthMm=305;
+  rows[90].proposals=rows[90].proposals.map((p,i)=>({...p,method:'master',
+   score:p.qualified?1:.45,candidateBasis:{masterRowOrdinal:i,type:'CONTROL',
+    rowBore:100,rowRating:'300',rowLength:305,masterWeight:p.value,
+    weightMethod:'master',lengthDelta:0}}));
   const decisions=[];
   window.__rows=rows;window.__decisions=decisions;
   window.__worker={
@@ -112,6 +120,18 @@ try{
   nodes=>nodes.map(n=>n.value)),Array(15).fill('0'));
  assert.equal(await page.evaluate(()=>window.__decisions.length),0,
   'automatic open cannot commit a zero');
+ const chips=page.locator('[data-run-zero-occurrence="original-90"] [data-run-zero-suggestion]');
+ assert.equal(await chips.count(),4);
+ for(const chip of await chips.all()){
+  const tip=await chip.getAttribute('title');
+  assert.match(tip,/Weight master lookup/);assert.match(tip,/DN100/);
+  assert.match(tip,/Length 305 mm/);assert.match(tip,/Weight master: record/);
+  assert.match(tip,/selecting kg does not establish RIGID classification/);
+  assert.equal(await chip.getAttribute('aria-description'),tip);
+ }
+ await chips.first().hover();await chips.first().focus();
+ assert.equal(await page.evaluate(()=>window.__decisions.length),0);
+ assert.equal(await page.locator('[data-run-zero-kg="original-90"]').inputValue(),'0');
  await page.locator('[data-run-zero-action="cancel"]').click();
  assert.equal(await page.locator('[data-xml229-run-unresolved-dialog]').count(),0);
  await page.evaluate(()=>window.__addRunButton());
@@ -186,7 +206,7 @@ try{
   'automatic native launch only on active ready Run; one attempt and no Final writes');
  assert.deepEqual(errors,[]);
  console.log(JSON.stringify({schema:'XML229.RunAutoPopupBrowser.v1',
-  initiallyAutomatic:true,requiresExplicitConfirmation:true,
+  initiallyAutomatic:true,requiresExplicitConfirmation:true,basisTooltipsVerified:true,
   dismissedOncePerWorker:true,manuallyReopenable:true,
   existing85FinalPreserved:true,nativeReleaseAuthorized:false}));
 }finally{
