@@ -10,6 +10,7 @@ import { buildIncrementalPreview } from './xml-cii-adapted-preview-incremental.j
 import { getSourceDocumentContext } from './xml-cii-adapted-source-derived-context.js';
 import { preparePreviewLineListCoreConfig } from './xml-cii-adapted-preview-line-index.js?v=20261001-weight-output-2';
 import { buildStagedDtxrIndex } from '../../../converters/xml-cii2019-core/dtxr-resolver.js';
+import {applyXml229ComponentBodyBores} from '../integration/xml229-component-body-bore.mjs';
 
 const AUTOMATIC_LINE_MATCH_METHODS = new Set(['similar-lineseq', 'similar-linekey']);
 const LINE_AUTHORITY_VERSION = 'strict-explicit-or-exact-v1';
@@ -200,8 +201,11 @@ function buildFullDryRunPreview(xmlText, config, stagedJsonText) {
     requireSourceOrdinal: true,
   });
   const materialResult = applyPreviewMaterialCodeAuthority({ config: previewConfig, result: wallResult });
+  const bodyResult=applyXml229ComponentBodyBores({
+    xmlText,config:previewConfig,result:materialResult,sourceDocument,
+  });
   return applyPreviewRatingAuthority({
-    xmlText, config: previewConfig, stagedJsonText, result: materialResult, sourceDocument,
+    xmlText, config: previewConfig, stagedJsonText, result: bodyResult, sourceDocument,
   });
 }
 

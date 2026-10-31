@@ -411,7 +411,7 @@ def main() -> None:
         from xml229_native_final_mass_binding import stage_native_original_lineage
         _mark_native_failure_stage('ORIGINAL_LINEAGE_STAGE')
         staged_original = stage_native_original_lineage(
-            args.input, args.xml229_native_final_packet)
+            args.input, args.xml229_native_final_packet, args.staged_json, support_config)
     _mark_native_failure_stage('STAGED_ENRICHMENT')
     input_xml = patched._maybe_enrich_from_staged_json(
         staged_original, args.staged_json, support_config)

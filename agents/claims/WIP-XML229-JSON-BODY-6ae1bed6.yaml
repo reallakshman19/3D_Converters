@@ -16,3 +16,10 @@ files:
 protected: [source positions and endpoint dimensions, physical owners, Owner Final0, native writer and guards, workflows]
 base: 7ac4f00a9fedb23952611ddc9be0465289813f20
 merge_authority: OWNER_ONLY_NOT_GRANTED
+native_validation_extension:
+  - converters/scripts/xml229_native_final_mass_binding.py
+  - converters/scripts/xml229_prefinal_restraint_source.py
+  - converters/scripts/xml229_prefinal_restraints.py
+  - converters/scripts/xml_to_cii2019_runtime_custody.py
+  - converters/xml-cii-2019-standalone/engine.js
+reason: Recompute permitted pre-Final restraints from actual source JSON/config before unchanged whole-XML comparison

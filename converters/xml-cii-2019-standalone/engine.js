@@ -13,6 +13,8 @@ const SCRIPT_FILE_NAMES = Object.freeze([
   'xml_to_cii2019_runtime_custody.py',
   'xml_cii_weight_output_custody.py',
   'xml229_native_final_mass_binding.py',
+  'xml229_prefinal_restraint_source.py',
+  'xml229_prefinal_restraints.py',
   'xml_cii_weighted_geometry.py',
   'xml_to_cii2019_master_addon.py',
   'master_customization.py',

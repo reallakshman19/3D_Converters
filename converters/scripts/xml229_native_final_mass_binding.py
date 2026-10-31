@@ -223,7 +223,7 @@ def _semantic_xml(element):
             tuple(_semantic_xml(c) for c in element if isinstance(c.tag, str)))
 
 
-def _validate_finalized_geometry(packet, source):
+def _validate_finalized_geometry(packet, source, staged_json_path=None, support_config=None):
     """Challenge the exact pre-acceptance Worker XML and original ordinal map.
 
     A finalized snapshot may REMOVE original nodes, but may not change any
@@ -372,8 +372,12 @@ def _validate_finalized_geometry(packet, source):
     require(total == final.get("originalNodeCount"),
             "NATIVE_FINALIZED_GEOMETRY_CENSUS_DRIFT")
     # Compare the ENTIRE cleaned source XML, not a small geometry field list.
-    # No other pre-acceptance material, restraints or XML node fields can drift.
+    # Only source-replayed pre-Final restraint changes are additionally permitted.
+    # All other XML fields remain covered by the existing entire-source check.
     expected = parse_bytes(ET.tostring(source, encoding="utf-8"))
+    from xml229_prefinal_restraints import replay_prefinal_restraints, restraint_semantics
+    supports_verified = replay_prefinal_restraints(
+        expected, packet, staged_json_path, support_config, require)
     for bi, (branch, ordinals) in enumerate(zip(branches(expected), retained)):
         keep = set(ordinals)
         for original_index, node in enumerate(nodes(branch)):
@@ -387,7 +391,13 @@ def _validate_finalized_geometry(packet, source):
                     namespace = (node.tag.rsplit("}", 1)[0] + "}"
                                  if "}" in node.tag else "")
                     ET.SubElement(node, namespace + "Rigid").text = "2"
-    require(_semantic_xml(expected) == _semantic_xml(snapshot),
+    compared_expected, compared_snapshot = expected, snapshot
+    if supports_verified:
+        compared_expected = parse_bytes(ET.tostring(expected, encoding='utf-8'))
+        compared_snapshot = parse_bytes(ET.tostring(snapshot, encoding='utf-8'))
+        restraint_semantics(compared_expected)
+        restraint_semantics(compared_snapshot)
+    require(_semantic_xml(compared_expected) == _semantic_xml(compared_snapshot),
             "NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT")
     require(child(snapshot, LINEAGE_STAGE) is None and
             not any(child(n, LINEAGE_TAG) is not None
@@ -575,7 +585,7 @@ def _verify_source_physical_lineage(lineage, packet, original, finalized,
     return True
 
 
-def stage_native_original_lineage(original_path, packet_path):
+def stage_native_original_lineage(original_path, packet_path, staged_json_path=None, support_config=None):
     """Annotate exact original source occurrences BEFORE staged-JSON enrichment.
 
     These temporary private markers are carried by the XML converter's ET
@@ -587,7 +597,8 @@ def stage_native_original_lineage(original_path, packet_path):
             not any(child(node, LINEAGE_TAG) is not None
                     for branch in branches(source) for node in nodes(branch)),
             "NATIVE_UNTRUSTED_LINEAGE_TAG")
-    final_source, retained_by_original = _validate_finalized_geometry(packet, source)
+    final_source, retained_by_original = _validate_finalized_geometry(
+        packet, source, staged_json_path, support_config)
     source_branches = branches(source)
     seen = set()
     for item in packet["components"]:

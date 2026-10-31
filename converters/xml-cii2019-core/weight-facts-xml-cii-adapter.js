@@ -135,7 +135,11 @@ export function createXmlCiiFactWeightScorer(config, scoringRevision = 'xml-cii-
     return ranking.candidates.slice(0, 5).flatMap((candidate, index) => {
       const value = num(candidate.selectedWeight ?? candidate.suggestedWeight ?? candidate.weight);
       if (value === null || value <= 0 || candidate.zeroFallback) return [];
-      const eligibility = evaluateCandidateEligibility(source, candidate);
+      const evaluated = evaluateCandidateEligibility(source, candidate);
+      const differingPorts=records.find(f=>f.fieldId==='bore.mm')
+        ?.extensions?.componentBody?.portDimensionsDiffer===true;
+      const eligibility=differingPorts?{...evaluated,qualified:false,
+        reasons:[...evaluated.reasons,'COMPONENT_PORT_DIMENSIONS_DIFFER_REVIEW_REQUIRED']}:evaluated;
       return [{
         basisId: basis.basisId, domainId: ID, occurrenceId: identity.occurrenceId,
         proposalId: [basis.basisId, identity.occurrenceId, scoringRevision,

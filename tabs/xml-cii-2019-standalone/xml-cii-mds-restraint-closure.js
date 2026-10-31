@@ -5,6 +5,8 @@ import {
 import { migrateSupportMappingConfig } from '../../converters/xml-cii2019-core/support-mapping-config.js';
 import { buildStandaloneDtxrResolutionLedger } from './xml-cii-trace-resolution-ledger.js';
 import { decorateJsonTraceLedger } from './xml-cii-json-trace-fields.js';
+import {isZeroInformationLimitRestraintElement}
+  from '../../converters/xml-cii2019-core/atta-default-restraint-closure.js';
 
 const CARRIER_TYPES = new Set(['ANCI', 'ATTA']);
 const GOVERNED_KINDS = Object.freeze(['REST', 'GUIDE', 'LINESTOP']);
@@ -72,11 +74,28 @@ function supportKindFromMember(member) {
   return '';
 }
 
-function evidenceByKind(record) {
+function supportGapNumber(attrs){
+  const raw=text(attrs?.CMPSUPGAP??attrs?.CMPSUPGAP_POS??attrs?.CMPSUPGAP_PS);
+  if(!raw)return null;
+  const value=Number(raw.match(/[-+]?(?:\d+\.?\d*|\.\d+)(?:[Ee][+-]?\d+)?/)?.[0]);
+  if(!Number.isFinite(value))throw Object.assign(new Error('Invalid JSON support gap'),
+    {code:'PREFINAL_RESTRAINT_GAP_INVALID'});
+  return value;
+}
+
+function evidenceByKind(record, requireUnambiguous = false) {
   const result = new Map();
   for (const member of Array.isArray(record?.positionMembers) ? record.positionMembers : []) {
     const kind = supportKindFromMember(member);
-    if (kind && !result.has(kind)) result.set(kind, memberAttributes(member));
+    if (!kind) continue;
+    const attrs=memberAttributes(member),previous=result.get(kind);
+    const gap=a=>text(a?.CMPSUPGAP??a?.CMPSUPGAP_POS??a?.CMPSUPGAP_PS);
+    const numeric=requireUnambiguous?supportGapNumber(attrs):null;
+    if(requireUnambiguous&&previous&&gap(previous)&&gap(attrs)&&
+       supportGapNumber(previous)!==numeric)
+      throw Object.assign(new Error('Conflicting JSON gaps for the same support kind'),
+        {code:'PREFINAL_RESTRAINT_GAP_AMBIGUOUS'});
+    if(!previous||(!gap(previous)&&gap(attrs)))result.set(kind,attrs);
   }
   for (const kind of Array.isArray(record?.derivedSupportTypes) ? record.derivedSupportTypes : []) {
     const normalized = text(kind).toUpperCase().replace(/\s+/g, '');
@@ -120,7 +139,7 @@ function nodeDiagnostic(node, record, kinds, entries) {
   };
 }
 
-export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, config = {}) {
+export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, config = {}, runtime = {}) {
   const source = String(xmlText ?? '');
   const stats = {
     mdsPositionNodesChanged: 0,
@@ -156,9 +175,18 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
       const componentType = childText(node, 'ComponentType').toUpperCase();
       if (!CARRIER_TYPES.has(componentType)) continue;
       const record = byIndex.get(xmlIndex);
+      if(runtime.requireUnambiguous&&record?.status==='AMBIGUOUS_REVIEW')
+        throw Object.assign(new Error('Ambiguous source support match'),
+          {code:'PREFINAL_RESTRAINT_MATCH_AMBIGUOUS'});
       if (!record || !String(record.status || '').startsWith('RESOLVED_')) continue;
-      const evidence = evidenceByKind(record);
+      const evidence = evidenceByKind(record,runtime.requireUnambiguous===true);
       if (!evidence.size) continue;
+
+      if(runtime.requireUnambiguous){
+        for(const restraint of childrenByName(node,'Restraint')){
+          if(isZeroInformationLimitRestraintElement(restraint))node.removeChild(restraint);
+        }
+      }
 
       const present = existingTypes(node);
       const kinds = [];
