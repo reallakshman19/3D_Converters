@@ -1,0 +1,9 @@
+schema: AgentStatus.v1
+pr_or_wip: PR359
+state: VALIDATING
+report: agents/PR359_workreport.md
+branch: fix/xml229-browser-instrument-model-review-6ae1bed6
+report_basis_head: 118a16f365e14d1d59a4a0543f35eb458172875a
+base: efe57c03b2c7f70d3a38ef1ea0b0acd7cd1142a6
+merge_authority: OWNER_ONLY_NOT_GRANTED
+next_action: Verify actual Chromium download and native custody CI
