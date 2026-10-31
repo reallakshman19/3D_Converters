@@ -1,6 +1,4 @@
 schema: AgentStatus.v1
 pr_or_wip: WIP-XML229-SUGGESTION-6ae1bed6
-state: IMPLEMENTING_OWNER_SCOPED
-report: agents/WIP-XML229-SUGGESTION-6ae1bed6_workreport.md
-base: c6cb6ef2c7c62ee716e806aa6dd3d0ad5f8aa405
-merge_authority: OWNER_ONLY_NOT_GRANTED
+state: FORWARDED_TO_PR358
+report: agents/PR358_workreport.md
