@@ -43,7 +43,7 @@ export function setupInstrumentSourcePage(input){
 }
 
 async function selectKg(session,value){
- const rows=(await session.readPage({offset:0,limit:50,filter:'all',query:''})).rows;
+ const rows=(await session.readPage({offset:0,limit:25,filter:'all',query:''})).rows;
  for(const row of rows)await commitXml229SelectedAppliedWeight({session,row,value,
   origin:'manual',isCurrent:()=>panel.getXml229CurrentWorkerHeldReview(ref)===session});
  return rows.length;
