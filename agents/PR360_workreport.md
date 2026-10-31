@@ -1,12 +1,14 @@
 # Instrument source activation through native CII download
 
-REPORT_BASIS_HEAD: 4ef4d8e409f79c6204e3b7386e5cbf51ce81f566
+REPORT_BASIS_HEAD: 55554b4227d622c21152990522dee74d0328823a
 BUILDER: 6ae1bed6 (same Owner-assigned builder; direct continuation)
 WORK_INTENT: IMPLEMENT; REPOSITORY_STATE: NEW_PR_REQUIRED
 MUTATION_AUTHORITY: WRITE_ALLOWED; CRITICALITY: ENGINEERING_CRITICAL
-PR: 360; RECOVERY_STATE: VALIDATING; MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
+PR: 360; RECOVERY_STATE: SUBMITTED_REVIEW_HELD; MERGE_AUTHORITY: OWNER_ONLY_NOT_GRANTED
 
 ## Handover in 60 seconds
+
+CURRENT: both missing source activation and inert manual Download CII are fixed at tested55554b42. Actual native CII automatic/manual downloads and late-Final refusal PASS in two Chromium jobs. No production engineering rule or writer changed. Draft awaits Owner review/merge; historical CI gates remain.
 
 Owner still cannot download CII after PR359. The Owner supplied a revision receipt explicitly selecting14RIGID instruments and revised XML0641e34cb5982a6b61bc0dbacff845b48f3a7af1f9007dd38d533fc5cbbbdfa5. All14Rigid2 insertions independently verified, exactly224added bytes; source inspection reports0remaining unclassified pairs. Latest supplied blocker still references original0d403a55 and oldbasis8769c9da. The browser currently downloads the revision but never activates it; repeating instructions has not delivered the requested working path.
 
@@ -59,3 +61,17 @@ Source inspection isolated a production race: readiness-only reads can replace s
 Atc5865127 added actual browser path successfully completed genuine source activation, fresh Final14x1.25kg, actual Python native generation, independent browser mass reconciliation and automatic CII download. It then FAILED on manual Download CII (job124504105210): asynchronous verified readiness repaint replaces artifact controls after the outer workflow binds events once. Newly enabled primary artifact button has no handler. This is a production defect directly matching the Owner's Download CII symptom, not an engineering-model hold. Existing preview download has its own handler but primary artifact does not.
 
 Fix: bind artifact and preview download controls inside every Run artifact paint. Capturing listener owns the click and prevents legacy double downloads. Governed manual CII additionally checks current source/candidate bytes, live Worker completion and Final signature before downloading; stale Final refuses old bytes. Source/writer/release rules unchanged. New bounded binder root/docs plus actual-browser late-Final challenge added. Require full auto/manual/late-Final proof at next head before claiming completion.
+
+## Current tested return —55554b42
+
+PASS / REMOTE_EXECUTION / INDEPENDENT_REPRODUCTION: real-original-worker-chromium124505681596 and original-blob-chromium124505632013 both print InstrumentActiveSourceNativeDownloadProof.v1. Actual genuine O1 scan/IndexedDB/fresh generation and actual original-Blob GC-PW Workers change14original blockers to0. Previous Worker closes, old backup is rejected, old Final not migrated,14NEW controlled1.25kg decisions accepted. Actual production Python native CII is independently reconciled by the REAL browser candidate runner, then automatic and manual CII downloads succeed. A subsequent genuine Final change refuses the old CII download. The test-only CLI transport is explicit; this does not claim a new Pyodide runtime test or Owner engineering acceptance. Both source-revision download-only behavior and actual source activation are independently covered.
+
+PASS / REMOTE_EXECUTION:105native source/mass/independent CII cases in Node24 job124505632691 and Node22 job124505632731; native Python124505632536; Run stage-truth Node22/24 PASS. Local14source/orchestration cases PASS. Three new production modules81/116/143lines; root/docs identical. All16failed logs at55554b42 read individually:13historical4f14beb merge-base pins,1C05.1 path allowlist,1C05.5.4 qualification allowlist,1C06runtime fence71d3a1a. None altered/bypassed; overall green/merge readiness not claimed. Final tested-source snapshot:91completed checks,75PASS/16historical preflightFAIL; no remaining running jobs. Existing-stages and public EF05native browser jobs PASS in their declared scope; public EF05 native uses the explicit XML-only route while governed unresolved-mass hold remains, not Owner governed CII acceptance.
+
+Exact GitHub20path ledger reconciles:8production root/docs (Run import/callback/paint, instrument UI, new source activation and new download binder);6tests (new activation unit, existing source unit import, controlled browser page/case/actual native transport, actual-Worker browser harness);6canonical/WIP recovery records. No private upload/source/revised XML/CII, original benchmark/master, unrelated fetched imports or workflow files published. Private source-only native diagnostic555elements/112restraints is not governed Final/CII release and remains scratch-only. No current source/geometry/kg authority fabricated. No review threads observed; independent engineering review not claimed.
+
+Existing WBS6.9/M33 and Page Test observations updated in open/unmerged progress-page PR84 headb5e7ee32551e0028092be265a36130cc0096ee4a.3append-only events0543–0545; CLI dry-run/apply/check and105Node+41Python PASS/1skip. Page live metadata now has draft=false and remains unmerged/unpublished; its main independently advanced to22f98366, so base compatibility reconciliation remains required before any merge.
+
+RISK-remaining: code must be reviewed and deployed before the Owner browser gains the repairs; this agent has not merged either repository. The Owner's accepted195mass ledger was not supplied, so no Owner CII mass acceptance was reconstructed or published. New source review/Final and actual native proof remain mandatory. The working controlled regression proves the missing workflow and click binding without guessing Owner masses.
+
+EXACT_NEXT_ACTION: review PR360 and historical CI holds; retain the completed91check ledger and documented16historical preflight holds. After separately authorized merge/deploy, verify primary Download CII after async readiness repaint and use explicit revised-source activation when needed. Any changed Final must require a new native Run. Successor implementation must re-ground and qualify; no authority inferred from author tests.
