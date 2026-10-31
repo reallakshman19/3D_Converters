@@ -1,5 +1,7 @@
 /** Real served Chromium two-click workflow against a synthetic original XML Worker. */
 import assert from 'node:assert/strict';
+import {runXml229InstrumentActiveSourceBrowserCases} from './xml229-instrument-active-source-browser-cases.mjs';
+import {handleXml229InstrumentNativeRequest} from './xml229-instrument-native-browser-transport.mjs';
 import {createServer} from 'node:http';
 import {readFile,writeFile,mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -17,6 +19,9 @@ const root=path.resolve(fileURLToPath(new URL('..',import.meta.url)));
 const server=createServer(async(req,res)=>{
  try{
   const pathname=new URL(req.url,'http://localhost').pathname;
+  if(pathname==='/native-instrument-control'){
+   await handleXml229InstrumentNativeRequest(req,res);return;
+  }
   if(pathname==='/test.html'){
    res.writeHead(200,{'content-type':'text/html'});
    res.end('<!doctype html><html><body><div id="preview"></div><div id="weight"></div></body></html>');
@@ -275,6 +280,7 @@ try{
    '/docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js');
   getXml229CurrentWorkerHeldReview(window.__stateRef)?.cancel();
  });
+ await runXml229InstrumentActiveSourceBrowserCases(browser,'http://127.0.0.1:'+server.address().port);
 }finally{
  await browser?.close();await new Promise(ok=>server.close(ok));
 }
