@@ -1,6 +1,6 @@
 # PR358 — suggestion-basis tooltips and exact-source instrument RCA
 
-REPORT_BASIS_HEAD: 53337245e570017f6eaa81427b7a27b42e914ba7
+REPORT_BASIS_HEAD: dd76d9a86d344a0ee357418676297118ad51af80
 WORK_INTENT: IMPLEMENT UI / INVESTIGATE native source; WRITE_ALLOWED for suggestion-basis presentation; ENGINEERING_CRITICAL investigation, no engineering classification authority.
 Branch: fix/xml229-suggestion-basis-instrument-rca-6ae1bed6. Same continuing Owner builder, no takeover. PR357 externally merged12f7ad76. Root/.agents policy same; no deeper AGENTS/master index. Live mainc6cb6ef2 adds timing records after357 only.
 
@@ -23,10 +23,30 @@ Implementation checkpoint: actual Worker row projection now carries16whitelisted
 
 PR358 DRAFT, mainbasec6cb6ef2; production53337245. Actual remote real-original-worker-chromium job124430531825 PASS: all4tooltips show basis/master/source dimensions/instrument note, hover/focus changes neither input nor decisions;85existing Final preserved. Original-blob-chromium PASS. Native source classification/Final/guards unchanged. Exact attachment inspector reproduces14/14PENDING source anchors and matching SHA; original bytes remain unchanged. Generated source-bound review JSON with14PENDING choices returned privately to Owner, never placed on GitHub.
 
-Local7focused tooltip tests PASS (actual scorer plus analytical expectations); root/docs3mirrors identical; new JS helper/test under300lines. Broader local popup/presentation test blocked by sparse unrelated imports/docs files; do not claim a local PASS. Full CI full-repo runs relevant popup/Worker browser, native zero guard and presentation tests. Actual Worker browser now additionally asserts carried DN200,length112,master35kg,record0 and no raw rowData; next-source-head execution pending for these new assertions. Existing synthetic popup harness is explicitly an interaction test; real scorer and Worker transport tests provide separate evidence.
+Local7focused tooltip tests PASS (actual scorer plus analytical expectations); root/docs3mirrors identical; new JS helper/test under300lines. Broader local popup/presentation test blocked by sparse unrelated imports/docs files; do not claim a local PASS. Full CI full-repo runs relevant popup/Worker browser, native zero guard and presentation tests. Actual Worker browser now additionally asserts carried DN200,length112,master35kg,record0 and no raw rowData; all these actual Worker assertions PASS at dd76d9a8. Existing synthetic popup harness is explicitly an interaction test; real scorer and Worker transport tests provide separate evidence.
 
 Changed-file ledger: root/docs popup(title/aria-description only);root/docs verified-weight-row-adapter(16scalar whitelist only);root/docs new pure tooltip formatter;7-case real-scorer/analytical tests; popup browser interaction assertions; actual Worker projection assertions; public aggregate/hash-only RCA; WIPforwarders/canonicalreport/status/claim. No scorer/ranking,proposal ID,kg/FinalCAS,native binder,topology,sourcefiles/workflows changes. No raw source/master row transported.
 
 Coordination: mainunchangedc6cb6ef2,357externallymerged12f7ad76. Existing312/329native,346canvas and335short-element PRs untouched. SamebuilderdirectOwnercontinuation, not takeover. Source-only investigative authority does not authorize14rigid classifications or oldFinal migration. Reviews and allfailedCIlogs must be reconciled before final return; no merge permitted.
 
 EXACT_NEXT_ACTION: inspect next-head actual Worker basis assertions and complete CI failure classification; record existing WBS6return and test example; preserve DRAFT/unmerged status and explicit native source-model hold.
+
+## Exact-source controls and reconciliation
+
+Actual uploaded source SHA matches provided blocker receipt and generated inspect manifest. All14instrument refs match public original EF05. Applying the generated allPENDING choices to a separate scratch output preserves exact bytes, selectedCount0,sourceChangedfalse,kilogramsAcceptedfalse. This test makes no classification and does not alter the supplied source or accepted Final ledger. Returned Owner review file contains14PENDING choices, no selected RIGID claims.
+
+At dd76d9a86d344a0ee357418676297118ad51af80 the actual real-original-worker-chromium job124431361409 PASS exercises both real Worker projection assertions (DN200,length112,master35kg,record0,no rawrowData) and the4-chip popup hover/focus test. Original-blob-chromium PASS. Confirmed-zero Node22/24 PASS116cases each; Node22/24 product suites PASS63cases each. Public EF05 native browser job124431239950 PASS in its declared explicit XML-only CII route, with governed unresolved-mass HOLD preserved; not governed EF05 release or engineering approval.
+
+All16failed CI logs at this source head individually inspected:13historical4f14beb merge-base pins,2C05path/qualification allowlists,1C06runtime fence against71d3a1a. No workflow modified. Overall fresh observation69PASS/16FAIL/1running(existing-stages-browser), final suite still pending. No unobserved PASS inferred.
+
+GitHub exact changed-file list16matches explicit publication manifest;3root/docs mirrors identical; new helper/test under300lines. No private upload, original benchmark, master, generated output or unrelated app imports published. Review threads empty at inspection; independent review not claimed.
+
+Page84 draft head e513af36cf84a9c59121be9773c4033089703802 extends existing WBS6with6.8/M32suggestion basis and6.9/M33source RCA, adds6append-onlyevents0530–0535 and controlled tooltip replay. Checker105Node+41Python PASS/1skip after synchronizing two grouping expectations. Main advanced independently todf9dcfe1; draft must reconcile base drift before merge. No public Page deployment or merge claimed.
+
+## Final source-head return
+
+Tested production/tests dd76d9a86d344a0ee357418676297118ad51af80: final existing-stages-browser job124431239680 PASS (cancelled Worker recovery, original Preview→Weight and public EF05 original JSON). All product/Worker/tooltip browser assertions PASS, with no mass selection on hover/focus and85existing Final retained in explicit interaction fixture. Overall86completed checks:70PASS/16historicalpreflightFAIL; all16logs classified above. No introduced product failure observed, but overall green/merge readiness is not claimed. Engineering/CAESAR acceptance NOT_RUN; native classification hold on uploaded source is correct and remains.
+
+The final follow-up changes recovery/RCA metadata only; production and test bytes remain the exact tested dd76d9a8. Source/public references and entire16-path publication ledger reconciled. No uploaded source, review JSON/private Library IDs, or images in repository. Source-bound review file returned with all14PENDING; unchanged allPENDING apply control verified. No engineering choices made for Owner.
+
+EXACT_NEXT_ACTION: review PR358 and historical CI holds; after separately authorized merge/deployment verify fresh tooltips on Owner input. For the14source instrument pairs, deliberately establish source classification only where justified, then use a fresh source/Final basis. Review file and blocker JSON are not classification approval. Page84 draft remains unpublished and needs base-drift reconciliation. No merge authority granted.
