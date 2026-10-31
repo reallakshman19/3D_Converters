@@ -1,0 +1,8 @@
+schema: AgentStatus.v1
+pr_or_wip: WIP-XML229-INSTRUMENT-ACTIVATE-6ae1bed6
+state: IMPLEMENTING
+report: agents/WIP-XML229-INSTRUMENT-ACTIVATE-6ae1bed6_workreport.md
+branch: fix/xml229-instrument-active-source-download-6ae1bed6
+base: 9c26b17e7eef77388ebaa53de56f6573c3825a48
+next_action: Connect explicit revised source activation to fresh O1 and Worker; verify real CII download
+merge_authority: OWNER_ONLY_NOT_GRANTED
