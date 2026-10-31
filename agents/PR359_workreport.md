@@ -60,3 +60,7 @@ PASS / REMOTE_EXECUTION / INDEPENDENT_REPRODUCTION at recovery4857c482: native s
 Initial source CI89checks:72success/15failed/2running. Every15failed log inspected:13historical4f14beb merge-base pins,2olderC05 qualification/path allowlists. No product failure observed, no overall green claimed. New metadata/File-test checkpoint supersedes initial head for final validation; engineering/CAESAR acceptance NOT_RUN.
 
 EXACT_NEXT_ACTION: publish File-input browser regression and verify exact new-head real-original-worker-chromium and native source-custody jobs; reconcile final ledger and historical failures, then hand over draft PR359.
+
+## Raw-file negative control correction
+
+At7dc0591c Chromium job124452652583 executed the real File/BOM XML and receipt downloads successfully, then FAILED the negative-control wait: changing cached text while retaining the old File correctly trips INSTRUMENT_SOURCE_REVIEW_STALE before SHA validation; the test still expected source-only SHA_MISMATCH. This is an INTRODUCED_BY_PR test expectation failure, not hidden as a PASS. Add an explicit file/text-conflict assertion, then replace the real File with matching changed text and independently require rejection by the old SHA. No production guard/tolerance/behavior changed. Both negative controls must pass at the next head.

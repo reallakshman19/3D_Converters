@@ -62,6 +62,14 @@ async function verifyStaleSource(page){
  assert.equal(downloads,0);
  await page.locator('[data-action="xml229-review-instrument-source"]').click();
  await page.waitForFunction(()=>[...document.querySelectorAll('[role="status"]')]
+  .some(n=>n.textContent.includes('Source review unavailable: INSTRUMENT_SOURCE_REVIEW_STALE')));
+ assert.equal(await page.locator('[data-instrument-owner]').count(),0);
+ // A different real file and matching text pass the file/text conflict guard,
+ // then must still fail against the old source-bound receipt hash.
+ await page.evaluate(()=>{window.__instrumentSource.sourceFile=new File(
+  [window.__instrumentSource.sourceText],'changed.xml',{type:'application/xml'});});
+ await page.locator('[data-action="xml229-review-instrument-source"]').click();
+ await page.waitForFunction(()=>[...document.querySelectorAll('[role="status"]')]
   .some(n=>n.textContent.includes('INSTRUMENT_SOURCE_SHA_MISMATCH')));
  assert.equal(await page.locator('[data-instrument-owner]').count(),0);
  page.off('download',onDownload);
@@ -74,6 +82,7 @@ export async function runXml229InstrumentSourceBrowserCases(page){
  await verifyXmlDownload(page,expected);await verifyStaleSource(page);
  console.log(JSON.stringify({schema:'XML229.BrowserInstrumentSourceReviewProof.v1',
   uncheckedByDefault:true,explicitOneSelected:true,realXmlDownload:true,
+  uploadedFileBytesVerified:true,conflictingFileTextRefused:true,
   prefixedBomCommentsCdataPreserved:true,staleSourceRefused:true,oldFinalsUntouched:true,
   sourceActivated:false,nativeCiiReleaseAuthorized:false}));
 }
