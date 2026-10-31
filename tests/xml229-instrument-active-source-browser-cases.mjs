@@ -80,11 +80,16 @@ export async function runXml229InstrumentActiveSourceBrowserCases(browser,url){
   await page.waitForFunction(()=>[...document.querySelectorAll('[data-action="download-cii"]')].some(b=>!b.disabled),null,{timeout:20000});
   const manual=page.waitForEvent('download');await page.locator('[data-action="download-cii"]:enabled').first().click();
   assert.equal(await readFile(await (await manual).path(),'utf8'),cii);
+  let lateDownloads=0;page.on('download',()=>lateDownloads++);
+  await page.evaluate(()=>window.__I.changeInstrumentFinalAfterOutput());
+  await page.locator('[data-action="download-cii"]:enabled').first().click();
+  await page.waitForFunction(()=>document.querySelector('[data-xml229-artifact-download-status]')?.textContent.includes('Download held:'));
+  assert.equal(lateDownloads,0,'changed Final must refuse the old CII, even before a Run repaint');
   assert.deepEqual(errors,[]);
   console.log(JSON.stringify({schema:'XML229.InstrumentActiveSourceNativeDownloadProof.v1',
    controlledOwners:14,originalBlocked:14,revisedBlocked:0,freshO1Generation:true,freshWorkerBasis:true,
    previousFinalNotMigrated:true,oldBackupRejected:true,newFinalKgEach:1.25,
-   realPythonNativeCii:true,independentMassConsumptionVerified:true,autoDownload:true,manualDownload:true,
+   realPythonNativeCii:true,independentMassConsumptionVerified:true,autoDownload:true,manualDownload:true,staleFinalDownloadRefused:true,
    ownerEngineeringAcceptance:false}));
  }finally{await page.close();}
 }

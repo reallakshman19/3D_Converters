@@ -103,3 +103,10 @@ export async function instrumentRunResult(){
   nativeAttempt:document.querySelector('[data-xml229-native-execution]')?.textContent,
   downloads:[...document.querySelectorAll('[data-action="download-cii"]')].map(b=>({disabled:b.disabled}))};
 }
+
+export async function changeInstrumentFinalAfterOutput(){
+ const session=panel.getXml229CurrentWorkerHeldReview(ref);
+ const row=(await session.readPage({offset:0,limit:25,filter:'all',query:''})).rows[0];
+ await commitXml229SelectedAppliedWeight({session,row,value:2,origin:'manual',
+  isCurrent:()=>panel.getXml229CurrentWorkerHeldReview(ref)===session});
+}

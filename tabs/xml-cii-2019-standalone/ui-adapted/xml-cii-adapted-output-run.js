@@ -9,6 +9,7 @@ import {runXml229NativeCiiMassCandidate} from './xml229-native-cii-candidate-run
 import {buildXml229NativeOwnerBlockerEvidence} from './xml229-native-owner-blocker-evidence.mjs';
 import {createXml229InstrumentSourceReviewControl} from './xml229-instrument-source-review-ui.mjs';
 import {startXml229InstrumentFreshReview} from './xml229-instrument-fresh-review.mjs';
+import {bindXml229RunArtifactDownloads} from './xml229-run-artifact-download.mjs';
 import {createXml229RunMassReviewButton} from './xml229-run-mass-review-button.mjs';
 import {offerXml229AutomaticNativeRun} from './xml229-run-auto-native.mjs';
 import {executeXml229NativeRun} from './xml229-native-run-action.mjs';
@@ -193,7 +194,7 @@ function renderFormatFailures(parent, report) {
   panel.appendChild(table(['Occurrence', 'Branch', 'Status', 'Format', 'Diagnosis'], diagnosticRows, 'No examples available.'));
 }
 
-function renderArtifacts(parent, state, report) {
+function renderArtifacts(parent, state, report, stateRef) {
   const panel = section(parent, 'Output Artifacts / Downloads');
   panel.appendChild(table(['Kind', 'Artifact', 'Available', 'Filename', 'Bytes'], rows(report.artifactRows), 'No artifact rows yet.'));
   const buttonsDiv = createElement('div');
@@ -206,6 +207,7 @@ function renderArtifacts(parent, state, report) {
   }
   panel.appendChild(buttonsDiv);
   renderAdaptedCiiPreviewCanvas(panel, state, report);
+  bindXml229RunArtifactDownloads(panel,{stateRef,report});
 }
 
 function topologyArtifactRows(result) {
@@ -788,7 +790,7 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
     renderReadinessCard(card, supportConfigForReadiness(renderState), renderState);
     renderRunOptions(card, stateRef, renderState, render);
     renderRunControls(card, stateRef, renderState, report, render);
-    renderArtifacts(card, renderState, report);
+    renderArtifacts(card, renderState, report, stateRef);
     renderTopologyArtifacts(card, xml229TopologyDisplayState(renderState,stateRef));
     renderLogs(card, report);
     renderManifest(card, report);
