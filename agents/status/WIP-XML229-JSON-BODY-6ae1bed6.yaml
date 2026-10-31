@@ -1,7 +1,4 @@
 schema: AgentStatus.v1
 pr_or_wip: WIP-XML229-JSON-BODY-6ae1bed6
-state: IMPLEMENTING_OWNER_SCOPED
-report: agents/WIP-XML229-JSON-BODY-6ae1bed6_workreport.md
-wbs: [CIIFR-R4-6.6-M30, CIIFR-R4-6.7-M31]
-base: 7ac4f00a9fedb23952611ddc9be0465289813f20
-exact_next_action: Implement bounded source-bound restraint transfer and component-span bore, validate consumed enriched XML and actual CII with contrary cases.
+state: FORWARDED_TO_PR357
+report: agents/PR357_workreport.md
