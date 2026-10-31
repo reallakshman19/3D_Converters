@@ -1,6 +1,6 @@
 schema: AgentClaim.v1
 pr_or_wip: PR357
-claim_state: ACTIVE_OWNER_SCOPED
+claim_state: SUBMITTED_REVIEW_HELD
 branch: fix/xml229-json-restraints-body-bore-6ae1bed6
 wbs: [CIIFR-R4-6.6-M30, CIIFR-R4-6.7-M31]
 source: https://github.com/reallakshman19/3D_Converters/issues/350#issuecomment-6530010922
