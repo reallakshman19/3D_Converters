@@ -2,6 +2,7 @@
  * This exercises DOM timing/visibility/dismiss/reopen, not native release.
  */
 import assert from 'node:assert/strict';
+import {runXml229InstrumentSourceBrowserCases} from './xml229-instrument-source-review-browser-cases.mjs';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
@@ -204,6 +205,7 @@ try{
   concurrent:true,one:1,after:1,failedRun:false,
   resultUnchanged:true,acceptedCount:15},
   'automatic native launch only on active ready Run; one attempt and no Final writes');
+ await runXml229InstrumentSourceBrowserCases(page);
  assert.deepEqual(errors,[]);
  console.log(JSON.stringify({schema:'XML229.RunAutoPopupBrowser.v1',
   initiallyAutomatic:true,requiresExplicitConfirmation:true,basisTooltipsVerified:true,
