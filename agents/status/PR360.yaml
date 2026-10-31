@@ -4,7 +4,7 @@ state: SUBMITTED_REVIEW_HELD
 report: agents/PR360_workreport.md
 branch: fix/xml229-instrument-active-source-download-6ae1bed6
 base: 9c26b17e7eef77388ebaa53de56f6573c3825a48
-next_action: Connect explicit revised source activation to fresh O1 and Worker; verify real CII download
+next_action: Review tested CII download repair and16historical CI holds; merge and deploy only with Owner authorization
 merge_authority: OWNER_ONLY_NOT_GRANTED
 tested_source_head: 55554b4227d622c21152990522dee74d0328823a
 focused_ci: REAL_NATIVE_AUTO_MANUAL_AND_STALE_FINAL_PASS
