@@ -29,3 +29,15 @@ PASS / LOCAL_EXECUTION / INDEPENDENT_REPRODUCTION: Python expat helper reconstru
 Planned paths: new bounded instrument-fresh-review orchestrator; existing instrument review UI and Run callback; root/docs mirrors; meaningful unit/browser cases in existing CI harnesses; recovery metadata. Back up all existing paths before edits. Keep committed config/masters; reset prior outputs/review caches; never reuse previous Final decisions.
 
 EXACT_NEXT_ACTION: implement explicit source activation with genuine fresh O1/Worker and source SHA challenge; prove the new source reaches independently verified native CII download before returning a candidate.
+
+## Production checkpoint
+
+Added Use revised XML and start fresh Final review. Lossless replay validates every selected insertion before mutation; genuine existing O1 Blob is re-indexed into a new generation through the established source-intake primitive. Source/Worker ownership is revoked before replacement; new Worker is challenged for fresh basis/generation, exact revised XML SHA, same original JSON SHA, no selected unclassified pairs and0Final decisions. Committed config/masters retained, prior Final/backup/output fields cleared. Existing native writer/preflight/reconciler unchanged. Action stays in Run so existing fresh Final review and verified native conversion flow can continue.
+
+PASS / LOCAL_EXECUTION / ANALYTICAL:13cases (8lossless source tests plus5orchestration tests with explicitly injected ports), including stale/tampered selection, partial/multiple source, wrong JSON/source/basis/generation, retained old Final/advice, late source change and index failure. Port tests do not claim actual Worker/native release.
+
+NOT_RUN: new actual browser14instrument path. Test uses genuine O1 source scanner/IndexedDB re-index, real original-Blob GC-PW Workers, actual source activation and Final commit UI modules, production Run orchestration and independent CII reconciler. The four-workbook fixture input resolver is explicit synthetic input. A labeled test-only engine transport runs the unchanged production Python runtime CLI and returns its ACTUAL CII/diagnostic to the real browser candidate runner; no native bytes/mass proof/release flags are mocked. Expected14old source blockers ->0new; old Worker cancelled, old backup rejected,0prior Final copied, new controlled1.25kg selections, independent actual mass proof, both automatic and manual CII downloads. Production Pyodide engine transport is NOT tested by this added harness; unchanged existing full app native browser remains separate evidence.
+
+Changed paths planned for this checkpoint:6production root/docs (new orchestrator, instrument UI, Run);6tests (new authority unit, existing source unit import,3new browser helper/transport modules, existing actual-Worker browser harness);3WIP recovery records. No private files/controlled outputs/workflows published.
+
+EXACT_NEXT_ACTION: publish implementation and allocate draft PR; inspect actual14instrument O1/Worker/native/download browser result and fix introduced failures without weakening any authority guard.

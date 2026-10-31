@@ -8,6 +8,7 @@ import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-we
 import {runXml229NativeCiiMassCandidate} from './xml229-native-cii-candidate-run.mjs';
 import {buildXml229NativeOwnerBlockerEvidence} from './xml229-native-owner-blocker-evidence.mjs';
 import {createXml229InstrumentSourceReviewControl} from './xml229-instrument-source-review-ui.mjs';
+import {startXml229InstrumentFreshReview} from './xml229-instrument-fresh-review.mjs';
 import {createXml229RunMassReviewButton} from './xml229-run-mass-review-button.mjs';
 import {offerXml229AutomaticNativeRun} from './xml229-run-auto-native.mjs';
 import {executeXml229NativeRun} from './xml229-native-run-action.mjs';
@@ -676,10 +677,15 @@ function renderRunControls(parent, stateRef, state, report, render) {
       return {sourceText:current.sourceText,sourceFile:current.sourceFile,
         sourceName:current.sourceName||current.sourceFile?.name,
         report:current.result?.xml229NativeOwnerPreflight};
-    }}));
+    },activate:args=>startXml229InstrumentFreshReview({
+      ...args,stateRef,container:parent,
+      sourceIsCurrent:()=>stateRef.current?.sourceText===args.sourceText&&
+        stateRef.current?.result?.xml229NativeOwnerPreflight===args.report,
+      render,
+    })}));
     audit.appendChild(createElement('div',
-      'Use the review above to select instrument models and download a NEW XML. '+
-      'Reopen the revised source and complete a NEW Final weight review. '+
+      'Use the review above to select instrument models, activate the revised XML '+
+      'and start a fresh Final review here, or download the XML separately. '+
       'The source revision receipt does not approve engineering masses or release CII. '+
       'For a repository workflow, the equivalent commands are:',
       'model-converters-workflow-detail-note'));

@@ -1,4 +1,5 @@
 import test from 'node:test';
+import './xml229-instrument-fresh-review.test.mjs';
 import assert from 'node:assert/strict';
 import {readFile,writeFile,mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';

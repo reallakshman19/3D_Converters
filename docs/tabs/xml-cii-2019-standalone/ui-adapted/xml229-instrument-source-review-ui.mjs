@@ -70,17 +70,39 @@ async function downloadRevision({snapshot,sourceText,readCurrent,status,choices,
   finally{context.busy=false;create.disabled=choices.size===0;}
 }
 
-function renderChoices(panel,{review,snapshot,sourceText,readCurrent,status}){
- const choices=new Set(),context={revision:null,busy:false};
+function activationButton({snapshot,sourceText,readCurrent,status,choices,create,context,activate}){
+ const use=button('xml229-use-instrument-source','Use revised XML and start fresh Final review');
+ use.disabled=true;
+ use.addEventListener('click',async()=>{
+  if(context.busy)return;
+  context.busy=true;use.disabled=true;create.disabled=true;
+  try{
+   if(!choices.size||!sameCurrent(snapshot,readCurrent()))fail();
+   const selected=[...choices];
+   const next=await createXml229InstrumentSourceRevision({sourceText,report:snapshot.report,selectedOwners:selected});
+   if(!sameCurrent(snapshot,readCurrent())||!use.isConnected||
+    selected.length!==choices.size||!selected.every(k=>choices.has(k)))fail();
+   status.textContent='Activating revised XML, indexing the original JSON and rebuilding verified Preview…';
+   await activate({sourceText,report:snapshot.report,revision:next,
+    sourceName:revisionName(snapshot.sourceName,next.receipt.newSourceXmlSha256)});
+  }catch(error){status.textContent='Fresh review held: '+String(error?.code||error?.message||error);}
+  finally{context.busy=false;use.disabled=choices.size===0;create.disabled=choices.size===0;}
+ });
+ return use;
+}
+
+function renderChoices(panel,{review,snapshot,sourceText,readCurrent,status,activate}){
+ const choices=new Set(),context={revision:null,busy:false};let use=null;
  panel.appendChild(note('Select only instruments you intend to model as rigid. '+
   'All rows start unchanged. Selected second endpoints receive Rigid = 2 in a NEW XML. '+
-  'Reopen that file and complete Preview and a NEW Final weight review.'));
+  'Use the revision here to rebuild Preview and start a NEW Final review, or download it separately.'));
  const create=button('xml229-create-instrument-source','Download revised instrument XML');
  const receipt=button('xml229-instrument-revision-receipt','Download source revision receipt JSON');
  receipt.disabled=true;
  const count=note('0 of '+review.rows.length+' selected');
  const changed=()=>{
   context.revision=null;receipt.disabled=true;create.disabled=context.busy||choices.size===0;
+  if(use)use.disabled=context.busy||choices.size===0;
   count.textContent=choices.size+' of '+review.rows.length+' selected';
  };
  panel.appendChild(reviewTable(review,choices,changed));changed();
@@ -93,9 +115,13 @@ function renderChoices(panel,{review,snapshot,sourceText,readCurrent,status}){
    JSON.stringify(context.revision.receipt,null,2),'application/json;charset=utf-8');
  });
  panel.append(count,create,receipt);
+ if(typeof activate==='function'){
+  use=activationButton({snapshot,sourceText,readCurrent,status,choices,create,context,activate});
+  panel.appendChild(use);
+ }
 }
 
-export function createXml229InstrumentSourceReviewControl({readCurrent}){
+export function createXml229InstrumentSourceReviewControl({readCurrent,activate}){
  const host=createElement('div'),open=button('xml229-review-instrument-source',
   'Review instrument models and create revised XML');
  const status=note(''),panel=createElement('div');
@@ -108,7 +134,7 @@ export function createXml229InstrumentSourceReviewControl({readCurrent}){
    const sourceText=await readSource(snapshot);
    const review=await inspectXml229InstrumentSourceReview({sourceText,report:snapshot.report});
    if(!sameCurrent(snapshot,readCurrent())||!host.isConnected)fail();
-   renderChoices(panel,{review,snapshot,sourceText,readCurrent,status});
+   renderChoices(panel,{review,snapshot,sourceText,readCurrent,status,activate});
    status.textContent='Source verified. No instrument models selected.';
   }catch(error){status.textContent='Source review unavailable: '+String(error?.message||error);}
   finally{open.disabled=false;}
