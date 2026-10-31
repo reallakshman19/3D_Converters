@@ -16,6 +16,8 @@ import {assertBasisDigest,canonicalJson,digestCanonical,digestUtf8,validateFactR
   from '../../../contracts/gc-pw-v1/contract.mjs';
 import {isolatedOriginalPreviewWorkConfig} from './xml229-original-preview-work-config.mjs';
 import {finalizeXml229WeightGeometry} from './xml229-finalized-weight-geometry.mjs';
+import {prepareXml229PrefinalRestraints} from './xml229-prefinal-restraints.mjs';
+import {indexXml229ComponentBodyBores} from './xml229-component-body-bore.mjs';
 import {projectXmlCiiOccurrences}
   from '../ui-adapted/xml-cii-adapted-preview-facts-xml-source.js';
 import {preparePreviewNodeOccurrenceDocument}
@@ -97,8 +99,12 @@ export async function openXml229EngineeringFactModel({
     fail('ORIGINAL_OCCURRENCE_ID_DRIFT','Preview source identity is different from original XML');
   // Independent source-cleanup calculation cannot mutate the original
  // master/config buffers whose full content is attested by GC-PW.
+ const workConfig=isolatedOriginalPreviewWorkConfig(live.config||{});
+ const restraintStage=await prepareXml229PrefinalRestraints({
+   xmlText,stagedJsonText:live.stagedSource||'',config:workConfig,
+ });
  const prepared=preparePreviewNodeOccurrenceDocument({
-   xmlText,config:isolatedOriginalPreviewWorkConfig(live.config||{}),
+   xmlText,sourceDocument:restraintStage.document,config:workConfig,
  });
   if(!prepared.document||prepared.ledger.originalCount!==projection.nodeCount)
     fail('SOURCE_CLEANUP_DRIFT','Original source cleanup census incomplete');
@@ -106,6 +112,9 @@ export async function openXml229EngineeringFactModel({
   const sourceNodeByOrdinal=new Map(projection.nodes.map(row=>[
     JSON.stringify([row.branchOccurrenceIndex,row.nodeOrdinal]),row]));
   const boreRows=indexXml229PhysicalBores(previewResult.nodeBoreWallRows,sourceNodeByOrdinal,fail);
+  const bodyBores=indexXml229ComponentBodyBores({
+    xmlText,config:workConfig,sourceDocument:restraintStage.document,
+  });
   const weightRows=new Map();
   for(const row of previewResult.nodeRows){
     if(!Number.isSafeInteger(row.branchOccurrenceIndex)||
@@ -168,8 +177,10 @@ export async function openXml229EngineeringFactModel({
   }
   const originalCensus=[],physical=[],expected=[];
   const records=[];
-  const add=(occ,fieldId,val,authority,unit,detail)=>records.push(
-    recordsFor(basis,occ,fieldId,val,authority,unit,detail));
+  const add=(occ,fieldId,val,authority,unit,detail)=>{
+    const record=recordsFor(basis,occ,fieldId,val,authority,unit,detail);
+    records.push(record);return record;
+  };
   // Original branch/node population is ALWAYS complete and independently
   // counted, even where no weight candidate exists.
   for(const branch of projection.branches){
@@ -218,7 +229,9 @@ export async function openXml229EngineeringFactModel({
       expected.push(owner);
       const matched=weightRows.get(JSON.stringify([branchIndex,origin.sourceNodeOrdinal]))||null;
       const xmlWeight=positive(num(field(node,'Weight')));
-      const bore=xml229PhysicalBore(boreRows.get(JSON.stringify([branchIndex,origin.sourceNodeOrdinal])),matched,fail);
+      const boreKey=JSON.stringify([branchIndex,origin.sourceNodeOrdinal]);
+      const body=bodyBores.get(boreKey)||null;
+      const bore=xml229PhysicalBore(boreRows.get(boreKey),matched,fail,body);
       const rating=String(computed.rating??'').trim();
       // Only use length that was actually computed for the SAME original
       // component or explicitly present in its source. Never guess length.
@@ -229,7 +242,10 @@ export async function openXml229EngineeringFactModel({
         fail('PHYSICAL_LENGTH_DRIFT','Preview and original source ElementLengthMm disagree');
       const length=derivedLength??explicitLength;
       add(owner,'source.occurrence',true,'source');
-      add(owner,'bore.mm',bore,'derived','mm','Preview resolved original component node bore');
+      const boreFact=add(owner,'bore.mm',bore,'derived','mm',body?
+        'Source-qualified native component-body OD; owner port dimension retained':
+        'Preview resolved original component node bore');
+      if(body)boreFact.extensions.componentBody=body;
       add(owner,'length.mm',length,derivedLength===null?'source':'derived','mm',
         derivedLength===null?'Original explicit ElementLengthMm':'Preview computed original source geometry');
       add(owner,'rating',rating||null,'derived',null,'Preview resolved branch rating');
@@ -276,6 +292,7 @@ export async function openXml229EngineeringFactModel({
   const finalizedGeometry=await finalizeXml229WeightGeometry({
     basis,projection,branches,prepared,physical,sourceNodeByOrdinal,
     nonOwnerEndpointStarts,componentSuppressionPairs:canonicalEndpointPairs,sourceId,
+    prefinalRestraints:restraintStage.proof,
   },{children,field,fail,canonicalJson});
   const workerResult=Object.freeze({
     ...previewResult,

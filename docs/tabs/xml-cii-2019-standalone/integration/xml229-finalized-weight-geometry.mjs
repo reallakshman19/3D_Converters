@@ -173,7 +173,7 @@ function attestPhysicalEndpointPairs({physical,branches,prepared,sourceNodeByOrd
 
 export async function finalizeXml229WeightGeometry({
   basis,projection,branches,prepared,physical,sourceNodeByOrdinal,
-  nonOwnerEndpointStarts,componentSuppressionPairs=[],sourceId,
+  nonOwnerEndpointStarts,componentSuppressionPairs=[],sourceId,prefinalRestraints,
 },{children,field,fail,canonicalJson}){
   const assignedNodeNumbers=assignSourceNodeNumbers({
     projection,branches,prepared,children,field,fail,
@@ -205,6 +205,7 @@ export async function finalizeXml229WeightGeometry({
   });
   const finalizedGeometry=Object.freeze({
     schema:'XML229.FinalizedWeightGeometry.v1',
+    ...(prefinalRestraints?{prefinalRestraints}:{}),
     physicalOwnerCardinality,
     physicalLineage,
     basisId:basis.basisId,sourceXmlSha256:basis.sourceRefs[0].sha256,

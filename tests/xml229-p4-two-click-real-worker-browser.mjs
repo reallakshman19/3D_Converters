@@ -196,9 +196,11 @@ try{
       ...backup,finalizedGeometrySha256:'0'.repeat(64)}});
   }catch(error){wrongGeometryRejected=error?.code||String(error);}
   return {originalXmlText:window.__options.xmlText,
-   packet,backup,wrongGeometryRejected,optionalAdvice,autoJsonVerified};
+   packet,backup,wrongGeometryRejected,optionalAdvice,autoJsonVerified,
+   stagedJsonText:await handoff.file.text(),supportConfigJson:JSON.stringify(window.__options.config)};
  });
- const {originalXmlText,packet,backup,wrongGeometryRejected,optionalAdvice,autoJsonVerified}=sourceAndFinal;
+ const {originalXmlText,packet,backup,wrongGeometryRejected,optionalAdvice,autoJsonVerified,
+  stagedJsonText,supportConfigJson}=sourceAndFinal;
  assert.equal(autoJsonVerified,true,'native Run reuses exact O1 JSON without re-upload');
  assert.equal(optionalAdvice.schema,'XML229.OptionalInstrumentModelSuggestions.v1');
  assert.equal(optionalAdvice.approvalRequired,false);
@@ -226,15 +228,18 @@ try{
  try{
   const originalPath=join(work,'original.xml');
   const packetPath=join(work,'accepted.json');
+  const stagedPath=join(work,'original-staged.json');
   const outputPath=join(work,'actual.cii');
   const proofPath=join(work,'native-proof.json');
   await writeFile(originalPath,originalXmlText);
   await writeFile(packetPath,JSON.stringify(packet));
+  await writeFile(stagedPath,stagedJsonText);
   execFileSync('python3',[
    join(root,'converters/scripts/xml_to_cii2019_runtime_custody.py'),
    '--input',originalPath,'--output',outputPath,'--weight-scale','10',
    '--xml229-native-final-packet',packetPath,
    '--xml229-native-mass-proof',proofPath,
+   '--staged-json',stagedPath,'--support-config-json',supportConfigJson,
   ],{encoding:'utf8',timeout:120000});
   ciiText=await readFile(outputPath,'utf8');
   nativeProof=JSON.parse(await readFile(proofPath,'utf8'));

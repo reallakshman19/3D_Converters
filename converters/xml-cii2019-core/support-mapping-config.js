@@ -177,17 +177,17 @@ export function defaultSupportKindProfiles(config = {}) {
   };
 
   const defaults = {
-    REST: { xmlTypes: ['+Y'], directionMode: 'fixed', direction: { x: 0, y: 1, z: 0 }, stiffness: 'default', gap: '0', frictionMode: 'default', supportTagMode: 'kind' },
-    GUIDE: { xmlTypes: ['GUI'], directionMode: 'pipe-normal', direction: null, stiffness: 'default', gap: '0', frictionMode: 'sentinel', supportTagMode: 'kind' },
-    [LINE_LIMIT_KIND]: { xmlTypes: ['LIM'], directionMode: 'pipe-axis', direction: null, stiffness: 'default', gap: '0', frictionMode: 'sentinel', supportTagMode: 'kind' },
-    LIMIT: { xmlTypes: ['LIM'], directionMode: 'from-staged', direction: null, stiffness: 'default', gap: '0', frictionMode: 'sentinel', supportTagMode: 'kind' },
-    ANCHOR: { xmlTypes: ['A'], directionMode: 'none', direction: null, stiffness: 'default', gap: '0', frictionMode: 'sentinel', supportTagMode: 'kind' },
-    SPRING: { xmlTypes: ['Y'], directionMode: 'fixed', direction: { x: 0, y: 1, z: 0 }, stiffness: 'default', gap: '0', frictionMode: 'default', supportTagMode: 'kind' },
+    REST: { xmlTypes: ['+Y'], directionMode: 'fixed', direction: { x: 0, y: 1, z: 0 }, stiffness: 'default', gap: toText(config.defaultGap ?? '0'), frictionMode: 'default', supportTagMode: 'kind' },
+    GUIDE: { xmlTypes: ['GUI'], directionMode: 'pipe-normal', direction: null, stiffness: 'default', gap: toText(config.defaultGap ?? '0'), frictionMode: 'sentinel', supportTagMode: 'kind' },
+    [LINE_LIMIT_KIND]: { xmlTypes: ['LIM'], directionMode: 'pipe-axis', direction: null, stiffness: 'default', gap: toText(config.defaultGap ?? '0'), frictionMode: 'sentinel', supportTagMode: 'kind' },
+    LIMIT: { xmlTypes: ['LIM'], directionMode: 'from-staged', direction: null, stiffness: 'default', gap: toText(config.defaultGap ?? '0'), frictionMode: 'sentinel', supportTagMode: 'kind' },
+    ANCHOR: { xmlTypes: ['A'], directionMode: 'none', direction: null, stiffness: 'default', gap: toText(config.defaultGap ?? '0'), frictionMode: 'sentinel', supportTagMode: 'kind' },
+    SPRING: { xmlTypes: ['Y'], directionMode: 'fixed', direction: { x: 0, y: 1, z: 0 }, stiffness: 'default', gap: toText(config.defaultGap ?? '0'), frictionMode: 'default', supportTagMode: 'kind' },
   };
 
   const out = {};
   for (const kind of SUPPORT_KINDS) {
-    const base = defaults[kind] || { xmlTypes: [], directionMode: 'none', direction: null, stiffness: 'default', gap: '0', frictionMode: 'default', supportTagMode: 'kind' };
+    const base = defaults[kind] || { xmlTypes: [], directionMode: 'none', direction: null, stiffness: 'default', gap: toText(config.defaultGap ?? '0'), frictionMode: 'default', supportTagMode: 'kind' };
     out[kind] = { ...base, xmlTypes: normalizeXmlTypes(legacyKindToType[kind] || base.xmlTypes) };
   }
   return out;

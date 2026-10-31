@@ -17,6 +17,11 @@ async function copy(relativePath) {
 
 await writeFile(join(tempRoot, 'package.json'), '{"type":"module"}', 'utf8');
 await copy(sourcePath);
+// Explicit module-loading substitute; body-bore behavior is exercised by the
+// real Preview/Worker/native transfer regression, not this line-match unit.
+await mkdir(join(tempRoot, 'tabs/xml-cii-2019-standalone/integration'), {recursive:true});
+await writeFile(join(tempRoot, 'tabs/xml-cii-2019-standalone/integration/xml229-component-body-bore.mjs'),
+  'export function applyXml229ComponentBodyBores({result}) { return result; }\n', 'utf8');
 
 await mkdir(join(tempRoot, 'converters/xml-cii2019-core'), { recursive: true });
 await writeFile(join(tempRoot, 'converters/xml-cii2019-core/dtxr-resolver.js'), [

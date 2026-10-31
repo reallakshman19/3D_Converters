@@ -442,7 +442,12 @@ function supportProfileForKind(kind, config = {}) {
 function gapForSupportKind(kind, attrs, fallbackGap) {
   const upperKind = normalizeSupportKind(kind);
   if (upperKind !== 'LINESTOP' && upperKind !== 'LIMIT' && upperKind !== 'GUIDE') return fallbackGap;
-  return parseGapValue(attrs?.CMPSUPGAP || attrs?.CMPSUPGAP_POS || attrs?.CMPSUPGAP_PS) || fallbackGap;
+  return parseGapValue(sourceSupportGap(attrs)) || fallbackGap;
+}
+
+function sourceSupportGap(attrs){
+  return [attrs?.CMPSUPGAP,attrs?.CMPSUPGAP_POS,attrs?.CMPSUPGAP_PS]
+    .map(value=>toText(value).trim()).find(value=>value!=='')??'';
 }
 
 function restraintTypeUsesSupportGap(type, entry = null) {
@@ -508,7 +513,7 @@ export function restraintEntriesFromSupportKind(kind, attrs = {}, nodeElement = 
     type,
     stiffness: profile.stiffness && profile.stiffness !== 'default' ? profile.stiffness : config.defaultStiffness,
     gap,
-    cmpSupGap: upperKind === 'LINESTOP' || upperKind === 'LIMIT' || upperKind === 'GUIDE' ? toText(attrs?.CMPSUPGAP || attrs?.CMPSUPGAP_POS || attrs?.CMPSUPGAP_PS).trim() : '',
+    cmpSupGap: upperKind === 'LINESTOP' || upperKind === 'LIMIT' || upperKind === 'GUIDE' ? sourceSupportGap(attrs) : '',
     frictionMode: profile.frictionMode || 'default',
     fixedFriction: profile.fixedFriction || '',
     supportTagMode: profile.supportTagMode || 'kind',
@@ -573,10 +578,10 @@ function xmlTypeAllowsRealFriction(type) {
 }
 
 function frictionForEntry(entry, type, existingFriction, config = {}) {
-  if (typeof entry === 'string') return existingFriction || toText(config.defaultFriction || '0.3') || '0.3';
+  if (typeof entry === 'string') return existingFriction || toText(config.defaultFriction ?? '0.3') || '0.3';
   if (toText(entry?.friction)) return toText(entry.friction);
   const mode = toText(entry?.frictionMode || 'default').toLowerCase();
-  const defaultFriction = toText(config.defaultFriction || '0.3') || '0.3';
+  const defaultFriction = toText(config.defaultFriction ?? '0.3') || '0.3';
   if (mode === 'fixed' && toText(entry?.fixedFriction)) return toText(entry.fixedFriction);
   if (mode === 'existing' && toText(existingFriction)) return toText(existingFriction);
   if (mode === 'sentinel' && config.useFrictionSentinelForNonYSupports !== false && !xmlTypeAllowsRealFriction(type)) return '-1.010100';
@@ -590,7 +595,7 @@ export function applyXmlRestraints(document, nodeElement, entries, config = {}) 
   const nodeSupportGap = parseGapValue(nodeSupportGapText);
   let stiffness = config.defaultStiffness || '1.751270E+12';
   let gap = '0';
-  let friction = config.defaultFriction || '0.3';
+  let friction = config.defaultFriction ?? '0.3';
   let existingDirection = null;
   if (existing.length > 0) {
     const r0 = existing[0];
@@ -610,7 +615,8 @@ export function applyXmlRestraints(document, nodeElement, entries, config = {}) 
     xmlSetText(document, restraint, 'Stiffness', toText(entry?.stiffness).trim() || stiffness);
     const entryGap = toText(entry?.gap).trim();
     const usesSupportGap = restraintTypeUsesSupportGap(type, entry);
-    const gapValue = usesSupportGap && (!entryGap || Number(entryGap) === 0) && nodeSupportGap
+    const explicitSourceGap=toText(entry?.cmpSupGap).trim()!=='';
+    const gapValue = usesSupportGap && !explicitSourceGap && (!entryGap || Number(entryGap) === 0) && nodeSupportGap
       ? String(nodeSupportGap)
       : (entryGap || gap);
     xmlSetText(document, restraint, 'Gap', gapValue);
