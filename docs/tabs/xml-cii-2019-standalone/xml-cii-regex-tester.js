@@ -1,5 +1,5 @@
 import { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect.js';
-import { extractBranchFieldsWithFormats } from '../../converters/xml-cii2019-core/branch-format-extraction.js';
+import { extractBranchFieldsWithFormats, isBranchFormatEnabled } from '../../converters/xml-cii2019-core/branch-format-extraction.js';
 
 const SAMPLE_LIMIT = 2000;
 const SAMPLE_CACHE_LIMIT = 3;
@@ -131,6 +131,7 @@ function mergeConfig(config = {}) {
   let formats = source.formats;
   if (!formats || !Array.isArray(formats)) {
     const singleFormat = {
+      ...(typeof source.enabled === 'boolean' ? { enabled: source.enabled } : {}),
       tokenDelimiter: text(source.tokenDelimiter || defaults.formats[0].tokenDelimiter),
       lineKeyJoiner: text(source.lineKeyJoiner ?? defaults.formats[0].lineKeyJoiner),
       lineKey: { ...defaults.formats[0].lineKey, ...safeObject(source.lineKey) },
@@ -145,6 +146,7 @@ function mergeConfig(config = {}) {
       const defF = defaults.formats[i] || defaults.formats[0];
       const srcF = safeObject(f);
       return {
+        ...(typeof srcF.enabled === 'boolean' ? { enabled: srcF.enabled } : {}),
         tokenDelimiter: text(srcF.tokenDelimiter || defF.tokenDelimiter),
         lineKeyJoiner: text(srcF.lineKeyJoiner ?? defF.lineKeyJoiner),
         lineKey: { ...defF.lineKey, ...safeObject(srcF.lineKey) },
@@ -255,7 +257,7 @@ function writeRegexConfig(supportConfigJson, extractionConfig) {
   const config = JSON.parse(text(supportConfigJson) || '{}');
   const cfg = mergeConfig(extractionConfig);
   config.regexTester = cfg;
-  const f0 = cfg.formats[0];
+  const f0 = cfg.formats.find(isBranchFormatEnabled);
   if (f0) {
     // Legacy single-format projections must not keep an old regex active when
     // the canonical per-format rule explicitly selected token authority.

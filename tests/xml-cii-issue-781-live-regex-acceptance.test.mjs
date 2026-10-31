@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import './xml229-explicit-format-enable.test.mjs';
 
 import {
   applyRegexSuggestions,

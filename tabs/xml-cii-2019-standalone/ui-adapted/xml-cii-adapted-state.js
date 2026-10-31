@@ -417,6 +417,11 @@ export function updateRegexTesterConfig(state, field, value) {
   const formats = currentConfig.formats.map(f => ({ ...f }));
   const idx = currentConfig.activeFormatIndex ?? 0;
   const activeF = { ...formats[idx] };
+  if (field === 'regex-format-enabled') {
+    activeF.enabled = value === true;
+    formats[idx] = activeF;
+    return updateAndPersistRegexConfig(state, { ...currentConfig, formats });
+  }
   if (field === 'regex-token-delimiter') {
     activeF.tokenDelimiter = value;
     formats[idx] = activeF;
