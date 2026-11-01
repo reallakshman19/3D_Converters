@@ -23,11 +23,14 @@ const members=[
   {tag:'PS-4131.2',kind:'GUIDE',desc:'GUIDE',node:41312,z:100,sourceType:'10',gap:'4.5',expected:8},
   {tag:'PS-4131.3',kind:'LINESTOP',desc:'LINE STOP',node:41313,z:200,sourceType:'7',gap:'7.25',expected:9},
 ];
+const xmlNode=(id,name,type,z)=>'<Node><NodeNumber>'+id+'</NodeNumber>'
+  +'<NodeName>'+name+'</NodeName><ComponentType>'+type+'</ComponentType>'
+  +'<Position>100 200 '+(100000+z)+'</Position><OutsideDiameter>88.9</OutsideDiameter>'
+  +'<WallThickness>3.2</WallThickness></Node>';
 const xml='<PipeStressExport><Pipe><Branch><Branchname>'+branch+'</Branchname>'
-  +members.map(m=>'<Node><NodeNumber>'+m.node+'</NodeNumber><NodeName>'+m.tag
-    +'</NodeName><ComponentType>ANCI</ComponentType><Position>100 200 '
-    +(100000+m.z)+'</Position><OutsideDiameter>88.9</OutsideDiameter>'
-    +'<WallThickness>3.2</WallThickness></Node>').join('')
+  +xmlNode(41310,'PIPE-START','PIPE',-100)
+  +members.map((m,i)=>xmlNode(m.node,m.tag,'ANCI',m.z)
+    +xmlNode(41315+i*10,'PIPE-SPACER-'+i,'PIPE',m.z+50)).join('')
   +'</Branch></Pipe></PipeStressExport>';
 const original=()=>JSON.stringify([{type:'BRANCH',name:branch,children:members.map(m=>({
   type:'SUPPORT',name:'SUPPORT '+m.tag,attributes:{
@@ -49,7 +52,9 @@ const setup=()=>{
   });
   return {mapper,config:JSON.parse(mapper.supportConfigJson)};
 };
-const nodeRows=doc=>[...doc.getElementsByTagName('Node')].map(n=>{
+const nodeRows=doc=>[...doc.getElementsByTagName('Node')]
+  .filter(n=>n.getElementsByTagName('NodeName')[0]?.textContent.startsWith('PS-4131.'))
+  .map(n=>{
   const get=(el,k)=>el.getElementsByTagName(k)[0]?.textContent||'';
   return {name:get(n,'NodeName'),
     rows:[...n.getElementsByTagName('Restraint')].map(r=>({
