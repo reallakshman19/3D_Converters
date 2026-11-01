@@ -583,6 +583,29 @@ class NativeSubstageWitnessTests(unittest.TestCase):
                                       {'lineSeqNo':'4110001','Material':name}]}})
 
 
+    def test_process_material_conflict_with_existing_source_fails_closed(self):
+        import xml_to_cii2019_patched as native
+        branch=ET.Element('Branch')
+        ET.SubElement(branch,'Branchname').text='/GLRD-1000-6"-P4110001-93833-01/B6'
+        node=ET.SubElement(branch,'Node')
+        ET.SubElement(node,'ComponentType').text='PIPE'
+        ET.SubElement(node,'OutsideDiameter').text='168.3'
+        spec={('93833',150):('ASTM A790 UNS S31803','900')}
+        codes={'ASTM A106-B':106,'ASTM A790 UNS S31803':741}
+        ET.SubElement(node,'MaterialName').text='ASTM A790 UNS S31803'
+        with self.assertRaisesRegex(ValueError,'XML229_PROCESS_MATERIAL_NAME_CONFLICT'):
+            native._apply_source_material_rating(branch,'',spec,codes,'ASTM A106-B')
+        node.find('MaterialName').text='ASTM A106-B'
+        ET.SubElement(node,'MaterialCode').text='741'
+        with self.assertRaisesRegex(ValueError,'XML229_PROCESS_MATERIAL_CODE_CONFLICT'):
+            native._apply_source_material_rating(branch,'',spec,codes,'ASTM A106-B')
+        node.find('MaterialCode').text='106'
+        self.assertTrue(native._apply_source_material_rating(
+            branch,'',spec,codes,'ASTM A106-B'))
+        self.assertEqual(node.findtext('MaterialCode'),'106')
+        self.assertEqual(node.findtext('MaterialName'),'ASTM A106-B')
+        self.assertEqual(node.findtext('PipingClassRating'),'900')
+
     def test_valve_5950_5960_positive_final_mass_can_be_consumed_when_accepted(self):
         """Synthetic accepted positive kg, with real BM2 valve ref/XYZ witness."""
         from xml229_native_final_mass_binding import bind_native_final_xml,emitted_sections
