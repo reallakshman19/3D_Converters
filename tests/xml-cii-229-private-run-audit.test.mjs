@@ -32,16 +32,16 @@ test('valid local exact 28 makes only configured-format gate clear, never releas
   assert.equal(report.first20.length,0);
 });
 
-test('ambiguous exact-format rating conflict is classified by field name but not leaked values',()=>{
+test('optional Rating differences never block exact Line Key and Piping Class identity',()=>{
   const xml=source();
   const config=cfg([
     {...match,rating:{regex:'(S8811000)',group:1}},
     {...match,rating:{regex:'(91261M7)',group:1}},
   ]);
   const report=buildRedactedOwner229Report({xml,config,expectedCount:28});
-  assert.equal(report.blocked,true);
-  assert.equal(report.ambiguous,28);
-  assert.deepEqual(report.first20[0].differingFields,['rating']);
+  assert.equal(report.blocked,false);
+  assert.equal(report.ambiguous,0);
+  assert.equal(report.first20.length,0);
   assert(!JSON.stringify(report).includes(name));
 });
 
