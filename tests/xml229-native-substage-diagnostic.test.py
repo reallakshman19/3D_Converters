@@ -703,6 +703,39 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'XML229_CONFIGURED_SUPPORT_KIND_UNSUPPORTED'):
             native._kind_from_dtxr('FIXED',config)
 
+    def test_saved_smart_regex_line_identity_reaches_native_and_rejects_stale_token(self):
+        import xml_to_cii2019_patched as native
+        branch='/GLRD-1000-6"-P4110001-93833-01/B6'
+        fmt={'enabled': True, 'tokenDelimiter': '-',
+             'lineKey': {'extractMode': 'TOKEN', 'tokenPosition': 4},
+             'pipingClass': {'extractMode': 'TOKEN', 'tokenPosition': 5},
+             'rating': {}, 'bore': {'extractMode': 'TOKEN','tokenPosition': 3}}
+        cfg={'linelist':{'lineKeyTokenPositions':'4'},
+             'regexTester':{'formats':[fmt], 'ratingSequence':[]}}
+        self.assertEqual(native._line_key_from_branch(branch,cfg),'P4110001')
+        # Change the saved FORMAT only. A failing regex must not permit the
+        # legacy token-position field to keep matching an old master row.
+        fmt['lineKey']={'extractMode':'REGEX',
+                        'regex':r'-(P9999999)-', 'group':1,
+                        'tokenPosition':4}
+        with self.assertRaisesRegex(ValueError,'XML229_BRANCH_FORMAT_UNMATCHED'):
+            native._line_key_from_branch(branch,cfg)
+        fmt['lineKey']['regex']=r'-(P4110001)-'
+        self.assertEqual(native._line_key_from_branch(branch,cfg),'P4110001')
+        # Conflicting enabled format claims are never first-row-wins.
+        conflict={'enabled':True,'tokenDelimiter':'-',
+                  'lineKey':{'extractMode':'TOKEN','tokenPosition':5},
+                  'pipingClass':{'extractMode':'TOKEN','tokenPosition':5},
+                  'rating':{},'bore':{}}
+        cfg['regexTester']['formats'].append(conflict)
+        with self.assertRaisesRegex(ValueError,'XML229_BRANCH_FORMAT_AMBIGUOUS'):
+            native._line_key_from_branch(branch,cfg)
+        conflict['enabled']=False
+        self.assertEqual(native._line_key_from_branch(branch,cfg),'P4110001')
+        cfg['regexTester']['formats']=[]
+        with self.assertRaisesRegex(ValueError,'XML229_BRANCH_FORMAT_UNMATCHED'):
+            native._line_key_from_branch(branch,cfg)
+
     def test_real_bm2_combined_line_class_material_to_native_cii(self):
         """Real BM2 field facts serialized through isolated native 10->20; synthetic ID 741."""
         import xml_to_cii2019_patched as native
