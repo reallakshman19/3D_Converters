@@ -96,7 +96,12 @@ function supportKindFromMember(member,config={}) {
     if(mapper.status==='matched'&&!GOVERNED_KINDS.includes(mapper.supportKind))
       throw Object.assign(new Error('Step 7 kind lacks governed native restraint DOF authority'),
         {code:'PREFINAL_RESTRAINT_KIND_UNSUPPORTED'});
-    if(mapper.status==='matched'&&mapper.confidence!=='LOW'&&
+    const configuredMinimum = config.supportTypeMapper?.confidencePolicy?.mediumMinimum;
+    const mediumMinimum = configuredMinimum === undefined ? .65 : Number(configuredMinimum);
+    if(!Number.isFinite(mediumMinimum)||mediumMinimum<0||mediumMinimum>1)
+      throw Object.assign(new Error('Invalid Step 7 confidence threshold'),
+        {code:'PREFINAL_RESTRAINT_CONFIDENCE_INVALID'});
+    if(mapper.status==='matched'&&mapper.confidenceScore>=mediumMinimum&&
        GOVERNED_KINDS.includes(mapper.supportKind))return mapper.supportKind;
   }
   const canonical = [...new Set(['SUPPORT_KIND', 'SUPPORT_MAPPER_KIND', 'SUPPORT_TYPE']
