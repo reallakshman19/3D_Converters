@@ -112,7 +112,15 @@ function sourceGapText(attrs){
 }
 
 function supportGapNumber(attrs){
-  const raw=['CMPSUPGAP','CMPSUPGAP_POS','CMPSUPGAP_PS','NODEGAP']
+  // A legacy NODEGAP=0 is a placeholder only when an explicit
+  // CMPSUPGAP is supplied on the SAME source member. Do not treat
+  // two distinct nonzero source claims as equivalent or silently choose one.
+  const explicit=text(attrs?.CMPSUPGAP);
+  const legacy=text(attrs?.NODEGAP);
+  const legacyZeroPlaceholder=!!explicit && !!legacy &&
+    /^0+(?:\\.0+)?(?:\\s*mm)?$/i.test(legacy);
+  const raw=['CMPSUPGAP','CMPSUPGAP_POS','CMPSUPGAP_PS',
+             ...(legacyZeroPlaceholder?[]:['NODEGAP'])]
     .map(key=>text(attrs?.[key])).filter(Boolean);
   const values=raw.map(value=>Number(value.match(/[-+]?(?:\d+\.?\d*|\.\d+)(?:[Ee][+-]?\d+)?/)?.[0]));
   if(values.some(v=>!Number.isFinite(v)))throw Object.assign(
