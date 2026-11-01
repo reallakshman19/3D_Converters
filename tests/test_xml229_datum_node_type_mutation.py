@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT / 'converters/scripts'))
-from xml229_prefinal_restraints import replay_prefinal_restraints
+from xml229_prefinal_restraints import replay_prefinal_restraints, node_type_mutation
 
 XML = ('<PipeStressExport><Pipe><Branch><Branchname>/TEST/B1</Branchname>'
        '<Node><NodeNumber>140</NodeNumber><NodeName>PS140</NodeName>'
@@ -63,10 +63,27 @@ class TestXml229DatumAndNodeType(unittest.TestCase):
         self.assertEqual(native(shifted,settings(tolerance=1)),[])
         self.assertEqual(native(shifted,settings(tolerance=4)),[('+Y','0.0')])
 
-    def test_mutation_target_overrides_source_node_type(self):
+    def test_mutation_target_cannot_contradict_support_kind(self):
         cfg=settings()
-        cfg['inputXmlRestraintTypeMutation']['rows']=[{'label':'test','from':'17','to':'8'}]
-        self.assertEqual(native(cfg=cfg),[('GUI','0.0')])
+        cfg['inputXmlRestraintTypeMutation']['rows']=[{'label':'wrong','from':'17','to':'8'}]
+        with self.assertRaisesRegex(ValueError,'NATIVE_PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT'):
+            native(cfg=cfg)
+
+    def test_native_default_mutations_use_native_CII_meanings(self):
+        self.assertEqual(node_type_mutation({'NODETYPE':'17'},{}),'+Y')
+        self.assertEqual(node_type_mutation({'NODETYPE':'7'},{}),'LIM')
+        self.assertEqual(node_type_mutation({'NODETYPE':'10'},{}),'GUI')
+
+    def test_old_saved_gui_mapping_is_blocked(self):
+        source=json.loads(json.dumps(JSON))
+        attrs=source[0]['children'][0]['attributes']
+        attrs['DTXR']='GUIDE'
+        attrs['SUPPORT_KIND']='GUIDE'
+        attrs['NODETYPE']='10'
+        cfg=settings()
+        cfg['inputXmlRestraintTypeMutation']['rows']=[{'label':'GUI','from':'10','to':'9'}]
+        with self.assertRaisesRegex(ValueError,'NATIVE_PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT'):
+            native(source,cfg)
 
     def test_invalid_type_mapping_rejects(self):
         cfg=settings()
