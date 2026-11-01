@@ -606,6 +606,43 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         self.assertEqual(node.findtext('MaterialName'),'ASTM A106-B')
         self.assertEqual(node.findtext('PipingClassRating'),'900')
 
+    def test_saved_step7_alias_overrides_legacy_word_and_removal_is_respected(self):
+        from xml229_prefinal_restraints import kinds
+        def require(ok, code):
+            if not ok: raise ValueError(code)
+        entries=[{'attrs':{'DTXR':'GUIDE','NODETYPE':'17'},'desc':'GUIDE'}]
+        custom={'supportTypeMapper':{'rows':[
+            {'kind':'REST','aliases':['GUIDE']},
+            {'kind':'GUIDE','aliases':['PG','GT']},
+            {'kind':'LINESTOP','aliases':['ST']}]}}
+        result=kinds(entries,require,custom)
+        self.assertEqual(set(result),{'REST'})
+        self.assertEqual(result['REST']['NODETYPE'],'17')
+        # Removing a keyword must stop its old built-in fallback.
+        custom['supportTypeMapper']['rows'][0]['aliases']=[]
+        self.assertEqual(kinds(entries,require,custom),{})
+        self.assertEqual(set(kinds(entries,require,{})),{'GUIDE'},
+            'unconfigured legacy inputs keep their original semantics')
+
+    def test_saved_step7_conflict_fails_closed_and_step8_mutation_is_authoritative(self):
+        from xml229_prefinal_restraints import kinds,node_type_mutation
+        def require(ok, code):
+            if not ok: raise ValueError(code)
+        rows=[{'kind':'REST','aliases':['HOLD POINT']},
+              {'kind':'LINESTOP','aliases':['HOLD POINT']}]
+        config={'supportTypeMapper':{'rows':rows}}
+        entries=[{'attrs':{'DTXR':'HOLD POINT','NODETYPE':'7'},'desc':'HOLD POINT'}]
+        with self.assertRaisesRegex(ValueError,'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS'):
+            kinds(entries,require,config)
+        config={'inputXmlRestraintTypeMutation':{'enabled':True,'rows':[
+                 {'from':'7','to':'9'},{'from':'7','to':'8'}]}}
+        with self.assertRaisesRegex(ValueError,'NATIVE_PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'):
+            node_type_mutation({'NODETYPE':'7'},config)
+        config['inputXmlRestraintTypeMutation']['rows']=[{'from':'7','to':'8'}]
+        self.assertEqual(node_type_mutation({'NODETYPE':'7'},config),'GUI')
+        config['inputXmlRestraintTypeMutation']['enabled']=False
+        self.assertEqual(node_type_mutation({'NODETYPE':'7'},config),'7')
+
     def test_real_bm2_combined_line_class_material_to_native_cii(self):
         """Real BM2 field facts serialized through isolated native 10->20; synthetic ID 741."""
         import xml_to_cii2019_patched as native
