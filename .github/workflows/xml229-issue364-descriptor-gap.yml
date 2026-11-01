@@ -21,6 +21,8 @@ jobs:
           python-version: '3.11'
       - name: Description-only pre-Final plus emitted-CII witness
         run: node --test tests/xml229-description-only-restraint-gap-native.test.mjs
+      - name: Datum offset, coordinate tolerance and staged NODETYPE mutation
+        run: node --test tests/xml229-datum-node-type-mutation.test.mjs
       - name: Existing original JSON transfer and native tamper negatives
         run: node --test tests/xml229-json-restraint-body-transfer.test.mjs
       - name: Exact original BM2 GT/ST source witness census
