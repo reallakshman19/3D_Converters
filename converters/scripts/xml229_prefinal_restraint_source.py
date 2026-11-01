@@ -180,26 +180,52 @@ def position_groups(entries, tol):
     return groups
 
 
-def resolve(node, branch, groups, tol, field, require):
+class _ResolutionIndex:
+    """Read-only acceleration; branch, member and ambiguity semantics unchanged."""
+    def __init__(self, groups, tol):
+        self.groups = groups
+        self.spatial = _PositionIndex(tol)
+        self.by_tag = {}
+        self.branch_names = tuple(dict.fromkeys(g['branch'] for g in groups))
+        self.score_cache = {}
+        for i, group in enumerate(groups):
+            self.spatial.add(group['point'])
+            for entry in group['entries']:
+                for tag in entry['tags']:
+                    self.by_tag.setdefault(tag, []).append((i, group, entry))
+
+    def scores(self, branch):
+        if branch not in self.score_cache:
+            self.score_cache[branch] = {
+                name: relationship(branch, name) for name in self.branch_names
+            }
+        return self.score_cache[branch]
+
+
+def resolve(node, branch, groups, tol, field, require, index=None):
     pos, tag = point(field(node, 'Position')), tags(field(node, 'NodeName') or field(node, 'ComponentRefNo'))
     tag = next(iter(tag), '')
+    if index is None:
+        index = _ResolutionIndex(groups, tol)
     explicit, authoritative = [], []
-    scores = {b: relationship(branch, b) for b in dict.fromkeys(g['branch'] for g in groups)}
-    for g in groups:
-        for e in g['entries']:
-            ref = attr(e['attrs'], 'ComponentRefNo', 'COMPONENTREFNO', 'COMPRE',
-                       'ATTACHED_COMPONENT_REF', 'REF', 'RefNo')
-            if tag and tag in e['tags'] and re.search(r'/B\d+$', branch_name(ref)):
-                authoritative.append(e)
-                if relationship(branch, ref):
-                    explicit.append((g, e))
+    scores = index.scores(branch)
+    tagged = index.by_tag.get(tag, ()) if tag else ()
+    for i, g, e in tagged:
+        ref = attr(e['attrs'], 'ComponentRefNo', 'COMPONENTREFNO', 'COMPRE',
+                   'ATTACHED_COMPONENT_REF', 'REF', 'RefNo')
+        if re.search(r'/B\d+$', branch_name(ref)):
+            authoritative.append(e)
+            if relationship(branch, ref):
+                explicit.append((g, e))
     require(len(explicit) <= 1, 'NATIVE_PREFINAL_RESTRAINT_MATCH_AMBIGUOUS')
     if authoritative and not explicit:
         return []
     hits = []
-    for i, g in enumerate(groups):
+    indices = index.spatial.nearby(pos) if pos is not None else ()
+    for i in indices:
+        g = groups[i]
         score = scores[g['branch']]
-        dist = math.dist(pos, g['point']) if pos else math.inf
+        dist = math.dist(pos, g['point'])
         if score and dist <= tol:
             hits.append((-score, -int(any(tag and tag in e['tags'] for e in g['entries'])), dist, i, g))
     hits.sort(key=lambda h: h[:4])
@@ -209,8 +235,8 @@ def resolve(node, branch, groups, tol, field, require):
         return hits[0][4]['entries']
     if explicit:
         return [explicit[0][1]]
-    ps = [(scores[g['branch']], i, e) for i, g in enumerate(groups)
-          for e in g['entries'] if tag and tag in e['tags'] and scores[g['branch']]]
+    ps = [(scores[g['branch']], i, e) for i, g, e in tagged
+          if scores[g['branch']]]
     ps.sort(key=lambda h: (-h[0], h[1]))
     return [ps[0][2]] if ps and (len(ps) == 1 or ps[0][0] > ps[1][0]) else []
 
@@ -234,12 +260,14 @@ def calibrated_groups(source_nodes, entries, config, field):
     options = config.get('resolverJsonTrace') or {}
     precision = max(float(options.get('autoCalibratePrecision') or .1), .001)
     votes = {}
+    # Preserve each eligible group's original order but avoid repeated scans
+    # through every unrelated source branch for every candidate position.
+    eligible = {branch: [g for g in groups if scores[branch, g['branch']]]
+                for branch, _ in sources}
     for branch, pos in sources:
         if not pos:
             continue
-        for g in groups:
-            if not scores[branch, g['branch']]:
-                continue
+        for g in eligible[branch]:
             offset = tuple(a - b for a, b in zip(pos, g['point']))
             key = tuple(math.floor(v / precision + .5) for v in offset)
             votes.setdefault(key, []).append(offset)
