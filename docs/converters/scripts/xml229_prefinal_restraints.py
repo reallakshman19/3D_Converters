@@ -78,6 +78,16 @@ def kinds(entries, require, config=None):
         # defeat edited or removed user aliases. Only pre-mapper configs may
         # use these historical semantic fallbacks.
         has_saved_mapper = isinstance((config.get('supportTypeMapper') or {}).get('rows'), list)
+        explicit_kinds = [
+            k for k, pattern in (
+                ('LINESTOP', r'\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b'),
+                ('GUIDE', r'\bGUIDE\b'),
+                ('REST', r'\b(?:PIPE[- ]?REST|REST)\b'))
+            if re.search(pattern, desc)
+        ]
+        require(len(set(explicit_kinds)) <= 1,
+                'NATIVE_PREFINAL_RESTRAINT_SEMANTIC_CONFLICT')
+        explicit_kind = explicit_kinds[0] if explicit_kinds else ''
         semantic = []
         if not has_saved_mapper:
             semantic = [
@@ -104,6 +114,14 @@ def kinds(entries, require, config=None):
         }
         require(len(canonical) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
         mapped_kind, score = mapped_support_kind(a, e['desc'], config, require)
+        # Engineering source meaning outranks editable aliases: a REST alias
+        # matching an explicit GUIDE may not change its native DOFs.
+        require(not (explicit_kind and mapped_kind and
+                     explicit_kind != mapped_kind),
+                'NATIVE_PREFINAL_RESTRAINT_SEMANTIC_CONFLICT')
+        require(not (explicit_kind and canonical and
+                     explicit_kind not in canonical),
+                'NATIVE_PREFINAL_RESTRAINT_SEMANTIC_CONFLICT')
         # Step 7 may classify ANCHOR, but this governed replay only owns
         # REST/GUIDE/LINESTOP. Never silently discard or turn it into REST.
         require(mapped_kind in ('', 'REST', 'GUIDE', 'LINESTOP'),
@@ -116,7 +134,8 @@ def kinds(entries, require, config=None):
             raise ValueError('NATIVE_PREFINAL_RESTRAINT_CONFIDENCE_INVALID')
         require(0 <= medium_threshold <= 1,
                 'NATIVE_PREFINAL_RESTRAINT_CONFIDENCE_INVALID')
-        kind = (semantic[0] if semantic
+        kind = (explicit_kind if explicit_kind
+                else semantic[0] if semantic
                 else mapped_kind if score >= medium_threshold and mapped_kind in ('REST','GUIDE','LINESTOP')
                 else next(iter(canonical)) if canonical
                 else mapped_kind if mapped_kind in ('REST','GUIDE','LINESTOP')
