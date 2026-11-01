@@ -256,3 +256,18 @@ test('new Tab 7 keyword cannot silently override explicit GUIDE to REST', async 
     ]},
   }),{code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
 });
+
+test('two edited tabs cannot silently disagree on the same source occurrence', async () => {
+  const staged=source();
+  staged[0].children[0].children[0].attributes.DTXR='ORBITAL GUARDRAIL';
+  await assert.rejects(configDriven(staged,{
+    supportTypeMapper:{rows:[
+      {kind:'REST',aliases:['ORBITAL GUARDRAIL']},
+      {kind:'GUIDE',aliases:['GUIDE']},
+    ]},
+    supportMapping:{version:2,rules:[{
+      id:'user-orbital-guide',source:'staged-json',enabled:true,priority:2,
+      field:'DTXR',pattern:'ORBITAL GUARDRAIL',match:'equals',kind:'GUIDE',
+    }]},
+  }),{code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+});
