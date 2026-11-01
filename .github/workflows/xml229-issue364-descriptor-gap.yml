@@ -25,6 +25,8 @@ jobs:
         run: node --test tests/xml229-json-restraint-body-transfer.test.mjs
       - name: Exact original BM2 GT/ST source witness census
         run: python -m unittest discover -s tests -p test_xml229_bm2_old_support_ref.py -v
+      - name: Historical configurable support gap and axis contracts
+        run: python converters/scripts/test_support_restraint.py
       - name: Historical support confidence mapper static rules
         run: node tests/xml-cii-support-confidence-static.test.js
       - name: Historical support confidence runtime resolution
@@ -32,5 +34,3 @@ jobs:
       - name: Historical multi-occurrence mapper trace (separate diagnostic)
         continue-on-error: true
         run: node tests/xml-cii-support-confidence-resolver-trace.test.js
-      - name: Historical configurable support gap/axis contracts
-        run: python converters/scripts/test_support_restraint.py
