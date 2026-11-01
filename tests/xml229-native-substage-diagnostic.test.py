@@ -71,13 +71,14 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         bundled = set(re.findall(r"'([^']+[.]py)'", inventory))
         required = ("xml229_prefinal_restraints.py",
                     "xml229_prefinal_restraint_source.py",
-                    "xml229_support_type_mapper.py")
+                    "xml229_support_type_mapper.py",
+                    "xml_to_cii2019.py")
         for filename in required:
             self.assertIn(filename, bundled)
             self.assertEqual((SCRIPTS / filename).read_bytes(),
                              (ROOT / "docs/converters/scripts" / filename).read_bytes())
         with TemporaryDirectory() as work:
-            for filename in required[:-1]:
+            for filename in required[:2]:
                 shutil.copyfile(SCRIPTS / filename, Path(work) / filename)
             command = [sys.executable, "-I", "-c",
                        "import sys; sys.path.insert(0, sys.argv[1]); "
@@ -85,7 +86,8 @@ class NativeSubstageWitnessTests(unittest.TestCase):
             missing = subprocess.run(command, capture_output=True, text=True, timeout=20)
             self.assertNotEqual(missing.returncode, 0)
             self.assertIn("No module named 'xml229_support_type_mapper'", missing.stderr)
-            shutil.copyfile(SCRIPTS / required[-1], Path(work) / required[-1])
+            for filename in required[2:]:
+                shutil.copyfile(SCRIPTS / filename, Path(work) / filename)
             resolved = subprocess.run(command, capture_output=True, text=True, timeout=20)
             self.assertEqual(resolved.returncode, 0, resolved.stderr)
 
