@@ -248,8 +248,127 @@ def _normalize_process_field_map(config: dict[str, Any]) -> None:
             field_map[target] = best_header
 
 
+def _regex_tester_field(branch: str, rule: dict[str, Any], delimiter: str, joiner: str = "") -> str:
+    """Match saved Smart Regex FORMAT extraction: explicit TOKEN / REGEX authority."""
+    mode = _safe_text(rule.get("extractMode")).upper()
+    if mode not in ("", "TOKEN", "REGEX"):
+        return ""
+    pattern = _safe_text(rule.get("regex"))
+    if mode != "TOKEN":
+        if mode == "REGEX" and not pattern:
+            return ""
+        if pattern:
+            try:
+                match = re.search(pattern, branch)
+                group = int(rule.get("group") if rule.get("group") is not None else 1)
+                if match is not None and 0 <= group <= match.re.groups:
+                    value = _safe_text(match.group(group))
+                    if value:
+                        return value
+            except (ValueError, TypeError, re.error, IndexError):
+                return ""
+            if rule.get("fallbackOnRegexMiss") is not True:
+                return ""
+    pos_text = _safe_text(rule.get("tokenPosition"))
+    if not pos_text:
+        return ""
+    try:
+        positions = [int(p.strip()) for p in re.split(r"[,+]", pos_text)]
+    except ValueError:
+        return ""
+    if not positions or any(p < 1 for p in positions):
+        return ""
+    cleaned = re.sub(r"/B\d+$", "", branch.lstrip("/"), flags=re.I)
+    parts = [part.strip() for part in cleaned.split(delimiter)]
+    selected = [parts[i - 1] if i <= len(parts) else "" for i in positions]
+    return joiner.join(selected) if all(selected) else ""
+
+
+def _regex_tester_format_disabled(fmt: dict[str, Any], index: int) -> bool:
+    if fmt.get("enabled") is False:
+        return True
+    if index == 0 or fmt.get("enabled") is True:
+        return False
+    # The unused alternate template is not an authored Format 2. Match JS
+    # isBranchFormatEnabled so it cannot create a false multi-format conflict.
+    hints = {"lineKey": 3, "pipingClass": 4, "rating": 4, "bore": 2}
+    return (all(isinstance(fmt.get(key), dict)
+                and not _safe_text(fmt[key].get("regex"))
+                and not _safe_text(fmt[key].get("extractMode"))
+                and _safe_text(fmt[key].get("group") or 1) == "1"
+                and _safe_text(fmt[key].get("tokenPosition")) == str(pos)
+                and fmt[key].get("fallbackOnRegexMiss") is not True
+                for key, pos in hints.items())
+            and (_safe_text(fmt.get("tokenDelimiter")) or "-") == "-"
+            and not _safe_text(fmt.get("lineKeyJoiner")))
+
+
+def _regex_tester_branch_line_key(branch: str, config: dict[str, Any]) -> str | None:
+    """Saved Smart Regex formats govern source Line List identity in native CII.
+
+    None means no explicit formats were saved; an explicit formats=[] means
+    UNMATCHED, never an invitation to use stale legacy token positions.
+    """
+    regex_cfg = config.get("regexTester")
+    if not isinstance(regex_cfg, dict) or not isinstance(regex_cfg.get("formats"), list):
+        return None
+    candidates = []
+    sequence = regex_cfg.get("ratingSequence")
+    if not isinstance(sequence, list):
+        rating_cfg = config.get("rating")
+        sequence = (rating_cfg.get("ratingSequence", []) if isinstance(rating_cfg, dict) else [])
+    for index, fmt in enumerate(regex_cfg["formats"]):
+        if not isinstance(fmt, dict):
+            raise ValueError("XML229_BRANCH_FORMAT_INVALID")
+        if _regex_tester_format_disabled(fmt, index):
+            continue
+        delimiter = _safe_text(fmt.get("tokenDelimiter")) or "-"
+        joiner = _safe_text(fmt.get("lineKeyJoiner"))
+        fields = {}
+        for key in ("lineKey", "pipingClass", "rating", "bore"):
+            rule = fmt.get(key) if isinstance(fmt.get(key), dict) else {}
+            fields[key] = _regex_tester_field(
+                branch, rule, delimiter, joiner if key == "lineKey" else "")
+        if not fields["lineKey"] or not fields["pipingClass"]:
+            continue
+        rating = ""
+        for pair in sequence:
+            if isinstance(pair, list) and len(pair) >= 2 and _safe_text(pair[0]) and (
+                fields["pipingClass"].upper().startswith(_safe_text(pair[0]).upper())):
+                rating = _safe_text(pair[1])
+                break
+        if not rating:
+            matched = re.search(r"\d+", fields["rating"])
+            rating = matched.group() if matched else ""
+        candidates.append((
+            re.sub(r"\s+", "", fields["lineKey"].upper()),
+            fields["pipingClass"], rating, re.sub(r"[^0-9.]", "", fields["bore"])
+        ))
+    if not candidates:
+        raise ValueError("XML229_BRANCH_FORMAT_UNMATCHED")
+    if len(set(candidates)) != 1:
+        raise ValueError("XML229_BRANCH_FORMAT_AMBIGUOUS")
+    return candidates[0][0]
+
+
 def _line_key_from_branch(branch_name: str, config: dict[str, Any]) -> str:
+    line_from_saved_formats = _regex_tester_branch_line_key(branch_name, config)
+    if line_from_saved_formats is not None:
+        return line_from_saved_formats
     linelist = config.get("linelist", {}) if isinstance(config.get("linelist"), dict) else {}
+    # Older stand-alone configs may provide the line regex directly. Apply
+    # the authored capture before token fallback, never ignore this setting.
+    pattern = _safe_text(linelist.get("branchNameRegex"))
+    if pattern:
+        try:
+            matched = re.search(pattern, branch_name)
+            group = int(linelist.get("lineNoGroup") or 1)
+            if matched is not None and 0 <= group <= matched.re.groups:
+                value = _safe_text(matched.group(group))
+                if value:
+                    return re.sub(r"s+", "", value.upper())
+        except (ValueError, TypeError, re.error, IndexError):
+            raise ValueError("XML229_BRANCH_FORMAT_INVALID")
     cleaned = branch_name.strip().lstrip("/").split("/")[0]
     parts = [p.strip() for p in cleaned.split(_safe_text(linelist.get("tokenDelimiter")) or "-") if p.strip()]
     selected: list[str] = []
