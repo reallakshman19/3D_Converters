@@ -132,3 +132,16 @@ test('edited Step 7 semantic alias changes governed Step 8/native output, not on
   assert.deepEqual(nodeRows(prepared.document)[2].rows.map(r=>r.type),['LIM'],
     'custom mapper label must govern Final instead of being display only');
 });
+
+test('legacy saved reversed GUI/LIM mutation must not silently reach Final',async()=>{
+  const {config}=setup();
+  config.inputXmlRestraintTypeMutation.rows = [
+    {label:'+Y',from:'17',to:'14'},
+    {label:'LIM',from:'7',to:'8'},
+    {label:'GUI',from:'10',to:'9'},
+  ];
+  await assert.rejects(
+    prepareXml229PrefinalRestraints({xmlText:xml,stagedJsonText:original(),config}),
+    {code:'PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT'},
+  );
+});
