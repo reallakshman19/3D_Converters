@@ -231,7 +231,28 @@ def _staged_dtxr(entry: dict[str, Any]) -> str:
     return str(attrs.get("DTXR_POS") or attrs.get("DTXR") or attrs.get("DESC") or attrs.get("DESCRIPTION") or attrs.get("NAME") or component.get("name") or "").strip()
 
 
-def build_dtxr_ps_index(staged_json: Any) -> dict[str, list[str]]:
+def _staged_position(attrs: dict[str, Any]) -> dict[str, float] | None:
+    for key in ("POSI", "POSITION", "POS", "BPOS", "APOS", "LPOS", "CPOS", "HPOS", "TPOS"):
+        point = _parse_position_text(attrs.get(key))
+        if point is not None:
+            return point
+    return None
+
+
+def _staged_gap_annotation(dtxr: str, attrs: dict[str, Any]) -> str:
+    """Keep independent CMPSUPGAP on its own DTXR source member, not another support."""
+    raw = next((str(value).strip() for key, value in attrs.items()
+                if key.upper() == "CMPSUPGAP" and str(value).strip()), "")
+    if not raw or re.search(r"CMPSUPGAP\s*=", dtxr, re.I):
+        return dtxr
+    if not re.fullmatch(r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][-+]?\d+)?\s*(?:mm)?", raw, re.I):
+        return dtxr
+    if dtxr.endswith(")") and "(" in dtxr:
+        return dtxr[:-1] + ",CMPSUPGAP=" + raw + ")"
+    return dtxr + "(CMPSUPGAP=" + raw + ")"
+
+
+def build_dtxr_ps_index(staged_json: Any, *, unpositioned_only: bool = False) -> dict[str, list[str]]:
     """Return PS base tag -> ordered unique DTXR values from staged JSON."""
     try:
         parsed = json.loads(staged_json) if isinstance(staged_json, str) else staged_json
@@ -239,10 +260,12 @@ def build_dtxr_ps_index(staged_json: Any) -> dict[str, list[str]]:
         return {}
     index: dict[str, list[str]] = {}
     for entry in _iter_staged_components(parsed):
-        dtxr = _staged_dtxr(entry)
+        attrs = entry.get("attrs") if isinstance(entry, dict) else {}
+        if unpositioned_only and _staged_position(attrs) is not None:
+            continue
+        dtxr = _staged_gap_annotation(_staged_dtxr(entry), attrs)
         if not dtxr:
             continue
-        attrs = entry.get("attrs") if isinstance(entry, dict) else {}
         component = entry.get("component") if isinstance(entry, dict) else {}
         if not isinstance(attrs, dict):
             attrs = {}
@@ -364,7 +387,12 @@ def build_dtxr_pos_entries(staged_json: Any, offset_option: dict[str, Any] | Non
         point = _apply_dtxr_position_offset(raw_point, offset_option)
         if not dtxr or point is None:
             continue
-        entries.append({"dtxr": dtxr, "point": point, "rawPoint": raw_point})
+        component = entry.get("component") or {}
+        tags = _ps_tags_from_attrs(attrs, component.get("name", ""))
+        branch_name = str(entry.get("branchName") or attrs.get("OWNER") or "")
+        entries.append({"dtxr": _staged_gap_annotation(dtxr, attrs),
+                        "point": point, "rawPoint": raw_point,
+                        "tags": tags, "branchName": branch_name})
     return entries
 
 
