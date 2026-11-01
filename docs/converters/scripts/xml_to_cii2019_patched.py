@@ -310,6 +310,19 @@ def _kind_from_dtxr(text: str, support_config: dict[str, Any]) -> list[str]:
     normalized = _safe_text(text).upper()
     if not normalized:
         return []
+    # Native CLI's legacy DTXR keyword fallback must not bypass a saved
+    # Step 7 mapper and recreate removed/reassigned aliases. The same
+    # independent exact replay is used by the guarded pre-Final stage.
+    mapper = support_config.get("supportTypeMapper")
+    if isinstance(mapper, dict) and isinstance(mapper.get("rows"), list):
+        from xml229_support_type_mapper import mapped_support_kind
+        def require(ok, code):
+            if not ok:
+                raise ValueError(code)
+        kind, _score = mapped_support_kind({"DTXR": normalized}, "", support_config, require)
+        if kind and kind not in ("REST", "GUIDE", "LINESTOP"):
+            raise ValueError("XML229_CONFIGURED_SUPPORT_KIND_UNSUPPORTED")
+        return [kind] if kind else []
     kinds: list[str] = []
     rules = support_config.get("keywordRules") if isinstance(support_config.get("keywordRules"), list) else DEFAULT_SUPPORT_CONFIG["keywordRules"]
     for rule in rules:
