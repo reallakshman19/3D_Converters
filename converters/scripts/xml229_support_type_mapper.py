@@ -51,10 +51,19 @@ def mapped_support_kind(attrs, description, config, require):
             if score is not None:
                 if primary and kind == 'REST' and _norm(alias) in ('WEARPAD','SHOE'):
                     score = .75
-                matches.append((score, kind))
+                matches.append((score, kind, str(alias)))
     if not matches:
         return '', 0
-    strongest = max(score for score, kind in matches)
-    winners = {kind for score, kind in matches if abs(score - strongest) < 1e-9}
+    strongest = max(score for score, _kind, _alias in matches)
+    tied = [item for item in matches if abs(item[0] - strongest) < 1e-9]
+    # Mirror the browser's specific-alias dominance. A configured
+    # DIRECTIONAL ANCHOR outranks the overlapping generic ANCHOR at equal
+    # score; unrelated equal-strength kinds remain ambiguous/fail closed.
+    winners = {kind for score, kind, alias in tied
+               if not any(other_kind != kind and '*' not in other_alias
+                          and '*' not in alias
+                          and len(_norm(other_alias)) > len(_norm(alias))
+                          and _norm(alias) in _norm(other_alias)
+                          for _, other_kind, other_alias in tied)}
     require(len(winners) == 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
     return next(iter(winners)), strongest
