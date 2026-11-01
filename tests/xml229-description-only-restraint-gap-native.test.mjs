@@ -67,16 +67,16 @@ test('description-only GUIDE/LINESTOP retain explicit gap through pre-Final XML 
       'actual=kinds(entries,require)',
       'assert actual["GUIDE"]["CMPSUPGAP"] == "5.5", actual',
       'assert actual["LINESTOP"]["CMPSUPGAP"] == "0", actual',
-    ].join('\\n');
+    ].join('\n');
     execFileSync(python, ['-c', verifyNativeSource, scriptsDir, jsonFile], {encoding: 'utf8'});
     execFileSync(python, [script, '--input', xmlFile, '--output', ciiFile], {encoding: 'utf8'});
     const cii = await readFile(ciiFile, 'utf8');
-    const section = cii.split('#$ RESTRANT\\n')[1]?.split('#$')[0];
+    const section = cii.split('#$ RESTRANT\n')[1]?.split('#$')[0];
     assert.ok(section, 'RESTRANT section missing from emitted CII');
-    const lines = section.trim().split('\\n');
+    const lines = section.trim().split('\n');
     const records = new Map();
     for (let i = 0; i < lines.length; i += 4) {
-      const row = lines[i].trim().split(/\\s+/).map(Number);
+      const row = lines[i].trim().split(/\s+/).map(Number);
       if (row[0]) records.set(row[0], row);
     }
     for (const [id, kind, gap] of [[20, 14, 2], [40, 8, 5.5], [50, 9, 0]]) {
