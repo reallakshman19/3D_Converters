@@ -1,9 +1,12 @@
-# WIP XML229 Native Lineage Failure-Code Coverage — 2026-11-01
+# PR367 — XML229 Native Lineage Failure-Code Coverage — 2026-11-01
 
-STATUS: PATCH_PREPARED / ENGINEERING_CRITICAL / REVIEW_REQUIRED
+STATUS: DRAFT_PR_OPEN / ENGINEERING_CRITICAL / REVIEW_REQUIRED
 REPO: reallakshman19/3D_Converters
 BASE_MAIN_SHA: 3d1da02c00c51d2c9b4548c62ce97e4fd875be73
 BRANCH: fix/xml229-native-lineage-codes-20261101
+PR: https://github.com/reallakshman19/3D_Converters/pull/367
+IMPLEMENTATION_HEAD: 1ab1cd2abf48718b74a2ae04906930d9d904adc8
+REVIEW: NOT_RUN; CI: IN_PROGRESS (initial workflow snapshot)
 TAKEOVER_AUTHORITY: READ_ONLY (not a takeover of PR362; new limited fix)
 SOURCE_REPORT: Owner-supplied native Run debug JSON, elapsed 19627 ms,
 ORIGINAL_LINEAGE_STAGE, UNCLASSIFIED_EXCEPTION, no authorized CII.
@@ -23,7 +26,7 @@ native guard literals and demanding full coverage. Unknown codes, arbitrary
 stderr, file paths, and exception messages remain undisclosed; no changes
 to Final/geometry/lineage checks, numerical writer, mass scale, Worker,
 download authority, or independent native CII reconciliation.
-Preserve old files in .backups before new versions are authored.
+Pre-edit bytes preserved in two .backups files in the same commit.
 
 ## Validation and limits
 STATUS=PASS (static review): source/docs original bytes matched; all
@@ -48,3 +51,11 @@ inspect the newly classified native failure code. If it still reports
 UNCLASSIFIED_EXCEPTION, reproduce from the trusted local Python traceback
 without publishing paths or source data, then fix that isolated cause.
 No merge or deployment authorized.
+
+## Publication checkpoint
+DRAFT PR367 opened against main 3d1da02c; one implementation commit,
+source/docs parity verified by fresh GitHub file read, static Python-code to
+JS-allowlist coverage complete. At publication initial workflows were queued
+or in progress, no green claim. This records only code diagnostic coverage,
+not confirmation that the exact Owner failure was a typed-code omission.
+No merge, production deployment, or CII release authorized.
