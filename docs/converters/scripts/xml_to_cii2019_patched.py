@@ -1073,9 +1073,11 @@ def _assert_verified_master_completeness(
                         source_corrosion, measured_corrosion, abs_tol=1e-6, rel_tol=0):
                     raise ValueError("XML229_VERIFIED_CLASS_CORROSION_CONFLICT")
             meta = class_meta_index.get((cls, dn))
-            if meta is None or not meta[1]:
+            if meta is None:
                 raise ValueError("XML229_VERIFIED_CLASS_RATING_MISSING")
-            if _child_text(node, namespace, "PipingClassRating") != meta[1]:
+            # Owner: Rating is optional enrichment. Verify the XML rating
+            # only when the selected master actually supplies one.
+            if meta[1] and _child_text(node, namespace, "PipingClassRating") != meta[1]:
                 raise ValueError("XML229_VERIFIED_CLASS_RATING_CONFLICT")
             chosen_material = _process_material_for_line(line, support_config) or meta[0]
             actual_material = " ".join(_child_text(node, namespace, "MaterialName").upper().split())
