@@ -295,7 +295,7 @@ class SourceTransferRegression(unittest.TestCase):
             source=Path(folder)/'owner.xml'
             source.write_text(xml)
             for formats in ([],[fmt('',5)],[fmt('4',5),fmt('3',5)],
-                            [fmt('4',5),fmt('4',5)]):
+                            [fmt('4',5),fmt('4',4)]):
                 cfg={'regexTester':{'formats':formats}}
                 self.assertEqual(patched._line_key_from_branch(name,cfg),'')
                 out=patched._apply_process_data_to_xml(source,cfg)
