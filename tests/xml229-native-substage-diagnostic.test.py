@@ -687,19 +687,21 @@ class NativeSubstageWitnessTests(unittest.TestCase):
     def test_saved_step7_mapper_also_controls_patched_native_dtxr_keyword_fallback(self):
         import xml_to_cii2019_patched as native
         config={'supportTypeMapper':{'rows':[
-            {'kind':'REST','aliases':['GUIDE']},
+            {'kind':'REST','aliases':['GUIDE','CUSTOM CLAMP']},
             {'kind':'GUIDE','aliases':['PG','GT']},
             {'kind':'LINESTOP','aliases':['ST']}]}}
-        self.assertEqual(native._kind_from_dtxr('GUIDE',config),['REST'])
+        with self.assertRaisesRegex(ValueError,'XML229_CONFIGURED_SUPPORT_SEMANTIC_CONFLICT'):
+            native._kind_from_dtxr('GUIDE',config)
+        self.assertEqual(native._kind_from_dtxr('CUSTOM CLAMP',config),['REST'])
         self.assertEqual(native._kind_from_dtxr(
-            'GUIDE(NAME=/PS-4131.1) | ST06(NAME=/PS-4131.2)',config),
+            'CUSTOM CLAMP(NAME=/PS-4131.1) | ST06(NAME=/PS-4131.2)',config),
             ['REST','LINESTOP'],
             'independent support occurrences must retain both governed CII slots')
         config['supportTypeMapper']['rows'][0]['aliases']=[]
-        self.assertEqual(native._kind_from_dtxr('GUIDE',config),[],
-            'native CII fallback must not revive a removed Step 7 alias')
+        self.assertEqual(native._kind_from_dtxr('CUSTOM CLAMP',config),[],
+            'native CII fallback must not revive a removed uncertain alias')
         self.assertEqual(native._kind_from_dtxr('GUIDE',{}),['GUIDE'],
-            'only unconfigured legacy path may use built-in keywordRules')
+            'unconfigured legacy source semantics remain preserved')
         config['supportTypeMapper']['rows']=[
             {'kind':'REST','aliases':['HOLD POINT']},
             {'kind':'LINESTOP','aliases':['HOLD POINT']}]
