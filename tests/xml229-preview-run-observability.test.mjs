@@ -11,8 +11,12 @@ test('phase clock emits only allowlisted phase and bounded duration once',()=>{
  const clock=createXml229EngineeringPhaseClock(record=>records.push(record),()=>time);
  const end=clock.start('prefinal-restraints');
  time=127.25;end();end();
- assert.deepEqual(records,[{phase:'prefinal-restraints',elapsedMs:27}]);
+ assert.deepEqual(records,[
+  {phase:'prefinal-restraints',state:'started'},
+  {phase:'prefinal-restraints',state:'completed',elapsedMs:27},
+ ]);
  assert(Object.isFrozen(records[0]));
+ assert(Object.isFrozen(records[1]));
  assert.throws(()=>clock.start('PRIVATE_SOURCE_XML'),/UNKNOWN_ENGINEERING_PHASE/);
  assert.equal(XML229_ENGINEERING_PHASES.length,8);
 });
