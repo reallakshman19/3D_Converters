@@ -88,6 +88,15 @@ test('description-only GUIDE/LINESTOP retain explicit gap through pre-Final XML 
   }
 });
 
+test('authored CMPSUPGAP survives a legacy NODEGAP zero placeholder, but rejects real conflicting aliases', async () => {
+  const staged = source();
+  staged[0].children[0].children[0].attributes.NODEGAP = '0';
+  let result = await prepare(staged);
+  assert.deepEqual(restraints(result.document, 40), [{type: 'GUI', gap: 5.5, stiffness: 123456}]);
+  staged[0].children[0].children[0].attributes.NODEGAP = '2';
+  await assert.rejects(prepare(staged), {code: 'PREFINAL_RESTRAINT_GAP_AMBIGUOUS'});
+});
+
 test('conflicting description-only GUIDE gaps reject instead of silently selecting one', async () => {
   const staged = source();
   staged[0].children[0].children.push({
