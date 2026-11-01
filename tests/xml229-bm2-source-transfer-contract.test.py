@@ -2,6 +2,7 @@
 """Source-bound BM2 transfer regressions; no private Owner authority is asserted."""
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from zipfile import ZipFile
 import json
 import subprocess
 import sys
@@ -15,6 +16,7 @@ import xml_to_cii2019_patched as patched
 
 BM2 = ROOT / "Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml"
 MASTER = ROOT / "docs/Masters/SpecwisePipingClass/93833.json"
+STAGED_SOURCE = ROOT / "Benchmarks/STF_2026Sep16-0859_managed_stage.zip"
 
 
 def field(node, name):
@@ -92,6 +94,41 @@ class SourceTransferRegression(unittest.TestCase):
             branch_sample(source, '/GLRD-1000-6"-P4110001-93833-01/B6')
             out = patched._apply_process_data_to_xml(source, {})
             self.assertEqual(field(node_by_number(ET.parse(out).getroot(), 10), "WallThickness"), "0")
+
+    def test_authentic_archived_ps00574_1_is_rest_not_invented_guide(self):
+        # This is the real repository's staged member, not the illustrative
+        # GUIDE/LINESTOP payload in the separate Z-offset transfer regression.
+        branch = '/GLRD-1000-8"-B4110003-13451-01/B1'
+        with ZipFile(STAGED_SOURCE) as archive:
+            staged = json.loads(archive.read(
+                "STF_2026Sep16-0859_managed_stage.json"))
+        authentic = [
+            {"type": "BRANCH", "name": row.get("name"), "children": [
+                item for item in row.get("children", [])
+                if item.get("type") == "SUPPORT" and
+                (item.get("attributes") or {}).get("NAME") == "/PS00574.1"]}
+            for row in staged if row.get("name") == branch]
+        self.assertEqual(sum(len(row["children"]) for row in authentic), 1)
+        source_member = authentic[0]["children"][0]["attributes"]
+        self.assertEqual(source_member["DTXR"], "REST")
+        self.assertEqual(source_member.get("SUPPORT_KIND"), "REST")
+        self.assertAlmostEqual(source_member["POS"]["z"], 1330.728)
+        with TemporaryDirectory() as directory:
+            src = Path(directory) / "bm2-real-rest.xml"
+            selected = Path(directory) / "real-staged.json"
+            branch_sample(src, branch)
+            selected.write_text(json.dumps(authentic), encoding="utf-8")
+            cfg = {"dtxrPositionOffset": {
+                "enabled": True, "xOffset": 0, "yOffset": 0,
+                "zOffset": 100000, "tolerance": 0.5}}
+            match = patched._maybe_enrich_from_staged_json(src, selected, cfg)
+            final = patched._apply_process_data_to_xml(match, cfg)
+            target = node_by_number(ET.parse(final).getroot(), 3430)
+            actual = [field(r, "Type") for r in target
+                      if r.tag.rsplit("}", 1)[-1] == "Restraint"]
+            self.assertEqual(actual, ["+Y"])
+            self.assertNotIn("GUI", actual)
+            self.assertNotIn("LIM", actual)
 
     def test_3430_current_saved_mapper_regex_and_mutation_pass_to_native_xml(self):
         # The same position, exact branch and source tag are reused. The only
