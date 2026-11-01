@@ -4,6 +4,8 @@ import {
 } from '../../converters/xml-cii2019-core/support-mapping.js';
 import { migrateSupportMappingConfig } from '../../converters/xml-cii2019-core/support-mapping-config.js';
 import {mutateRestraintType} from '../../converters/xml-cii2019-core/restraint-type-mutation.js';
+import {classifySupportText,parseSupportTypeMapperConfig}
+  from './xml-cii-support-type-mapper.js';
 import { buildStandaloneDtxrResolutionLedger } from './xml-cii-trace-resolution-ledger.js';
 import { decorateJsonTraceLedger } from './xml-cii-json-trace-fields.js';
 import {isZeroInformationLimitRestraintElement}
@@ -55,7 +57,7 @@ function memberAttributes(member) {
   return safeObject(member?.raw?.attributes || member?.attributes || member?.capturedFields);
 }
 
-function supportKindFromMember(member) {
+function supportKindFromMember(member,config={}) {
   const attrs = memberAttributes(member);
   // An explicit source description wins over abbreviated MDS code aliases.
   // This mirrors the old confidence mapper, not its legacy axis defaults.
@@ -70,6 +72,22 @@ function supportKindFromMember(member) {
     throw Object.assign(new Error('Conflicting source support descriptions'),
       {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
   if (semantic.length) return semantic[0];
+  // Use the user-authored Step 7 mapper rows, not a second hard-coded alias list.
+  // HIGH/MEDIUM semantic intent can override a stale generated REST label;
+  // LOW GT/ST evidence cannot override a resolved canonical source kind.
+  let mapper = null;
+  if (Array.isArray(config?.supportTypeMapper?.rows)) {
+    const rows = parseSupportTypeMapperConfig({supportConfig:config}).mapperRows;
+    const evidence = [attrs.DTXR,attrs.DESC,attrs.DESCRIPTION,
+      member?.description,attrs.CMPSUPTYPE,attrs.MDSSUPPTYPE,attrs.SPRE]
+      .map(text).filter(Boolean).join(' ');
+    mapper=classifySupportText(evidence,rows);
+    if(mapper.status==='ambiguous')
+      throw Object.assign(new Error('Conflicting Step 7 mapper classification'),
+        {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+    if(mapper.status==='matched'&&mapper.confidence!=='LOW'&&
+       GOVERNED_KINDS.includes(mapper.supportKind))return mapper.supportKind;
+  }
   const canonical = [...new Set(['SUPPORT_KIND', 'SUPPORT_MAPPER_KIND', 'SUPPORT_TYPE']
     .map(key=>text(attrs[key]).toUpperCase().replace(/\s+/g,''))
     .filter(kind=>GOVERNED_KINDS.includes(kind)))];
@@ -77,6 +95,8 @@ function supportKindFromMember(member) {
     throw Object.assign(new Error('Conflicting canonical support kinds'),
       {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
   if (canonical.length) return canonical[0];
+  if(mapper?.status==='matched'&&GOVERNED_KINDS.includes(mapper.supportKind))
+    return mapper.supportKind;
   const code = text(attrs.MDSSUPPTYPE || member?.capturedFields?.MDSSUPPTYPE).toUpperCase();
   if (code.startsWith('GT')) return 'GUIDE';
   if (code.startsWith('ST')) return 'LINESTOP';
@@ -115,7 +135,7 @@ function sourceNodeType(attrs,config){
 function evidenceByKind(record, config = {}, requireUnambiguous = false) {
   const result=new Map();
   for(const member of Array.isArray(record?.positionMembers)?record.positionMembers:[]){
-    const kind=supportKindFromMember(member);
+    const kind=supportKindFromMember(member,config);
     if(!kind)continue;
     const original=memberAttributes(member);
     const numeric=requireUnambiguous?supportGapNumber(original):null;
