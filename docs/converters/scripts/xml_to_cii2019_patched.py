@@ -816,8 +816,25 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
     if addon is None:
         raise ValueError("--staged-json requires xml_to_cii2019_master_addon.py to be available.")
     result = addon.enrich_xml_addons(input_xml, linelist=None, overrides=None, staged_json=staged_json.read_text(encoding="utf-8-sig"), dtxr_position_offset=support_config.get("dtxrPositionOffset") if isinstance(support_config, dict) else None)
-    temp_path = Path(tempfile.gettempdir()) / f"{input_xml.stem}_dtxr_enriched.xml"
-    temp_path.write_text(result["xmlText"], encoding="utf-8")
+    stats = result.get("stats") or {}
+    if stats.get("dtxrPosAmbiguous", 0):
+        raise ValueError("XML229_STAGED_POSITION_AMBIGUOUS")
+    if not stats.get("dtxrPos", 0) and not stats.get("dtxrPs", 0):
+        raise ValueError("XML229_STAGED_TRANSFER_NO_MATCH")
+    # A stale REST annotation must never be interpreted as proof the provided
+    # staged JSON was consumed; the receipt makes this a distinct run event.
+    print("XML229_SOURCE_TRANSFER " + json.dumps({
+        "family": "stagedJson",
+        "inputHadDtxr": _xml_has_dtxr_annotations(input_xml),
+        "dtxrPosOwners": stats.get("dtxrPos", 0),
+        "dtxrPsOwners": stats.get("dtxrPs", 0),
+        "ambiguous": stats.get("dtxrPosAmbiguous", 0),
+    }, sort_keys=True))
+    with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", prefix=f"{input_xml.stem}_dtxr_",
+            suffix=".xml", delete=False) as target:
+        target.write(result["xmlText"])
+        temp_path = Path(target.name)
     support_config["_generatedDtxrEnrichment"] = True
     return temp_path
 
