@@ -108,9 +108,15 @@ def kinds(entries, require, config=None):
         if not kind:
             continue
         raw = source_gap(a)
+        # CMPSUPGAP is a source member's explicit gap. Historical NODEGAP=0
+        # is a placeholder when this SAME member supplies CMPSUPGAP.
+        # Two nonzero/different explicit values must still fail closed.
+        legacy_zero_placeholder = bool(text(a.get('CMPSUPGAP'))) and (
+            text(a.get('NODEGAP')) != '' and numeric(a.get('NODEGAP')) == 0
+        )
         alias_values = [text(a.get(k)) for k in
                         ('CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS', 'NODEGAP')
-                        if text(a.get(k))]
+                        if text(a.get(k)) and (k != 'NODEGAP' or not legacy_zero_placeholder)]
         require(all(numeric(v) is not None for v in alias_values),
                 'NATIVE_PREFINAL_RESTRAINT_GAP_INVALID')
         require(all(numeric(v) == numeric(raw) for v in alias_values),
