@@ -244,12 +244,131 @@ def _normalize_process_field_map(config: dict[str, Any]) -> None:
             if score > best_score:
                 best_score = score
                 best_header = header
-        if best_header and best_score >= 90:
+        if not _safe_text(field_map.get(target)) and best_header and best_score >= 90:
             field_map[target] = best_header
 
 
+def _regex_tester_field(branch: str, rule: dict[str, Any], delimiter: str, joiner: str = "") -> str:
+    """Match saved Smart Regex FORMAT extraction: explicit TOKEN / REGEX authority."""
+    mode = _safe_text(rule.get("extractMode")).upper()
+    if mode not in ("", "TOKEN", "REGEX"):
+        return ""
+    pattern = _safe_text(rule.get("regex"))
+    if mode != "TOKEN":
+        if mode == "REGEX" and not pattern:
+            return ""
+        if pattern:
+            try:
+                match = re.search(pattern, branch)
+                group = int(rule.get("group") if rule.get("group") is not None else 1)
+                if match is not None and 0 <= group <= match.re.groups:
+                    value = _safe_text(match.group(group))
+                    if value:
+                        return value
+            except (ValueError, TypeError, re.error, IndexError):
+                return ""
+            if rule.get("fallbackOnRegexMiss") is not True:
+                return ""
+    pos_text = _safe_text(rule.get("tokenPosition"))
+    if not pos_text:
+        return ""
+    try:
+        positions = [int(p.strip()) for p in re.split(r"[,+]", pos_text)]
+    except ValueError:
+        return ""
+    if not positions or any(p < 1 for p in positions):
+        return ""
+    cleaned = re.sub(r"/B\d+$", "", branch.lstrip("/"), flags=re.I)
+    parts = [part.strip() for part in cleaned.split(delimiter)]
+    selected = [parts[i - 1] if i <= len(parts) else "" for i in positions]
+    return joiner.join(selected) if all(selected) else ""
+
+
+def _regex_tester_format_disabled(fmt: dict[str, Any], index: int) -> bool:
+    if fmt.get("enabled") is False:
+        return True
+    if index == 0 or fmt.get("enabled") is True:
+        return False
+    # The unused alternate template is not an authored Format 2. Match JS
+    # isBranchFormatEnabled so it cannot create a false multi-format conflict.
+    hints = {"lineKey": 3, "pipingClass": 4, "rating": 4, "bore": 2}
+    return (all(isinstance(fmt.get(key), dict)
+                and not _safe_text(fmt[key].get("regex"))
+                and not _safe_text(fmt[key].get("extractMode"))
+                and _safe_text(fmt[key].get("group") or 1) == "1"
+                and _safe_text(fmt[key].get("tokenPosition")) == str(pos)
+                and fmt[key].get("fallbackOnRegexMiss") is not True
+                for key, pos in hints.items())
+            and (_safe_text(fmt.get("tokenDelimiter")) or "-") == "-"
+            and not _safe_text(fmt.get("lineKeyJoiner")))
+
+
+def _regex_tester_branch_line_key(branch: str, config: dict[str, Any]) -> str | None:
+    """Saved Smart Regex formats govern source Line List identity in native CII.
+
+    None means no explicit formats were saved; an explicit formats=[] means
+    UNMATCHED, never an invitation to use stale legacy token positions.
+    """
+    regex_cfg = config.get("regexTester")
+    if not isinstance(regex_cfg, dict) or not isinstance(regex_cfg.get("formats"), list):
+        return None
+    candidates = []
+    sequence = regex_cfg.get("ratingSequence")
+    if not isinstance(sequence, list):
+        rating_cfg = config.get("rating")
+        sequence = (rating_cfg.get("ratingSequence", []) if isinstance(rating_cfg, dict) else [])
+    for index, fmt in enumerate(regex_cfg["formats"]):
+        if not isinstance(fmt, dict):
+            raise ValueError("XML229_BRANCH_FORMAT_INVALID")
+        if _regex_tester_format_disabled(fmt, index):
+            continue
+        delimiter = _safe_text(fmt.get("tokenDelimiter")) or "-"
+        joiner = _safe_text(fmt.get("lineKeyJoiner"))
+        fields = {}
+        for key in ("lineKey", "pipingClass", "rating", "bore"):
+            rule = fmt.get(key) if isinstance(fmt.get(key), dict) else {}
+            fields[key] = _regex_tester_field(
+                branch, rule, delimiter, joiner if key == "lineKey" else "")
+        if not fields["lineKey"] or not fields["pipingClass"]:
+            continue
+        rating = ""
+        for pair in sequence:
+            if isinstance(pair, list) and len(pair) >= 2 and _safe_text(pair[0]) and (
+                fields["pipingClass"].upper().startswith(_safe_text(pair[0]).upper())):
+                rating = _safe_text(pair[1])
+                break
+        if not rating:
+            matched = re.search(r"\d+", fields["rating"])
+            rating = matched.group() if matched else ""
+        candidates.append((
+            re.sub(r"\s+", "", fields["lineKey"].upper()),
+            fields["pipingClass"], rating, re.sub(r"[^0-9.]", "", fields["bore"])
+        ))
+    if not candidates:
+        raise ValueError("XML229_BRANCH_FORMAT_UNMATCHED")
+    if len(set(candidates)) != 1:
+        raise ValueError("XML229_BRANCH_FORMAT_AMBIGUOUS")
+    return candidates[0][0]
+
+
 def _line_key_from_branch(branch_name: str, config: dict[str, Any]) -> str:
+    line_from_saved_formats = _regex_tester_branch_line_key(branch_name, config)
+    if line_from_saved_formats is not None:
+        return line_from_saved_formats
     linelist = config.get("linelist", {}) if isinstance(config.get("linelist"), dict) else {}
+    # Older stand-alone configs may provide the line regex directly. Apply
+    # the authored capture before token fallback, never ignore this setting.
+    pattern = _safe_text(linelist.get("branchNameRegex"))
+    if pattern:
+        try:
+            matched = re.search(pattern, branch_name)
+            group = int(linelist.get("lineNoGroup") or 1)
+            if matched is not None and 0 <= group <= matched.re.groups:
+                value = _safe_text(matched.group(group))
+                if value:
+                    return re.sub(r"\s+", "", value.upper())
+        except (ValueError, TypeError, re.error, IndexError):
+            raise ValueError("XML229_BRANCH_FORMAT_INVALID")
     cleaned = branch_name.strip().lstrip("/").split("/")[0]
     parts = [p.strip() for p in cleaned.split(_safe_text(linelist.get("tokenDelimiter")) or "-") if p.strip()]
     selected: list[str] = []
@@ -391,98 +510,264 @@ def _renumber_length_bearing_negative_nodes(root: ET.Element, namespace: str) ->
 
 
 
-def _source_bound_class_row(branch_name: str, support_config: dict[str, Any]) -> tuple[dict[str, Any], float, str] | None:
-    """Resolve only an exact, unique class+NPS master row; never use a fuzzy preview."""
-    section = support_config.get("pipingClass")
-    rows = section.get("masterRows") if isinstance(section, dict) else None
-    if not isinstance(rows, list) or not rows:
-        return None  # No class master supplied: retain legacy writer fallback.
-    primary = branch_name.lstrip("/").split("/")[0]
-    tokens = primary.split("-")
-    size = re.search(r'(\d+(?:\.\d+)?)\s*"', primary)
-    if len(tokens) < 3 or not size:
-        raise ValueError(f"XML229_CLASS_SOURCE_IDENTITY_MISSING branch={branch_name}")
-    class_key = tokens[-2].strip().upper()
-    nps = float(size.group(1))
-    candidates = []
+def _source_class_dn(row: dict[str, Any]) -> int | None:
+    """Selected master rows may be raw NPS/Size or normalized convertedBore.
+
+    Never confuse an NPS=6 source row with DN=6: normalize to DN150.
+    Reject inconsistent supplied bore keys rather than silently choosing one.
+    """
+    dn_text = (_row_value(row, "convertedBore") or
+               _row_value(row, "converted_bore"))
+    nps_text = (_row_value(row, "Size") or _row_value(row, "size") or
+                _row_value(row, "NPS"))
+    try:
+        if dn_text:
+            raw = float(dn_text)
+            if not math.isfinite(raw) or not raw.is_integer() or raw <= 0:
+                raise ValueError("invalid converted bore")
+            dn = int(raw)
+        else:
+            dn = None
+        if nps_text:
+            nps = float(nps_text.replace('"', '').strip())
+            from_nps = addon.nps_to_dn(nps) if addon is not None else None
+            if from_nps is None:
+                raise ValueError("unsupported NPS")
+            if dn is not None and dn != from_nps:
+                raise ValueError("inconsistent DN and NPS")
+            dn = from_nps
+    except (ValueError, TypeError, OverflowError) as exc:
+        raise ValueError("XML229_PIPING_CLASS_BORE_INVALID") from exc
+    return dn
+
+
+def _source_class_wall_index(config: dict[str, Any], requested: set[str] | None = None) -> dict[tuple[str, int], float]:
+    """Index only explicit class + converted DN master facts; never infer wall."""
+    section = config.get("pipingClass", {})
+    rows = section.get("masterRows", []) if isinstance(section, dict) else []
+    index: dict[tuple[str, int], float] = {}
+    if not isinstance(rows, list):
+        return index
     for row in rows:
         if not isinstance(row, dict):
             continue
-        value = _safe_text(row.get("Piping Class") or row.get("pipingClass")).upper()
-        if value != class_key:
+        class_code = (_row_value(row, "Piping Class") or
+                      _row_value(row, "pipingClass")).strip()
+        if requested is not None and class_code not in requested:
+            continue
+        dn = _source_class_dn(row)
+        wall_text = (_row_value(row, "Wall thickness") or
+                     _row_value(row, "wallThicknessMm") or
+                     _row_value(row, "WallThickness"))
+        if not class_code or dn is None or not wall_text:
             continue
         try:
-            row_nps = float(row.get("Size"))
-        except (TypeError, ValueError):
-            continue
-        if abs(row_nps - nps) <= 1e-8:
-            candidates.append(row)
-    if not candidates:
-        raise ValueError(f"XML229_CLASS_SOURCE_UNMATCHED branch={branch_name} class={class_key} nps={nps}")
-    # Identical duplicated master rows are harmless; contradictory rows are not.
-    signatures = {
-        tuple(_safe_text(row.get(key)) for key in
-              ("Wall thickness", "Corrosion", "Material_Name", "Rating"))
-        for row in candidates
-    }
-    if len(signatures) != 1:
-        raise ValueError(f"XML229_CLASS_SOURCE_AMBIGUOUS branch={branch_name} class={class_key} nps={nps}")
-    row = candidates[0]
-    try:
-        thickness = float(row["Wall thickness"])
-    except (TypeError, ValueError, KeyError) as exc:
-        raise ValueError(f"XML229_CLASS_SOURCE_WALL_INVALID branch={branch_name}") from exc
-    if not math.isfinite(thickness) or thickness <= 0:
-        raise ValueError(f"XML229_CLASS_SOURCE_WALL_INVALID branch={branch_name}")
-    return row, thickness, class_key
+            wall = float(wall_text)
+        except ValueError:
+            raise ValueError("XML229_PIPING_CLASS_INVALID_MASTER_VALUE") from None
+        if not math.isfinite(wall) or wall <= 0:
+            raise ValueError("XML229_PIPING_CLASS_INVALID_MASTER_VALUE")
+        key = (class_code, dn)
+        if key in index and not math.isclose(index[key], wall, rel_tol=0, abs_tol=1e-6):
+            raise ValueError("XML229_PIPING_CLASS_BORE_AMBIGUOUS")
+        index[key] = wall
+    return index
 
 
-def _apply_source_bound_piping_class(branch: ET.Element, namespace: str,
-                                      support_config: dict[str, Any]) -> bool:
-    """Materialize an exact master wall for matching nominal-bore nodes only.
-
-    Does not change the legacy 0.01-mm writer fallback, accepted mass, or geometry.
-    Rating and material are intentionally NOT guessed into an unresolved CII code.
-    """
-    branch_name = _child_text(branch, namespace, "Branchname")
-    match = _source_bound_class_row(branch_name, support_config)
-    if match is None:
+def _apply_source_class_wall(branch: ET.Element, namespace: str,
+                             index: dict[tuple[str, int], float]) -> bool:
+    """A node's real OD, not only the branch header size, controls its wall."""
+    name = _child_text(branch, namespace, "Branchname")
+    match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", name, re.I)
+    if not match or not index or addon is None:
         return False
-    row, thickness, class_key = match
-    if addon is None:
-        raise ValueError("XML229_CLASS_SOURCE_ADDON_REQUIRED")
-    nps_match = re.search(r'(\d+(?:\.\d+)?)\s*"', branch_name)
-    expected_dn = addon.nps_to_dn(float(nps_match.group(1)))
-    if expected_dn is None:
-        raise ValueError(f"XML229_CLASS_NPS_UNSUPPORTED branch={branch_name}")
+    class_code = match.group(1)
     changed = False
-    transferred = 0
-    conflicts = 0
     for node in _branch_nodes(branch, namespace):
-        if addon.od_to_dn(_child_text(node, namespace, "OutsideDiameter")) != expected_dn:
-            continue  # A reducer/branch with another bore needs its own source row.
         existing = _numeric_text(_child_text(node, namespace, "WallThickness"))
         if existing is not None and existing > 0:
-            if abs(existing - thickness) > 1e-4:
-                conflicts += 1  # Do not overwrite independently supplied wall.
-            continue
-        _set_child(node, namespace, "WallThickness", format(thickness, ".12g"))
+            continue  # source wall is explicit; never replace it with derived master.
+        od = _numeric_text(_child_text(node, namespace, "OutsideDiameter"))
+        dn = addon.od_to_dn(od) if od is not None else None
+        wall = index.get((class_code, dn)) if dn is not None else None
+        if wall is None:
+            continue  # no source-approved row; do not manufacture a dimension.
+        if od is None or wall * 2 >= od:
+            raise ValueError("XML229_PIPING_CLASS_WALL_EXCEEDS_OD")
+        _set_child(node, namespace, "WallThickness", format(wall, ".12g"))
         changed = True
-        transferred += 1
-    if conflicts:
-        raise ValueError(f"XML229_CLASS_EXISTING_WALL_CONFLICT branch={branch_name} count={conflicts}")
-    # The trace identifies what was transferred and what still has no CII authority.
-    print("XML229_SOURCE_TRANSFER " + json.dumps({
-        "family": "pipingClass", "branch": branch_name, "class": class_key,
-        "sizeNps": float(nps_match.group(1)), "wallMm": thickness,
-        "masterSourceRow": row.get("_sourceRowIndex"),
-        "nodeTransfers": transferred,
-        "materialName": row.get("Material_Name"),
-        "rating": row.get("Rating"),
-        "materialCodeStatus": "unresolved-unless-independently-mapped",
-    }, sort_keys=True))
     return changed
 
+
+
+def _material_scoped_pin_ids(config: dict[str, Any],
+                             requested: set[str] | None) -> dict[str, int]:
+    """Honor only explicit Material-identity pins, never branch/class guesses."""
+    if not requested:
+        return {}
+    overrides = config.get("overrides", {})
+    pins = overrides.get("materialCode", {}) if isinstance(overrides, dict) else {}
+    if not isinstance(pins, dict):
+        return {}
+    permitted: dict[str, set[str]] = {}
+    for material in requested:
+        tokens = {" ".join(material.upper().split())}
+        tokens.add(re.sub(r"[^A-Z0-9]", "", material.upper()))
+        spec = re.search(r"\b([AB]\d{3})\b", material.upper())
+        grade = re.search(r"\b([SN]\d{5})\b", material.upper())
+        if spec and grade:
+            tokens.add(spec.group(1) + "-" + grade.group(1))
+        permitted[material] = tokens
+    result: dict[str, int] = {}
+    for raw_key, raw_code in pins.items():
+        key = " ".join(str(raw_key).upper().strip().split())
+        if key.startswith("MAT:"):
+            key = key[4:].strip()
+        candidates = [name for name, keys in permitted.items() if key in keys]
+        if not candidates:
+            continue  # class, branch, and line scoped overrides are not material pins.
+        if len(candidates) != 1:
+            raise ValueError("XML229_MATERIAL_PIN_OWNER_AMBIGUOUS")
+        code = str(raw_code).strip() if type(raw_code) is not bool else ""
+        if not re.fullmatch(r"[1-9]\d*", code):
+            raise ValueError("XML229_MATERIAL_PIN_INVALID")
+        name = candidates[0]
+        if name in result and result[name] != int(code):
+            raise ValueError("XML229_MATERIAL_PIN_CONFLICT")
+        result[name] = int(code)
+    return result
+
+
+def _material_ids_from_config(config: dict[str, Any],
+                              requested: set[str] | None = None) -> dict[str, int]:
+    """Only exact selected material-map names with positive numeric CII IDs."""
+    section = config.get("material", {})
+    rows = section.get("mapRows", []) if isinstance(section, dict) else []
+    result: dict[str, int] = {}
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, dict):
+            continue
+        name = (_row_value(row, "material") or _row_value(row, "Material") or
+                _row_value(row, "Material_Name") or _row_value(row, "Material Name") or
+                 _row_value(row, "materialName"))
+        code = (_row_value(row, "code") or _row_value(row, "Code") or
+                _row_value(row, "materialCode") or _row_value(row, "MaterialCode") or
+                _row_value(row, "Material Code"))
+        if not name or not re.fullmatch(r"[1-9]\d*", code):
+            continue  # nonnumeric map code is not a CAESAR material index.
+        key = " ".join(name.upper().split())
+        if requested is not None and key not in requested:
+            continue
+        val = int(code)
+        if key in result and result[key] != val:
+            raise ValueError("XML229_MATERIAL_CODE_AMBIGUOUS")
+        result[key] = val
+    for name, pinned_id in _material_scoped_pin_ids(config, requested).items():
+        if name in result and result[name] != pinned_id:
+            raise ValueError("XML229_MATERIAL_PIN_MAP_CONFLICT")
+        result[name] = pinned_id
+    return result
+
+
+def _process_material_for_line(line_key: str, config: dict[str, Any]) -> str:
+    """The selected Line List Material outranks class fallback; never guess."""
+    section = config.get("linelist", {})
+    field_map = section.get("fieldMap", {}) if isinstance(section, dict) else {}
+    # A duplicated numeric fallback is not an absent Process Material;
+    # fail closed before the lower-authority class can supply its material.
+    wanted = re.sub(r"\s+", "", line_key.upper())
+    if re.fullmatch(r"P[0-9]{7}", wanted):
+        rows = section.get("masterRows", []) if isinstance(section, dict) else []
+        exact = [row for row in rows if isinstance(row, dict) and
+                 _line_key_from_row(row, config) == wanted]
+        if not exact:
+            alias = [row for row in rows if isinstance(row, dict) and
+                     _line_key_from_row(row, config) == wanted[1:]]
+            if len(alias) > 1:
+                raise ValueError("XML229_LINE_MATERIAL_AMBIGUOUS")
+    keys = [field_map.get("material") if isinstance(field_map, dict) else None,
+            "material", "Material", "MATERIAL", "MOC",
+            "Material Name", "Material_Name", "processMaterial"]
+    unique: dict[str, str] = {}
+    for row in _matching_linelist_rows(line_key, config):
+        for key in keys:
+            value = _row_value(row, str(key)) if key else ""
+            if value:
+                unique.setdefault(" ".join(value.upper().split()), value)
+                break
+    if len(unique) > 1:
+        raise ValueError("XML229_LINE_MATERIAL_AMBIGUOUS")
+    return next(iter(unique.values()), "")
+
+
+def _source_class_meta_index(config: dict[str, Any],
+                             requested: set[str] | None = None) -> dict[tuple[str, int], tuple[str, str]]:
+    """Require one consistent spec material/rating for each exact class/bore."""
+    section = config.get("pipingClass", {})
+    rows = section.get("masterRows", []) if isinstance(section, dict) else []
+    index: dict[tuple[str, int], tuple[str, str]] = {}
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, dict):
+            continue
+        cls = _row_value(row, "Piping Class") or _row_value(row, "pipingClass")
+        dn = _source_class_dn(row)
+        if not cls or (requested is not None and cls not in requested) or dn is None:
+            continue
+        material = (_row_value(row, "Material_Name") or
+                    _row_value(row, "materialName"))
+        rating = _row_value(row, "Rating") or _row_value(row, "rating")
+        key = (cls, dn)
+        if key in index and index[key] != (material, rating):
+            raise ValueError("XML229_PIPING_CLASS_MATERIAL_RATING_AMBIGUOUS")
+        index[key] = material, rating
+    return index
+
+
+def _apply_source_material_rating(branch: ET.Element, namespace: str,
+                                  specs: dict[tuple[str, int], tuple[str, str]],
+                                  material_ids: dict[str, int],
+                                  process_material: str = "") -> bool:
+    name = _child_text(branch, namespace, "Branchname")
+    match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", name, re.I)
+    if not match or addon is None:
+        return False
+    changed = False
+    for node in _branch_nodes(branch, namespace):
+        # The class master describes pipe material, not the body of a valve,
+        # support, flange or gasket. Their IDs require separate source facts.
+        if _child_text(node, namespace, "ComponentType").upper() not in {"PIPE", "PCOM", "BRAN", "TUBE"}:
+            continue
+        od = _numeric_text(_child_text(node, namespace, "OutsideDiameter"))
+        dn = addon.od_to_dn(od) if od is not None else None
+        metadata = specs.get((match.group(1), dn)) if dn is not None else None
+        if metadata is None and not process_material:
+            continue
+        material, rating = metadata if metadata is not None else ("", "")
+        selected_material = process_material or material
+        # A process Material claim has higher authority than class fallback,
+        # but a contradictory pre-existing XML grade is not ours to erase.
+        existing_name = _child_text(node, namespace, "MaterialName")
+        if (process_material and existing_name and
+                " ".join(existing_name.upper().split()) !=
+                " ".join(process_material.upper().split())):
+            raise ValueError("XML229_PROCESS_MATERIAL_NAME_CONFLICT")
+        for key, value in (("PipingClass", match.group(1)),
+                           ("MaterialName", selected_material), ("PipingClassRating", rating)):
+            if value and not _child_text(node, namespace, key):
+                _set_child(node, namespace, key, value)
+                changed = True
+        # Existing source material IDs take precedence. Never infer a CII
+        # numeric ID from DSS, a 900# rating, or the unapproved S32803 alias.
+        existing = (_numeric_text(_child_text(node, namespace, "MaterialCode")) or
+                    _numeric_text(_child_text(node, namespace, "MaterialNumber")))
+        material_id = material_ids.get(" ".join(selected_material.upper().split()))
+        if (process_material and material_id and existing is not None and
+                existing > 0 and existing != material_id):
+            raise ValueError("XML229_PROCESS_MATERIAL_CODE_CONFLICT")
+        if material_id and not (existing is not None and existing > 0):
+            _set_child(node, namespace, "MaterialCode", str(material_id))
+            changed = True
+    return changed
 
 
 def _apply_staged_position_restraints(node: ET.Element, namespace: str,
@@ -584,15 +869,37 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
     changed = False
     skip_dtxr_restraint_fallback = _xml_restraints_are_authoritative(xml_path, support_config)
     insulation_density_default = _to_float(support_config.get("insulationDensityDefault"), 210.0)
+    # Source-authority hydration: index only class/material identities present
+    # in this physical XML, never mix a class grade into a valve or support.
+    source_classes = {match.group(1) for branch in root.iter()
+                      if _local_name(branch.tag) == "Branch"
+                      for match in [re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$",
+                                              _child_text(branch, namespace, "Branchname"), re.I)]
+                      if match}
+    class_wall_index = _source_class_wall_index(support_config, source_classes)
+    class_meta_index = _source_class_meta_index(support_config, source_classes)
+    material_names = {" ".join(name.upper().split()) for name, _rating in class_meta_index.values() if name}
+    for source_branch in root.iter():
+        if _local_name(source_branch.tag) != "Branch":
+            continue
+        source_line = _line_key_from_branch(
+            _child_text(source_branch, namespace, "Branchname"), support_config)
+        source_material = _process_material_for_line(source_line, support_config)
+        if source_material:
+            material_names.add(" ".join(source_material.upper().split()))
+    material_ids = _material_ids_from_config(support_config, material_names)
     staged_pos_owners = set(tuple(row) for row in support_config.get("_stagedPositionOwners", ()))
     for branch in root.iter():
         if _local_name(branch.tag) != "Branch":
             continue
         # Class enrichment runs on exactly the XML that the native parser sees.
         # It is independent of staged JSON and of Preview-only presentation.
-        changed = _apply_source_bound_piping_class(branch, namespace, support_config) or changed
+        changed = _apply_source_class_wall(branch, namespace, class_wall_index) or changed
         pressure = _ensure_child(branch, namespace, "Pressure")
         line_key = _line_key_from_branch(_child_text(branch, namespace, "Branchname"), support_config)
+        process_material = _process_material_for_line(line_key, support_config)
+        changed = _apply_source_material_rating(
+            branch, namespace, class_meta_index, material_ids, process_material) or changed
         hydro = ""
         linelist_rows = _matching_linelist_rows(line_key, support_config)
         line_sources: dict[str, str] = {}
