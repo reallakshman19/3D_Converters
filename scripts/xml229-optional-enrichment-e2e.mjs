@@ -6,6 +6,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {buildStandaloneOutputRunReadiness} from '../tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js';
+import {captureXml229XmlOnlyApproval,isXml229XmlOnlyApproved}
+ from '../tabs/xml-cii-2019-standalone/integration/xml229-output-participation.mjs';
 const scenario=process.env.XML229_OPTIONAL_VARIANT||'no-masters';
 const scenarios=['no-masters','missing-line-list','missing-piping-class','missing-mat-map','unassigned-regex','conflicting-regex','missing-rating','all-present'];
 assert(scenarios.includes(scenario),'Unexpected optional-enrichment scenario');
@@ -29,13 +31,17 @@ if(scenario==='missing-mat-map')delete config.material;
 if(scenario==='unassigned-regex')config.regexTester={formats:[]};
 if(scenario==='conflicting-regex')config.regexTester={formats:[format1,format2]};
 if(scenario==='missing-rating')config.regexTester={formats:[format1]};
-const report=buildStandaloneOutputRunReadiness({
+const state={
  sourceKind:'xml',sourceText:xml,supportConfigJson:JSON.stringify(config),
  options:{outputMode:'both'},masterContext:{rowCounts:{
   lineList:config.linelist?.masterRows?.length||0,
   pipingClass:config.pipingClass?.masterRows?.length||0,
   materialMap:config.material?.mapRows?.length||0,weight:0}},
-});
+};
+state.xml229XmlOnlyApproval=captureXml229XmlOnlyApproval(state);
+assert.equal(isXml229XmlOnlyApproved(state),true,
+ 'XML-only route must be a source-bound explicit decision');
+const report=buildStandaloneOutputRunReadiness(state);
 assert.equal(report.summary.blockingCount,0,'Optional enrichment cannot block base conversion: '+scenario+' | '+JSON.stringify(report.checklistRows.filter(row=>row.blocking).map(row=>({id:row.id,status:row.status,message:row.message}))));
 const format=report.checklistRows.find(row=>row.id==='branch-format-authority');
 if(scenario==='conflicting-regex'){
@@ -50,7 +56,7 @@ if(scenario==='unassigned-regex'){
 }
 const tmp=await mkdtemp(join(tmpdir(),'xml229-optional-e2e-'));
 let record={schema:'XML229.OptionalEnrichment.E2E.v1',scenario,sourceXmlSha256:sha(xml),
- actualEngine:false,nativeReleaseAuthorized:false,passed:false};
+ actualEngine:false,nativeReleaseAuthorized:false,explicitXmlOnly:true,passed:false};
 try{
  const ciiPath=join(tmp,'converted.cii'),syntaxPath=join(tmp,'syntax.json');
  const args=['converters/scripts/xml_to_cii2019_patched.py','--input',xmlPath,
