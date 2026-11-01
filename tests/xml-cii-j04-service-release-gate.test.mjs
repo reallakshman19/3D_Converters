@@ -64,6 +64,26 @@ test('raw conversion never drops governed Final packet',async()=>{
   assert.match(result.error,/BASE_XML_REQUIRES_SEPARATE_GOVERNED_FINAL_REVIEW/);
 });
 
+test('manual Preview facts cannot be silently stripped by raw fallback',async()=>{
+  const source={...job([b1],{}),manualFacts:[{key:'explicit',value:1}]};
+  let invoked=false;
+  const result=await runXmlCii2019WorkflowService(source,{
+    engineRunner:async()=>{invoked=true;return {ok:true};},
+  });
+  assert.equal(invoked,false);
+  assert.equal(result.ok,false);
+  assert.match(result.error,/BASE_XML_REQUIRES_SEPARATE_GOVERNED_FINAL_REVIEW/);
+});
+
+test('raw fallback preserves non-master JSON coordinate calibration settings',async()=>{
+  const config={dtxrPositionOffset:{enabled:true,zOffset:100000}};
+  let called;
+  await runXmlCii2019WorkflowService(job([b1],config),{
+    engineRunner:async j=>{called=j;return {ok:true,ciiText:'SYNTHETIC',diagnostics:{}};},
+  });
+  assert.deepEqual(JSON.parse(called.supportConfigJson),config);
+});
+
 test('raw conversion keeps staged JSON subject to its own native guard',async()=>{
   const source={...job([b1],{}),stagedJsonText:'{"source":"selected"}'};
   let forwarded;

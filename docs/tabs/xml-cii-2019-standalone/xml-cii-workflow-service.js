@@ -109,14 +109,24 @@ function noImportedEnrichment(config) {
 // Governed Final decisions must never be dropped by this direct source route.
 async function runBaseXmlWithoutEnrichment(job,runtime,reason,formatAudit=null) {
   const config=parseSupportConfig(job.supportConfigJson);
-  const massOverrides=Object.keys(job.weightOverrides||{}).length||
-    Object.keys(config.overrides?.rigidWeight||{}).length;
-  if(job.xml229NativeFinalPacket||massOverrides)
+  const explicitFacts=Object.keys(config.overrides||{}).length||
+    Object.keys(job.weightOverrides||{}).length||
+    (job.previewFacts?.length||0)||(job.manualFacts?.length||0)||
+    (job.supportMapperRules?.length||0)||
+    (config.previewFacts?.length||0)||(config.manualFacts?.length||0)||
+    (config.supportMapperRules?.length||0);
+  if(job.xml229NativeFinalPacket||explicitFacts)
     return blockedRunParityResult(job,{
-      error:'BASE_XML_REQUIRES_SEPARATE_GOVERNED_FINAL_REVIEW: accepted masses must not be silently discarded',
+      error:'BASE_XML_REQUIRES_SEPARATE_GOVERNED_FINAL_REVIEW: accepted or authored engineering inputs cannot be silently discarded',
     });
-  const raw={...job,supportConfigJson:'{}',previewFacts:[],manualFacts:[],
-    supportMapperRules:[],weightOverrides:{}};
+  // Preserve geometry, coordinate/JSON custody and converter options; withhold
+  // only optional master-derived enrichment and configured format identities.
+  const sourceConfig={...config};
+  for(const key of ['linelist','pipingClass','material','rating','weight',
+      'regexTester','formats','overrides','previewFacts','manualFacts'])
+    delete sourceConfig[key];
+  const raw={...job,supportConfigJson:JSON.stringify(sourceConfig),
+    previewFacts:[],manualFacts:[],supportMapperRules:[],weightOverrides:{}};
   // Selected staged JSON remains present and independently fail-closed.
   const result=await runXmlCii2019StandaloneEngineJob(raw,runtime);
   const normalized=normalizeXmlEngineResult(result);
