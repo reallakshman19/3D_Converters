@@ -205,13 +205,43 @@ function renderDelimiterControls(parent, state) {
   tolInput.type = 'number';
   tolInput.dataset.field = 'resolver-coordinate-tolerance';
   tolInput.min = '0';
-  tolInput.max = '50';
+  tolInput.max = '1000';
   tolInput.step = '0.5';
   tolInput.value = String(cfg.coordinateTolerance ?? 6.0);
-  tolInput.title = 'Maximum Euclidean distance for JSON-to-JSON grouping and XML-to-position-group matching. Default: 6 mm.';
+  tolInput.title = 'Euclidean matching threshold (mm). Large values can match a wrong pipe; ties still require review.';
   if (tolInput.style) Object.assign(tolInput.style, { width: '58px', padding: '2px 6px', fontFamily: 'monospace', fontSize: '12px', background: '#1a2840', color: '#d7e6ff', border: '1px solid #2a3f5f', borderRadius: '4px' });
   tolLabel.appendChild(tolInput);
   bar.appendChild(tolLabel);
+
+  const datum = cfg.dtxrPositionOffset || {};
+  const datumLabel = createElement('label');
+  if (datumLabel.style) Object.assign(datumLabel.style,
+    {display:'flex',alignItems:'center',gap:'4px',marginLeft:'6px'});
+  const datumEnabled = createElement('input');
+  datumEnabled.type = 'checkbox';
+  datumEnabled.dataset.field = 'resolver-datum-offset-enabled';
+  datumEnabled.checked = datum.enabled === true;
+  datumLabel.append(datumEnabled,createElement('span','Apply Datum offset (U/Z)'));
+  bar.appendChild(datumLabel);
+
+  const datumValueLabel = createElement('label');
+  if(datumValueLabel.style) Object.assign(datumValueLabel.style,
+    {display:'flex',alignItems:'center',gap:'4px'});
+  datumValueLabel.appendChild(createElement('span','Datum offset (mm):'));
+  const datumValue = createElement('input');
+  datumValue.type = 'number';
+  datumValue.dataset.field = 'resolver-datum-offset-u-mm';
+  datumValue.value = String(datum.zOffset ?? 100000);
+  datumValue.step = '0.1';
+  datumValue.title = 'Adds this signed U/Z offset to staged POSI before source-coordinate matching; leaves pipe geometry untouched.';
+  if (datumValue.style) Object.assign(datumValue.style,
+    {width:'100px',padding:'2px 6px',fontFamily:'monospace',fontSize:'12px',
+     background:'#1a2840',color:'#d7e6ff',border:'1px solid #2a3f5f',borderRadius:'4px'});
+  datumValueLabel.appendChild(datumValue);
+  bar.appendChild(datumValueLabel);
+  const reminder=createElement('span','Datum is source-frame alignment, not permission to snap a support to an unrelated pipe.','xml-cii-phase-help');
+  if(reminder.style) reminder.style.fontSize='11px';
+  bar.appendChild(reminder);
   parent.appendChild(bar);
 }
 

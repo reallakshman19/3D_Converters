@@ -3,6 +3,7 @@
 This deliberately does not copy restraint values out of the Worker snapshot.
 The caller retains the whole-XML comparison after replaying this bounded stage.
 """
+from xml229_support_type_mapper import mapped_support_kind
 from decimal import Decimal, InvalidOperation
 import hashlib
 import json
@@ -33,7 +34,7 @@ def xml_type(v):
 
 def present_type(v):
     v = xml_type(v)
-    return '+Y' if v in ('Y', 'REST') else v
+    return {'Y': '+Y', 'REST': '+Y', '14': '+Y', '8': 'GUI', '9': 'LIM'}.get(v, v)
 
 
 def placeholder(r):
@@ -54,38 +55,65 @@ def numeric(v):
     return float(m[0]) if m else None
 
 
-def kinds(entries, require):
+def kinds(entries, require, config=None):
+    config = config or {}
     out = {}
-    derived = set()
     for e in entries:
         a = e['attrs']
+        # The historical qualified mapper lets explicit engineering meaning
+        # outrank abbreviated GT/ST. Do not copy its legacy DOF/axis defaults.
+        desc = ' '.join([text(a.get(k)) for k in ('DTXR', 'DESC', 'DESCRIPTION')] +
+                        [text(e['desc'])]).upper()
+        semantic = [
+            k for k, pat in (
+                ('LINESTOP', r'\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b'),
+                ('GUIDE', r'\bGUIDE\b'),
+                ('REST', r'\b(?:PIPE[- ]?REST|REST|SHOE)\b'))
+            if re.search(pat, desc)
+        ]
+        require(len(set(semantic)) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+        canonical = {
+            text(a.get(k)).upper().replace(' ', '') for k in
+            ('SUPPORT_KIND', 'SUPPORT_MAPPER_KIND', 'SUPPORT_TYPE')
+            if text(a.get(k)).upper().replace(' ', '') in ('REST', 'GUIDE', 'LINESTOP')
+        }
+        require(len(canonical) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+        mapped_kind, score = mapped_support_kind(a, e['desc'], config, require)
         code = text(a.get('MDSSUPPTYPE')).upper()
-        desc = ' '.join([text(a.get(k)) for k in ('DTXR', 'SPRE', 'SPREF')] +
-                        [e['desc'], e['type']]).upper()
-        kind = ('GUIDE' if code.startswith('GT') else 'LINESTOP' if code.startswith('ST')
+        kind = (semantic[0] if semantic
+                else mapped_kind if score >= .65 and mapped_kind in ('REST','GUIDE','LINESTOP')
+                else next(iter(canonical)) if canonical
+                else mapped_kind if mapped_kind in ('REST','GUIDE','LINESTOP')
+                else 'GUIDE' if code.startswith('GT') else 'LINESTOP' if code.startswith('ST')
                 else 'REST' if code == 'PIPE-REST' or code.startswith('AT') or
-                re.search(r'\b(?:PIPE[- ]?REST|REST|SHOE|WEAR\s*PAD|BEARING\s*PLATE)\b', desc) else '')
-        # Description-derived kinds are used only if no explicit member supplied it.
-        for k, pattern in [('LINESTOP', r'\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT)\b'),
-                           ('GUIDE', r'\bGUIDE\b'), ('REST', r'\b(?:REST|PIPE\s*REST|WEAR\s*PLATE|SHOE)\b')]:
-            if re.search(pattern, e['desc'].upper()):
-                derived.add(k)
+                re.search(r'\b(?:PIPE[- ]?REST|REST|SHOE)\b',
+                          text(a.get('SPRE')).upper()) else '')
         if not kind:
             continue
         raw = source_gap(a)
-        require(not raw or numeric(raw) is not None, 'NATIVE_PREFINAL_RESTRAINT_GAP_INVALID')
-        previous = source_gap(out.get(kind, {}))
+        alias_values = [text(a.get(k)) for k in
+                        ('CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS', 'NODEGAP')
+                        if text(a.get(k))]
+        require(all(numeric(v) is not None for v in alias_values),
+                'NATIVE_PREFINAL_RESTRAINT_GAP_INVALID')
+        require(all(numeric(v) == numeric(raw) for v in alias_values),
+                'NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS')
+        previous_attrs = out.get(kind, {})
+        prior_type = node_type_mutation(previous_attrs, config)
+        current_type = node_type_mutation(a, config)
+        require(not (prior_type and current_type and prior_type != current_type),
+                'NATIVE_PREFINAL_RESTRAINT_TYPE_AMBIGUOUS')
+        previous = source_gap(previous_attrs)
         require(not (previous and raw and numeric(previous) != numeric(raw)),
                 'NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS')
         if kind not in out or (not previous and raw):
             out[kind] = a
-    for k in derived:
-        out.setdefault(k, {})
     return out
 
 
 def source_gap(a):
-    return next((text(a.get(k)) for k in ('CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS')
+    return next((text(a.get(k)) for k in
+                 ('CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS', 'NODEGAP')
                  if text(a.get(k))), '')
 
 
@@ -144,14 +172,43 @@ def profile_for(kind, config):
     return p
 
 
+
+def node_type_mutation(attrs, config):
+    """Native counterpart of 8 Config mutation; source NODETYPE is numeric."""
+    raw = text(attrs.get('NODETYPE'))
+    if not raw:
+        return ''
+    if not re.fullmatch(r'[0-9]+', raw) or not 1 <= int(raw) <= 62:
+        raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_INVALID')
+    value = int(raw)
+    rules = (config.get('inputXmlRestraintTypeMutation') or
+             config.get('restraintTypeMutation') or {})
+    defaults = [('17', '14'), ('7', '9'), ('10', '8'),
+                ('1', '2'), ('2', '3'), ('3', '5'), ('18', '15')]
+    if rules.get('enabled') is not False:
+        rows = rules.get('rows')
+        selected = [(row.get('from'), row.get('to')) for row in rows
+                    if isinstance(row, dict)] if isinstance(rows, list) else defaults
+        for source, target in selected:
+            if text(source) == str(value):
+                if not re.fullmatch(r'[0-9]+', text(target)) or not 1 <= int(target) <= 62:
+                    raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_INVALID')
+                value = int(target)
+                break
+    return present_type(str(value))
+
 def append_profile(node, kind, attrs, config, allowed=None):
     p = profile_for(kind, config)
     ns = node.tag.rsplit('}', 1)[0] + '}' if '}' in node.tag else ''
     d = direction(p, attrs, node)
-    raw = source_gap(attrs) if kind in ('GUIDE', 'LINESTOP') else ''
+    raw = source_gap(attrs) if kind in ('REST', 'GUIDE', 'LINESTOP') else ''
     gap = str(numeric(raw)) if raw else text(p.get('gap')) or '0'
     node_gap = next((field(node, k) for k in ('CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS') if field(node, k)), '')
-    for typ in p['xmlTypes']:
+    original_type = node_type_mutation(attrs, config)
+    if original_type in ('+Y','GUI','LIM') and original_type != {
+            'REST':'+Y','GUIDE':'GUI','LINESTOP':'LIM'}[kind]:
+        raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT')
+    for typ in ([original_type] if original_type else p['xmlTypes']):
         if allowed is not None and present_type(typ) in allowed:
             continue
         friction = text(config.get('defaultFriction', '0.3')) or '0.3'
@@ -163,7 +220,7 @@ def append_profile(node, kind, attrs, config, allowed=None):
         values = [('Type', typ), ('Stiffness', text(p['stiffness']) if text(p['stiffness']) not in ('', 'default')
                   else text(config.get('defaultStiffness')) or '1.751270E+12'),
                   ('Gap', actual_gap), ('Friction', friction)]
-        if raw or (typ in ('GUI', 'LIM') and node_gap):
+        if (raw and typ in ('GUI', 'LIM')) or (typ in ('GUI', 'LIM') and node_gap):
             values.append(('CMPSUPGAP', raw or node_gap))
         if d:
             values.extend(('DirectionCosine' + axis, f'{v:.9f}') for axis, v in zip('XYZ', d))
@@ -201,15 +258,14 @@ def replay_prefinal_restraints(expected, packet, staged_json_path, config, requi
         typ = field(node, 'ComponentType').upper()
         if typ not in ('ATTA', 'ANCI'):
             continue
-        evidence = kinds(resolve(node, branch, groups, tolerance(config), field, require), require)
+        evidence = kinds(resolve(node, branch, groups, tolerance(config), field, require), require, config)
         if evidence:
             for r in children(node, 'Restraint'):
                 if placeholder(r):
                     node.remove(r)
             present = {present_type(field(r, 'Type')) for r in children(node, 'Restraint')}
             for kind in ('REST', 'GUIDE', 'LINESTOP'):
-                expected_type = {'REST': '+Y', 'GUIDE': 'GUI', 'LINESTOP': 'LIM'}[kind]
-                if kind in evidence and expected_type not in present:
+                if kind in evidence:
                     append_profile(node, kind, evidence[kind], config, present)
         rows = children(node, 'Restraint')
         if typ == 'ATTA' and (not rows or all(map(placeholder, rows))):
