@@ -54,7 +54,8 @@ def numeric(v):
     return float(m[0]) if m else None
 
 
-def kinds(entries, require):
+def kinds(entries, require, config=None):
+    config = config or {}
     out = {}
     for e in entries:
         a = e['attrs']
@@ -92,7 +93,12 @@ def kinds(entries, require):
                 'NATIVE_PREFINAL_RESTRAINT_GAP_INVALID')
         require(all(numeric(v) == numeric(raw) for v in alias_values),
                 'NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS')
-        previous = source_gap(out.get(kind, {}))
+        previous_attrs = out.get(kind, {})
+        prior_type = node_type_mutation(previous_attrs, config)
+        current_type = node_type_mutation(a, config)
+        require(not (prior_type and current_type and prior_type != current_type),
+                'NATIVE_PREFINAL_RESTRAINT_TYPE_AMBIGUOUS')
+        previous = source_gap(previous_attrs)
         require(not (previous and raw and numeric(previous) != numeric(raw)),
                 'NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS')
         if kind not in out or (not previous and raw):
@@ -244,7 +250,7 @@ def replay_prefinal_restraints(expected, packet, staged_json_path, config, requi
         typ = field(node, 'ComponentType').upper()
         if typ not in ('ATTA', 'ANCI'):
             continue
-        evidence = kinds(resolve(node, branch, groups, tolerance(config), field, require), require)
+        evidence = kinds(resolve(node, branch, groups, tolerance(config), field, require), require, config)
         if evidence:
             for r in children(node, 'Restraint'):
                 if placeholder(r):
