@@ -80,3 +80,41 @@ test('dataset materialization mismatch fails closed instead of substituting lega
     /materialization mismatch/,
   );
 });
+
+
+test('Tab 7 and Tab 8 saved edits survive workflow materialization with no source change', async () => {
+  const sourceText = '<PipeStressExport><Pipe><Branch><Branchname>/SAME</Branchname></Branch></Pipe></PipeStressExport>';
+  const stagedJsonText = '[{"type":"SUPPORT","attributes":{"DTXR":"ORBITAL GUARDRAIL"}}]';
+  const makeState = (config) => ({
+    sourceText, stagedJsonText, supportConfigJson: JSON.stringify(config),
+    masterContext: {lineRows: [], pipingClassRows: [], materialMapRows: [], weightMasterRows: []},
+  });
+  const before = {
+    supportTypeMapper: {rows: [{kind: 'REST', aliases: ['Pipe Rest']}]},
+    supportMapping: {version: 2, rules: []},
+    inputXmlRestraintTypeMutation: {enabled: true, rows: [{from: '21', to: '21'}]},
+  };
+  const after = structuredClone(before);
+  after.supportTypeMapper.rows[0].aliases.push('CRADLE RETAINER');
+  after.supportMapping.rules.push({
+    id: 'user-orbital-guide', source: 'staged-json', enabled: true, priority: 1,
+    field: 'DTXR', match: 'regex', pattern: 'ORBITAL\\s+GUARDRAIL', kind: 'GUIDE',
+  });
+  after.inputXmlRestraintTypeMutation.rows[0].to = '8';
+  const first = JSON.parse(await enrichSupportConfigJson(makeState(before)));
+  const second = JSON.parse(await enrichSupportConfigJson(makeState(after)));
+  assert.deepEqual(first.supportMapping.rules, []);
+  assert.equal(first.inputXmlRestraintTypeMutation.rows[0].to, '21');
+  assert.equal(second.supportTypeMapper.rows[0].aliases.at(-1), 'CRADLE RETAINER');
+  assert.equal(second.supportMapping.rules[0].kind, 'GUIDE');
+  assert.equal(second.supportMapping.rules[0].pattern, after.supportMapping.rules[0].pattern);
+  assert.equal(second.inputXmlRestraintTypeMutation.rows[0].to, '8');
+  assert.notDeepEqual(first, second);
+  console.log('XML229_SAVED_CONFIG_JOB_MUTATION ' + JSON.stringify({
+    tab7: second.supportTypeMapper.rows[0].aliases.at(-1),
+    tab8Regex: second.supportMapping.rules[0].pattern,
+    nodeTypeMutation: second.inputXmlRestraintTypeMutation.rows[0].to,
+    unchangedXmlSource: true, unchangedStagedJson: true,
+    status: 'PASS',
+  }));
+});
