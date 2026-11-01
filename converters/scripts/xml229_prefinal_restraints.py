@@ -3,7 +3,8 @@
 This deliberately does not copy restraint values out of the Worker snapshot.
 The caller retains the whole-XML comparison after replaying this bounded stage.
 """
-from xml229_support_type_mapper import mapped_support_kind
+from xml229_support_type_mapper import (mapped_support_kind, configured_support_rule,
+                                         configured_mapper_semantic_conflict)
 from decimal import Decimal, InvalidOperation
 import hashlib
 import json
@@ -95,9 +96,21 @@ def kinds(entries, require, config=None):
             if text(a.get(k)).upper().replace(' ', '') in ('REST', 'GUIDE', 'LINESTOP')
         }
         require(len(canonical) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
-        mapped_kind, score = mapped_support_kind(a, e['desc'], config, require)
+        custom_kind = configured_support_rule(a, e['desc'], config, require)
+        if custom_kind and semantic:
+            require(custom_kind == semantic[0],
+                    'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+        if custom_kind:
+            require(custom_kind in ('REST','GUIDE','LINESTOP'),
+                    'NATIVE_PREFINAL_RESTRAINT_KIND_UNSUPPORTED')
+        if semantic:
+            configured_mapper_semantic_conflict(a, e['desc'], config,
+                                                 semantic[0], require)
+        mapped_kind, score = ('', 0) if semantic or custom_kind else mapped_support_kind(
+            a, e['desc'], config, require)
         code = text(a.get('MDSSUPPTYPE')).upper()
         kind = (semantic[0] if semantic
+                else custom_kind if custom_kind
                 else mapped_kind if score >= .65 and mapped_kind in ('REST','GUIDE','LINESTOP')
                 else next(iter(canonical)) if canonical
                 else mapped_kind if mapped_kind in ('REST','GUIDE','LINESTOP')
