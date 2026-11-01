@@ -654,6 +654,28 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         config['inputXmlRestraintTypeMutation']['enabled']=False
         self.assertEqual(node_type_mutation({'NODETYPE':'7'},config),'7')
 
+    def test_saved_step7_mapper_also_controls_patched_native_dtxr_keyword_fallback(self):
+        import xml_to_cii2019_patched as native
+        config={'supportTypeMapper':{'rows':[
+            {'kind':'REST','aliases':['GUIDE']},
+            {'kind':'GUIDE','aliases':['PG','GT']},
+            {'kind':'LINESTOP','aliases':['ST']}]}}
+        self.assertEqual(native._kind_from_dtxr('GUIDE',config),['REST'])
+        config['supportTypeMapper']['rows'][0]['aliases']=[]
+        self.assertEqual(native._kind_from_dtxr('GUIDE',config),[],
+            'native CII fallback must not revive a removed Step 7 alias')
+        self.assertEqual(native._kind_from_dtxr('GUIDE',{}),['GUIDE'],
+            'only unconfigured legacy path may use built-in keywordRules')
+        config['supportTypeMapper']['rows']=[
+            {'kind':'REST','aliases':['HOLD POINT']},
+            {'kind':'LINESTOP','aliases':['HOLD POINT']}]
+        with self.assertRaisesRegex(ValueError,'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS'):
+            native._kind_from_dtxr('HOLD POINT',config)
+        config['supportTypeMapper']['rows']=[
+            {'kind':'ANCHOR','aliases':['FIXED']}]
+        with self.assertRaisesRegex(ValueError,'XML229_CONFIGURED_SUPPORT_KIND_UNSUPPORTED'):
+            native._kind_from_dtxr('FIXED',config)
+
     def test_real_bm2_combined_line_class_material_to_native_cii(self):
         """Real BM2 field facts serialized through isolated native 10->20; synthetic ID 741."""
         import xml_to_cii2019_patched as native
