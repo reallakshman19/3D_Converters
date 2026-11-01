@@ -103,6 +103,10 @@ def kinds(entries, require, config=None):
         }
         require(len(canonical) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
         mapped_kind, score = mapped_support_kind(a, e['desc'], config, require)
+        # Step 7 may classify ANCHOR, but this governed replay only owns
+        # REST/GUIDE/LINESTOP. Never silently discard or turn it into REST.
+        require(mapped_kind in ('', 'REST', 'GUIDE', 'LINESTOP'),
+                'NATIVE_PREFINAL_RESTRAINT_KIND_UNSUPPORTED')
         code = text(a.get('MDSSUPPTYPE')).upper()
         medium_min = (config.get('supportTypeMapper') or {}).get('confidencePolicy') or {}
         try:
