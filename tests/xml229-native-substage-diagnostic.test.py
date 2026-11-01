@@ -684,6 +684,10 @@ class NativeSubstageWitnessTests(unittest.TestCase):
             {'kind':'GUIDE','aliases':['PG','GT']},
             {'kind':'LINESTOP','aliases':['ST']}]}}
         self.assertEqual(native._kind_from_dtxr('GUIDE',config),['REST'])
+        self.assertEqual(native._kind_from_dtxr(
+            'GUIDE(NAME=/PS-4131.1) | ST06(NAME=/PS-4131.2)',config),
+            ['REST','LINESTOP'],
+            'independent support occurrences must retain both governed CII slots')
         config['supportTypeMapper']['rows'][0]['aliases']=[]
         self.assertEqual(native._kind_from_dtxr('GUIDE',config),[],
             'native CII fallback must not revive a removed Step 7 alias')
