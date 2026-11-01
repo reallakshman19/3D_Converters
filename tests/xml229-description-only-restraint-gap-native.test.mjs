@@ -173,8 +173,8 @@ test('unambiguous NODEGAP zero does not get replaced by profile gap for GUIDE/LI
   assert.deepEqual(restraints(result.document, 50).map(r => r.gap), [0]);
 });
 
-test('conflicting NODEGAP and CMPSUPGAP refuse a fabricated source gap', async () => {
+test('two nonzero conflicting NODEGAP and CMPSUPGAP refuse a fabricated source gap', async () => {
   const staged = source();
-  staged[0].children[0].children[0].attributes.NODEGAP = '0';
+  staged[0].children[0].children[0].attributes.NODEGAP = '2';
   await assert.rejects(prepare(staged), {code: 'PREFINAL_RESTRAINT_GAP_AMBIGUOUS'});
 });
