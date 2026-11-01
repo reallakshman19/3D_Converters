@@ -150,3 +150,42 @@ test('legacy saved reversed GUI/LIM mutation must not silently reach Final',asyn
     {code:'PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT'},
   );
 });
+
+test('co-located PS-4131 .1/.2/.3 become three slots at one native node',async()=>{
+  const {config}=setup();
+  const source=JSON.parse(original());
+  for(const item of source[0].children)item.attributes.POSI='100 200 0';
+  const xmlSingle='<PipeStressExport><Pipe><Branch><Branchname>'+branch+'</Branchname>'
+    +xmlNode(4130,'BEFORE','PIPE',-100)
+    +xmlNode(4131,'PS-4131','ANCI',0)
+    +xmlNode(4140,'AFTER','PIPE',100)
+    +'</Branch></Pipe></PipeStressExport>';
+  const prepared=await prepareXml229PrefinalRestraints({
+    xmlText:xmlSingle,stagedJsonText:JSON.stringify(source),config,
+  });
+  const n=[...prepared.document.getElementsByTagName('Node')].find(n=>
+    n.getElementsByTagName('NodeNumber')[0]?.textContent==='4131');
+  const rs=[...n.getElementsByTagName('Restraint')].map(r=>({
+    type:r.getElementsByTagName('Type')[0]?.textContent,
+    gap:Number(r.getElementsByTagName('Gap')[0]?.textContent),
+  }));
+  assert.deepEqual(rs,[{type:'+Y',gap:0},{type:'GUI',gap:4.5},{type:'LIM',gap:7.25}]);
+  const dir=await mkdtemp(join(tmpdir(),'xml229-ps4131-colocated-'));
+  try{
+    const x=join(dir,'colocated.xml'),out=join(dir,'native.cii');
+    await writeFile(x,new XMLSerializer().serializeToString(prepared.document));
+    const py=process.env.PYTHON||(process.platform==='win32'?'python':'python3');
+    execFileSync(py,[PYPATH,'--input',x,'--output',out]);
+    const cii=await readFile(out,'utf8');
+    const section=cii.split('#$ RESTRANT\n')[1]?.split('#$')[0]||'';
+    const slotLines=section.trim().split('\n');
+    const matched=[];
+    for(let i=0;i<slotLines.length;i+=4){
+      const values=slotLines[i].trim().split(/\s+/).map(Number);
+      if(values[0]===4131&&values[1]>0)matched.push([values[1],values[3]]);
+    }
+    assert.deepEqual(matched,[[14,0],[8,4.5],[9,7.25]]);
+    console.log('PS4131_COLOCATED_NATIVE_RECEIPT '+JSON.stringify({
+      source:'SYNTHETIC_NOT_OWNER_JSON',node:4131,slots:matched}));
+  }finally{await rm(dir,{recursive:true,force:true});}
+});
