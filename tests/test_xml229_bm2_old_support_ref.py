@@ -143,7 +143,7 @@ class Bm2SupportSourceWitness(unittest.TestCase):
                            "NAME": "/PS-EDITED"}}
         rules = [{"id": "user-orbital-guide", "enabled": True,
                   "priority": 2, "source": "staged-json", "field": "DTXR",
-                  "pattern": r"ORBITAL\\s+GUARDRAIL\\s+QZ-443",
+                  "pattern": r"ORBITAL\s+GUARDRAIL\s+QZ-443",
                   "match": "regex", "kind": "GUIDE"}]
         cfg = {"supportMapping": {"version": 2, "rules": rules},
                "inputXmlRestraintTypeMutation": {"enabled": True,
