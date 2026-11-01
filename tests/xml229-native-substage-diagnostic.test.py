@@ -626,6 +626,10 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         result=kinds(entries,require,custom)
         self.assertEqual(set(result),{'REST'})
         self.assertEqual(result['REST']['NODETYPE'],'17')
+        entries[0]['attrs']['SUPPORT_KIND']='GUIDE'
+        with self.assertRaisesRegex(ValueError,'NATIVE_PREFINAL_RESTRAINT_SEMANTIC_CONFLICT'):
+            kinds(entries,require,custom)
+        del entries[0]['attrs']['SUPPORT_KIND']
         custom['supportTypeMapper']['rows'][0]['aliases']=[]
         self.assertEqual(kinds(entries,require,custom),{})
         entries[0]['attrs']['DTXR']='GUIDE'
