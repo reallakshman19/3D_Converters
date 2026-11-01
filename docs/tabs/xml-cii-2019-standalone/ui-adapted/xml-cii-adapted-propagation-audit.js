@@ -74,8 +74,10 @@ function parseEnrichedXml(enrichedText) {
   for (const branch of [...doc.getElementsByTagName('*')].filter((el) => localName(el) === 'Branch')) {
     const branchName = childText(branch, 'Branchname');
     const temperature = childrenByName(branch, 'Temperature')[0] || null;
+    const pressure = childrenByName(branch, 'Pressure')[0] || null;
     branches.set(branchName, {
       branchName,
+      p1: pressure ? childText(pressure, 'Pressure1') : childText(branch, 'Pressure1'),
       t1: temperature ? childText(temperature, 'Temperature1') : childText(branch, 'Temperature1'),
       t2: temperature ? childText(temperature, 'Temperature2') : childText(branch, 'Temperature2'),
       t3: temperature ? childText(temperature, 'Temperature3') : childText(branch, 'Temperature3'),
@@ -158,6 +160,7 @@ export async function buildXmlCiiPropagationAudit(state) {
   for (const row of branchRows) {
     const enrichedBranch = enriched.branches.get(row.branchName) || null;
     const fields = [
+      ['p1', 'Pressure P1', row.p1 ?? row.pressure, enrichedBranch?.p1],
       ['t1', 'Temperature T1', row.t1, enrichedBranch?.t1],
       ['t2', 'Temperature T2', row.t2, enrichedBranch?.t2],
       ['t3', 'Temperature T3', row.t3, enrichedBranch?.t3],
@@ -181,27 +184,52 @@ export async function buildXmlCiiPropagationAudit(state) {
     }
   }
 
-  // Preview wall/corrosion expectations are checked in the exact owning element.
-  // The CII 0.01 writer fallback is unchanged and is not proof of a master.
+  // Audit EVERY emitted element, not merely the first element in a branch.
+  // Native XML is the serialization witness; Preview is a separate source
+  // witness and is not silently invented for later elements in a branch.
   for (const row of branchRows) {
-    const first = ciiParsed?.elements.find(e => e.branch === row.branchName) || null;
-    const xmlNode = first ? enriched.nodes.get(`${row.branchName}|${first.from}`) : null;
-    for (const [fieldId, label, previewValue, xmlValue] of [
-      ['wallThickness', 'Wall thickness (first element)', row.wallThickness, xmlNode?.wallThickness],
-      ['corrosion', 'Corrosion (first element)', row.corrosion, xmlNode?.corrosion],
-    ]) {
-      const inCii = first && ciiElementFieldMatches(
-        ciiParsed, first.branch, first.from, first.to, fieldId, xmlValue);
-      const verified = freshPreviewAvailable && !!first && !!xmlNode;
-      rows.push({
-        scope: 'element', key: row.branchName,
-        node: first ? `${first.from}→${first.to}` : '',
-        field: label, fieldId,
-        stageTab: t(previewValue) || '—',
-        stageEnriched: xmlNode ? (t(xmlValue) || '—') : 'node not found',
-        stageCii: first ? (inCii === true ? 'field matched' : inCii === null ? 'unverified' : 'field mismatch') : 'element not found',
-        status: verified ? statusFor(previewValue, xmlValue, inCii, true, true, fieldId) : 'preview-unverified',
-      });
+    const elements=ciiParsed?.elements.filter(e=>e.branch===row.branchName) || [];
+    if (!elements.length) {
+      rows.push({scope:'element', key:row.branchName, node:'',field:'Element census',
+        fieldId:'element',stageTab:'n/a',stageEnriched:'n/a',
+        stageCii:'no emitted elements',status:'missing-in-cii',
+        sourceState:'MISSING',verificationState:'UNRESOLVED'});
+    }
+    for (const element of elements) {
+      const xmlNode=enriched.nodes.get(row.branchName+'|'+element.from);
+      for(const [fieldId,label,tabValue,xmlValue] of [
+        ['wallThickness','Wall thickness',row.wallThickness,xmlNode?.wallThickness],
+        ['corrosion','Corrosion allowance',row.corrosion,xmlNode?.corrosion],
+      ]) {
+        const numeric=engineeringNumber(xmlValue);
+        const applicable=fieldId==='wallThickness'
+          ? ['PIPE','PCOM','BRAN','TUBE'].includes(t(xmlNode?.componentType).toUpperCase())
+          : numeric!==null;
+        const observed=applicable
+          ? ciiElementFieldMatches(ciiParsed,element.branch,element.from,
+                                   element.to,fieldId,xmlValue)
+          : null;
+        const sourceState=!xmlNode?'MISSING':!applicable?'NOT_APPLICABLE'
+          :numeric===null?'MISSING':numeric===0?'EXPLICIT_ZERO':'PRESENT';
+        const verificationState=!applicable?'NOT_APPLICABLE'
+          :observed===true?'VERIFIED':observed===false?'CONFLICT':'UNRESOLVED';
+        const first=element===elements[0];
+        const status=!xmlNode?'missing-in-enriched'
+          :!applicable?'source-unverified'
+          :observed===false?'missing-in-cii'
+          :observed===null?'unverified-cii'
+          :first && freshPreviewAvailable
+            ? statusFor(tabValue,xmlValue,observed,true,true,fieldId)
+            : 'source-unverified'; // no fabricated later-element Preview authority
+        rows.push({
+          scope:'element',key:row.branchName,node:element.from+'→'+element.to,
+          field:label,fieldId,stageTab:first?t(tabValue)||'—':'no per-element Preview',
+          stageEnriched:xmlNode?t(xmlValue)||'—':'node not found',
+          stageCii:observed===true?'field matched':observed===false?'field mismatch'
+            :applicable?'unverified':'not applicable',
+          sourceState,verificationState,status,
+        });
+      }
     }
   }
 
