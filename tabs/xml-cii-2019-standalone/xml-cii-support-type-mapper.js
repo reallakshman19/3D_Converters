@@ -214,7 +214,16 @@ export function classifySupportText(value, mapperRows = createDefaultSupportType
 
   candidates.sort((a, b) => b.score - a.score || a.row.rowId.localeCompare(b.row.rowId) || a.alias.localeCompare(b.alias));
   const topScore = candidates[0].score;
-  const top = candidates.filter((entry) => Math.abs(entry.score - topScore) < 1e-9);
+  const equallyStrong = candidates.filter((entry) => Math.abs(entry.score - topScore) < 1e-9);
+  // An explicit longer alias wins over its own contained generic alias:
+  // "DIRECTIONAL ANCHOR" must not tie with "ANCHOR". Independent equal
+  // evidence (or the exact same alias configured for two kinds) still fails
+  // closed as ambiguous. Never use arbitrary row order to break a tie.
+  const top = equallyStrong.filter((entry) => !equallyStrong.some((other) =>
+    other !== entry && other.kind !== entry.kind &&
+    !other.alias.includes('*') && !entry.alias.includes('*') &&
+    norm(other.alias).length > norm(entry.alias).length &&
+    norm(other.alias).includes(norm(entry.alias))));
   const topKinds = [...new Set(top.map((entry) => entry.kind))];
   if (topKinds.length > 1) {
     return {
