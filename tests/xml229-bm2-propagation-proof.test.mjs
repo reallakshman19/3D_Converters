@@ -74,17 +74,18 @@ test('governed independent proof checks every exact source element and RESTRANT 
     +'<Temperature><Temperature1>145</Temperature1><Temperature2>145</Temperature2>'
     +'<Temperature3>145</Temperature3></Temperature><FluidDensity>900</FluidDensity>'
     +'<Node><NodeNumber>10</NodeNumber><ComponentType>PIPE</ComponentType>'
-    +'<WallThickness>7.112</WallThickness><CorrosionAllowance>0</CorrosionAllowance></Node>'
+    +'<WallThickness>7.112</WallThickness><CorrosionAllowance>0</CorrosionAllowance><MaterialCode>741</MaterialCode></Node>'
     +'<Node><NodeNumber>20</NodeNumber><ComponentType>PIPE</ComponentType>'
-    +'<WallThickness>7.112</WallThickness><CorrosionAllowance>0</CorrosionAllowance>'
+    +'<WallThickness>7.112</WallThickness><CorrosionAllowance>0</CorrosionAllowance><MaterialCode>741</MaterialCode>'
     +'<Restraint><Type>GUI</Type><Gap>4.5</Gap></Restraint></Node>'
     +'<Node><NodeNumber>30</NodeNumber><ComponentType>PIPE</ComponentType>'
-    +'<WallThickness>7.112</WallThickness><CorrosionAllowance>0</CorrosionAllowance></Node>'
+    +'<WallThickness>7.112</WallThickness><CorrosionAllowance>0</CorrosionAllowance><MaterialCode>741</MaterialCode></Node>'
     +'</Branch></Pipe></PipeStressExport>';
   const body=[...element(10,20,branch,50,145,0.0009,0),
               ...element(20,30,branch,50,145,0.0009,0)];
   const cii=(rows=body, gap='4.5')=>[
     '#$ CONTROL','2 0 0 0 0 0','#$ ELEMENTS',...rows,
+    '#$ MISCEL_1','741 741 0 0 0 0',
     '#$ RESTRANT','20 8 0 '+gap+' 0 0',
     '0 0 0 0 0 0','0 0 0 0 0 0','0 0 0 0 0 0',
   ].join('\n');
@@ -100,6 +101,9 @@ test('governed independent proof checks every exact source element and RESTRANT 
   badPressure[18]=badPressure[18].replace('50','51');
   assert.throws(()=>verifyCiiEngineeringAgainstNativeXml(xml,cii(badPressure)),
     /CII_VERIFIED_BRANCH_FIELD_CONFLICT_P1/);
+  assert.throws(()=>verifyCiiEngineeringAgainstNativeXml(xml,
+    cii().replace('741 741 0 0 0 0','741 742 0 0 0 0')),
+    /CII_VERIFIED_ELEMENT_MATERIAL_CODE_CONFLICT/);
   assert.throws(()=>verifyCiiEngineeringAgainstNativeXml(xml,cii(body,'6')),
     /CII_VERIFIED_RESTRAINT_TYPE_OR_GAP_CONFLICT/);
   assert.throws(()=>verifyCiiEngineeringAgainstNativeXml(xml,cii().replace('20 8 0 4.5','20 14 0 4.5')),
