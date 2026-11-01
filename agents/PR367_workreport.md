@@ -59,3 +59,17 @@ JS-allowlist coverage complete. At publication initial workflows were queued
 or in progress, no green claim. This records only code diagnostic coverage,
 not confirmation that the exact Owner failure was a typed-code omission.
 No merge, production deployment, or CII release authorized.
+
+## BM2 served Python parity follow-up — 1 November 2026
+The live native-python-source-transfer CI job failed before execution because
+root xml_to_cii2019_patched.py already contained a BM2 `P4110001` to unique
+`4110001` linelist fallback but docs' deployed Python copy did not. The
+only root/docs difference is that exact six-line fallback; root was NOT edited.
+This PR now copies the root version to docs, with pre-edit served bytes backed
+up and a Python regression for unique, exact, ambiguous and unrelated keys.
+This does not bypass the current Worker or establish lineage/Final mass success.
+STATUS: source/docs parity PASS by full-text comparison; Python test NOT_RUN
+outside CI. CI previously observed unrelated legacy test failures, not waived.
+EXACT_NEXT_ACTION: review resulting native Python parity CI and new unit,
+then reproduce exact BM2 Final/Run in browser after integration, and inspect
+classified native stage. Retain CII HOLD absent independent reconciliation.
