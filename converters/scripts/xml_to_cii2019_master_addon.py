@@ -390,8 +390,15 @@ def build_dtxr_pos_entries(staged_json: Any, offset_option: dict[str, Any] | Non
         component = entry.get("component") or {}
         tags = _ps_tags_from_attrs(attrs, component.get("name", ""))
         branch_name = str(entry.get("branchName") or attrs.get("OWNER") or "")
+        fields = ("DTXR", "NAME", "MDSSUPPTYPE", "SPRE", "CMPSUPTYPE",
+                  "NODETYPE", "CMPSUPGAP", "CMPSUPGAP_POS", "CMPSUPGAP_PS",
+                  "NODEGAP", "DESCRIPTION", "DESC", "OWNER", "SUPPORT_KIND",
+                  "SUPPORT_TYPE", "SUPPORT_MAPPER_KIND")
+        source_fields = {key: attrs[key] for key in fields
+                         if key in attrs and attrs[key] is not None}
         entries.append({"dtxr": _staged_gap_annotation(dtxr, attrs),
                         "point": point, "rawPoint": raw_point,
+                        "sourceAttrs": source_fields,
                         "tags": tags, "branchName": branch_name})
     return entries
 
@@ -770,7 +777,8 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
                 "operation": "unchanged" if old_annotation == new_annotation else "source-bound-replace",
                 "members": [
                     {"dtxr": e["dtxr"], "rawPosition": e.get("rawPoint"),
-                     "convertedPosition": e.get("point"), "branch": e.get("branchName")}
+                     "convertedPosition": e.get("point"), "branch": e.get("branchName"),
+                     "sourceAttrs": e.get("sourceAttrs", {})}
                     for e in positioned
                 ],
             })
