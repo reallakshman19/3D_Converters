@@ -132,6 +132,14 @@ function sourceNodeType(attrs,config){
   return normalizeXmlType(String(number));
 }
 
+function isRestHardwareMember(attrs,kind) {
+  if(kind!=='REST'||text(attrs?.NODETYPE)!=='4')return false;
+  const code=text(attrs?.MDSSUPPTYPE).toUpperCase();
+  const desc=[attrs?.DTXR,attrs?.DESC,attrs?.DESCRIPTION].map(text).join(' ').toUpperCase();
+  return (code==='AT01'&&/\bPIPE\s+SHOE\b/.test(desc))||
+         (code==='AT05'&&/\bWEAR\s+PLATE\b/.test(desc));
+}
+
 function evidenceByKind(record, config = {}, requireUnambiguous = false) {
   const result=new Map();
   for(const member of Array.isArray(record?.positionMembers)?record.positionMembers:[]){
@@ -145,14 +153,21 @@ function evidenceByKind(record, config = {}, requireUnambiguous = false) {
     const attrs=raw&&!text(original.CMPSUPGAP)&&!text(original.CMPSUPGAP_POS)
       &&!text(original.CMPSUPGAP_PS)?{...original,CMPSUPGAP:raw}:original;
     const previous=result.get(kind);
-    if(requireUnambiguous&&previous&&text(previous.NODETYPE)&&text(attrs.NODETYPE)&&
-       sourceNodeType(previous,config)!==sourceNodeType(attrs,config))
-      throw Object.assign(new Error('Conflicting staged NODETYPE mutations for the same support kind'),
-        {code:'PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'});
     if(requireUnambiguous&&previous&&sourceGapText(previous)&&raw&&
        supportGapNumber(previous)!==numeric)
       throw Object.assign(new Error('Conflicting JSON gaps for the same support kind'),
         {code:'PREFINAL_RESTRAINT_GAP_AMBIGUOUS'});
+    if(requireUnambiguous&&previous&&text(previous.NODETYPE)&&text(attrs.NODETYPE)&&
+       sourceNodeType(previous,config)!==sourceNodeType(attrs,config)){
+      const earlierHardware=isRestHardwareMember(previous,kind);
+      const laterHardware=isRestHardwareMember(attrs,kind);
+      if(earlierHardware!==laterHardware){
+        if(earlierHardware)result.set(kind,attrs);
+        continue;
+      }
+      throw Object.assign(new Error('Conflicting staged NODETYPE mutations for the same support kind'),
+        {code:'PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'});
+    }
     if(!previous||(!sourceGapText(previous)&&raw))result.set(kind,attrs);
   }
   // Aggregated trace kinds can contain a lower-confidence GT/ST alias that

@@ -220,3 +220,27 @@ test('read-only authentic Firstpass co-position NODETYPE conflict census',async(
     records:ledger.records?.length,conflicts:duplicates.length,examples:duplicates.slice(0,6)}));
   assert.ok(Array.isArray(ledger.records));
 });
+
+test('authentic-style REST primary type14 dominates co-located AT01/AT05 hardware type4',async()=>{
+  const {config}=setup();
+  const source=[{type:'BRANCH',name:branch,children:[
+    {type:'SUPPORT',attributes:{NAME:'/PS-12244/DATUM',POSI:'100 200 0',
+      DTXR:'Pipe Rest XRT01',SUPPORT_KIND:'REST',NODETYPE:'14',NODEGAP:'0'}},
+    {type:'SUPPORT',attributes:{NAME:'/PS-12244.1',POSI:'100 200 0',
+      DTXR:'PIPE SHOE FOR HORIZ LINES',MDSSUPPTYPE:'AT01',
+      SUPPORT_KIND:'REST',NODETYPE:'4',NODEGAP:'0'}},
+    {type:'SUPPORT',attributes:{NAME:'/PS-12244.2',POSI:'100 200 0',
+      DTXR:'WEAR PLATE TYPE-421 PAD',MDSSUPPTYPE:'AT05',
+      SUPPORT_KIND:'REST',NODETYPE:'4',NODEGAP:'0'}},
+  ]}];
+  const fixture='<PipeStressExport><Pipe><Branch><Branchname>'+branch+'</Branchname>'
+    +xmlNode(4130,'BEFORE','PIPE',-100)+xmlNode(4131,'PS-12244','ANCI',0)
+    +xmlNode(4140,'AFTER','PIPE',100)+'</Branch></Pipe></PipeStressExport>';
+  const doc=(await prepareXml229PrefinalRestraints({
+    xmlText:fixture,stagedJsonText:JSON.stringify(source),config})).document;
+  const n=[...doc.getElementsByTagName('Node')].find(x=>
+    x.getElementsByTagName('NodeNumber')[0]?.textContent==='4131');
+  const types=[...n.getElementsByTagName('Restraint')].map(x=>
+    x.getElementsByTagName('Type')[0]?.textContent);
+  assert.deepEqual(types,['+Y'],'source hardware is not a competing restraint');
+});

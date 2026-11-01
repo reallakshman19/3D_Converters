@@ -55,6 +55,15 @@ def numeric(v):
     return float(m[0]) if m else None
 
 
+def is_rest_hardware_member(attrs, kind):
+    if kind != 'REST' or text(attrs.get('NODETYPE')) != '4':
+        return False
+    code = text(attrs.get('MDSSUPPTYPE')).upper()
+    desc = ' '.join(text(attrs.get(k)) for k in ('DTXR','DESC','DESCRIPTION')).upper()
+    return ((code == 'AT01' and re.search(r'\bPIPE\s+SHOE\b', desc)) or
+            (code == 'AT05' and re.search(r'\bWEAR\s+PLATE\b', desc)))
+
+
 def kinds(entries, require, config=None):
     config = config or {}
     out = {}
@@ -99,13 +108,19 @@ def kinds(entries, require, config=None):
         require(all(numeric(v) == numeric(raw) for v in alias_values),
                 'NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS')
         previous_attrs = out.get(kind, {})
-        prior_type = node_type_mutation(previous_attrs, config)
-        current_type = node_type_mutation(a, config)
-        require(not (prior_type and current_type and prior_type != current_type),
-                'NATIVE_PREFINAL_RESTRAINT_TYPE_AMBIGUOUS')
         previous = source_gap(previous_attrs)
         require(not (previous and raw and numeric(previous) != numeric(raw)),
                 'NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS')
+        prior_type = node_type_mutation(previous_attrs, config)
+        current_type = node_type_mutation(a, config)
+        if prior_type and current_type and prior_type != current_type:
+            first_aux = is_rest_hardware_member(previous_attrs, kind)
+            second_aux = is_rest_hardware_member(a, kind)
+            if first_aux != second_aux:
+                if first_aux:
+                    out[kind] = a
+                continue
+            require(False, 'NATIVE_PREFINAL_RESTRAINT_TYPE_AMBIGUOUS')
         if kind not in out or (not previous and raw):
             out[kind] = a
     return out

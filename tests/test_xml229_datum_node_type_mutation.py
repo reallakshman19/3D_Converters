@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT / 'converters/scripts'))
-from xml229_prefinal_restraints import replay_prefinal_restraints, node_type_mutation
+from xml229_prefinal_restraints import replay_prefinal_restraints, node_type_mutation, kinds
 
 XML = ('<PipeStressExport><Pipe><Branch><Branchname>/TEST/B1</Branchname>'
        '<Node><NodeNumber>140</NodeNumber><NodeName>PS140</NodeName>'
@@ -117,6 +117,22 @@ class TestXml229DatumAndNodeType(unittest.TestCase):
             {'label':'LIM','from':'7','to':'9'}]
         self.assertEqual(native(source,cfg),[('LIM','5.5')])
 
+
+    def test_original_1885_rest_type14_beats_coincident_type4_hardware(self):
+        source=json.loads((ROOT/'Benchmarks/1885Sjson/Sjson.json').read_text())
+        entries=[]
+        for branch in source:
+            for item in branch.get('children',[]):
+                attrs=item.get('attributes') or {}
+                if attrs.get('NAME') in ('/PS-12244/DATUM','/PS-12244.1','/PS-12244.2'):
+                    entries.append({'attrs':attrs,'desc':attrs.get('DTXR',''),'type':'SUPPORT'})
+        self.assertEqual(len(entries),3)
+        def require(ok,code):
+            if not ok:raise ValueError(code)
+        result=kinds(entries,require,settings())
+        self.assertEqual(set(result),{'REST'})
+        self.assertEqual(result['REST']['NODETYPE'],'14')
+        self.assertEqual(result['REST']['NODEGAP'],'0')
 
 if __name__=='__main__':
     unittest.main()
