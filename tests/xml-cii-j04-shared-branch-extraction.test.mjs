@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { extractBranchFieldsWithFormats as resolve } from '../converters/xml-cii2019-core/branch-format-extraction.js';
+import {toggleRegexLineKeyColumn} from '../tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js';
 
 const dominant = '/ASIM-1885-3"-S8811000-91261M7-HC-01/B1';
 const alternative = '/ASIM-1885-PL-HOT-S8822000-91261M7-HC-01/B2';
@@ -158,4 +159,15 @@ test('untouched Format-2 UI template is not an eligible competing engineering ru
   assert.equal(result.candidates[1].reasons.format, 'UNCONFIGURED_ALTERNATIVE');
   const active = resolve(branch, { formats: [configured, { ...untouched, enabled: true }] });
   assert.equal(active.status, 'AMBIGUOUS', 'explicitly enabled fallback must still be evaluated');
+});
+
+test('Regex click-to-map Line Key preserves selection order and toggles positions',()=>{
+  const first=toggleRegexLineKeyColumn('',4);
+  const second=toggleRegexLineKeyColumn(first,5);
+  assert.equal(first,'4');
+  assert.equal(second,'4,5');
+  assert.equal(toggleRegexLineKeyColumn(second,4),'5');
+  assert.equal(toggleRegexLineKeyColumn(second,3),'4,5,3');
+  assert.equal(toggleRegexLineKeyColumn('5,4',3),'5,4,3');
+  assert.equal(toggleRegexLineKeyColumn('4,5',5),'4');
 });
