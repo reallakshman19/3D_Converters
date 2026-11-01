@@ -562,7 +562,9 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
         pressure = _ensure_child(branch, namespace, "Pressure")
         line_key = _line_key_from_branch(_child_text(branch, namespace, "Branchname"), support_config)
         hydro = ""
-        if _matching_linelist_rows(line_key, support_config):
+        linelist_rows = _matching_linelist_rows(line_key, support_config)
+        line_sources: dict[str, str] = {}
+        if linelist_rows:
             temperature = _ensure_child(branch, namespace, "Temperature")
             values = {
                 "Pressure1": _mapped_process_value(line_key, support_config, "p1", ["P1", "Design Pressure", "Operating Pressure"]),
@@ -571,6 +573,9 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
                 "Temperature3": _mapped_process_value(line_key, support_config, "t3", ["T3", "Temp Min", "Temperature Min"]),
             }
             hydro = _mapped_process_value(line_key, support_config, "hydroPressure", ["HydroPressure", "Hydro Pressure", "Hydro Test Pressure", "Test Pressure"])
+            line_sources.update({"p1": values["Pressure1"], "t1": values["Temperature1"],
+                                 "t2": values["Temperature2"], "t3": values["Temperature3"],
+                                 "hydroPressure": hydro})
             density = (_mapped_process_value(line_key, support_config, "densityMixed", ["Mixed kg/m3", "Mixed kg/m³", "Density Mixed"])
                        or _mapped_process_value(line_key, support_config, "densityGas", ["Gas kg/m3", "Gas kg/m³", "Density Gas"])
                        or _mapped_process_value(line_key, support_config, "densityLiquid", ["Liquid kg/m3", "Liquid kg/m³", "Density Liquid"]))
@@ -581,6 +586,16 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
                     _set_child(temperature, namespace, tag, values[tag]); changed = True
             if density:
                 _set_child(branch, namespace, "FluidDensity", density); changed = True
+            line_sources["density"] = density
+        print("XML229_LINE_SOURCE_TRANSFER " + json.dumps({
+            "branch": _child_text(branch, namespace, "Branchname"),
+            "lineKey": line_key,
+            "matchedSourceRows": len(linelist_rows),
+            "sourceFields": line_sources,
+            "sourceStatus": ("matched" if linelist_rows else
+                             "unmatched" if support_config.get("linelist", {}).get("masterRows") else
+                             "no-line-list-supplied"),
+        }, sort_keys=True))
         _set_child(pressure, namespace, "HydroPressure", hydro if hydro else _child_text(pressure, namespace, "HydroPressure") or 0)
         changed = True
         branch_name = _child_text(branch, namespace, "Branchname")
