@@ -170,6 +170,10 @@ async function start(req){
     session.openedFacts!==produced.expectedPhysicalFactCount)
    fail('VERIFIED_WEIGHT_SOURCE_DRIFT','Review service did not open complete original physical population');
  verifiedPreviewResult={branchRows:computed.branchRows,nodeRows:computed.nodeRows,
+   // Display-only independent Format 1/2 passes; the canonical authoritative
+   // branch rows remain ambiguous until explicit review.
+   formatPreviewPasses:Array.isArray(computed.formatPreviewPasses)
+     ?computed.formatPreviewPasses:[],
    sourceOccurrences:original,coverage:{sourceBranchCount:original.branchCount,
      originalNodeCount:original.nodeCount,engineeringBranchCount:computed.branchRows.length,
      legacyReviewNodeCount:computed.nodeRows.length},

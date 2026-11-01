@@ -100,6 +100,35 @@ function blockedRunParityResult(job, parity) {
   });
 }
 
+function noImportedEnrichment(config) {
+  return !['linelist','pipingClass','material','weight'].some(key=>
+    (Array.isArray(config?.[key]?.masterRows)&&config[key].masterRows.length)||
+    (Array.isArray(config?.[key]?.mapRows)&&config[key].mapRows.length));
+}
+// Base XML conversion deliberately withholds *all* ambiguous optional values.
+// Governed Final decisions must never be dropped by this direct source route.
+async function runBaseXmlWithoutEnrichment(job,runtime,reason,formatAudit=null) {
+  const config=parseSupportConfig(job.supportConfigJson);
+  const massOverrides=Object.keys(job.weightOverrides||{}).length||
+    Object.keys(config.overrides?.rigidWeight||{}).length;
+  if(job.xml229NativeFinalPacket||massOverrides)
+    return blockedRunParityResult(job,{
+      error:'BASE_XML_REQUIRES_SEPARATE_GOVERNED_FINAL_REVIEW: accepted masses must not be silently discarded',
+    });
+  const raw={...job,supportConfigJson:'{}',previewFacts:[],manualFacts:[],
+    supportMapperRules:[],weightOverrides:{}};
+  // Selected staged JSON remains present and independently fail-closed.
+  const result=await runXmlCii2019StandaloneEngineJob(raw,runtime);
+  const normalized=normalizeXmlEngineResult(result);
+  if(normalized.diagnostics)normalized.diagnostics.optionalEnrichment={
+    status:'WITHHELD',reason,
+    checkedBranchCount:formatAudit?.checkedCount||0,
+    unresolvedFormatCount:formatAudit?.failures?.length||0,
+    nativeReleaseNotImplied:true,
+  };
+  return normalized;
+}
+
 export async function runXmlCii2019WorkflowService(job, runtime = {}) {
   const factedJob = applyEffectiveFactsToJob(job);
   if (factedJob.sourceKind === 'inputxml') {
@@ -112,14 +141,17 @@ export async function runXmlCii2019WorkflowService(job, runtime = {}) {
     return mergeInputXmlEngineResult(finalEnrichedResult, engineResult, factedJob.options.outputMode);
   }
 
-  // API callers and Mode A must pass the same full selected-occurrence format gate as the UI.
+  // Format identity is enrichment-only; complete source scope remains audited.
   const occurrences = buildXmlCiiBranchOccurrences(factedJob.sourceText);
   const auditConfig = parseSupportConfig(factedJob.supportConfigJson);
   const audit = auditConfiguredBranchFormats(occurrences, auditConfig);
-  if (audit.blocked) return blockedRunParityResult(factedJob, {
-    error: `Configured branch identity blocked ${audit.failures.length} selected occurrence(s): ${JSON.stringify(audit.failures.slice(0, 3))}`,
-    stats: { branchFormatAudit: audit },
-  });
+  if (audit.blocked) return runBaseXmlWithoutEnrichment(factedJob,runtime,
+    'CONFLICTING_OR_UNMATCHED_FORMAT_ENRICHMENT',audit);
+  if(noImportedEnrichment(auditConfig)&&
+     !Array.isArray(auditConfig.regexTester?.formats)&&
+     !Array.isArray(auditConfig.formats))
+    return runBaseXmlWithoutEnrichment(factedJob,runtime,
+      'NO_IMPORTED_MASTER_ENRICHMENT',audit);
 
   const parityRunner = typeof runtime.runParityEnricher === 'function'
     ? runtime.runParityEnricher
@@ -129,12 +161,8 @@ export async function runXmlCii2019WorkflowService(job, runtime = {}) {
     return blockedRunParityResult(factedJob, parity);
   }
   const finalAudit = auditConfiguredBranchFormats(occurrences, auditConfig, parity.branchRows);
-  if (finalAudit.blocked) return blockedRunParityResult(factedJob, {
-    error: `Preview branch identity is not qualified for converter release: ${JSON.stringify(finalAudit.failures.slice(0, 3))}`,
-    stats: { branchFormatAudit: finalAudit },
-    evidence: parity.evidence,
-    logs: parity.logs,
-  });
+  if (finalAudit.blocked) return runBaseXmlWithoutEnrichment(factedJob,runtime,
+    'PREVIEW_ENRICHMENT_IDENTITY_CONFLICT',finalAudit);
 
   const engineJob = { ...factedJob, sourceText: parity.xmlText };
   const result = await runXmlCii2019StandaloneEngineJob(engineJob, runtime);
