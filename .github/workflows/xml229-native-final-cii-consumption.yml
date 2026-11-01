@@ -32,6 +32,7 @@ on:
       - 'tests/xml229-native-owner-cardinality.test.py'
       - 'tests/xml229-native-substage-diagnostic.test.py'
       - 'tests/xml229-bm2-source-transfer-contract.test.py'
+      - 'tests/xml229-native-source-hydration-contract.test.py'
       - 'tests/xml229-bm2-propagation-proof.test.mjs'
       - 'tests/xml229-instrument-source-revision.test.py'
       - 'tests/xml229-native-cii-independent-reconciliation.test.mjs'
@@ -64,6 +65,7 @@ jobs:
       - name: BM2 exact piping class and Z-datum staged support source regression
         run: |
           python3 tests/xml229-bm2-source-transfer-contract.test.py
+          python3 tests/xml229-native-source-hydration-contract.test.py
           python3 tests/test_xml229_bm2_old_support_ref.py
       - name: Zero-vs-multiple owner and endpoint-zero native custody
         run: python3 tests/xml229-native-owner-cardinality.test.py
