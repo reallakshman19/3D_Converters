@@ -196,5 +196,46 @@ class Bm2SupportSourceWitness(unittest.TestCase):
         print("BM2_GTST_READONLY_NEAREST_GEOMETRY " + json.dumps(report, sort_keys=True))
 
 
+    def test_BM2_configured_datum_and_tolerance_matrix_readonly(self):
+        """Report actual owner receipts; user-configured broad tolerance is not proof."""
+        xml = ROOT / "Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml"
+        with ZipFile(STAGED) as archive:
+            staged = json.loads(archive.read(MEMBER))
+        root = ET.parse(xml).getroot()
+        nodes = [(field(b, "Branchname"), n) for b in root.iter()
+                 if local(b) == "Branch" for n in children(b, "Node")]
+        results = {}
+        for tol in (6, 25, 470, 500):
+            cfg = {"dtxrPositionOffset": {
+                       "enabled": True, "xOffset": 0, "yOffset": 0, "zOffset": 100000},
+                   "jsonTrace": {"coordinateTolerance": tol}}
+            groups = calibrated_groups(nodes, source_entries(staged, cfg), cfg, field)
+            hits, blocked = {"GT571": [], "ST572": []}, []
+            def require(ok, code):
+                if not ok: raise ValueError(code)
+            for branch, node in nodes:
+                if field(node, "ComponentType").upper() not in ("ATTA", "ANCI"):
+                    continue
+                try:
+                    resolved = resolve(node, branch, groups, tolerance(cfg), field, require)
+                except ValueError as error:
+                    blocked.append([branch, field(node, "NodeNumber"), str(error)])
+                    continue
+                for entry in resolved:
+                    code = entry["attrs"].get("MDSSUPPTYPE")
+                    if code in hits:
+                        hits[code].append({
+                            "xmlBranch": branch,
+                            "node": field(node, "NodeNumber"),
+                            "nodeName": field(node, "NodeName"),
+                            "owner": entry["attrs"].get("OWNER"),
+                            "position": field(node, "Position"),
+                        })
+            results[str(tol)] = {"hits": hits, "blocked": blocked[:6],
+                                 "blockedCount": len(blocked)}
+        print("BM2_DATUM_OFFSET_TOLERANCE_MATRIX " + json.dumps(results, sort_keys=True))
+        self.assertEqual(len(results), 4)
+
+
 if __name__ == "__main__":
     unittest.main()
