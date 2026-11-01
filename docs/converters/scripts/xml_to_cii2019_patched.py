@@ -451,6 +451,44 @@ def _apply_source_class_wall(branch: ET.Element, namespace: str,
 
 
 
+def _material_scoped_pin_ids(config: dict[str, Any],
+                             requested: set[str] | None) -> dict[str, int]:
+    """Honor only explicit Material-identity pins, never branch/class guesses."""
+    if not requested:
+        return {}
+    overrides = config.get("overrides", {})
+    pins = overrides.get("materialCode", {}) if isinstance(overrides, dict) else {}
+    if not isinstance(pins, dict):
+        return {}
+    permitted: dict[str, set[str]] = {}
+    for material in requested:
+        tokens = {" ".join(material.upper().split())}
+        tokens.add(re.sub(r"[^A-Z0-9]", "", material.upper()))
+        spec = re.search(r"\b([AB]\d{3})\b", material.upper())
+        grade = re.search(r"\b([SN]\d{5})\b", material.upper())
+        if spec and grade:
+            tokens.add(spec.group(1) + "-" + grade.group(1))
+        permitted[material] = tokens
+    result: dict[str, int] = {}
+    for raw_key, raw_code in pins.items():
+        key = " ".join(str(raw_key).upper().strip().split())
+        if key.startswith("MAT:"):
+            key = key[4:].strip()
+        candidates = [name for name, keys in permitted.items() if key in keys]
+        if not candidates:
+            continue  # class, branch, and line scoped overrides are not material pins.
+        if len(candidates) != 1:
+            raise ValueError("XML229_MATERIAL_PIN_OWNER_AMBIGUOUS")
+        code = str(raw_code).strip() if type(raw_code) is not bool else ""
+        if not re.fullmatch(r"[1-9]\d*", code):
+            raise ValueError("XML229_MATERIAL_PIN_INVALID")
+        name = candidates[0]
+        if name in result and result[name] != int(code):
+            raise ValueError("XML229_MATERIAL_PIN_CONFLICT")
+        result[name] = int(code)
+    return result
+
+
 def _material_ids_from_config(config: dict[str, Any],
                               requested: set[str] | None = None) -> dict[str, int]:
     """Only exact selected material-map names with positive numeric CII IDs."""
@@ -461,9 +499,11 @@ def _material_ids_from_config(config: dict[str, Any],
         if not isinstance(row, dict):
             continue
         name = (_row_value(row, "material") or _row_value(row, "Material") or
-                _row_value(row, "Material_Name") or _row_value(row, "materialName"))
+                _row_value(row, "Material_Name") or _row_value(row, "Material Name") or
+                 _row_value(row, "materialName"))
         code = (_row_value(row, "code") or _row_value(row, "Code") or
-                _row_value(row, "materialCode"))
+                _row_value(row, "materialCode") or _row_value(row, "MaterialCode") or
+                _row_value(row, "Material Code"))
         if not name or not re.fullmatch(r"[1-9]\d*", code):
             continue  # nonnumeric map code is not a CAESAR material index.
         key = " ".join(name.upper().split())
@@ -473,6 +513,10 @@ def _material_ids_from_config(config: dict[str, Any],
         if key in result and result[key] != val:
             raise ValueError("XML229_MATERIAL_CODE_AMBIGUOUS")
         result[key] = val
+    for name, pinned_id in _material_scoped_pin_ids(config, requested).items():
+        if name in result and result[name] != pinned_id:
+            raise ValueError("XML229_MATERIAL_PIN_MAP_CONFLICT")
+        result[name] = pinned_id
     return result
 
 
