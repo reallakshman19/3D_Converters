@@ -91,22 +91,19 @@ function evidenceLine(line, index) {
 }
 
 function splitOccurrenceSegments(row) {
-  // A source node can carry multiple support occurrences delimited by | or \\.
-  // Do not treat distinct GUIDE and LINESTOP occurrences as one conflicting claim.
-  const parts = text(row.text).split(/[|\\\\]/).map(text).filter(Boolean);
-  // Bare ANCHOR|LINESTOP is a legacy pair of labels for the *same* axial
-  // limit function, not a second physical anchor. Keep truly identified
-  // occurrences (NAME/gap/etc.) independent and subject to owner checks.
+  // Only "|" delimits separately authored source occurrences.
+  const parts = text(row.text).split('|').map(text).filter(Boolean);
+  // This exact compound label means one axial stop, not an added anchor.
   if (parts.length === 2 &&
-      parts.every(part => /^(?:ANCHOR|LINE\\s*STOP|LINESTOP)$/i.test(part)) &&
+      parts.every(part => /^(?:ANCHOR|LINE\s*STOP|LINESTOP)$/i.test(part)) &&
       parts.some(part => /^ANCHOR$/i.test(part)) &&
-      parts.some(part => /^LINE\\s*STOP|LINESTOP$/i.test(part))) {
+      parts.some(part => /^(?:LINE\s*STOP|LINESTOP)$/i.test(part))) {
     parts.splice(0, parts.length, 'LINE STOP');
   }
   return (parts.length ? parts : [text(row.text)]).map((segment, index) => {
     const nameMatch = segment.match(/\bNAME\s*=\s*([^),|\s]+)/i);
     return {
-      source: parts.length > 1 ? `${row.source}:segment-${index + 1}` : row.source,
+      source: parts.length > 1 ? row.source + ':segment-' + (index + 1) : row.source,
       text: segment,
       occurrenceName: text(nameMatch?.[1]),
       segmentIndex: index + 1,
@@ -206,7 +203,7 @@ function rowMatches(evidence, row) {
 
 export function classifySupportText(value, mapperRows = createDefaultSupportTypeMapperConfig()) {
   const primaryIntent = /\b(?:LINE\s*STOP|LINESTOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR|LATERAL\s+GUIDE|GUIDE)\b/i.test(text(value));
-  const directionalAnchor = /\\bDIRECTIONAL\\s+ANCHOR\\b/i.test(text(value));
+  const directionalAnchor = /\bDIRECTIONAL\s+ANCHOR\b/i.test(text(value));
   const candidates = mapperRows.flatMap((row) => rowMatches(value, row)
     // A specific "Directional Anchor" source phrase denotes a LINESTOP.
     // The shorter default ANCHOR keyword is an overlapping substring,
