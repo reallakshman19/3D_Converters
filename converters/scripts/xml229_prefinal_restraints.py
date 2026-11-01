@@ -73,22 +73,29 @@ def kinds(entries, require, config=None):
         # outrank abbreviated GT/ST. Do not copy its legacy DOF/axis defaults.
         desc = ' '.join([text(a.get(k)) for k in ('DTXR', 'DESC', 'DESCRIPTION')] +
                         [text(e['desc'])]).upper()
-        semantic = [
-            k for k, pat in (
-                ('LINESTOP', r'\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b'),
-                ('GUIDE', r'\bGUIDE\b'),
-                ('REST', r'\b(?:PIPE[- ]?REST|REST)\b|\bSHOE\b'))
-            if re.search(pat, desc)
-        ]
-        if 'REST' in semantic and 'LINESTOP' in semantic and \
-                re.search(r'\bSHOE\b', desc) and \
-                not re.search(r'\b(?:PIPE[- ]?REST|REST)\b', desc):
-            semantic.remove('REST')
-        if 'REST' in semantic and 'GUIDE' in semantic and \
-                re.search(r'\bSHOE\b', desc) and \
-                not re.search(r'\b(?:PIPE[- ]?REST|REST)\b', desc):
-            semantic.remove('REST')
-        require(len(set(semantic)) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+        # With a persisted Step 7 mapper, never let legacy regex literals
+        # defeat edited or removed user aliases. Only pre-mapper configs may
+        # use these historical semantic fallbacks.
+        has_saved_mapper = isinstance((config.get('supportTypeMapper') or {}).get('rows'), list)
+        semantic = []
+        if not has_saved_mapper:
+            semantic = [
+                k for k, pat in (
+                    ('LINESTOP', r'\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b'),
+                    ('GUIDE', r'\bGUIDE\b'),
+                    ('REST', r'\b(?:PIPE[- ]?REST|REST)\b|\bSHOE\b'))
+                if re.search(pat, desc)
+            ]
+            if 'REST' in semantic and 'LINESTOP' in semantic and \
+                    re.search(r'\bSHOE\b', desc) and \
+                    not re.search(r'\b(?:PIPE[- ]?REST|REST)\b', desc):
+                semantic.remove('REST')
+            if 'REST' in semantic and 'GUIDE' in semantic and \
+                    re.search(r'\bSHOE\b', desc) and \
+                    not re.search(r'\b(?:PIPE[- ]?REST|REST)\b', desc):
+                semantic.remove('REST')
+            require(len(set(semantic)) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+
         canonical = {
             text(a.get(k)).upper().replace(' ', '') for k in
             ('SUPPORT_KIND', 'SUPPORT_MAPPER_KIND', 'SUPPORT_TYPE')
@@ -97,10 +104,18 @@ def kinds(entries, require, config=None):
         require(len(canonical) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
         mapped_kind, score = mapped_support_kind(a, e['desc'], config, require)
         code = text(a.get('MDSSUPPTYPE')).upper()
+        medium_min = (config.get('supportTypeMapper') or {}).get('confidencePolicy') or {}
+        try:
+            medium_threshold = float(medium_min.get('mediumMinimum', .65))
+        except (ValueError, TypeError):
+            raise ValueError('NATIVE_PREFINAL_RESTRAINT_CONFIDENCE_INVALID')
+        require(0 <= medium_threshold <= 1,
+                'NATIVE_PREFINAL_RESTRAINT_CONFIDENCE_INVALID')
         kind = (semantic[0] if semantic
-                else mapped_kind if score >= .65 and mapped_kind in ('REST','GUIDE','LINESTOP')
+                else mapped_kind if score >= medium_threshold and mapped_kind in ('REST','GUIDE','LINESTOP')
                 else next(iter(canonical)) if canonical
                 else mapped_kind if mapped_kind in ('REST','GUIDE','LINESTOP')
+                else '' if has_saved_mapper
                 else 'GUIDE' if code.startswith('GT') else 'LINESTOP' if code.startswith('ST')
                 else 'REST' if code == 'PIPE-REST' or code.startswith('AT') or
                 re.search(r'\b(?:PIPE[- ]?REST|REST|SHOE)\b',
