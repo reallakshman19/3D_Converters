@@ -319,10 +319,18 @@ def _kind_from_dtxr(text: str, support_config: dict[str, Any]) -> list[str]:
         def require(ok, code):
             if not ok:
                 raise ValueError(code)
-        kind, _score = mapped_support_kind({"DTXR": normalized}, "", support_config, require)
-        if kind and kind not in ("REST", "GUIDE", "LINESTOP"):
-            raise ValueError("XML229_CONFIGURED_SUPPORT_KIND_UNSUPPORTED")
-        return [kind] if kind else []
+        # A DTXR_POS field may represent several distinct support
+        # occurrences delimited by '|'. Never classify their concatenation
+        # as a single conflicting restraint; classify each independently.
+        classified = []
+        for occurrence in normalized.split("|"):
+            kind, _score = mapped_support_kind(
+                {"DTXR": occurrence.strip()}, "", support_config, require)
+            if kind and kind not in ("REST", "GUIDE", "LINESTOP"):
+                raise ValueError("XML229_CONFIGURED_SUPPORT_KIND_UNSUPPORTED")
+            if kind and kind not in classified:
+                classified.append(kind)
+        return classified
     kinds: list[str] = []
     rules = support_config.get("keywordRules") if isinstance(support_config.get("keywordRules"), list) else DEFAULT_SUPPORT_CONFIG["keywordRules"]
     for rule in rules:
