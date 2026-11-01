@@ -606,6 +606,64 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         self.assertEqual(node.findtext('MaterialName'),'ASTM A106-B')
         self.assertEqual(node.findtext('PipingClassRating'),'900')
 
+    def test_real_bm2_combined_line_class_material_to_native_cii(self):
+        """Real BM2 geometry/workbook/class and only SYNTHETIC pinned ID 741."""
+        import xml_to_cii2019_patched as native
+        from zipfile import ZipFile
+        xml=ROOT/'Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml'
+        book=ROOT/'Benchmarks/XML-CII-2019/revamped/LL_BM2.xlsx'
+        sheet_ns='{http://schemas.openxmlformats.org/spreadsheetml/2006/main}'
+        with ZipFile(book) as workbook:
+            sheet=ET.fromstring(workbook.read('xl/worksheets/sheet3.xml'))
+        def cell(ref):
+            target=next(n for n in sheet.iter(sheet_ns+'c') if n.get('r')==ref)
+            return target.findtext(sheet_ns+'v')
+        self.assertEqual((cell('C9'),cell('V9'),cell('K9'),cell('Y9'),cell('Z9')),
+                         ('4110001','93833','11000','120','-50'))
+        row={'lineSeqNo':cell('C9'),'p1':cell('K9'),'t1':cell('Y9'),
+             't2':'40','t3':cell('Z9'),'densityMixed':cell('M9')}
+        spec=json.loads((ROOT/'docs/Masters/SpecwisePipingClass/93833.json').read_text())
+        cfg={'linelist':{'masterRows':[row], 'fieldMap':{
+                'lineSeqNo':'lineSeqNo','p1':'p1','t1':'t1','t2':'t2',
+                't3':'t3','densityMixed':'densityMixed'}},
+             'pipingClass':{'masterRows':spec['rows']},
+             'material':{'mapRows':[{'Material':'ASTM A790 UNS S31803',
+                                     'Code':'741'}]}}
+        enriched=native._apply_process_data_to_xml(xml,cfg)
+        try:
+            root=ET.parse(enriched).getroot()
+            first=next(n for n in root.iter() if n.tag.rsplit('}',1)[-1]=='Branch')
+            nodes=[n for n in first if n.tag.rsplit('}',1)[-1]=='Node']
+            def field(n,key):
+                return next((x.text or '' for x in n if x.tag.rsplit('}',1)[-1]==key),'')
+            self.assertAlmostEqual(float(field(nodes[0],'WallThickness')),7.112,places=6)
+            self.assertEqual(field(nodes[0],'PipingClassRating'),'900')
+            self.assertEqual(field(nodes[0],'MaterialCode'),'741')
+            with TemporaryDirectory() as folder:
+                cii=Path(folder)/'actual-bm2.cii'
+                run=subprocess.run([sys.executable,str(SCRIPTS/'xml_to_cii2019.py'),
+                                    '--input',str(enriched),'--output',str(cii)],
+                                   capture_output=True,text=True,timeout=60)
+                self.assertEqual(run.returncode,0,run.stderr)
+                data=cii.read_text(encoding='utf-8')
+                elements=data.split('#'+'$ ELEMENTS\n',1)[1].split('#'+'$ ',1)[0].splitlines()
+                self.assertEqual(len(elements)%15,0)
+                target=next((i for i in range(len(elements)//15)
+                             if '/GLRD-1000-6"-P4110001-93833-01/B6' in elements[i*15+10]
+                             and elements[i*15].split()[:2]==['10.00000','20.00000']),None)
+                self.assertIsNotNone(target,'actual BM2 native 10->20 element absent')
+                block=elements[target*15:(target+1)*15]
+                self.assertAlmostEqual(float(block[1].split()[0]),7.112,places=5)
+                self.assertEqual(float(block[1].split()[3]),120)
+                self.assertEqual(float(block[1].split()[5]),-50)
+                self.assertEqual(float(block[3].split()[0]),11000)
+                self.assertAlmostEqual(float(block[5].split()[1]),109.85,places=3)
+                material=data.split('#'+'$ MISCEL_1\n',1)[1].split('#'+'$ ',1)[0].splitlines()
+                selected=float(material[target//6].split()[target%6])
+                self.assertEqual(selected,741)  # synthetic approved pin only
+        finally:
+            if enriched!=xml:enriched.unlink(missing_ok=True)
+
     def test_valve_5950_5960_positive_final_mass_can_be_consumed_when_accepted(self):
         """Synthetic accepted positive kg, with real BM2 valve ref/XYZ witness."""
         from xml229_native_final_mass_binding import bind_native_final_xml,emitted_sections
