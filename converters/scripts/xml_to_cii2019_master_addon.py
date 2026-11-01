@@ -177,16 +177,17 @@ def _line_process_value(line_key: str, row: dict[str, Any] | None, overrides: di
 
 def _normalize_ps_tag(value: object) -> str:
     text = str(value).strip().upper().lstrip("/") if value is not None else ""
-    match = re.search(r"PS-\d+(?:\.\d+)?", text)
+    match = re.search(r"PS-?(\d+)(?:\.\d+)?", text)
     if not match:
         return ""
-    return re.sub(r"\.\d+$", "", match.group(0))
+    # PSI XML PS00574.1 and JSON /PS-00574.1 share the historic PS-<digits> key.
+    return "PS-" + match.group(1)
 
 
 def _ps_tags_from_text(value: object) -> set[str]:
     text = str(value) if value is not None else ""
     tags = set()
-    for match in re.finditer(r"/?PS-\d+(?:\.\d+)?", text, flags=re.I):
+    for match in re.finditer(r"/?PS-?\d+(?:\.\d+)?", text, flags=re.I):
         tag = _normalize_ps_tag(match.group(0))
         if tag:
             tags.add(tag)
