@@ -641,8 +641,16 @@ class NativeSubstageWitnessTests(unittest.TestCase):
                  {'from':'7','to':'9'},{'from':'7','to':'8'}]}}
         with self.assertRaisesRegex(ValueError,'NATIVE_PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'):
             node_type_mutation({'NODETYPE':'7'},config)
-        config['inputXmlRestraintTypeMutation']['rows']=[{'from':'7','to':'8'}]
+        config['inputXmlRestraintTypeMutation']['rows']=[{'from':'07','to':'GUI'}]
         self.assertEqual(node_type_mutation({'NODETYPE':'7'},config),'GUI')
+        config['inputXmlRestraintTypeMutation']['rows'].append({'from':'7','to':'LIM'})
+        with self.assertRaisesRegex(ValueError,'NATIVE_PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'):
+            node_type_mutation({'NODETYPE':'7'},config)
+        config['inputXmlRestraintTypeMutation']['rows']=[{'from':'7','to':'+Y'}]
+        self.assertEqual(node_type_mutation({'NODETYPE':'7'},config),'+Y')
+        config['inputXmlRestraintTypeMutation']['rows']=[{'from':'7','to':'NONEXISTENT'}]
+        with self.assertRaisesRegex(ValueError,'NATIVE_PREFINAL_RESTRAINT_TYPE_INVALID'):
+            node_type_mutation({'NODETYPE':'7'},config)
         config['inputXmlRestraintTypeMutation']['enabled']=False
         self.assertEqual(node_type_mutation({'NODETYPE':'7'},config),'7')
 
