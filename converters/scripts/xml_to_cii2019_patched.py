@@ -524,6 +524,18 @@ def _process_material_for_line(line_key: str, config: dict[str, Any]) -> str:
     """The selected Line List Material outranks class fallback; never guess."""
     section = config.get("linelist", {})
     field_map = section.get("fieldMap", {}) if isinstance(section, dict) else {}
+    # A duplicated numeric fallback is not an absent Process Material;
+    # fail closed before the lower-authority class can supply its material.
+    wanted = re.sub(r"\s+", "", line_key.upper())
+    if re.fullmatch(r"P[0-9]{7}", wanted):
+        rows = section.get("masterRows", []) if isinstance(section, dict) else []
+        exact = [row for row in rows if isinstance(row, dict) and
+                 _line_key_from_row(row, config) == wanted]
+        if not exact:
+            alias = [row for row in rows if isinstance(row, dict) and
+                     _line_key_from_row(row, config) == wanted[1:]]
+            if len(alias) > 1:
+                raise ValueError("XML229_LINE_MATERIAL_AMBIGUOUS")
     keys = [field_map.get("material") if isinstance(field_map, dict) else None,
             "material", "Material", "MATERIAL", "MOC",
             "Material Name", "Material_Name", "processMaterial"]
