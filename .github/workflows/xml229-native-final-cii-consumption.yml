@@ -7,6 +7,8 @@ on:
       - 'converters/scripts/xml229_instrument_source_revision.py'
       - 'converters/scripts/xml_to_cii2019_patched.py'
       - 'converters/scripts/xml_to_cii2019_master_addon.py'
+      - 'converters/scripts/xml229_prefinal_restraints.py'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js'
       - 'converters/scripts/xml_to_cii2019_runtime_custody.py'
       - 'converters/xml-cii-2019-standalone/{engine.js,invocation-builder.js}'
       - 'converters/xml-cii2019-core/xml229-native-cii-independent-reconciliation.mjs'
@@ -56,7 +58,9 @@ jobs:
       - name: Native Python stage identity and non-suppressed guarded failures
         run: python3 tests/xml229-native-substage-diagnostic.test.py
       - name: BM2 exact piping class and Z-datum staged support source regression
-        run: python3 tests/xml229-bm2-source-transfer-contract.test.py
+        run: |
+          python3 tests/xml229-bm2-source-transfer-contract.test.py
+          python3 tests/test_xml229_bm2_old_support_ref.py
       - name: Zero-vs-multiple owner and endpoint-zero native custody
         run: python3 tests/xml229-native-owner-cardinality.test.py
       - name: Accepted kg into exact original owner and native RIGID pointer
@@ -80,7 +84,7 @@ jobs:
       - name: Identity-bound native CII propagation proof (not global text search)
         run: |
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-propagation-audit.js
-          node --test tests/xml229-bm2-propagation-proof.test.mjs
+          node --test tests/xml229-bm2-propagation-proof.test.mjs tests/xml229-description-only-restraint-gap-native.test.mjs
       - name: Separate independent CII parser, manifest and native Run status
         run: |
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-optional-instrument-advisory.mjs
