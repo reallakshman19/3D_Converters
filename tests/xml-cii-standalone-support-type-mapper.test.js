@@ -81,9 +81,14 @@ function hasPreview(result, status, kind) {
     elementSideLoadText: 'ELEMENT 30-40\nDTXR_POS=Directional Anchor On Shoe\nDTXR_PS=Fixed Anchor',
     supportConfigJson: '{}',
   });
-  assert(hasPreview(inputXmlResult, 'ambiguous', 'LINESTOP'), 'equal-strength Directional Anchor + Shoe evidence must remain review-required');
+  assert(hasPreview(inputXmlResult, 'matched', 'LINESTOP'), 'the specific Directional Anchor alias must outrank generic Anchor and accessory Shoe');
   assert(hasPreview(inputXmlResult, 'matched', 'ANCHOR'), 'InputXML fixed anchor text should match ANCHOR');
-  assert(inputXmlResult.diagnostics.some((row) => row.type === 'ambiguous-support-kind'), 'ambiguous diagnostics expected');
+  const independentConflict = helper.runStandaloneSupportTypeMapper({
+    testInput: 'REST GUIDE',
+    supportConfigJson: '{}',
+  });
+  assert(hasPreview(independentConflict, 'ambiguous'), 'independent equal-strength REST+GUIDE evidence must remain review-required');
+  assert(independentConflict.diagnostics.some((row) => row.type === 'ambiguous-support-kind'), 'real conflicting kinds remain auditable');
 
   const rows = helper.createDefaultSupportTypeMapperConfig();
   rows.find((row) => row.kind === 'REST').aliases.push('Saddle');
