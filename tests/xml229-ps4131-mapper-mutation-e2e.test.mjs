@@ -199,6 +199,34 @@ test('Step 8 contradictory duplicate mutations fail closed instead of first-matc
   );
 });
 
+test('exact staged support gap cannot be replaced by stale native XML default',async()=>{
+  const {config}=setup();
+  const doc=new DOMParser().parseFromString(xml,'application/xml');
+  const target=[...doc.getElementsByTagName('Node')].find(n=>
+    n.getElementsByTagName('NodeName')[0]?.textContent==='PS-4131.2');
+  assert.ok(target);
+  const restraint=doc.createElement('Restraint');
+  const kind=doc.createElement('Type');
+  kind.textContent='GUI';
+  restraint.appendChild(kind);
+  const gap=doc.createElement('Gap');
+  gap.textContent='0';
+  restraint.appendChild(gap);
+  target.appendChild(restraint);
+  const withOldGap=new XMLSerializer().serializeToString(doc);
+  await assert.rejects(
+    prepareXml229PrefinalRestraints({
+      xmlText:withOldGap,stagedJsonText:original(),config}),
+    {code:'PREFINAL_RESTRAINT_SOURCE_GAP_CONFLICT'},
+    'verified 4.5 mm support gap must not be silently left as XML 0');
+  gap.textContent='4.5';
+  const matching=await prepareXml229PrefinalRestraints({
+    xmlText:new XMLSerializer().serializeToString(doc),stagedJsonText:original(),config});
+  const row=nodeRows(matching.document)[1].rows;
+  assert.deepEqual(row.map(x=>({type:x.type,gap:x.gap})),[{type:'GUI',gap:4.5}],
+    'matching source gap stays idempotent, without duplicate restraints');
+});
+
 test('CONFIG-ONLY uncertain support alias changes emitted native restraint TYPE',async()=>{
   const source=JSON.parse(original());
   const attrs=source[0].children[1].attributes;
