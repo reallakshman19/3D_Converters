@@ -178,7 +178,7 @@ def node_type_mutation(attrs, config):
     value = int(raw)
     rules = (config.get('inputXmlRestraintTypeMutation') or
              config.get('restraintTypeMutation') or {})
-    defaults = [('17', '14'), ('7', '8'), ('10', '9'),
+    defaults = [('17', '14'), ('7', '9'), ('10', '8'),
                 ('1', '2'), ('2', '3'), ('3', '5'), ('18', '15')]
     if rules.get('enabled') is not False:
         rows = rules.get('rows')
