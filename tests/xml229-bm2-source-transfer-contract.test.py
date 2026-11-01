@@ -166,7 +166,7 @@ class SourceTransferRegression(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 cii = cii_path.read_text(encoding="utf-8")
                 self.assertIn("#$ RESTRANT", cii)
-                lines = cii.split("#$ RESTRANT\\n", 1)[1].split("#$", 1)[0].splitlines()
+                lines = cii.split("#$ RESTRANT\n", 1)[1].split("#$", 1)[0].splitlines()
                 native_rows = []
                 for index in range(0, len(lines) - 3, 4):
                     values = lines[index].split()
