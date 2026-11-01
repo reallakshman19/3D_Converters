@@ -99,13 +99,14 @@ function parseEnrichedXml(enrichedText) {
 
 const SENTINEL_TEMPERATURE = -100000;
 
-function statusFor(tabValue, enrichedValue, inCii, enrichedAvailable, ciiAvailable) {
-  const tabN = num(tabValue);
-  let enrN = num(enrichedValue);
+function statusFor(tabValue, enrichedValue, inCii, enrichedAvailable, ciiAvailable, fieldId = '') {
+  const isTemperature = /^t[1-9]$/.test(fieldId);
+  const tabN = engineeringNumber(tabValue, isTemperature);
+  let enrN = engineeringNumber(enrichedValue, isTemperature);
   // -100000 is the converter's "no value" temperature sentinel — treat it as
   // a missing value, not a real number.
   if (enrN !== null && Math.abs(enrN - SENTINEL_TEMPERATURE) < 1e-6) enrN = null;
-  if (tabN === null) return 'no-tab-value';
+  if (tabN === null) return 'source-unverified';
   if (enrichedAvailable) {
     if (enrN === null) return 'missing-in-enriched';
     if (Math.abs(enrN - tabN) > Math.max(0.01, Math.abs(tabN) * 0.001)) return 'mismatch-enriched';
@@ -175,7 +176,7 @@ export async function buildXmlCiiPropagationAudit(state) {
         stageTab: t(tabValue) || '—',
         stageEnriched: enriched.available ? (t(enrichedValue) || '—') : 'n/a',
         stageCii: ciiAvailable ? (inCii === null ? 'unverified' : inCii ? 'field matched' : 'field mismatch') : 'n/a',
-        status: freshPreviewAvailable ? statusFor(tabValue, enrichedValue, inCii, enriched.available && !!enrichedBranch, ciiAvailable) : 'preview-unverified',
+        status: freshPreviewAvailable ? statusFor(tabValue, enrichedValue, inCii, enriched.available && !!enrichedBranch, ciiAvailable, fieldId) : 'preview-unverified',
       });
     }
   }
@@ -199,7 +200,7 @@ export async function buildXmlCiiPropagationAudit(state) {
         stageTab: t(previewValue) || '—',
         stageEnriched: xmlNode ? (t(xmlValue) || '—') : 'node not found',
         stageCii: first ? (inCii === true ? 'field matched' : inCii === null ? 'unverified' : 'field mismatch') : 'element not found',
-        status: verified ? statusFor(previewValue, xmlValue, inCii, true, true) : 'preview-unverified',
+        status: verified ? statusFor(previewValue, xmlValue, inCii, true, true, fieldId) : 'preview-unverified',
       });
     }
   }
@@ -256,6 +257,7 @@ const STATUS_STYLES = {
   'missing-in-enriched': { label: '✗ lost tab→XML', color: '#f87171', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.25)' },
   'mismatch-enriched': { label: '≠ mismatch tab→XML', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)' },
   'missing-in-cii': { label: '✗ lost XML→CII', color: '#f87171', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.25)' },
+  'source-unverified': { label: '⚠ Source value absent', color: '#fbbf24', bg: 'transparent', border: '#fbbf24' },
   'preview-unverified': { label: '⚠ Preview stale/absent', color: '#fbbf24', bg: 'transparent', border: '#fbbf24' },
   'unverified-cii': { label: '⚠ CII unverified', color: '#fbbf24', bg: 'transparent', border: '#fbbf24' },
   'final-unverified': { label: '⚠ Final authority missing', color: '#fbbf24', bg: 'transparent', border: '#fbbf24' },
