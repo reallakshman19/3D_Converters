@@ -6,7 +6,7 @@ issue: https://github.com/reallakshman19/3D_Converters/issues/376
 pr_url: https://github.com/reallakshman19/3D_Converters/pull/378
 branch: fix/xml229-preview-substage-timing-20261101
 base: 2477a6fdee1002d5063bc51e94777ba940e6fa82
-report_basis_head: 4b32fcb76b6c9c4bedfe13dcc1739a6763712725
+report_basis_head: ea60bb5557682ef3ee6bcc07788ce2c7d1e07920
 criticality: ENGINEERING_CRITICAL
 validation: SOURCE_INSPECTION_PASS_ROOT_DOCS_BLOB_PARITY_PASS_NODE_NOT_RUN_CHROME_NOT_RUN_NATIVE_CII_NOT_RUN
 review_mode: AUTHOR_IMPLEMENTATION_ONLY

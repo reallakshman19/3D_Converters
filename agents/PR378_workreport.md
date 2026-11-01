@@ -12,8 +12,8 @@ PR_URL: https://github.com/reallakshman19/3D_Converters/pull/378
 SOURCE_ISSUE: https://github.com/reallakshman19/3D_Converters/issues/376
 BRANCH: fix/xml229-preview-substage-timing-20261101
 BASE_MAIN: 2477a6fdee1002d5063bc51e94777ba940e6fa82
-IMPLEMENTATION_BASIS_HEAD: 4b32fcb76b6c9c4bedfe13dcc1739a6763712725
-REPORT_BASIS_HEAD: 4b32fcb76b6c9c4bedfe13dcc1739a6763712725
+IMPLEMENTATION_BASIS_HEAD: ea60bb5557682ef3ee6bcc07788ce2c7d1e07920
+REPORT_BASIS_HEAD: ea60bb5557682ef3ee6bcc07788ce2c7d1e07920
 COORDINATION: COORDINATION_REQUIRED; open legacy #260 overlaps canonical GC-PW Worker, #253 Preview integration, #371 adjacent native BM2.
 CURRENT_STAGE: DRAFT_PUBLISHED
 HIGHEST_RISK: broad native/source authority regression not yet tested in real browser; proposed raw route must not discard accepted masses or selected staged JSON.
@@ -29,7 +29,7 @@ XML→CII base conversion must occur even if Line List, Piping Class master or M
 - The current original verified GC-PW Worker created `verifiedPreviewResult` from `computed.branchRows/nodeRows` but omitted `computed.formatPreviewPasses` so the normal Worker-backed Preview UI never received the two independent reviews.
 - Branch-format extractor already requires only Line Key and Piping Class for its matched identity; Rating is optional and absent Rating cannot create format ambiguity by itself.
 
-## Code at 4b32fcb76b6c9c4bedfe13dcc1739a6763712725
+## Code at ea60bb5557682ef3ee6bcc07788ce2c7d1e07920
 1. xml-cii-workflow-service.js (+docs identical):
    - Existing direct API format audit retained, but unresolved optional formats now route to the UNCHANGED engine with original XML and an empty optional support configuration; no Preview candidate is promoted.
    - When no imported masters and no explicit multi-format config, direct base XML is also executed without master enrichment.
@@ -81,3 +81,8 @@ Do not merge, rebase, auto-merge or deploy. Exactly open PR378 for engineering r
 
 ## Continuation
 The first actionable next command in a complete checkout is `node --test tests/xml-cii-j04-service-release-gate.test.mjs tests/xml-cii-j04-multi-format-preview.test.mjs`. Review root/docs parity and CI exact head, inspect any failed test, then run actual EF05 4 Preview and real XML-only conversion with no and partial masters and selected JSON negative guard. Do not amend independent expected values to hide failures.
+
+## Post-publication guard tightening — ea60bb5557682ef3ee6bcc07788ce2c7d1e07920
+The first PR code did not sufficiently guard manually authored Preview facts/support mappings on the raw route. A subsequent exact-head commit now rejects fallback rather than silently dropping job/manual/Preview/supportMapper facts or nonempty config overrides. It retains all non-master source configuration fields (including dtxrPositionOffset geometry/JSON calibration) while deleting only optional master-derived formatting/mapping fields. Two focused transport tests were added for authored fact refusal and preserving coordinate calibration. The source/docs mirror code remains byte-identical. This refinement changes no native mass authority or staged JSON failure policy.
+
+Exact-head current CI sampled immediately after ea60bb5557682ef3ee6bcc07788ce2c7d1e07920: workflows QUEUED; no complete acceptance claimed. Additional Node/Chrome/native output validation remains NOT_RUN in this session. The legacy WIP and PR report reflect scope supersession from timing-only plan to optional enrichment. Do not change another PR to address this.
