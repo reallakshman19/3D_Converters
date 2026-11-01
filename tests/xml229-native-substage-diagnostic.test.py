@@ -650,7 +650,7 @@ class NativeSubstageWitnessTests(unittest.TestCase):
                 self.assertEqual(len(elements)%15,0)
                 target=next((i for i in range(len(elements)//15)
                              if '/GLRD-1000-6"-P4110001-93833-01/B6' in elements[i*15+10]
-                             and elements[i*15].split()[:2]==['10.00000','20.00000']),None)
+                             and tuple(int(float(x)) for x in elements[i*15].split()[:2])==(10,20)),None)
                 self.assertIsNotNone(target,'actual BM2 native 10->20 element absent')
                 block=elements[target*15:(target+1)*15]
                 self.assertAlmostEqual(float(block[1].split()[0]),7.112,places=5)
