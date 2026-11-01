@@ -73,14 +73,37 @@ test('one legacy configuration remains one candidate with old token fallback sem
   assert.deepEqual([r.lineKey, r.pipingClass, r.matchedFormatIndex], ['LN17', 'PC42', 0]);
 });
 
-test('optional engineering field conflicts also fail closed', () => {
+test('rating and bore are optional; competing optional values stay blank', () => {
   const fmt = { lineKey: { regex: '(LN17)' }, pipingClass: { regex: '(PC42)' } };
   const result = resolve('LN17-PC42-B100', { formats: [
-    { ...fmt, bore: { regex: 'B(100)' } },
-    { ...fmt, bore: { regex: 'B(10)' } },
+    { ...fmt, bore: { regex: 'B(100)' }, rating: {regex:'B(100)'} },
+    { ...fmt, bore: { regex: 'B(10)' }, rating: {regex:'B(10)'} },
   ] });
-  assert.equal(result.status, 'AMBIGUOUS');
+  assert.equal(result.status, 'MATCHED');
+  assert.equal(result.lineKey, 'LN17');
+  assert.equal(result.pipingClass, 'PC42');
   assert.equal(result.bore, '');
+  assert.equal(result.rating, '');
+});
+
+test('ordered multi-column line key and concatenate text survive extractor', () => {
+  const branch='/ASIM-1836-4"-P-8810049-31441C4-PP/B1';
+  const format={
+    tokenDelimiter:'-',lineKeyJoiner:'',
+    lineKey:{extractMode:'TOKEN',tokenPosition:'4,5'},
+    pipingClass:{extractMode:'TOKEN',tokenPosition:'6'},
+    rating:{extractMode:'TOKEN',tokenPosition:''},
+  };
+  const compact=resolve(branch,{formats:[format]});
+  assert.equal(compact.status,'MATCHED');
+  assert.equal(compact.lineKey,'P8810049');
+  assert.equal(compact.pipingClass,'31441C4');
+  assert.equal(compact.candidates[0].reasons.rating,undefined);
+  assert.equal(resolve(branch,{formats:[{...format,lineKeyJoiner:'-'}]}).lineKey,
+    'P-8810049');
+  assert.equal(resolve(branch,{formats:[{
+    ...format,lineKey:{...format.lineKey,tokenPosition:'5,4'},
+  }]}).lineKey,'8810049P','click order controls concatenation');
 });
 
 test('resolver never mutates supplied format configuration', () => {
