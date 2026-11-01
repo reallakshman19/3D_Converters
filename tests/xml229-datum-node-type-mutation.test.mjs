@@ -10,6 +10,7 @@ import {installWeightBasisXmlDom} from '../tabs/xml-cii-2019-standalone/workers/
 import {prepareXml229PrefinalRestraints} from '../tabs/xml-cii-2019-standalone/integration/xml229-prefinal-restraints.mjs';
 import {createDefaultResolverJsonTraceConfig, runStandaloneResolverJsonTrace}
   from '../tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js';
+import {classifySupportText} from '../tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js';
 
 installWeightBasisXmlDom(globalThis);
 const XML = '<PipeStressExport><Pipe><Branch><Branchname>/TEST/B1</Branchname>'
@@ -99,4 +100,11 @@ test('emitted native CII obeys configured NODETYPE 17 -> 14 and gap zero',async(
     assert.equal(row?.[1],14);
     assert.equal(row?.[3],0);
   }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('semantic LINE STOP over wear pad; true stop-guide conflict remains ambiguous',()=>{
+  assert.equal(classifySupportText('LINE STOP ON BARE PIPE WITH WEAR PAD').supportKind,'LINESTOP');
+  assert.equal(classifySupportText('GUIDE WITH WEAR PAD').supportKind,'GUIDE');
+  assert.equal(classifySupportText('WEAR PAD').supportKind,'REST');
+  assert.equal(classifySupportText('LINE STOP AND GUIDE').status,'ambiguous');
 });
