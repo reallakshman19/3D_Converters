@@ -29,10 +29,10 @@ function authorityRow(selection, overrideConfig = config) {
   return rows.find(row => row.id === 'branch-format-authority');
 }
 
-test('configured multi-format run readiness blocks a conflicting selected branch occurrence', () => {
+test('configured format conflict warns for conversion but never grants engineering authority', () => {
   const row = authorityRow();
-  assert.equal(row.blocking, true);
-  assert.equal(row.status, 'missing');
+  assert.equal(row.blocking, false);
+  assert.equal(row.status, 'unresolved-enrichment');
   assert.match(row.message, /1 of 2 selected branch occurrences/);
   const failures = JSON.parse(row.detail);
   assert.equal(failures.length, 1);
