@@ -543,6 +543,117 @@ def build_ca_sidecar(xml_path, pclass_master, material_map, linelist, overrides,
     }
 
 
+def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
+                         option: dict[str, Any] | None) -> tuple[dict[int, list[dict[str, Any]]], int]:
+    """Assign each positioned JSON member to one source node using XYZ first.
+
+    A coincident element boundary (BM2 20/30) is *not* two support owners.
+    A matching PS tag may disambiguate equal XYZ only; it cannot rescue an
+    offset-mismatched source member by itself. Never replicate a single member
+    onto multiple CII nodes.
+    """
+    import itertools
+    import math
+
+    offset = _dtxr_position_offset(option)
+    tol = offset["tolerance"]
+    cell_size = tol if tol > 0 else 0.000001
+    rows: list[tuple[ET.Element, str, dict[str, float], set[str]]] = []
+    by_cell: dict[tuple[int, int, int], list[int]] = {}
+    by_tag: dict[str, list[int]] = {}
+
+    def cell(pos: dict[str, float]) -> tuple[int, int, int]:
+        return tuple(math.floor(pos[k] / cell_size) for k in ("x", "y", "z"))
+
+    for branch in root.iter():
+        if _local(branch.tag) != "Branch":
+            continue
+        name = next(((c.text or "").strip() for c in branch if _local(c.tag) == "Branchname"), "")
+        for node in branch:
+            if _local(node.tag) != "Node":
+                continue
+            point = _parse_position_text(next(
+                ((c.text or "") for c in node if _local(c.tag) == "Position"), ""))
+            if point is None:
+                continue
+            tags = set(_node_ps_tags(node))
+            index = len(rows)
+            rows.append((node, name.upper(), point, tags))
+            by_cell.setdefault(cell(point), []).append(index)
+            for tag in tags:
+                by_tag.setdefault(tag, []).append(index)
+
+    def compatible(entry: dict[str, Any], row: tuple) -> bool:
+        branch = str(entry.get("branchName") or "").strip().upper()
+        return not re.search(r"/B\d+$", branch) or branch == row[1]
+
+    def nearby(entry: dict[str, Any], point: dict[str, float]) -> list[int]:
+        key = cell(point)
+        neighbors = itertools.product((-1, 0, 1), repeat=3)
+        return [i for delta in neighbors
+                for i in by_cell.get(tuple(a + d for a, d in zip(key, delta)), ())
+                if compatible(entry, rows[i]) and
+                _positions_match(rows[i][2], point, tol)]
+
+    # Follow the historical Trace principle of multi-anchor source calibration,
+    # not the historical implementation. Require two *different* PS anchors,
+    # a unique dominant translation and no previously valid direct/declared match.
+    calibration = option if isinstance(option, dict) else {}
+    inferred = None
+    if calibration.get("enabled") is not False and calibration.get("autoCalibrate") is not False:
+        precision = max(_float_or(calibration.get("autoCalibratePrecision"), 1.0), 0.001)
+        clusters: dict[tuple[int, int, int], list[tuple[dict[str, float], str]]] = {}
+        for entry in entries:
+            raw = entry.get("rawPoint")
+            if not raw or nearby(entry, raw) or nearby(entry, entry["point"]):
+                continue
+            anchors = {i for tag in entry.get("tags") or () for i in by_tag.get(tag, ())
+                       if compatible(entry, rows[i])}
+            if len(anchors) != 1:
+                continue
+            target = rows[next(iter(anchors))][2]
+            diff = {k: target[k] - raw[k] for k in ("x", "y", "z")}
+            key = tuple(round(diff[k] / precision) for k in ("x", "y", "z"))
+            for tag in entry.get("tags") or ():
+                if next(iter(anchors)) in by_tag.get(tag, ()):
+                    clusters.setdefault(key, []).append((diff, tag))
+                    break
+        ranked = sorted(clusters.values(), key=len, reverse=True)
+        minimum = max(2, round(_float_or(calibration.get("autoCalibrateMinSamples"), 2)))
+        if ranked and len(ranked[0]) >= minimum and len({tag for _, tag in ranked[0]}) >= 2 and \
+                (len(ranked) == 1 or len(ranked[0]) > len(ranked[1])):
+            inferred = {k: sum(d[k] for d, _ in ranked[0]) / len(ranked[0])
+                        for k in ("x", "y", "z")}
+
+    assignments: dict[int, list[dict[str, Any]]] = {}
+    ambiguous = 0
+    for entry in entries:
+        positions = [entry["rawPoint"], entry["point"]]
+        if inferred is not None:
+            positions.append({k: entry["rawPoint"][k] + inferred[k] for k in ("x", "y", "z")})
+        matches = []
+        for point in positions:
+            candidates = nearby(entry, point)
+            if candidates:
+                matches.append(candidates)
+        if not matches:
+            continue
+        # Competing transforms must not silently claim different source nodes.
+        if any(set(hit) != set(matches[0]) for hit in matches[1:]):
+            ambiguous += 1
+            continue
+        hits = matches[0]
+        if len(hits) > 1:
+            corroborated = [i for i in hits if rows[i][3] & (entry.get("tags") or set())]
+            hits = corroborated if len(corroborated) == 1 else []
+        if len(hits) != 1:
+            ambiguous += 1
+            continue
+        node = rows[hits[0]][0]
+        assignments.setdefault(id(node), []).append(entry)
+    return assignments, ambiguous
+
+
 def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, overrides: dict[str, Any] | None, staged_json: Any, dtxr_position_offset: dict[str, Any] | None = None) -> dict[str, Any]:
     """Annotate XML with process T2/T3 and PS-matched staged DTXR values.
 
@@ -561,9 +672,19 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
     root = tree.getroot()
     _register_default_namespace(root)
     line_index = build_linelist_index(linelist or [])
-    dtxr_index = build_dtxr_ps_index(staged_json)
+    # POS evidence has first claim when present. PS-only lookup is limited to
+    # members that lack any usable position, not a bypass for a failed POS claim.
+    dtxr_index = build_dtxr_ps_index(staged_json, unpositioned_only=True)
     dtxr_pos_entries = build_dtxr_pos_entries(staged_json, dtxr_position_offset)
-    stats = {"temperature2": 0, "temperature3": 0, "dtxrPs": 0, "dtxrPos": 0}
+    pos_owners, pos_ambiguous = _position_bound_dtxr(root, dtxr_pos_entries, dtxr_position_offset)
+    stats = {"temperature2": 0, "temperature3": 0, "dtxrPs": 0,
+             "dtxrPos": 0, "dtxrPosAmbiguous": pos_ambiguous}
+    # PS-only fallback is also unique within this exact XML source basis.
+    ps_nodes: dict[str, set[int]] = {}
+    for source_node in root.iter():
+        if _local(source_node.tag) == "Node":
+            for key in _node_ps_tags(source_node):
+                ps_nodes.setdefault(key, set()).add(id(source_node))
     diagnostics: list[dict[str, Any]] = []
 
     for branch in root.iter():
@@ -593,7 +714,13 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
             continue
         dtxr_values: list[str] = []
         node_tags = _node_ps_tags(node)
+        positioned = pos_owners.get(id(node), [])
+        for entry in positioned:
+            if set(node_tags) & (entry.get("tags") or set()) and entry["dtxr"] not in dtxr_values:
+                dtxr_values.append(entry["dtxr"])
         for tag in node_tags:
+            if len(ps_nodes.get(tag, ())) != 1:
+                continue
             for dtxr in dtxr_index.get(tag, []):
                 if dtxr and dtxr not in dtxr_values:
                     dtxr_values.append(dtxr)
@@ -609,13 +736,8 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
                 "tags": "|".join(node_tags),
                 "count": len(dtxr_values),
             })
-        xml_position = mrow({_local(child.tag): child.text for child in list(node)}, "Position")
-        target_position = _parse_position_text(xml_position)
-        offset = _dtxr_position_offset(dtxr_position_offset)
         dtxr_pos_values: list[str] = []
-        for entry in dtxr_pos_entries:
-            if not _positions_match(entry["point"], target_position, offset["tolerance"]):
-                continue
+        for entry in positioned:
             if entry["dtxr"] not in dtxr_pos_values:
                 dtxr_pos_values.append(entry["dtxr"])
         if dtxr_pos_values:
