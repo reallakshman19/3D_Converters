@@ -148,6 +148,8 @@ function _renderRestraintTypeMutationCard(configObj, syncJsonText, controls) {
   info.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border:1px solid #60a5fa;border-radius:50%;font-size:11px;color:#bfdbfe;cursor:help;';
   title.appendChild(info);
   card.appendChild(title);
+  const scopeNote = createElement('p', 'Applies the From TYPE → To TYPE rows to source NODETYPE after a qualified JSON support match, as well as InputXML. Unsupported or ambiguous source matching remains blocked.', 'xml-cii-phase-help');
+  card.appendChild(scopeNote);
   controls.restraintTypeMutationEnabled = makeCheckbox(card, 'Enable InputXML restraint TYPE mutation', cfg.enabled !== false, (val) => {
     cfg.enabled = val;
     syncJsonText();
