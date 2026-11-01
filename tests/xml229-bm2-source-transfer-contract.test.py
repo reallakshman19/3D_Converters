@@ -246,6 +246,14 @@ class SourceTransferRegression(unittest.TestCase):
             return {"_stagedPositionMemberRows":{owner:[{
                 "sourceType":"SUPPORT","sourceAttrs":attrs}]},
                 "_originalDtxrStampedOwners":[owner] if stamped else []}
+        conflicting_mapper=cfg()
+        conflicting_mapper["supportTypeMapper"]={
+            "rows":[{"kind":"REST","aliases":["GUIDE"]}]}
+        with self.assertRaisesRegex(ValueError,
+                                    "NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS"):
+            patched._apply_staged_position_restraints(
+                make_node("GUI","6",source="generated"),
+                "",conflicting_mapper,branch)
         with self.assertRaisesRegex(ValueError,"XML229_SOURCE_XML_RESTRAINT_GAP_CONFLICT"):
             patched._apply_staged_position_restraints(
                 make_node("GUI","3"),"",cfg(),branch)
