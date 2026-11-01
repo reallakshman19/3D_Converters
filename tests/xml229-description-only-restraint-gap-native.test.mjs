@@ -109,6 +109,8 @@ test('old confidence: high LINE STOP meaning beats low GT code without inventing
   const attrs = staged[0].children[0].children[0].attributes;
   attrs.DTXR = 'LINE STOP ON BARE PIPE WITH WEAR PAD';
   attrs.MDSSUPPTYPE = 'GT575';
+  attrs.SUPPORT_KIND = 'REST'; // stale lower-specificity mapper output
+  attrs.SUPPORT_MAPPER_KIND = 'REST';
   attrs.CMPSUPGAP = '10';
   const result = await prepare(staged);
   assert.deepEqual(restraints(result.document, 40).map(({type, gap}) => [type, gap]), [['LIM', 10]]);
@@ -127,6 +129,8 @@ test('actual BM2 GT571/ST572 canonical REST evidence outranks abbreviated source
   const result = await prepare(staged);
   assert.deepEqual(restraints(result.document, 40).map(r => r.type), ['+Y']);
   assert.deepEqual(restraints(result.document, 50).map(r => r.type), ['+Y']);
+  assert.deepEqual(restraints(result.document, 40).map(r => r.gap), [0]);
+  assert.deepEqual(restraints(result.document, 50).map(r => r.gap), [0]);
 });
 
 test('unambiguous NODEGAP zero does not get replaced by profile gap for GUIDE/LIM', async () => {
