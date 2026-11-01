@@ -141,10 +141,11 @@ function supportKindFromMember(member,config={}) {
   if (configured && !GOVERNED_KINDS.includes(configured.kind))
     throw Object.assign(new Error('Tab 8 rule resolves to unsupported governed kind'),
       {code:'PREFINAL_RESTRAINT_KIND_UNSUPPORTED'});
-  if (semantic.length) {
-    // Newly saved Tab 7 keywords must not be silently ignored merely because
-    // a built-in engineering phrase was found first. Compare *added aliases*
-    // against explicit source intent; ignore default SHOE/ANCHOR overlap.
+  const pinnedKind = semantic[0] || configured?.kind || '';
+  if (pinnedKind) {
+    // Compare *added* Tab 7 aliases against explicit semantic intent OR an
+    // authored Tab 8 rule. Two independently edited high-confidence kinds
+    // must not silently override each other.
     if (Array.isArray(config?.supportTypeMapper?.rows)) {
       const rows = parseSupportTypeMapperConfig({supportConfig:config}).mapperRows;
       const defaults = createDefaultSupportTypeMapperConfig();
@@ -162,13 +163,13 @@ function supportKindFromMember(member,config={}) {
         const newly = classifySupportText(descText,custom);
         if (newly.status==='ambiguous' ||
             (newly.status==='matched'&&newly.confidence!=='LOW'&&
-             newly.supportKind!==semantic[0]))
-          throw Object.assign(new Error('Edited Tab 7 keyword conflicts with source semantics'),
+             newly.supportKind!==pinnedKind))
+          throw Object.assign(new Error('Edited Tab 7 keyword conflicts with source/Tab 8 kind'),
             {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
       }
     }
-    return semantic[0];
   }
+  if (semantic.length) return semantic[0];
   if (configured) return configured.kind;
   // Use the user-authored Step 7 mapper rows, not a second hard-coded alias list.
   // HIGH/MEDIUM semantic intent can override a stale generated REST label;
