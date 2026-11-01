@@ -151,7 +151,7 @@ function evaluate(source, formatInput, index, sequence, legacy) {
     bore: bore.value.replace(/[^0-9.]/g, ''),
     fieldMethods: { lineKey: line.method, pipingClass: piping.method, rating: rating.method, bore: bore.method },
     reasons: Object.fromEntries(
-      [['lineKey', line], ['pipingClass', piping], ['rating', rating], ['bore', bore]]
+      [['lineKey', line], ['pipingClass', piping]]
         .filter(([, field]) => field.reason)
         .map(([key, field]) => [key, field.reason]),
     ),
