@@ -33,7 +33,7 @@ def xml_type(v):
 
 def present_type(v):
     v = xml_type(v)
-    return '+Y' if v in ('Y', 'REST') else v
+    return {'Y': '+Y', 'REST': '+Y', '14': '+Y', '8': 'GUI', '9': 'LIM'}.get(v, v)
 
 
 def placeholder(r):
@@ -161,6 +161,31 @@ def profile_for(kind, config):
     return p
 
 
+
+def node_type_mutation(attrs, config):
+    """Native counterpart of 8 Config mutation; source NODETYPE is numeric."""
+    raw = text(attrs.get('NODETYPE'))
+    if not raw:
+        return ''
+    if not re.fullmatch(r'[0-9]+', raw) or not 1 <= int(raw) <= 62:
+        raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_INVALID')
+    value = int(raw)
+    rules = (config.get('inputXmlRestraintTypeMutation') or
+             config.get('restraintTypeMutation') or {})
+    defaults = [('17', '14'), ('7', '8'), ('10', '9'),
+                ('1', '2'), ('2', '3'), ('3', '5'), ('18', '15')]
+    if rules.get('enabled') is not False:
+        rows = rules.get('rows')
+        selected = [(row.get('from'), row.get('to')) for row in rows
+                    if isinstance(row, dict)] if isinstance(rows, list) else defaults
+        for source, target in selected:
+            if text(source) == str(value):
+                if not re.fullmatch(r'[0-9]+', text(target)) or not 1 <= int(target) <= 62:
+                    raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_INVALID')
+                value = int(target)
+                break
+    return present_type(str(value))
+
 def append_profile(node, kind, attrs, config, allowed=None):
     p = profile_for(kind, config)
     ns = node.tag.rsplit('}', 1)[0] + '}' if '}' in node.tag else ''
@@ -168,7 +193,8 @@ def append_profile(node, kind, attrs, config, allowed=None):
     raw = source_gap(attrs) if kind in ('REST', 'GUIDE', 'LINESTOP') else ''
     gap = str(numeric(raw)) if raw else text(p.get('gap')) or '0'
     node_gap = next((field(node, k) for k in ('CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS') if field(node, k)), '')
-    for typ in p['xmlTypes']:
+    original_type = node_type_mutation(attrs, config)
+    for typ in ([original_type] if original_type else p['xmlTypes']):
         if allowed is not None and present_type(typ) in allowed:
             continue
         friction = text(config.get('defaultFriction', '0.3')) or '0.3'
@@ -225,8 +251,7 @@ def replay_prefinal_restraints(expected, packet, staged_json_path, config, requi
                     node.remove(r)
             present = {present_type(field(r, 'Type')) for r in children(node, 'Restraint')}
             for kind in ('REST', 'GUIDE', 'LINESTOP'):
-                expected_type = {'REST': '+Y', 'GUIDE': 'GUI', 'LINESTOP': 'LIM'}[kind]
-                if kind in evidence and expected_type not in present:
+                if kind in evidence:
                     append_profile(node, kind, evidence[kind], config, present)
         rows = children(node, 'Restraint')
         if typ == 'ATTA' and (not rows or all(map(placeholder, rows))):
