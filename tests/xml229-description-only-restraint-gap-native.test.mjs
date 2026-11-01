@@ -178,3 +178,81 @@ test('two nonzero conflicting NODEGAP and CMPSUPGAP refuse a fabricated source g
   staged[0].children[0].children[0].attributes.NODEGAP = '2';
   await assert.rejects(prepare(staged), {code: 'PREFINAL_RESTRAINT_GAP_AMBIGUOUS'});
 });
+
+
+// Tab 7 / Tab 8 edits are runtime configuration, not changes to converter code.
+const configDriven = (staged, edits = {}) => prepareXml229PrefinalRestraints({
+  xmlText:XML,stagedJsonText:JSON.stringify(staged),
+  config:{...structuredClone(config),...edits},
+});
+
+test('new Tab 7 REST keyword is honored at the same original node', async () => {
+  const staged=source();
+  staged[0].children[0].children[0].attributes.DTXR='CRADLE RETAINER STYLE-314';
+  staged[0].children[0].children[0].attributes.NODETYPE='17';
+  const baseline=await configDriven(staged);
+  assert.ok(!restraints(baseline.document,40).some(r=>r.type==='+Y'),
+    'without a saved keyword the source does not claim a REST');
+  const mapper={rows:[
+    {kind:'REST',aliases:['Cradle Retainer'],ciiKind:'REST_STYLE_CII_SUPPORT'},
+    {kind:'GUIDE',aliases:['Guide'],ciiKind:'GUIDE_STYLE_CII_SUPPORT'},
+    {kind:'LINESTOP',aliases:['Line Stop'],ciiKind:'LINESTOP_STYLE_CII_SUPPORT'},
+    {kind:'ANCHOR',aliases:['Anchor'],ciiKind:'ANCHOR_STYLE_CII_SUPPORT'},
+  ]};
+  const altered=await configDriven(staged,{supportTypeMapper:mapper});
+  assert.ok(restraints(altered.document,40).some(r=>r.type==='+Y'),
+    'saved Tab 7 alias must be replayed on this original position owner');
+});
+
+test('new Tab 8 smart regex plus TYPE mutation changes output without changing source', async () => {
+  const staged=source();
+  const a=staged[0].children[0].children[0].attributes;
+  a.DTXR='ORBITAL GUARDRAIL QZ-443';
+  a.NODETYPE='21';
+  const configEdits={
+    supportMapping:{version:2,rules:[{
+      id:'user-orbital-guide',enabled:true,priority:2,source:'staged-json',
+      field:'DTXR',pattern:'ORBITAL\\s+GUARDRAIL\\s+QZ-443',match:'regex',kind:'GUIDE',
+    }]},
+    inputXmlRestraintTypeMutation:{enabled:true,rows:[{label:'GUI custom',from:'21',to:'8'}]},
+  };
+  const updated=await configDriven(staged,configEdits);
+  assert.ok(restraints(updated.document,40).some(r=>r.type==='GUI'&&r.gap===5.5));
+  const invalid=await configDriven(staged,{
+    ...configEdits,
+    inputXmlRestraintTypeMutation:{enabled:true,rows:[{from:'21',to:'9'}]},
+  }).then(()=>null,e=>e);
+  assert.equal(invalid?.code,'PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT',
+    'misconfigured numeric mutation must fail rather than create a LINESTOP');
+});
+
+test('conflicting Tab 8 smart rules and explicit source semantics fail closed', async () => {
+  const staged=source();
+  const pair=[
+    {id:'user-guide',enabled:true,priority:1,source:'all',
+      field:'DTXR',pattern:'GUIDE',match:'equals',kind:'GUIDE'},
+    {id:'user-rest',enabled:true,priority:1,source:'all',
+      field:'DTXR',pattern:'GUIDE',match:'equals',kind:'REST'},
+  ];
+  await assert.rejects(configDriven(staged,{
+    supportMapping:{version:2,rules:pair},
+  }),{code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+  await assert.rejects(configDriven(staged,{
+    supportMapping:{version:2,rules:[pair[1]]},
+  }),{code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+  await assert.rejects(configDriven(staged,{
+    supportMapping:{version:2,rules:[{...pair[0],pattern:'[' ,match:'regex'}]},
+  }),{code:'PREFINAL_RESTRAINT_CONFIG_INVALID'});
+});
+
+test('new Tab 7 keyword cannot silently override explicit GUIDE to REST', async () => {
+  const staged=source();
+  const a=staged[0].children[0].children[0].attributes;
+  a.DTXR='GUIDE CRADLE RETAINER';
+  await assert.rejects(configDriven(staged,{
+    supportTypeMapper:{rows:[
+      {kind:'REST',aliases:['CRADLE RETAINER']},
+      {kind:'GUIDE',aliases:['GUIDE']},
+    ]},
+  }),{code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+});
