@@ -64,3 +64,13 @@ test('UI exposes Datum and existing tolerance as independent controls',()=>{
   for(const key of ['resolver-datum-offset-enabled','resolver-datum-offset-u-mm','resolver-coordinate-tolerance'])
     assert.ok(ui.includes(key)&&events.includes(key),key);
 });
+
+test('conflicting co-positioned NODETYPE mutations require review',async()=>{
+  const source=JSON.parse(staged);
+  source[0].children.push({...source[0].children[0],attributes:{
+    ...source[0].children[0].attributes,NODETYPE:'8',
+  }});
+  await assert.rejects(
+    prepareXml229PrefinalRestraints({xmlText:XML,stagedJsonText:JSON.stringify(source),config:config()}),
+    {code:'PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'});
+});
