@@ -4,6 +4,7 @@ This deliberately does not copy restraint values out of the Worker snapshot.
 The caller retains the whole-XML comparison after replaying this bounded stage.
 """
 from xml229_support_type_mapper import mapped_support_kind
+from xml_to_cii2019 import NATIVE_RESTRAINT_TYPE_CODES
 from decimal import Decimal, InvalidOperation
 import hashlib
 import json
@@ -215,6 +216,22 @@ def profile_for(kind, config):
 
 
 
+def _normalized_mutation_code(value):
+    """Strict CAESAR 1-62 code; mirrors Step 8 JS restraintTypeToCaesarCode."""
+    raw = text(value).upper()
+    if re.fullmatch(r'[0-9]+(?:[.]0+)?', raw):
+        number = int(float(raw))
+        if 1 <= number <= 62:
+            return str(number)
+    elif raw in NATIVE_RESTRAINT_TYPE_CODES:
+        return str(NATIVE_RESTRAINT_TYPE_CODES[raw])
+    elif raw in ('A', 'ANCHOR', 'FIXED', 'FIX'):
+        return '1'
+    elif raw in ('X', 'Y', 'Z'):
+        return {'X': '17', 'Y': '19', 'Z': '18'}[raw]
+    raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_INVALID')
+
+
 def node_type_mutation(attrs, config):
     """Native counterpart of 8 Config mutation; source NODETYPE is numeric."""
     raw = text(attrs.get('NODETYPE'))
@@ -235,17 +252,13 @@ def node_type_mutation(attrs, config):
         # target codes must never be resolved by list order (silent first-wins).
         seen_targets = {}
         for source, target in selected:
-            key = text(source)
-            destination = text(target)
+            key = _normalized_mutation_code(source)
+            destination = _normalized_mutation_code(target)
             if key in seen_targets and seen_targets[key] != destination:
                 raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_AMBIGUOUS')
             seen_targets[key] = destination
-        for source, target in selected:
-            if text(source) == str(value):
-                if not re.fullmatch(r'[0-9]+', text(target)) or not 1 <= int(target) <= 62:
-                    raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_INVALID')
-                value = int(target)
-                break
+        if str(value) in seen_targets:
+            value = int(seen_targets[str(value)])
     return present_type(str(value))
 
 def append_profile(node, kind, attrs, config, allowed=None):
