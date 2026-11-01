@@ -11,6 +11,7 @@ import argparse
 import json
 import math
 import re
+import sys
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
