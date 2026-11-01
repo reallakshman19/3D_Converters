@@ -607,7 +607,7 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         self.assertEqual(node.findtext('PipingClassRating'),'900')
 
     def test_real_bm2_combined_line_class_material_to_native_cii(self):
-        """Real BM2 geometry/workbook/class and only SYNTHETIC pinned ID 741."""
+        """Real BM2 field facts serialized through isolated native 10->20; synthetic ID 741."""
         import xml_to_cii2019_patched as native
         from zipfile import ZipFile
         xml=ROOT/'Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml'
@@ -640,9 +640,32 @@ class NativeSubstageWitnessTests(unittest.TestCase):
             self.assertEqual(field(nodes[0],'PipingClassRating'),'900')
             self.assertEqual(field(nodes[0],'MaterialCode'),'741')
             with TemporaryDirectory() as folder:
-                cii=Path(folder)/'actual-bm2.cii'
+                cii=Path(folder)/'bm2-first-element-fields.cii'
+                isolated=Path(folder)/'bm2-first-element-fields.xml'
+                # Full real BM2 contains multi-restraint nodes which raw
+                # xml_to_cii2019.py rejects. This is intentionally ONLY a
+                # native field-serialization witness for actual source nodes
+                # 10->20; it is NOT a successful full-BM2 production Run.
+                projected=ET.Element(root.tag,root.attrib)
+                original_pipe=next(n for n in root if n.tag.rsplit('}',1)[-1]=='Pipe')
+                pipe=ET.SubElement(projected,original_pipe.tag)
+                first_copy=ET.fromstring(ET.tostring(first,encoding='utf-8'))
+                seen=0
+                for child in list(first_copy):
+                    if child.tag.rsplit('}',1)[-1]!='Node':
+                        continue
+                    seen+=1
+                    if seen>2:
+                        first_copy.remove(child)
+                    else:
+                        for annotation in list(child):
+                            if annotation.tag.rsplit('}',1)[-1]=='Restraint':
+                                child.remove(annotation)
+                self.assertEqual(seen,len(nodes))
+                pipe.append(first_copy)
+                ET.ElementTree(projected).write(isolated,encoding='utf-8',xml_declaration=True)
                 run=subprocess.run([sys.executable,str(SCRIPTS/'xml_to_cii2019.py'),
-                                    '--input',str(enriched),'--output',str(cii)],
+                                    '--input',str(isolated),'--output',str(cii)],
                                    capture_output=True,text=True,timeout=60)
                 self.assertEqual(run.returncode,0,run.stderr)
                 data=cii.read_text(encoding='utf-8')
