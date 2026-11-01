@@ -11,6 +11,8 @@ export function createXml229EngineeringPhaseClock(onPhase=()=>{},now=()=>perform
      if(!XML229_ENGINEERING_PHASES.includes(phase))
        throw new RangeError('UNKNOWN_ENGINEERING_PHASE');
      const began=now();
+     // A start marker survives a stalled or failed substage.
+     try{onPhase(Object.freeze({phase,state:'started'}));}catch{}
      let finished=false;
      return ()=>{
        if(finished)return;
@@ -19,7 +21,7 @@ export function createXml229EngineeringPhaseClock(onPhase=()=>{},now=()=>perform
        if(!Number.isFinite(elapsed)||elapsed<0)return;
        const elapsedMs=Math.min(720000,Math.round(elapsed));
        // Diagnostic callbacks can never affect engineering facts or release.
-       try{onPhase(Object.freeze({phase,elapsedMs}));}catch{}
+       try{onPhase(Object.freeze({phase,state:'completed',elapsedMs}));}catch{}
      };
    },
  });
