@@ -26,7 +26,10 @@ function pvCacheFingerprint(xmlText, cfg) {
   const fieldMapSig = JSON.stringify(cfg?.linelist?.fieldMap || {}).slice(0, 300);
   const defaultSig = JSON.stringify(cfg?.processDefaults || {}).slice(0, 120);
   const overrideSig = JSON.stringify(cfg?.overrides || {}).slice(0, 300);
-  return `pv5|${xmlSig}|${llSig}:${pcSig}|${fieldMapSig}|${defaultSig}|${overrideSig}`;
+  // Saved Format 1/2 click order and joiners change source identity.
+  // Never reuse a Preview from a prior regex configuration.
+  const regexSig = JSON.stringify(cfg?.regexTester?.formats ?? cfg?.formats ?? []);
+  return `pv6|${xmlSig}|${llSig}:${pcSig}|${fieldMapSig}|${defaultSig}|${overrideSig}|${regexSig}`;
 }
 
 function readCache(key) {
@@ -272,22 +275,22 @@ export function xmlCiiRenderPreviewPhase(xmlFile, config) {
 
   if (!xmlFile) return `<div class="model-converters-workflow-detail-title">4 Preview</div><div class="model-converters-workflow-detail-note">⚠ Load an XML file in the sidebar first, then return here to preview enrichment.</div>`;
 
-  const masterStatusRow = (label, rows, required) => {
+  const masterStatusRow = (label, rows, required = false) => {
     const ok = rows > 0;
     const icon = ok ? '✓' : (required ? '⚠' : '○');
     const style = ok ? 'color:#22c55e' : (required ? 'color:#f59e0b;font-weight:600' : 'color:#64748b');
     return `<span style="${style}">${icon} ${_esc(label)}: ${ok ? `${rows} row(s)` : 'not loaded'}</span>`;
   };
   const masterStatusHtml = `<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;padding:8px 0 4px;">
-    ${masterStatusRow('Line List', llRows, true)}
-    ${masterStatusRow('Piping Class', pcRows, true)}
+    ${masterStatusRow('Line List', llRows)}
+    ${masterStatusRow('Piping Class', pcRows)}
     ${masterStatusRow('Material Map', matRows, false)}
     ${masterStatusRow('Valve Weights', wtRows, false)}
   </div>`;
 
-  if (!llRows && !pcRows) return `<div class="model-converters-workflow-detail-title">4 Preview</div>${masterStatusHtml}<div class="model-converters-workflow-detail-note">⚠ Import at least one master in 2 Import Masters, then return here.</div>`;
 
-  return `<div class="model-converters-workflow-detail-title">4 Preview</div><div class="model-converters-workflow-detail-text">Dry-run enrichment preview per branch — inspect and override approximate matches.</div>${masterStatusHtml}<div id="mc-preview-table-host" data-mc-preview-source-id="${_esc(xmlFile.name || '')}">${_manualPreviewActionHtml('Build Preview', false, config)}<div class="model-converters-workflow-detail-note" style="text-align:center;padding:18px;">Preview is not auto-built. Click <strong>Build Preview</strong> after loading XML/master data.</div></div>`;
+
+  return `<div class="model-converters-workflow-detail-title">4 Preview</div><div class="model-converters-workflow-detail-text">Optional enrichment preview per branch. Masters, rating and format assignment are not needed to convert XML→CII. Conflicting Format 1 / Format 2 identities are shown as separate review passes; neither is silently selected.</div>${masterStatusHtml}<div id="mc-preview-table-host" data-mc-preview-source-id="${_esc(xmlFile.name || '')}">${_manualPreviewActionHtml('Build Preview', false, config)}<div class="model-converters-workflow-detail-note" style="text-align:center;padding:18px;">Preview is not auto-built. Click <strong>Build Preview</strong> after loading XML/master data.</div></div>`;
 }
 
 export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, options = {}) {
