@@ -65,6 +65,7 @@ export function parseCiiEngineeringFields(text) {
     }
     elements.push({
       index: i / 15 + 1, branch: branch[1], from: String(from), to: String(to),
+      wallThickness: Number(r2[0]), corrosion: Number(r2[2]),
       t1: Number(r2[3]), t2: Number(r2[4]), t3: Number(r2[5]),
       p1: Number(r4[0]), density: Number(r6[1]), rigidPointer,
     });
@@ -84,6 +85,16 @@ export function ciiBranchFieldMatches(parsed, branch, field, sourceValue) {
   if (!candidates.length) return false;
   const scales = field === 'density' ? [1, 1e-6] : [1];
   return candidates.every(e => scales.some(scale => approximately(expected * scale, e[field])));
+}
+
+/** Parse the exact owning element, not a whole CII occurrence of the value. */
+export function ciiElementFieldMatches(parsed, branch, from, to, field, sourceValue) {
+  const value = engineeringNumber(sourceValue);
+  if (!parsed || value === null || !['wallThickness','corrosion','t1','t2','t3','p1','density'].includes(field)) return null;
+  const candidates = parsed.elements.filter(e =>
+    e.branch === branch && e.from === String(from) && e.to === String(to));
+  if (candidates.length !== 1) return null; // duplicates need physical occurrence custody
+  return approximately(value, candidates[0][field]);
 }
 
 /** RIGID force is verified through the owning ELEMENTS pointer, never text includes(). */
