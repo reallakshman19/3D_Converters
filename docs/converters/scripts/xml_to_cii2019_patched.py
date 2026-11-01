@@ -595,6 +595,13 @@ def _apply_source_material_rating(branch: ET.Element, namespace: str,
             continue
         material, rating = metadata if metadata is not None else ("", "")
         selected_material = process_material or material
+        # A process Material claim has higher authority than class fallback,
+        # but a contradictory pre-existing XML grade is not ours to erase.
+        existing_name = _child_text(node, namespace, "MaterialName")
+        if (process_material and existing_name and
+                " ".join(existing_name.upper().split()) !=
+                " ".join(process_material.upper().split())):
+            raise ValueError("XML229_PROCESS_MATERIAL_NAME_CONFLICT")
         for key, value in (("PipingClass", match.group(1)),
                            ("MaterialName", selected_material), ("PipingClassRating", rating)):
             if value and not _child_text(node, namespace, key):
@@ -605,6 +612,9 @@ def _apply_source_material_rating(branch: ET.Element, namespace: str,
         existing = (_numeric_text(_child_text(node, namespace, "MaterialCode")) or
                     _numeric_text(_child_text(node, namespace, "MaterialNumber")))
         material_id = material_ids.get(" ".join(selected_material.upper().split()))
+        if (process_material and material_id and existing is not None and
+                existing > 0 and existing != material_id):
+            raise ValueError("XML229_PROCESS_MATERIAL_CODE_CONFLICT")
         if material_id and not (existing is not None and existing > 0):
             _set_child(node, namespace, "MaterialCode", str(material_id))
             changed = True
