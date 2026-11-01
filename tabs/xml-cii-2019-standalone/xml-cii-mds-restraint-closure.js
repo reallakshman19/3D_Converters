@@ -71,7 +71,14 @@ function supportKindFromMember(member) {
     member?.raw?.type,
   ].map(text).join(' ').toUpperCase();
   if (/\b(?:PIPE[- ]?REST|REST|SHOE|WEAR\s*PAD|BEARING\s*PLATE)\b/.test(evidence)) return 'REST';
-  return '';
+  // Native replay already accepts one unambiguous source description kind.
+  // Bind that exact member's gap attributes; never infer from nearby members.
+  const description = text(member?.description).toUpperCase();
+  const descriptorKinds = [
+    /\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT)\b/.test(description) && 'LINESTOP',
+    /\bGUIDE\b/.test(description) && 'GUIDE',
+  ].filter(Boolean);
+  return descriptorKinds.length === 1 ? descriptorKinds[0] : '';
 }
 
 function supportGapNumber(attrs){
