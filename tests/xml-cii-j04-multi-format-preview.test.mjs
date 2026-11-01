@@ -209,3 +209,24 @@ test('U3: process resolver accepts authoritative class rather than re-deriving f
   assert.equal(result.requestedPipingClass, '91261M7');
   assert.equal(result.pipingClassSource, 'configured-branch-format');
 });
+
+test('U4: 4 Preview computes independent Format 1/2 review passes on identity conflict',()=>{
+  const config=persistedFormatConfig();
+  config.regexTester.formats[0]={
+    tokenDelimiter:'-',
+    lineKey:{regex:'(S8822000)',group:1},
+    pipingClass:{regex:'(S8822000)',group:1},
+  };
+  const preview=withMinimalPreviewDocument(()=>xmlCiiDryRunPreview(sourceText,config,''));
+  const actual=preview.branchRows.find(r=>r.branchName===alternativeBranch);
+  assert.equal(actual.extractionStatus,'AMBIGUOUS');
+  assert.equal(actual.materialCode,'','neither competing master is authoritative');
+  assert.equal(preview.formatPreviewPasses.length,2);
+  const pass1=preview.formatPreviewPasses[0].branchRows.find(r=>r.branchName===alternativeBranch);
+  const pass2=preview.formatPreviewPasses[1].branchRows.find(r=>r.branchName===alternativeBranch);
+  assert.deepEqual([pass1.extractionStatus,pass1.lineKey,pass1.pipingClass],
+    ['MATCHED','S8822000','S8822000']);
+  assert.deepEqual([pass2.extractionStatus,pass2.lineKey,pass2.pipingClass],
+    ['MATCHED','S8822000','91261M7']);
+  assert.equal(actual.pipingClass,'','conflicting passes cannot choose a class');
+});
