@@ -101,5 +101,22 @@ class TestXml229DatumAndNodeType(unittest.TestCase):
             native(source)
 
 
+    def test_saved_step7_custom_alias_drives_native_step8(self):
+        source=json.loads(json.dumps(JSON))
+        attrs=source[0]['children'][0]['attributes']
+        attrs['DTXR']='AXIAL LOCK'
+        attrs['NODETYPE']='7'
+        attrs['NODEGAP']='5.5'
+        cfg=settings()
+        cfg['supportTypeMapper']={'rows':[
+            {'kind':'REST','aliases':['REST','PIPE REST']},
+            {'kind':'GUIDE','aliases':['GUIDE','GT']},
+            {'kind':'LINESTOP','aliases':['LINE STOP','AXIAL LOCK','ST']},
+        ]}
+        cfg['inputXmlRestraintTypeMutation']['rows']=[
+            {'label':'LIM','from':'7','to':'9'}]
+        self.assertEqual(native(source,cfg),[('LIM','5.5')])
+
+
 if __name__=='__main__':
     unittest.main()
