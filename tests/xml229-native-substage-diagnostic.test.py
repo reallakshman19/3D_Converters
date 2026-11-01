@@ -244,6 +244,143 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         self.assertIn('GUIDE', matched['3430'])
 
 
+
+    def test_bm2_exact_piping_class_bore_wall_reaches_native_cii(self):
+        """Independent 93833 row10558, real BM2 OD168.3 -> 7.112mm."""
+        import xml_to_cii2019_patched as native
+        source = ROOT / 'Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml'
+        spec = json.loads((ROOT / 'docs/Masters/SpecwisePipingClass/93833.json').read_text())
+        row = next(r for r in spec['rows'] if r.get('_sourceRowIndex') == 10558)
+        self.assertEqual(row['Piping Class'], '93833')
+        self.assertEqual(row['convertedBore'], 150)
+        self.assertAlmostEqual(float(row['Wall thickness']), 7.112, places=6)
+        config = {'pipingClass': {'masterRows': spec['rows']}}
+        enriched = native._apply_process_data_to_xml(source, config)
+        try:
+            root = ET.parse(enriched).getroot()
+            branches = [x for x in root.iter() if x.tag.rsplit('}', 1)[-1] == 'Branch']
+            def text(n, tag):
+                return next((c.text or '' for c in n if c.tag.rsplit('}', 1)[-1] == tag), '')
+            first = [n for n in branches[0] if n.tag.rsplit('}', 1)[-1] == 'Node']
+            self.assertEqual(text(first[1], 'NodeNumber'), '20')
+            self.assertEqual(text(first[1], 'OutsideDiameter'), '168.3')
+            self.assertAlmostEqual(float(text(first[1], 'WallThickness')), 7.112, places=6)
+            self.assertEqual(text(first[1], 'Weight'), '0')  # no mass authority change
+            flange = next(n for n in branches[17] if n.tag.rsplit('}', 1)[-1] == 'Node'
+                          and text(n, 'NodeNumber') == '2130')
+            self.assertAlmostEqual(float(text(flange, 'WallThickness')), 3.9116, places=5)
+            unsupported = next(n for n in branches[28] if n.tag.rsplit('}', 1)[-1] == 'Node')
+            self.assertEqual(text(unsupported, 'WallThickness'), '0')  # class13451 not in supplied master
+        finally:
+            if enriched != source:
+                enriched.unlink(missing_ok=True)
+
+        # Use the same source branch/class/OD as real BM2 but a minimal
+        # geometry to assert actual serialized CII row2 rather than XML alone.
+        name='/GLRD-1000-6"-P4110001-93833-01/B6'
+        small=('<PipeStressExport><Pipe><Branch><Branchname>'+name+'</Branchname>'
+               '<Temperature><Temperature1>-100000</Temperature1></Temperature>'
+               '<Pressure><Pressure1>0</Pressure1></Pressure><MaterialNumber>0</MaterialNumber>'
+               '<Node><NodeNumber>10</NodeNumber><Endpoint>1</Endpoint><ComponentType>PIPE</ComponentType>'
+               '<Position>0 0 0</Position><OutsideDiameter>168.3</OutsideDiameter>'
+               '<WallThickness>0</WallThickness><Weight>0</Weight></Node>'
+               '<Node><NodeNumber>20</NodeNumber><Endpoint>2</Endpoint><ComponentType>PIPE</ComponentType>'
+               '<Position>100 0 0</Position><OutsideDiameter>168.3</OutsideDiameter>'
+               '<WallThickness>0</WallThickness><Weight>0</Weight></Node>'
+               '</Branch></Pipe></PipeStressExport>')
+        with TemporaryDirectory() as d:
+            xml=Path(d)/'source.xml'
+            cii=Path(d)/'native.cii'
+            xml.write_text(small,encoding='utf-8')
+            enriched=native._apply_process_data_to_xml(xml,config)
+            run=subprocess.run([sys.executable,str(SCRIPTS/'xml_to_cii2019.py'),
+                                '--input',str(enriched),'--output',str(cii)],
+                               capture_output=True,text=True,timeout=30)
+            self.assertEqual(run.returncode,0,run.stderr)
+            emitted=cii.read_text(encoding='utf-8')
+            element=emitted.split('#$ ELEMENTS\n',1)[1].split('#
+        sys._xml229_native_failure_stage="EMITTED_MASS_VERIFY"
+        with patch.object(runtime.patched,"_parse_args",side_effect=ValueError("BAD_ARGUMENT")):
+            with self.assertRaisesRegex(ValueError,"BAD_ARGUMENT"):
+                runtime.main()
+        self.assertEqual(sys._xml229_native_failure_stage,"RUNTIME_OPTIONS")
+
+
+if __name__=="__main__":
+    unittest.main()
+,1)[0].splitlines()
+            self.assertEqual((float(element[0].split()[0]),float(element[0].split()[1])),
+                             (10,20))
+            self.assertAlmostEqual(float(element[1].split()[0]),7.112,places=6)
+            if enriched != xml:
+                enriched.unlink(missing_ok=True)
+
+    def test_piping_class_conflict_fails_closed_explicit_wall_preserved(self):
+        import xml_to_cii2019_patched as native
+        rows=[{'Piping Class':'93833','convertedBore':150,'Wall thickness':'7.112'},
+              {'Piping Class':'93833','convertedBore':150,'Wall thickness':'12.7'}]
+        with self.assertRaisesRegex(ValueError,'XML229_PIPING_CLASS_BORE_AMBIGUOUS'):
+            native._source_class_wall_index({'pipingClass':{'masterRows':rows}})
+        root=ET.Element('PipeStressExport')
+        pipe=ET.SubElement(root,'Pipe')
+        branch=ET.SubElement(pipe,'Branch')
+        ET.SubElement(branch,'Branchname').text='/GLRD-1000-6"-P4110001-93833-01/B6'
+        node=ET.SubElement(branch,'Node')
+        ET.SubElement(node,'OutsideDiameter').text='168.3'
+        ET.SubElement(node,'WallThickness').text='8.0'
+        self.assertFalse(native._apply_source_class_wall(branch,'',{('93833',150):7.112}))
+        self.assertEqual(node.findtext('WallThickness'),'8.0')
+        self.assertFalse(native._apply_source_class_wall(branch,'',{('93833',50):3.9116}))
+
+    def test_native_json_refreshes_stale_rest_with_verified_position_owner(self):
+        import xml_to_cii2019_patched as native
+        source = ROOT / 'Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml'
+        with TemporaryDirectory() as folder:
+            xml=Path(folder)/'preannotated.xml'
+            staged=Path(folder)/'source.json'
+            root=ET.parse(source).getroot()
+            def field(n,key):
+                return next((c for c in n if c.tag.rsplit('}',1)[-1]==key),None)
+            target=next(n for n in root.iter() if n.tag.rsplit('}',1)[-1]=='Node'
+                        and field(n,'NodeNumber') is not None
+                        and field(n,'NodeNumber').text=='3430')
+            namespace=target.tag.split('}',1)[0]+'}' if target.tag.startswith('{') else ''
+            ET.SubElement(target,namespace+'DTXR_POS').text='REST'
+            ET.SubElement(target,namespace+'DTXR_PS').text='REST'
+            ET.ElementTree(root).write(xml,encoding='utf-8',xml_declaration=True)
+            pos='123504.12 114999.98 101330.73'
+            stages=[{'type':'BRANCH','name':'/GLRD-1000-8"-B4110003-13451-01/B1',
+                     'children':[{'type':'SUPPORT','name':'Guide from POSI',
+                                  'attributes':{'POSI':pos,'DTXR':'GUIDE','CMPSUPGAP':'0mm'}},
+                                 {'type':'SUPPORT','name':'Line Stop from POSI',
+                                  'attributes':{'POSI':pos,'DTXR':'LINE STOP','CMPSUPGAP':'15mm'}}]}]
+            staged.write_text(json.dumps(stages),encoding='utf-8')
+            enriched=native._maybe_enrich_from_staged_json(
+                xml,staged,{'dtxrPositionOffset':{'enabled':False}})
+            new=ET.parse(enriched).getroot()
+            final=next(n for n in new.iter() if n.tag.rsplit('}',1)[-1]=='Node'
+                       and field(n,'NodeNumber') is not None
+                       and field(n,'NodeNumber').text=='3430')
+            dtxr=field(final,'DTXR_POS').text
+            self.assertIn('GUIDE(CMPSUPGAP=0mm)',dtxr)
+            self.assertIn('LINE STOP(CMPSUPGAP=15mm)',dtxr)
+            self.assertEqual(field(final,'DTXR_PS').text or '', '')
+            specs,_=native._build_keyword_restraint_specs(enriched,{})
+            self.assertEqual({int(s.type_code) for s in specs[3430]}, {8,9})
+            self.assertEqual(next(s.gap for s in specs[3430]
+                                  if int(s.type_code)==9),15.0)
+
+    def test_approved_line_list_mapping_not_overridden_by_heuristic(self):
+        import xml_to_cii2019_patched as native
+        config={'linelist':{'masterRows':[{
+            'lineSeqNo':'4110001','ownerApprovedT1':'120','Temp Max':'777'
+        }],'fieldMap':{'lineSeqNo':'lineSeqNo','t1':'ownerApprovedT1'}}}
+        native._normalize_process_field_map(config)
+        self.assertEqual(config['linelist']['fieldMap']['t1'],'ownerApprovedT1')
+        self.assertEqual(native._mapped_process_value('P4110001',config,'t1',
+                                                    ['T1','Temp Max']),'120')
+
+
     def test_stage_resets_for_each_new_invocation(self):
         sys._xml229_native_failure_stage="EMITTED_MASS_VERIFY"
         with patch.object(runtime.patched,"_parse_args",side_effect=ValueError("BAD_ARGUMENT")):
