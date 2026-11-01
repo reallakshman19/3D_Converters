@@ -29,6 +29,8 @@ jobs:
         run: node --test tests/xml229-json-restraint-body-transfer.test.mjs
       - name: Exact original BM2 GT/ST source witness census
         run: python -m unittest discover -s tests -p test_xml229_bm2_old_support_ref.py -v
+      - name: Exact PS-4131 source JSON/branch/gap witness audit
+        run: python -m unittest discover -s tests -p test_xml229_ps4131_source_audit.py -v
       - name: Historical configurable support gap and axis contracts
         run: python converters/scripts/test_support_restraint.py
       - name: Historical support confidence mapper static rules
