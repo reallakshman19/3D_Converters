@@ -70,7 +70,19 @@ export function parseCiiEngineeringFields(text) {
       p1: Number(r4[0]), density: Number(r6[1]), rigidPointer,
     });
   }
-  return { elements, rigid };
+  const restraintLines = (sections.get('RESTRANT') || []).filter(line => line.trim());
+  if (restraintLines.length % 4 !== 0) throw new Error('CII_RESTRAINT_BLOCK_COUNT_INVALID');
+  const restraints = [];
+  for (let i = 0; i < restraintLines.length; i += 4) {
+    const record = fields(restraintLines[i], 4);
+    const node = Number(record[0]), typeCode = Number(record[1]);
+    if (!Number.isSafeInteger(node) || !Number.isSafeInteger(typeCode) ||
+        typeCode < 0 || typeCode > 62) throw new Error('CII_RESTRAINT_ROW_INVALID');
+    if (node === 0) continue; // Unused native restraint slots.
+    restraints.push({node: String(node), typeCode, gap: Number(record[3]),
+                     recordIndex: i / 4 + 1});
+  }
+  return { elements, rigid, restraints };
 }
 
 function approximately(value, actual) {
@@ -113,4 +125,122 @@ export function ciiNodeWeightMatches(parsed, branch, nodeNumber, sourceKg, scale
   // ownership the result is unknown instead of a possibly unrelated match.
   if (new Set(actual.map(x => x.toPrecision(10))).size !== 1) return null;
   return approximately(expected * scale, actual[0]);
+}
+
+
+/** Independent CII engineering-custody check; a Python source-completeness
+ * flag never substitutes for the actual bytes of ELEMENTS/RESTRANT/RIGID.
+ * Structural fields without applicable source claims are NOT_APPLICABLE.
+ */
+export function verifyCiiEngineeringAgainstNativeXml(xmlText, ciiText) {
+  if (typeof DOMParser === 'undefined') throw new Error('CII_VERIFIED_XML_PARSER_UNAVAILABLE');
+  const doc = new DOMParser().parseFromString(String(xmlText || ''), 'application/xml');
+  if (doc.getElementsByTagName('parsererror')?.length)
+    throw new Error('CII_VERIFIED_NATIVE_XML_INVALID');
+  const native = parseCiiEngineeringFields(ciiText);
+  const local = node => String(node?.localName || node?.nodeName || '').replace(/^.*:/, '');
+  const child = (parent, tag) => [...(parent?.childNodes || [])]
+    .find(node => node?.nodeType === 1 && local(node) === tag);
+  const value = (parent, tag) => String(child(parent, tag)?.textContent ?? '').trim();
+  const children = (parent, tag) => [...(parent?.childNodes || [])]
+    .filter(node => node?.nodeType === 1 && local(node) === tag);
+  const evidence = [];
+  const original = new Map();
+  for (const branch of [...doc.getElementsByTagName('*')].filter(x => local(x) === 'Branch')) {
+    const name = value(branch, 'Branchname');
+    if (!name || original.has(name)) throw new Error('CII_VERIFIED_BRANCH_IDENTITY_AMBIGUOUS');
+    const temp = child(branch, 'Temperature'), pressure = child(branch, 'Pressure');
+    const facts = {p1:value(pressure, 'Pressure1'),
+      t1:value(temp, 'Temperature1'),t2:value(temp, 'Temperature2'),
+      t3:value(temp, 'Temperature3'),density:value(branch,'FluidDensity')};
+    const nodes = new Map();
+    for (const node of children(branch, 'Node')) {
+      const number = value(node, 'NodeNumber');
+      if (!number || nodes.has(number)) throw new Error('CII_VERIFIED_NODE_IDENTITY_AMBIGUOUS');
+      nodes.set(number, {wallThickness:value(node,'WallThickness'),
+        corrosion:value(node,'CorrosionAllowance'), type:value(node,'ComponentType'),
+        restraints:children(node,'Restraint').map(r=>({
+          type:value(r,'Type'),gap:value(r,'Gap')}))});
+    }
+    original.set(name, {facts,nodes});
+  }
+  const approx = (a,b) => Math.abs(a-b) <= Math.max(1e-8, Math.abs(a)*1e-5);
+  const matchedElements = new Set();
+  for (const element of native.elements) {
+    const branch = original.get(element.branch);
+    const source = branch?.nodes.get(element.from);
+    const key = element.branch + '|' + element.from + '|' + element.to;
+    if (!branch || !source || !branch.nodes.has(element.to) || matchedElements.has(key))
+      throw new Error('CII_VERIFIED_ELEMENT_OWNER_MISSING_OR_AMBIGUOUS');
+    matchedElements.add(key);
+    for (const field of ['p1','t1','t2','t3','density']) {
+      const raw = branch.facts[field], expected = engineeringNumber(raw, field.startsWith('t'));
+      if (expected === null) {
+        evidence.push({key,field,sourceState:'MISSING',verificationState:'UNRESOLVED'});
+        throw new Error('CII_VERIFIED_BRANCH_FIELD_MISSING_' + field.toUpperCase());
+      }
+      const expectedCii = field==='density' ? expected * 1e-6 : expected;
+      // The selected writer converts input kg/m3 to kg/cm3; no permissive
+      // alternative scale can turn a wrong density field into a pass.
+      if (!approx(expectedCii,element[field]))
+        throw new Error('CII_VERIFIED_BRANCH_FIELD_CONFLICT_' + field.toUpperCase());
+      evidence.push({key,field,sourceState:expected===0?'EXPLICIT_ZERO':'PRESENT',
+                     verificationState:'VERIFIED'});
+    }
+    if (['PIPE','PCOM','BRAN','TUBE'].includes(source.type.toUpperCase())) {
+      const wall = engineeringNumber(source.wallThickness);
+      if (wall===null || wall<=0 || !approx(wall,element.wallThickness))
+        throw new Error('CII_VERIFIED_ELEMENT_WALL_CONFLICT');
+      evidence.push({key,field:'wallThickness',sourceState:'PRESENT',
+                     verificationState:'VERIFIED'});
+    }
+    const corrosion = engineeringNumber(source.corrosion);
+    if (corrosion!==null) {
+      if (!approx(corrosion,element.corrosion))
+        throw new Error('CII_VERIFIED_ELEMENT_CORROSION_CONFLICT');
+      evidence.push({key,field:'corrosion',
+        sourceState:corrosion===0?'EXPLICIT_ZERO':'PRESENT',verificationState:'VERIFIED'});
+    } else {
+      evidence.push({key,field:'corrosion',sourceState:'NOT_APPLICABLE',
+                     verificationState:'NOT_APPLICABLE'});
+    }
+  }
+  if (!matchedElements.size) throw new Error('CII_VERIFIED_ELEMENT_CENSUS_EMPTY');
+  const actual = new Map();
+  for (const restraint of native.restraints) {
+    const nodeOwners = [...original].filter(([name,b])=> b.nodes.has(restraint.node) &&
+      native.elements.some(e => e.branch===name &&
+        (e.from===restraint.node || e.to===restraint.node)));
+    if (nodeOwners.length !== 1) throw new Error('CII_VERIFIED_RESTRAINT_OWNER_AMBIGUOUS');
+    const key = nodeOwners[0][0]+'|'+restraint.node;
+    if (!actual.has(key)) actual.set(key, []);
+    actual.get(key).push(restraint);
+  }
+  const typeCodes = {'ANC':1,'ANCHOR':1,'FIXED':1,'GUI':8,'GUIDE':8,
+    'LIM':9,'LIMIT':9,'LINESTOP':9,'+Y':14,'Y':19,'REST':14,
+    '+X':13,'+Z':15,'-X':16,'-Y':17,'-Z':18};
+  for (const [name,branch] of original) for (const [node,source] of branch.nodes) {
+    if (!source.restraints.length) continue;
+    const key = name+'|'+node;
+    const emitted = actual.get(key) || [], used = new Set();
+    for (const claim of source.restraints) {
+      const type = claim.type.toUpperCase();
+      const code = Number.isInteger(Number(type)) && Number(type)>=1
+        ?Number(type):typeCodes[type];
+      if (!code) throw new Error('CII_VERIFIED_RESTRAINT_SOURCE_TYPE_UNSUPPORTED');
+      const gap = engineeringNumber(claim.gap);
+      const hits = emitted.filter(r=>r.typeCode===code &&
+          (gap===null || approx(gap,r.gap)));
+      if (hits.length!==1 || used.has(hits[0]?.recordIndex))
+        throw new Error('CII_VERIFIED_RESTRAINT_TYPE_OR_GAP_CONFLICT');
+      used.add(hits[0].recordIndex);
+      evidence.push({key,field:'restraint',typeCode:code,
+        sourceState:gap===0?'EXPLICIT_ZERO':'PRESENT',verificationState:'VERIFIED'});
+    }
+    if (emitted.length!==used.size)
+      throw new Error('CII_VERIFIED_RESTRAINT_UNEXPECTED_EXTRA_SLOT');
+  }
+  return Object.freeze({status:'VERIFIED',elements:matchedElements.size,
+    restraints: [...actual.values()].reduce((sum,rows)=>sum+rows.length,0),
+    evidence});
 }
