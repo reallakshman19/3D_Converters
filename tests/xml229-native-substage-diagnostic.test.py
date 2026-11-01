@@ -430,6 +430,17 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'XML229_PIPING_CLASS_MATERIAL_RATING_AMBIGUOUS'):
             native._source_class_meta_index({'pipingClass':{'masterRows':[
                 row,{**row,'Rating':'600'}]}})
+        # A conflict elsewhere in the 10k-row master cannot block a
+        # source model that only selected class93833.
+        self.assertEqual(native._source_class_meta_index({
+            'pipingClass':{'masterRows':[row,{**row,'Piping Class':'99999',
+                'Rating':'600'},{**row,'Piping Class':'99999','Rating':'150'}]}},
+            {'93833'}),{('93833',150):('ASTM A790 UNS S31803','900')})
+        self.assertEqual(native._material_ids_from_config({
+            'material':{'mapRows':[{'Material':'ASTM A790 UNS S31803','Code':'741'},
+                {'Material':'other','Code':'111'},
+                {'Material':'other','Code':'222'}]}},
+            {'ASTM A790 UNS S31803'}),{'ASTM A790 UNS S31803':741})
         with self.assertRaisesRegex(ValueError,'XML229_MATERIAL_CODE_AMBIGUOUS'):
             native._material_ids_from_config({'material':{'mapRows':[
                 {'Material':'ASTM A790 UNS S31803','Code':'741'},
