@@ -902,11 +902,70 @@ def _apply_staged_position_restraints(node: ET.Element, namespace: str,
     return True
 
 
+def _source_class_corrosion_index(
+        config: dict[str, Any], requested: set[str] | None = None
+        ) -> dict[tuple[str, int], float]:
+    """Optional *explicit* class-bore corrosion source, including 0."""
+    section = config.get("pipingClass", {})
+    rows = section.get("masterRows", []) if isinstance(section, dict) else []
+    index: dict[tuple[str, int], float] = {}
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, dict):
+            continue
+        cls = _row_value(row, "Piping Class") or _row_value(row, "pipingClass")
+        if not cls or (requested is not None and cls not in requested):
+            continue
+        dn = _source_class_dn(row)
+        raw = (_row_value(row, "Corrosion") or
+               _row_value(row, "CorrosionAllowance") or
+               _row_value(row, "corrosionAllowance"))
+        if dn is None or not raw:
+            continue
+        try:
+            value = float(raw)
+        except (ValueError, TypeError):
+            raise ValueError("XML229_PIPING_CLASS_CORROSION_INVALID") from None
+        if not math.isfinite(value) or value < 0:
+            raise ValueError("XML229_PIPING_CLASS_CORROSION_INVALID")
+        key = (cls, dn)
+        if key in index and not math.isclose(index[key], value, abs_tol=1e-6):
+            raise ValueError("XML229_PIPING_CLASS_CORROSION_AMBIGUOUS")
+        index[key] = value
+    return index
+
+
+def _apply_source_class_corrosion(
+        branch: ET.Element, namespace: str,
+        index: dict[tuple[str, int], float]) -> bool:
+    """Fill only absent pipe corrosion claims; preserve original explicit 0."""
+    name = _child_text(branch, namespace, "Branchname")
+    match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", name, re.I)
+    if not match or addon is None:
+        return False
+    changed = False
+    for node in _branch_nodes(branch, namespace):
+        if _child_text(node, namespace, "ComponentType").upper() not in {
+                "PIPE", "PCOM", "BRAN", "TUBE"}:
+            continue
+        if _child_text(node, namespace, "CorrosionAllowance"):
+            continue
+        od = _numeric_text(_child_text(node, namespace, "OutsideDiameter"))
+        dn = addon.od_to_dn(od) if od is not None else None
+        key = (match.group(1), dn)
+        if key not in index:
+            continue
+        _set_child(node, namespace, "CorrosionAllowance",
+                   format(index[key], ".12g"))
+        changed = True
+    return changed
+
+
 def _assert_verified_master_completeness(
         root: ET.Element, namespace: str, support_config: dict[str, Any],
         class_wall_index: dict[tuple[str, int], float],
         class_meta_index: dict[tuple[str, int], tuple[str, str]],
-        material_ids: dict[str, int]) -> None:
+        material_ids: dict[str, int],
+        class_corrosion_index: dict[tuple[str, int], float] | None = None) -> None:
     """Fail closed for governed candidates; diagnostics retain legacy behavior.
 
     A selected source fact must agree with native XML; simply seeing a
@@ -981,6 +1040,13 @@ def _assert_verified_master_completeness(
             if wall is None or wall <= 0 or not math.isclose(
                     wall, expected, rel_tol=0, abs_tol=1e-6):
                 raise ValueError("XML229_VERIFIED_CLASS_DN_WALL_CONFLICT")
+            if class_corrosion_index and (cls, dn) in class_corrosion_index:
+                source_corrosion = class_corrosion_index[(cls, dn)]
+                measured_corrosion = _numeric_text(_child_text(
+                    node, namespace, "CorrosionAllowance"))
+                if measured_corrosion is None or not math.isclose(
+                        source_corrosion, measured_corrosion, abs_tol=1e-6, rel_tol=0):
+                    raise ValueError("XML229_VERIFIED_CLASS_CORROSION_CONFLICT")
             meta = class_meta_index.get((cls, dn))
             if meta is None or not meta[1]:
                 raise ValueError("XML229_VERIFIED_CLASS_RATING_MISSING")
@@ -1025,6 +1091,7 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
                       if match}
     class_wall_index = _source_class_wall_index(support_config, source_classes)
     class_meta_index = _source_class_meta_index(support_config, source_classes)
+    class_corrosion_index = _source_class_corrosion_index(support_config, source_classes)
     material_names = {" ".join(name.upper().split()) for name, _rating in class_meta_index.values() if name}
     for source_branch in root.iter():
         if _local_name(source_branch.tag) != "Branch":
@@ -1042,6 +1109,8 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
         # Class enrichment runs on exactly the XML that the native parser sees.
         # It is independent of staged JSON and of Preview-only presentation.
         changed = _apply_source_class_wall(branch, namespace, class_wall_index) or changed
+        changed = _apply_source_class_corrosion(
+            branch, namespace, class_corrosion_index) or changed
         pressure = _ensure_child(branch, namespace, "Pressure")
         line_key = _line_key_from_branch(_child_text(branch, namespace, "Branchname"), support_config)
         process_material = _process_material_for_line(line_key, support_config)
@@ -1102,7 +1171,8 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
     if _truthy(support_config.get("splitCondensedValveFlange")) and _renumber_length_bearing_negative_nodes(root, namespace):
         changed = True
     _assert_verified_master_completeness(
-        root, namespace, support_config, class_wall_index, class_meta_index, material_ids)
+        root, namespace, support_config, class_wall_index, class_meta_index,
+        material_ids, class_corrosion_index)
     if not changed:
         return xml_path
     temp_path = Path(tempfile.gettempdir()) / f"{xml_path.stem}_final_enriched.xml"
