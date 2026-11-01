@@ -4,7 +4,7 @@ import {
 } from '../../converters/xml-cii2019-core/support-mapping.js';
 import { migrateSupportMappingConfig } from '../../converters/xml-cii2019-core/support-mapping-config.js';
 import {mutateRestraintType} from '../../converters/xml-cii2019-core/restraint-type-mutation.js';
-import {classifySupportText,parseSupportTypeMapperConfig}
+import {classifySupportText,parseSupportTypeMapperConfig,createDefaultSupportTypeMapperConfig}
   from './xml-cii-support-type-mapper.js';
 import { buildStandaloneDtxrResolutionLedger } from './xml-cii-trace-resolution-ledger.js';
 import { decorateJsonTraceLedger } from './xml-cii-json-trace-fields.js';
@@ -140,7 +140,34 @@ function supportKindFromMember(member,config={}) {
   if (configured && !GOVERNED_KINDS.includes(configured.kind))
     throw Object.assign(new Error('Tab 8 rule resolves to unsupported governed kind'),
       {code:'PREFINAL_RESTRAINT_KIND_UNSUPPORTED'});
-  if (semantic.length) return semantic[0];
+  if (semantic.length) {
+    // Newly saved Tab 7 keywords must not be silently ignored merely because
+    // a built-in engineering phrase was found first. Compare *added aliases*
+    // against explicit source intent; ignore default SHOE/ANCHOR overlap.
+    if (Array.isArray(config?.supportTypeMapper?.rows)) {
+      const rows = parseSupportTypeMapperConfig({supportConfig:config}).mapperRows;
+      const defaults = createDefaultSupportTypeMapperConfig();
+      const custom = rows.map(row => {
+        const original = defaults.find(base => base.kind === row.kind);
+        const baseline = new Set((original?.aliases || [])
+          .map(alias => text(alias).toUpperCase().replace(/[^A-Z0-9]/g,'')));
+        return {...row, aliases:row.aliases.filter(alias =>
+          !baseline.has(text(alias).toUpperCase().replace(/[^A-Z0-9]/g,'')))};
+      }).filter(row => row.aliases.length);
+      if (custom.length) {
+        const descText = [attrs.DTXR,attrs.DESC,attrs.DESCRIPTION,
+          member?.description,attrs.CMPSUPTYPE,attrs.MDSSUPPTYPE,attrs.SPRE]
+          .map(text).filter(Boolean).join(' ');
+        const newly = classifySupportText(descText,custom);
+        if (newly.status==='ambiguous' ||
+            (newly.status==='matched'&&newly.confidence!=='LOW'&&
+             newly.supportKind!==semantic[0]))
+          throw Object.assign(new Error('Edited Tab 7 keyword conflicts with source semantics'),
+            {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+      }
+    }
+    return semantic[0];
+  }
   if (configured) return configured.kind;
   // Use the user-authored Step 7 mapper rows, not a second hard-coded alias list.
   // HIGH/MEDIUM semantic intent can override a stale generated REST label;
