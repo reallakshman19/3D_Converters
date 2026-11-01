@@ -58,6 +58,7 @@ jobs:
       - name: Native Python script compile and served mirror
         run: |
           python3 -m py_compile converters/scripts/{xml229_native_final_mass_binding.py,xml229_instrument_source_revision.py,xml_to_cii2019_patched.py,xml_to_cii2019_runtime_custody.py}
+          python3 -m py_compile converters/scripts/{xml229_prefinal_restraints.py,xml229_prefinal_restraint_source.py}
           for f in xml229_native_final_mass_binding.py xml229_instrument_source_revision.py xml_to_cii2019_patched.py xml_to_cii2019_runtime_custody.py; do
             diff -u "converters/scripts/$f" "docs/converters/scripts/$f"
           done
@@ -67,6 +68,7 @@ jobs:
         run: |
           python3 tests/xml229-bm2-source-transfer-contract.test.py
           python3 tests/xml229-native-source-hydration-contract.test.py
+          python3 tests/test_xml229_datum_node_type_mutation.py
           python3 tests/test_xml229_bm2_old_support_ref.py
       - name: Zero-vs-multiple owner and endpoint-zero native custody
         run: python3 tests/xml229-native-owner-cardinality.test.py
@@ -94,6 +96,7 @@ jobs:
           node --check tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-propagation-audit.js
           node --test tests/xml229-bm2-propagation-proof.test.mjs tests/xml229-description-only-restraint-gap-native.test.mjs
+          node --test tests/xml229-native-lineage-diagnostic-codes.test.mjs
           node tests/xml-cii-standalone-support-type-mapper.test.js
       - name: Separate independent CII parser, manifest and native Run status
         run: |
