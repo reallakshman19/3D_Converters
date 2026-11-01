@@ -36,7 +36,7 @@ const report=buildStandaloneOutputRunReadiness({
   pipingClass:config.pipingClass?.masterRows?.length||0,
   materialMap:config.material?.mapRows?.length||0,weight:0}},
 });
-assert.equal(report.summary.blockingCount,0,'Optional enrichment cannot block base conversion: '+scenario);
+assert.equal(report.summary.blockingCount,0,'Optional enrichment cannot block base conversion: '+scenario+' | '+JSON.stringify(report.checklistRows.filter(row=>row.blocking).map(row=>({id:row.id,status:row.status,message:row.message}))));
 const format=report.checklistRows.find(row=>row.id==='branch-format-authority');
 if(scenario==='conflicting-regex'){
  assert.equal(format?.blocking,false);
