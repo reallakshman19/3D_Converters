@@ -93,6 +93,51 @@ class SourceTransferRegression(unittest.TestCase):
             out = patched._apply_process_data_to_xml(source, {})
             self.assertEqual(field(node_by_number(ET.parse(out).getroot(), 10), "WallThickness"), "0")
 
+    def test_3430_current_saved_mapper_regex_and_mutation_pass_to_native_xml(self):
+        # The same position, exact branch and source tag are reused. The only
+        # changes are user-authored Tab 7 / Tab 8 configuration and staged text.
+        tree = ET.parse(BM2)
+        root = tree.getroot()
+        node = node_by_number(root, 3430)
+        namespace = node.tag.rsplit("}", 1)[0] + "}" if "}" in node.tag else ""
+        ET.SubElement(node, namespace + "DTXR_POS").text = "REST"
+        with TemporaryDirectory() as directory:
+            source = Path(directory) / "node3430.xml"
+            stage = Path(directory) / "node3430-stage.json"
+            tree.write(source, encoding="utf-8")
+            branch = '/GLRD-1000-8"-B4110003-13451-01/B1'
+            def run(dtxr, cfg, node_type):
+                stage.write_text(json.dumps([{
+                    "type": "BRANCH", "name": branch, "children": [{
+                        "type": "SUPPORT", "attributes": {
+                            "NAME": "/PS00574.1", "DTXR": dtxr,
+                            "POSI": "123504.12 114999.98 1330.73",
+                            "NODETYPE": node_type, "CMPSUPGAP": "6mm"},
+                    }]}]), encoding="utf-8")
+                cfg["dtxrPositionOffset"] = {
+                    "enabled": True, "xOffset": 0, "yOffset": 0,
+                    "zOffset": 100000, "tolerance": 0.5}
+                staged_xml = patched._maybe_enrich_from_staged_json(source, stage, cfg)
+                final_xml = patched._apply_process_data_to_xml(staged_xml, cfg)
+                target = node_by_number(ET.parse(final_xml).getroot(), 3430)
+                return [(field(r, "Type"), field(r, "Gap")) for r in target
+                        if r.tag.rsplit("}", 1)[-1] == "Restraint"]
+            from_tab7 = run("CRADLE RETAINER STYLE-314",
+                            {"supportTypeMapper": {"rows": [
+                                {"kind": "REST", "aliases": ["CRADLE RETAINER"]}]}},
+                            "17")
+            self.assertEqual(from_tab7, [("+Y", "6.0")])
+            from_tab8 = run("ORBITAL GUARDRAIL QZ-443", {
+                "supportMapping": {"version": 2, "rules": [
+                    {"id": "user-orbital-guide", "enabled": True,
+                     "priority": 1, "source": "staged-json",
+                     "field": "DTXR", "pattern": r"ORBITAL\\s+GUARDRAIL",
+                     "match": "regex", "kind": "GUIDE"}]},
+                "inputXmlRestraintTypeMutation": {"enabled": True,
+                    "rows": [{"from": "21", "to": "8"}]},
+            }, "21")
+            self.assertEqual(from_tab8, [("GUI", "6.0")])
+
     def test_3430_z_datum_existing_rest_does_not_skip_json_enrichment(self):
         # Real XML source position, synthetic GUIDE/LINESTOP and gap only;
         # the Owner's real staged JSON/gap is NOT in the benchmark repository.
@@ -133,8 +178,8 @@ class SourceTransferRegression(unittest.TestCase):
             finished = node_by_number(ET.parse(final).getroot(), 3430)
             restraints = [n for n in finished if n.tag.rsplit("}", 1)[-1] == "Restraint"]
             codes = {field(r, "Type"): float(field(r, "Gap")) for r in restraints}
-            self.assertEqual(set(codes), {"8", "9"})
-            self.assertAlmostEqual(codes["9"], 15.0)
+            self.assertEqual(set(codes), {"GUI", "LIM"})
+            self.assertAlmostEqual(codes["LIM"], 15.0)
             self.assertNotIn("+Y", codes)
 
 
