@@ -391,7 +391,7 @@ def _renumber_length_bearing_negative_nodes(root: ET.Element, namespace: str) ->
 
 
 
-def _source_class_wall_index(config: dict[str, Any]) -> dict[tuple[str, int], float]:
+def _source_class_wall_index(config: dict[str, Any], requested: set[str] | None = None) -> dict[tuple[str, int], float]:
     """Index only explicit class + converted DN master facts; never infer wall."""
     section = config.get("pipingClass", {})
     rows = section.get("masterRows", []) if isinstance(section, dict) else []
@@ -403,6 +403,8 @@ def _source_class_wall_index(config: dict[str, Any]) -> dict[tuple[str, int], fl
             continue
         class_code = (_row_value(row, "Piping Class") or
                       _row_value(row, "pipingClass")).strip()
+        if requested is not None and class_code not in requested:
+            continue
         dn_text = _row_value(row, "convertedBore")
         wall_text = (_row_value(row, "Wall thickness") or
                      _row_value(row, "wallThicknessMm") or
@@ -449,7 +451,8 @@ def _apply_source_class_wall(branch: ET.Element, namespace: str,
 
 
 
-def _material_ids_from_config(config: dict[str, Any]) -> dict[str, int]:
+def _material_ids_from_config(config: dict[str, Any],
+                              requested: set[str] | None = None) -> dict[str, int]:
     """Only exact selected material-map names with positive numeric CII IDs."""
     section = config.get("material", {})
     rows = section.get("mapRows", []) if isinstance(section, dict) else []
@@ -464,6 +467,8 @@ def _material_ids_from_config(config: dict[str, Any]) -> dict[str, int]:
         if not name or not re.fullmatch(r"[1-9]\d*", code):
             continue  # nonnumeric map code is not a CAESAR material index.
         key = " ".join(name.upper().split())
+        if requested is not None and key not in requested:
+            continue
         val = int(code)
         if key in result and result[key] != val:
             raise ValueError("XML229_MATERIAL_CODE_AMBIGUOUS")
@@ -471,7 +476,8 @@ def _material_ids_from_config(config: dict[str, Any]) -> dict[str, int]:
     return result
 
 
-def _source_class_meta_index(config: dict[str, Any]) -> dict[tuple[str, int], tuple[str, str]]:
+def _source_class_meta_index(config: dict[str, Any],
+                             requested: set[str] | None = None) -> dict[tuple[str, int], tuple[str, str]]:
     """Require one consistent spec material/rating for each exact class/bore."""
     section = config.get("pipingClass", {})
     rows = section.get("masterRows", []) if isinstance(section, dict) else []
@@ -481,7 +487,7 @@ def _source_class_meta_index(config: dict[str, Any]) -> dict[tuple[str, int], tu
             continue
         cls = _row_value(row, "Piping Class") or _row_value(row, "pipingClass")
         dn = _row_value(row, "convertedBore")
-        if not cls or not re.fullmatch(r"\d+", dn):
+        if not cls or (requested is not None and cls not in requested) or not re.fullmatch(r"\d+", dn):
             continue
         material = (_row_value(row, "Material_Name") or
                     _row_value(row, "materialName"))
@@ -538,9 +544,17 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
     changed = False
     skip_dtxr_restraint_fallback = _xml_restraints_are_authoritative(xml_path, support_config)
     insulation_density_default = _to_float(support_config.get("insulationDensityDefault"), 210.0)
-    class_wall_index = _source_class_wall_index(support_config)
-    class_meta_index = _source_class_meta_index(support_config)
-    material_ids = _material_ids_from_config(support_config)
+    # Only validate class/material rows actually referenced by this source XML.
+    # The 10k+ master can contain unrelated conflicting class/grade options.
+    source_classes = {match.group(1) for branch in root.iter()
+                      if _local_name(branch.tag) == "Branch"
+                      for match in [re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$",
+                                              _child_text(branch, namespace, "Branchname"), re.I)]
+                      if match}
+    class_wall_index = _source_class_wall_index(support_config, source_classes)
+    class_meta_index = _source_class_meta_index(support_config, source_classes)
+    material_names = {" ".join(name.upper().split()) for name, _rating in class_meta_index.values() if name}
+    material_ids = _material_ids_from_config(support_config, material_names)
     for branch in root.iter():
         if _local_name(branch.tag) != "Branch":
             continue
