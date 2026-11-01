@@ -748,6 +748,58 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'XML229_BRANCH_FORMAT_UNMATCHED'):
             native._line_key_from_branch(branch,cfg)
 
+    def test_engineering_verified_master_gate_rejects_missing_real_fields(self):
+        import xml_to_cii2019_patched as native
+        root=ET.Element('PipeStressExport')
+        pipe=ET.SubElement(root,'Pipe')
+        branch=ET.SubElement(pipe,'Branch')
+        ET.SubElement(branch,'Branchname').text='/GLRD-1000-6"-P4110001-93833-01/B6'
+        pressure=ET.SubElement(branch,'Pressure')
+        ET.SubElement(pressure,'Pressure1').text='11000'
+        temperature=ET.SubElement(branch,'Temperature')
+        ET.SubElement(temperature,'Temperature1').text='120'
+        ET.SubElement(temperature,'Temperature3').text='-50'
+        ET.SubElement(branch,'FluidDensity').text='109.85'
+        node=ET.SubElement(branch,'Node')
+        for key,value in [('ComponentType','PIPE'),('OutsideDiameter','168.3'),
+                          ('WallThickness','7.112'),('MaterialName','ASTM A790 UNS S31803'),
+                          ('PipingClassRating','900'),('MaterialCode','741')]:
+            ET.SubElement(node,key).text=value
+        config={'requireVerifiedMasterCompleteness':True,
+                'linelist':{'masterRows':[{'lineSeqNo':'4110001'}]}}
+        walls={('93833',150):7.112}
+        meta={('93833',150):('ASTM A790 UNS S31803','900')}
+        codes={'ASTM A790 UNS S31803':741} # TEST-ONLY ID, never approved
+        def verify():
+            native._assert_verified_master_completeness(root,'',config,walls,meta,codes)
+        verify()
+        for parent,tag,error in [
+            (pressure,'Pressure1','XML229_VERIFIED_PRESSURE_MISSING'),
+            (temperature,'Temperature1','XML229_VERIFIED_T1_MISSING'),
+            (temperature,'Temperature3','XML229_VERIFIED_T3_MISSING'),
+            (branch,'FluidDensity','XML229_VERIFIED_DENSITY_MISSING'),
+            (node,'MaterialCode','XML229_VERIFIED_MATERIAL_CODE_UNAPPROVED'),
+        ]:
+            child=parent.find(tag)
+            old=child.text
+            child.text=''
+            with self.assertRaisesRegex(ValueError,error):
+                verify()
+            child.text=old
+        with self.assertRaisesRegex(ValueError,'XML229_VERIFIED_MATERIAL_CODE_UNAPPROVED'):
+            native._assert_verified_master_completeness(root,'',config,walls,meta,{})
+        node.find('WallThickness').text='0'
+        with self.assertRaisesRegex(ValueError,'XML229_VERIFIED_CLASS_DN_WALL_CONFLICT'):
+            verify()
+        node.find('WallThickness').text='7.112'
+        with self.assertRaisesRegex(ValueError,'XML229_VERIFIED_CLASS_DN_WALL_MISSING'):
+            native._assert_verified_master_completeness(root,'',config,{},meta,codes)
+        config['linelist']['masterRows']=[]
+        with self.assertRaisesRegex(ValueError,'XML229_VERIFIED_LINE_LIST_UNRESOLVED'):
+            verify()
+        config['requireVerifiedMasterCompleteness']=False
+        verify()  # explicitly diagnostic-only conversion is not falsely verified
+
     def test_real_bm2_combined_line_class_material_to_native_cii(self):
         """Real BM2 field facts serialized through isolated native 10->20; synthetic ID 741."""
         import xml_to_cii2019_patched as native
