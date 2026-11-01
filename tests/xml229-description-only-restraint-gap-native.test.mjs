@@ -191,8 +191,8 @@ test('new Tab 7 REST keyword is honored at the same original node', async () => 
   staged[0].children[0].children[0].attributes.DTXR='CRADLE RETAINER STYLE-314';
   staged[0].children[0].children[0].attributes.NODETYPE='17';
   const baseline=await configDriven(staged);
-  assert.ok(!restraints(baseline.document,40).some(r=>r.type==='+Y'),
-    'without a saved keyword the source does not claim a REST');
+  assert.equal(restraints(baseline.document,40).find(r=>r.type==='+Y')?.gap,7,
+    'before Tab 7 edit only the ordinary ATTA default-gap REST is available');
   const mapper={rows:[
     {kind:'REST',aliases:['Cradle Retainer'],ciiKind:'REST_STYLE_CII_SUPPORT'},
     {kind:'GUIDE',aliases:['Guide'],ciiKind:'GUIDE_STYLE_CII_SUPPORT'},
@@ -200,8 +200,8 @@ test('new Tab 7 REST keyword is honored at the same original node', async () => 
     {kind:'ANCHOR',aliases:['Anchor'],ciiKind:'ANCHOR_STYLE_CII_SUPPORT'},
   ]};
   const altered=await configDriven(staged,{supportTypeMapper:mapper});
-  assert.ok(restraints(altered.document,40).some(r=>r.type==='+Y'),
-    'saved Tab 7 alias must be replayed on this original position owner');
+  assert.ok(restraints(altered.document,40).some(r=>r.type==='+Y'&&r.gap===5.5),
+    'saved Tab 7 alias must transfer the actual 5.5mm source gap, not the fallback REST');
 });
 
 test('new Tab 8 smart regex plus TYPE mutation changes output without changing source', async () => {
