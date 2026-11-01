@@ -634,6 +634,9 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         entries=[{'attrs':{'DTXR':'HOLD POINT','NODETYPE':'7'},'desc':'HOLD POINT'}]
         with self.assertRaisesRegex(ValueError,'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS'):
             kinds(entries,require,config)
+        config['supportTypeMapper']['rows']=[{'kind':'ANCHOR','aliases':['HOLD POINT']}]
+        with self.assertRaisesRegex(ValueError,'NATIVE_PREFINAL_RESTRAINT_KIND_UNSUPPORTED'):
+            kinds(entries,require,config)
         config={'inputXmlRestraintTypeMutation':{'enabled':True,'rows':[
                  {'from':'7','to':'9'},{'from':'7','to':'8'}]}}
         with self.assertRaisesRegex(ValueError,'NATIVE_PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'):
