@@ -7,7 +7,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {installWeightBasisXmlDom} from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
-import {runStandaloneSupportTypeMapper}
+import {runStandaloneSupportTypeMapper,createDefaultSupportTypeMapperConfig}
   from '../tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js';
 import {resolveXmlCiiSupportDescriptor}
   from '../converters/xml-cii2019-core/support-mapping.js';
@@ -113,4 +113,22 @@ test('7 mapper -> Datum/6mm -> 8 mutation -> Final XML -> native CII (controlled
         actualCiiGap:records.get(m.node)?.[3]}))
     }));
   }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('edited Step 7 semantic alias changes governed Step 8/native output, not only preview',async()=>{
+  const rows=createDefaultSupportTypeMapperConfig();
+  rows.find(r=>r.kind==='LINESTOP').aliases.push('AXIAL LOCK');
+  const base=setup().config;
+  const audit=runStandaloneSupportTypeMapper({
+    supportConfigJson:JSON.stringify(base),mapperRows:rows,testInput:'AXIAL LOCK',
+  });
+  assert.equal(audit.previewRows[0]?.supportKind,'LINESTOP');
+  const source=JSON.parse(original());
+  source[0].children[2].attributes.DTXR='AXIAL LOCK';
+  const prepared=await prepareXml229PrefinalRestraints({
+    xmlText:xml,stagedJsonText:JSON.stringify(source),
+    config:JSON.parse(audit.supportConfigJson),
+  });
+  assert.deepEqual(nodeRows(prepared.document)[2].rows.map(r=>r.type),['LIM'],
+    'custom mapper label must govern Final instead of being display only');
 });
