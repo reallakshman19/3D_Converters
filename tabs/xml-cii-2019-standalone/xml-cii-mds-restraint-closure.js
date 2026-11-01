@@ -63,6 +63,11 @@ function supportKindFromMember(member,config={}) {
   // This mirrors the old confidence mapper, not its legacy axis defaults.
   const desc = [attrs.DTXR, attrs.DESC, attrs.DESCRIPTION, member?.description]
     .map(text).filter(Boolean).join(' ').toUpperCase();
+  const hasSavedMapper = Array.isArray(config?.supportTypeMapper?.rows);
+  // When Step 7 is saved, its exact aliases (and ambiguity policy) govern.
+  // The legacy keyword guesses are ONLY for older configs without a mapper.
+  // Otherwise removed/changed keywords could still leak into native CII.
+  if (!hasSavedMapper) {
   const semantic = [
     /\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b/.test(desc) && 'LINESTOP',
     /\bGUIDE\b/.test(desc) && 'GUIDE',
@@ -74,11 +79,12 @@ function supportKindFromMember(member,config={}) {
     throw Object.assign(new Error('Conflicting source support descriptions'),
       {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
   if (semantic.length) return semantic[0];
+  }
   // Use the user-authored Step 7 mapper rows, not a second hard-coded alias list.
   // HIGH/MEDIUM semantic intent can override a stale generated REST label;
   // LOW GT/ST evidence cannot override a resolved canonical source kind.
   let mapper = null;
-  if (Array.isArray(config?.supportTypeMapper?.rows)) {
+  if (hasSavedMapper) {
     const rows = parseSupportTypeMapperConfig({supportConfig:config}).mapperRows;
     const evidence = [attrs.DTXR,attrs.DESC,attrs.DESCRIPTION,
       member?.description,attrs.CMPSUPTYPE,attrs.MDSSUPPTYPE,attrs.SPRE]
@@ -99,6 +105,9 @@ function supportKindFromMember(member,config={}) {
   if (canonical.length) return canonical[0];
   if(mapper?.status==='matched'&&GOVERNED_KINDS.includes(mapper.supportKind))
     return mapper.supportKind;
+  // No implicit GT/ST/AT or legacy SPRE classifier after explicit Step 7
+  // keyword removal. A matching canonical identity above remains authoritative.
+  if (hasSavedMapper) return '';
   const code = text(attrs.MDSSUPPTYPE || member?.capturedFields?.MDSSUPPTYPE).toUpperCase();
   if (code.startsWith('GT')) return 'GUIDE';
   if (code.startsWith('ST')) return 'LINESTOP';
