@@ -205,6 +205,9 @@ def append_profile(node, kind, attrs, config, allowed=None):
     gap = str(numeric(raw)) if raw else text(p.get('gap')) or '0'
     node_gap = next((field(node, k) for k in ('CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS') if field(node, k)), '')
     original_type = node_type_mutation(attrs, config)
+    if original_type in ('+Y','GUI','LIM') and original_type != {
+            'REST':'+Y','GUIDE':'GUI','LINESTOP':'LIM'}[kind]:
+        raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT')
     for typ in ([original_type] if original_type else p['xmlTypes']):
         if allowed is not None and present_type(typ) in allowed:
             continue
