@@ -277,7 +277,13 @@ def _line_key_from_row(row: dict[str, Any], config: dict[str, Any]) -> str:
 def _matching_linelist_rows(line_key: str, config: dict[str, Any]) -> list[dict[str, Any]]:
     rows = config.get("linelist", {}).get("masterRows", []) if isinstance(config.get("linelist"), dict) else []
     wanted = re.sub(r"\s+", "", line_key.upper())
-    return [row for row in rows if isinstance(row, dict) and _line_key_from_row(row, config) == wanted]
+    exact = [row for row in rows if isinstance(row, dict) and _line_key_from_row(row, config) == wanted]
+    if exact or not re.fullmatch(r"P[0-9]{7}", wanted):
+        return exact
+    # BM2 PSI branch P4110001 versus its pinned LL_BM2 C9=4110001.
+    # A single numeric source row may qualify; never guess among duplicates.
+    alias = [row for row in rows if isinstance(row, dict) and _line_key_from_row(row, config) == wanted[1:]]
+    return alias if len(alias) == 1 else []
 
 
 def _mapped_process_value(line_key: str, config: dict[str, Any], field: str, fallbacks: list[str]) -> str:
