@@ -75,5 +75,14 @@ class TestXml229DatumAndNodeType(unittest.TestCase):
             native(cfg=cfg)
 
 
+    def test_conflicting_source_type_mutations_reject(self):
+        source=json.loads(json.dumps(JSON))
+        second=json.loads(json.dumps(source[0]['children'][0]))
+        second['attributes']['NODETYPE']='8'
+        source[0]['children'].append(second)
+        with self.assertRaisesRegex(ValueError,'NATIVE_PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'):
+            native(source)
+
+
 if __name__=='__main__':
     unittest.main()
