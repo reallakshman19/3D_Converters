@@ -110,7 +110,8 @@ function statusFor(tabValue, enrichedValue, inCii, enrichedAvailable, ciiAvailab
   }
   if (ciiAvailable && inCii === null) return 'unverified-cii';
   if (ciiAvailable && !inCii) return 'missing-in-cii';
-  if (!enrichedAvailable && !ciiAvailable) return 'pending-run';
+  if (!ciiAvailable) return 'pending-run';
+  if (!enrichedAvailable) return 'unverified-enriched';
   return 'propagated';
 }
 
