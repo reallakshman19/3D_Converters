@@ -10,7 +10,8 @@ import { fileURLToPath } from 'node:url';
 import { xmlCiiBranchScopeFromState, xmlCiiSourceDigest } from '../tabs/xml-cii-2019-standalone/xml-cii-branch-scope.js';
 import { auditConfiguredBranchFormats } from '../tabs/xml-cii-2019-standalone/xml-cii-branch-format-release.js';
 
-const FIELDS = ['lineKey','pipingClass','rating','bore'];
+// Only the two source-identity fields may make configured formats ambiguous.
+const FIELDS = ['lineKey','pipingClass'];
 const digest = value => createHash('sha256').update(String(value),'utf8').digest('hex');
 function plain(value) {return value && typeof value==='object' && !Array.isArray(value) ? value : {};}
 function formatReason(candidate) {
