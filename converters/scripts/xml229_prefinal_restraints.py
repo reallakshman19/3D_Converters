@@ -56,42 +56,53 @@ def numeric(v):
 
 def kinds(entries, require):
     out = {}
-    derived = set()
     for e in entries:
         a = e['attrs']
+        # The historical qualified mapper lets explicit engineering meaning
+        # outrank abbreviated GT/ST. Do not copy its legacy DOF/axis defaults.
+        desc = ' '.join([text(a.get(k)) for k in ('DTXR', 'DESC', 'DESCRIPTION')] +
+                        [text(e['desc'])]).upper()
+        semantic = [
+            k for k, pat in (
+                ('LINESTOP', r'\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b'),
+                ('GUIDE', r'\bGUIDE\b'),
+                ('REST', r'\b(?:PIPE[- ]?REST|REST|SHOE)\b'))
+            if re.search(pat, desc)
+        ]
+        require(len(set(semantic)) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+        canonical = {
+            text(a.get(k)).upper().replace(' ', '') for k in
+            ('SUPPORT_KIND', 'SUPPORT_MAPPER_KIND', 'SUPPORT_TYPE')
+            if text(a.get(k)).upper().replace(' ', '') in ('REST', 'GUIDE', 'LINESTOP')
+        }
+        require(len(canonical) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
         code = text(a.get('MDSSUPPTYPE')).upper()
-        desc = ' '.join([text(a.get(k)) for k in ('DTXR', 'SPRE', 'SPREF')] +
-                        [e['desc'], e['type']]).upper()
-        kind = ('GUIDE' if code.startswith('GT') else 'LINESTOP' if code.startswith('ST')
+        kind = (semantic[0] if semantic else next(iter(canonical)) if canonical
+                else 'GUIDE' if code.startswith('GT') else 'LINESTOP' if code.startswith('ST')
                 else 'REST' if code == 'PIPE-REST' or code.startswith('AT') or
-                re.search(r'\b(?:PIPE[- ]?REST|REST|SHOE|WEAR\s*PAD|BEARING\s*PLATE)\b', desc) else '')
-        # Description-derived kinds are used only if no explicit member supplied it.
-        description_kinds = []
-        for k, pattern in [('LINESTOP', r'\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT)\b'),
-                           ('GUIDE', r'\bGUIDE\b'), ('REST', r'\b(?:REST|PIPE\s*REST|WEAR\s*PLATE|SHOE)\b')]:
-            if re.search(pattern, e['desc'].upper()):
-                derived.add(k)
-                description_kinds.append(k)
-        # An unambiguous description-only member owns its own gap evidence.
-        # Multi-kind descriptions retain the previous review-only fallback.
-        if not kind and len(description_kinds) == 1:
-            kind = description_kinds[0]
+                re.search(r'\b(?:PIPE[- ]?REST|REST|SHOE)\b',
+                          text(a.get('SPRE')).upper()) else '')
         if not kind:
             continue
         raw = source_gap(a)
-        require(not raw or numeric(raw) is not None, 'NATIVE_PREFINAL_RESTRAINT_GAP_INVALID')
+        alias_values = [text(a.get(k)) for k in
+                        ('CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS', 'NODEGAP')
+                        if text(a.get(k))]
+        require(all(numeric(v) is not None for v in alias_values),
+                'NATIVE_PREFINAL_RESTRAINT_GAP_INVALID')
+        require(all(numeric(v) == numeric(raw) for v in alias_values),
+                'NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS')
         previous = source_gap(out.get(kind, {}))
         require(not (previous and raw and numeric(previous) != numeric(raw)),
                 'NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS')
         if kind not in out or (not previous and raw):
             out[kind] = a
-    for k in derived:
-        out.setdefault(k, {})
     return out
 
 
 def source_gap(a):
-    return next((text(a.get(k)) for k in ('CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS')
+    return next((text(a.get(k)) for k in
+                 ('CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS', 'NODEGAP')
                  if text(a.get(k))), '')
 
 
@@ -154,7 +165,7 @@ def append_profile(node, kind, attrs, config, allowed=None):
     p = profile_for(kind, config)
     ns = node.tag.rsplit('}', 1)[0] + '}' if '}' in node.tag else ''
     d = direction(p, attrs, node)
-    raw = source_gap(attrs) if kind in ('GUIDE', 'LINESTOP') else ''
+    raw = source_gap(attrs) if kind in ('REST', 'GUIDE', 'LINESTOP') else ''
     gap = str(numeric(raw)) if raw else text(p.get('gap')) or '0'
     node_gap = next((field(node, k) for k in ('CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS') if field(node, k)), '')
     for typ in p['xmlTypes']:
@@ -169,7 +180,7 @@ def append_profile(node, kind, attrs, config, allowed=None):
         values = [('Type', typ), ('Stiffness', text(p['stiffness']) if text(p['stiffness']) not in ('', 'default')
                   else text(config.get('defaultStiffness')) or '1.751270E+12'),
                   ('Gap', actual_gap), ('Friction', friction)]
-        if raw or (typ in ('GUI', 'LIM') and node_gap):
+        if (raw and typ in ('GUI', 'LIM')) or (typ in ('GUI', 'LIM') and node_gap):
             values.append(('CMPSUPGAP', raw or node_gap))
         if d:
             values.extend(('DirectionCosine' + axis, f'{v:.9f}') for axis, v in zip('XYZ', d))
