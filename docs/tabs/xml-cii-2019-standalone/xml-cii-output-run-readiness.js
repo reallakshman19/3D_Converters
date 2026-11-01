@@ -74,7 +74,10 @@ function branchFormatAuthorityRows(input) {
       : selected.blocked && !audit.blocked
         ? 'Selected branch scope cannot be resolved; refresh selection against the original XML.'
         : `${audit.failures.length} of ${audit.checkedCount} selected branch occurrences have unresolved or conflicting configured formats (${unmatched} UNMATCHED; ${ambiguous} AMBIGUOUS). See first 20 format diagnostics below.`,
-    { blocking: true, severity: 'error', detail: JSON.stringify(audit.failures.slice(0, 20)) })];
+    // An unresolved source enrichment identity warrants Preview review, but
+    // XML→CII conversion must still run on the available original XML.
+    { blocking: false, severity: 'warning', status:'unresolved-enrichment',
+      detail: JSON.stringify(audit.failures.slice(0, 20)) })];
 }
 
 function xmlRows(input) {
