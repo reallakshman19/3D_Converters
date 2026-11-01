@@ -78,7 +78,8 @@ class SourceTransferRegression(unittest.TestCase):
         tree = ET.parse(BM2)
         root = tree.getroot()
         node = node_by_number(root, 3430)
-        ET.SubElement(node, "DTXR_POS").text = "REST"
+        namespace = node.tag.rsplit("}", 1)[0] + "}" if "}" in node.tag else ""
+        ET.SubElement(node, namespace + "DTXR_POS").text = "REST"
         with TemporaryDirectory() as directory:
             source = Path(directory) / "prior-rest.xml"
             staged = Path(directory) / "staged.json"
@@ -91,6 +92,7 @@ class SourceTransferRegression(unittest.TestCase):
                     "DTXR": "LINE STOP", "POSI": "123504.12 114999.98 1330.73",
                     "CMPSUPGAP": "15mm"}},
             ]
+            self.assertTrue(patched._xml_has_dtxr_annotations(source))
             staged.write_text(json.dumps([{
                 "type": "BRANCH", "name": '/GLRD-1000-8"-B4110003-13451-01/B1',
                 "children": values}]), encoding="utf-8")
