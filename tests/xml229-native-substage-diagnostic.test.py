@@ -66,7 +66,7 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         engine = engine_path.read_text(encoding="utf-8")
         self.assertEqual(engine, served_path.read_text(encoding="utf-8"))
         inventory = engine.split("const SCRIPT_FILE_NAMES = Object.freeze([", 1)[1].split("]);", 1)[0]
-        bundled = set(re.findall(r"'([^']+\\.py)'", inventory))
+        bundled = set(re.findall(r"'([^']+[.]py)'", inventory))
         required = ("xml229_prefinal_restraints.py",
                     "xml229_prefinal_restraint_source.py",
                     "xml229_support_type_mapper.py")
