@@ -570,13 +570,13 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         self.assertEqual(native._process_material_for_line('P4110001',process),
                          'ASTM A106-B')
         ids=native._material_ids_from_config(process,{name,'ASTM A106-B'})
-        self.assertFalse(native._apply_source_material_rating(
-            branch,'',native._source_class_meta_index(process),{},'')
-            is None)  # no bogus Python missing return
-        node.find('MaterialCode') is None
+        self.assertEqual(ids,{name:741})
+        self.assertTrue(native._apply_source_material_rating(
+            branch,'',native._source_class_meta_index(process),ids,'ASTM A106-B'))
         # The higher-authority but unmapped process material cannot acquire 741.
-        ET.SubElement(node,'MaterialName').text='' if node.find('MaterialName') is None else None
-        node.find('MaterialCode') is None
+        self.assertEqual(node.findtext('MaterialName'),'ASTM A106-B')
+        self.assertEqual(node.findtext('PipingClassRating'),'900')
+        self.assertIsNone(node.find('MaterialCode'))
         with self.assertRaisesRegex(ValueError,'XML229_LINE_MATERIAL_AMBIGUOUS'):
             native._process_material_for_line('P4110001',{**process,
              'linelist':{'masterRows':[{'lineSeqNo':'4110001','Material':'ASTM A106-B'},
