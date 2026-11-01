@@ -713,6 +713,9 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         cfg={'linelist':{'lineKeyTokenPositions':'4'},
              'regexTester':{'formats':[fmt], 'ratingSequence':[]}}
         self.assertEqual(native._line_key_from_branch(branch,cfg),'P4110001')
+        direct={'formats':[fmt], 'linelist':{'lineKeyTokenPositions':'5'}}
+        self.assertEqual(native._line_key_from_branch(branch,direct),'P4110001',
+                         'root saved formats must override stale legacy token5')
         # Change the saved FORMAT only. A failing regex must not permit the
         # legacy token-position field to keep matching an old master row.
         fmt['lineKey']={'extractMode':'REGEX',
