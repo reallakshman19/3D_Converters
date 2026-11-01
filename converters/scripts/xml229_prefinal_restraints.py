@@ -3,6 +3,7 @@
 This deliberately does not copy restraint values out of the Worker snapshot.
 The caller retains the whole-XML comparison after replaying this bounded stage.
 """
+from xml229_support_type_mapper import mapped_support_kind
 from decimal import Decimal, InvalidOperation
 import hashlib
 import json
@@ -77,8 +78,12 @@ def kinds(entries, require, config=None):
             if text(a.get(k)).upper().replace(' ', '') in ('REST', 'GUIDE', 'LINESTOP')
         }
         require(len(canonical) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+        mapped_kind, score = mapped_support_kind(a, e['desc'], config, require)
         code = text(a.get('MDSSUPPTYPE')).upper()
-        kind = (semantic[0] if semantic else next(iter(canonical)) if canonical
+        kind = (semantic[0] if semantic
+                else mapped_kind if score >= .65 and mapped_kind in ('REST','GUIDE','LINESTOP')
+                else next(iter(canonical)) if canonical
+                else mapped_kind if mapped_kind in ('REST','GUIDE','LINESTOP')
                 else 'GUIDE' if code.startswith('GT') else 'LINESTOP' if code.startswith('ST')
                 else 'REST' if code == 'PIPE-REST' or code.startswith('AT') or
                 re.search(r'\b(?:PIPE[- ]?REST|REST|SHOE)\b',
