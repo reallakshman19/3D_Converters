@@ -3,6 +3,7 @@ import {
   restraintEntriesFromSupportKind,
 } from '../../converters/xml-cii2019-core/support-mapping.js';
 import { migrateSupportMappingConfig } from '../../converters/xml-cii2019-core/support-mapping-config.js';
+import {mutateRestraintType} from '../../converters/xml-cii2019-core/restraint-type-mutation.js';
 import { buildStandaloneDtxrResolutionLedger } from './xml-cii-trace-resolution-ledger.js';
 import { decorateJsonTraceLedger } from './xml-cii-json-trace-fields.js';
 import {isZeroInformationLimitRestraintElement}
@@ -40,9 +41,9 @@ function parserFailed(document) {
 
 function normalizeXmlType(value) {
   const type = text(value).toUpperCase();
-  if (type === 'Y' || type === '+Y' || type === 'REST') return '+Y';
-  if (type === 'GUIDE' || type === 'GUI' || type === 'X') return 'GUI';
-  if (type === 'LINESTOP' || type === 'LIMIT' || type === 'LIM' || type === 'Z') return 'LIM';
+  if (type === 'Y' || type === '+Y' || type === 'REST' || type === '14') return '+Y';
+  if (type === 'GUIDE' || type === 'GUI' || type === 'X' || type === '8') return 'GUI';
+  if (type === 'LINESTOP' || type === 'LIMIT' || type === 'LIM' || type === 'Z' || type === '9') return 'LIM';
   return type;
 }
 
@@ -97,6 +98,18 @@ function supportGapNumber(attrs){
   if(values.some(v=>v!==values[0]))throw Object.assign(
     new Error('Conflicting source gap aliases'),{code:'PREFINAL_RESTRAINT_GAP_AMBIGUOUS'});
   return values.length?values[0]:null;
+}
+
+function sourceNodeType(attrs,config){
+  const raw=text(attrs?.NODETYPE);
+  if(!raw)return '';
+  const selected=mutateRestraintType(raw,
+    config.inputXmlRestraintTypeMutation||config.restraintTypeMutation||{});
+  const number=Number(selected);
+  if(!Number.isInteger(number)||number<1||number>62)
+    throw Object.assign(new Error('Unsupported staged NODETYPE or type mutation'),
+      {code:'PREFINAL_RESTRAINT_TYPE_INVALID'});
+  return normalizeXmlType(String(number));
 }
 
 function evidenceByKind(record, requireUnambiguous = false) {
@@ -218,13 +231,14 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
       const entries = [];
       for (const kind of GOVERNED_KINDS) {
         if (!evidence.has(kind)) continue;
-        const expectedType = EXPECTED_XML_TYPE[kind];
-        if (present.has(expectedType)) continue;
         const attrs=evidence.get(kind);
         const explicitGap=sourceGapText(attrs);
+        const selectedType=sourceNodeType(attrs,config)||EXPECTED_XML_TYPE[kind];
         const generated=restraintEntriesFromSupportKind(kind, attrs, node, config)
-          .map(entry=>kind==='REST'&&explicitGap
-            ?{...entry,gap:String(supportGapNumber(attrs))}:entry)
+          .map(entry=>({
+            ...entry,type:selectedType,
+            gap:kind==='REST'&&explicitGap?String(supportGapNumber(attrs)):entry.gap,
+          }))
           .filter(entry=>!present.has(normalizeXmlType(entry?.type || entry)));
         if (!generated.length) continue;
         kinds.push(kind);
