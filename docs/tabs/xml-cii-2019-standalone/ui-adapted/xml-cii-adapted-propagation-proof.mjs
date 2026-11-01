@@ -151,9 +151,23 @@ export function verifyCiiEngineeringAgainstNativeXml(xmlText, ciiText) {
   const value = (parent, tag) => String(child(parent, tag)?.textContent ?? '').trim();
   const children = (parent, tag) => [...(parent?.childNodes || [])]
     .filter(node => node?.nodeType === 1 && local(node) === tag);
+  // Native browser DOM and the Worker DOM shim need the same namespace-local
+  // traversal. getElementsByTagName('*') is not portable across those hosts.
+  const descendants = (parent, tag) => {
+    const found = [];
+    const pending = [...(parent?.childNodes || [])].reverse();
+    while (pending.length) {
+      const node = pending.pop();
+      if (node?.nodeType !== 1) continue;
+      if (local(node) === tag) found.push(node);
+      for (let i = (node.childNodes?.length || 0) - 1; i >= 0; i--)
+        pending.push(node.childNodes[i]);
+    }
+    return found;
+  };
   const evidence = [];
   const original = new Map();
-  for (const branch of [...doc.getElementsByTagName('*')].filter(x => local(x) === 'Branch')) {
+  for (const branch of descendants(doc, 'Branch')) {
     const name = value(branch, 'Branchname');
     if (!name || original.has(name)) throw new Error('CII_VERIFIED_BRANCH_IDENTITY_AMBIGUOUS');
     const temp = child(branch, 'Temperature'), pressure = child(branch, 'Pressure');
