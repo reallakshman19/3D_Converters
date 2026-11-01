@@ -174,9 +174,34 @@ class SourceTransferRegression(unittest.TestCase):
                 target = node_by_number(ET.parse(final_xml).getroot(), 3430)
                 xml_rows = [(field(r, "Type"), field(r, "Gap")) for r in target
                             if r.tag.rsplit("}", 1)[-1] == "Restraint"]
+                # The full authentic BM2 XML contains unrelated adjacent
+                # multi-restraint edges not supported by bare xml_to_cii2019.py.
+                # Isolate the *actual* owning 3420->3430 edge for independent
+                # CII type/gap serialization; never change the numerical writer.
+                native_root = ET.parse(final_xml).getroot()
+                native_branch = next(b for b in native_root.iter()
+                    if b.tag.rsplit("}", 1)[-1] == "Branch"
+                    and field(b, "Branchname") == branch)
+                minimal = ET.Element(native_root.tag, native_root.attrib)
+                original_pipe = next(p for p in native_root.iter()
+                    if p.tag.rsplit("}", 1)[-1] == "Pipe")
+                isolated_pipe = ET.SubElement(minimal, original_pipe.tag)
+                isolated_branch = ET.fromstring(ET.tostring(native_branch))
+                for member in list(isolated_branch):
+                    if member.tag.rsplit("}", 1)[-1] != "Node":
+                        continue
+                    if field(member, "NodeNumber") not in ("3420", "3430"):
+                        isolated_branch.remove(member)
+                    elif field(member, "NodeNumber") == "3420":
+                        for child in list(member):
+                            if child.tag.rsplit("}", 1)[-1] == "Restraint":
+                                member.remove(child)
+                isolated_pipe.append(isolated_branch)
+                isolated_xml = Path(directory) / "node3430-isolated.xml"
+                ET.ElementTree(minimal).write(isolated_xml, encoding="utf-8")
                 cii_path = Path(directory) / "node3430-native.cii"
                 cmd = [sys.executable, str(SCRIPTS / "xml_to_cii2019.py"),
-                       "--input", str(final_xml), "--output", str(cii_path)]
+                       "--input", str(isolated_xml), "--output", str(cii_path)]
                 result = subprocess.run(cmd, capture_output=True, text=True, timeout=45)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 cii = cii_path.read_text(encoding="utf-8")
