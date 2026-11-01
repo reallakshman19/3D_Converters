@@ -61,7 +61,8 @@ def configured_support_rule(attrs, description, config, require):
         mode = str(rule.get('match') or 'contains')
         require(mode in ('regex', 'contains', 'equals', 'startsWith'),
                 'NATIVE_PREFINAL_RESTRAINT_CONFIG_INVALID')
-        fields = [re.sub(r'[^A-Z0-9]', '', f.upper()) for f in
+        fields = [('*' if f.strip() == '*' else
+                   re.sub(r'[^A-Z0-9]', '', f.upper())) for f in
                   re.split(r'[,;\n]', str(rule.get('field') or '')) if f.strip()]
         candidates = [str(v) for k,v in values.items()
                       if v is not None and (not fields or '*' in fields or
