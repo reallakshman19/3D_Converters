@@ -63,7 +63,8 @@ function configuredSupportRuleDecision(attrs, member, config) {
   // only user-authored rules can change their precedence.
   const rules = Array.isArray(config?.supportMapping?.rules)
     ? config.supportMapping.rules : [];
-  const normalized = key => text(key).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const normalized = key => text(key) === '*' ? '*' :
+    text(key).toUpperCase().replace(/[^A-Z0-9]/g, '');
   const evidence = {...attrs, DESCRIPTION: text(attrs.DESCRIPTION || member?.description)};
   const matching = [];
   for (const [index, rule] of rules.entries()) {
