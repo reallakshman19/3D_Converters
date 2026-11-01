@@ -77,6 +77,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+      - name: Identity-bound native CII propagation proof (not global text search)
+        run: |
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-propagation-audit.js
+          node --test tests/xml229-bm2-propagation-proof.test.mjs
       - name: Separate independent CII parser, manifest and native Run status
         run: |
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-optional-instrument-advisory.mjs
@@ -94,10 +98,6 @@ jobs:
           node --check tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs
           node --check tabs/xml-cii-2019-standalone/integration/xml229-native-indexed-json-handoff.mjs
           node --test tests/xml229-physical-lineage-contract.test.mjs tests/xml229-native-owner-cardinality.test.mjs tests/xml229-native-cii-independent-reconciliation.test.mjs tests/xml229-native-cii-real-cli-e2e.test.mjs tests/xml229-run-hold-audit.test.mjs tests/xml229-native-source-custody.test.mjs tests/xml229-native-indexed-json-handoff.test.mjs tests/xml229-run-auto-native.test.mjs
-      - name: Identity-bound native CII propagation proof (not global text search)
-        run: |
-          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-propagation-audit.js
-          node --test tests/xml229-bm2-propagation-proof.test.mjs
       - name: Verify root and live-served modules are identical
         run: |
           diff -u converters/scripts/xml_to_cii2019_master_addon.py docs/converters/scripts/xml_to_cii2019_master_addon.py
