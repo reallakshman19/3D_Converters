@@ -123,6 +123,148 @@ class SourceTransferRegression(unittest.TestCase):
             [spec.type_code for spec in patched._specs_from_dtxr_text(
                 "ANCHOR|LINESTOP", {})], [9])
 
+    def test_verified_source_gate_and_real_93833_wall_synthetic_material_pin(self):
+        # Actual public 93833/DN150=7.112mm; 741 is a TEST-ONLY mapping.
+        public = json.loads(MASTER.read_text())["rows"]
+        row = next(r for r in public if r.get("_sourceRowIndex") == 10558)
+        self.assertEqual((row["convertedBore"], float(row["Wall thickness"])),
+                         (150, 7.112))
+        line = {"lineSeqNo": "4110001", "p1": "11000", "t1": "120",
+                "t2": "40", "t3": "-50", "densityMixed": "109.85"}
+        def config():
+            return {
+                "requireVerifiedMasterCompleteness": True,
+                "pipingClass": {"masterRows": [row]},
+                "linelist": {"masterRows": [dict(line)],
+                             "fieldMap": {k:k for k in line}},
+                "material": {"mapRows": [{"Material": "ASTM A790 UNS S31803",
+                                          "Code": "741"}]},
+            }
+        branch = '/GLRD-1000-6"-P4110001-93833-01/B6'
+        xml = ('<PipeStressExport><Pipe><Branch><Branchname>'+branch+'</Branchname>'
+               '<Node><NodeNumber>10</NodeNumber><ComponentType>PIPE</ComponentType>'
+               '<OutsideDiameter>168.3</OutsideDiameter><WallThickness>0</WallThickness>'
+               '<Position>0 0 0</Position></Node>'
+               '<Node><NodeNumber>20</NodeNumber><ComponentType>PIPE</ComponentType>'
+               '<OutsideDiameter>168.3</OutsideDiameter><WallThickness>0</WallThickness>'
+               '<Position>100 0 0</Position></Node>'
+               '</Branch></Pipe></PipeStressExport>')
+        with TemporaryDirectory() as work:
+            path=Path(work)/"source.xml"
+            path.write_text(xml)
+            good=config()
+            out=patched._apply_process_data_to_xml(path,good)
+            tree=ET.parse(out).getroot()
+            n=node_by_number(tree,10)
+            self.assertAlmostEqual(float(field(n,"WallThickness")),7.112)
+            self.assertEqual(field(n,"MaterialCode"),"741")
+            self.assertEqual(field(n,"PipingClassRating"),"900")
+            self.assertEqual(field(next(tree.iter("Pressure")),"Pressure1"),"11000")
+            self.assertEqual(field(next(tree.iter("Temperature")),"Temperature2"),"40")
+            # Exact real-mapped fields must be complete and consistent; no
+            # fallback 0.01 or unapproved code may be promoted as VERIFIED.
+            failures=[
+                ("p1","", "XML229_VERIFIED_PRESSURE_MISSING"),
+                ("t2","", "XML229_VERIFIED_T2_MISSING"),
+                ("densityMixed","", "XML229_VERIFIED_DENSITY_MISSING"),
+            ]
+            for key,bad,error in failures:
+                bad_config=config()
+                bad_config["linelist"]["masterRows"][0][key]=bad
+                with self.assertRaisesRegex(ValueError,error):
+                    patched._apply_process_data_to_xml(path,bad_config)
+            missing=config()
+            missing["pipingClass"]["masterRows"]=[]
+            with self.assertRaisesRegex(ValueError,"XML229_VERIFIED_CLASS_DN_WALL_MISSING"):
+                patched._apply_process_data_to_xml(path,missing)
+            rejected=config()
+            rejected["material"]["mapRows"]=[]
+            with self.assertRaisesRegex(ValueError,"XML229_VERIFIED_MATERIAL_CODE_UNAPPROVED"):
+                patched._apply_process_data_to_xml(path,rejected)
+            conflicting=config()
+            conflicting["pipingClass"]["masterRows"].append({
+                **row,"Wall thickness":"12.7"})
+            with self.assertRaisesRegex(ValueError,"XML229_PIPING_CLASS_BORE_AMBIGUOUS"):
+                patched._apply_process_data_to_xml(path,conflicting)
+            zero=config()
+            zero["linelist"]["masterRows"][0].update(p1="0",t2="0",densityMixed="0")
+            zero_out=patched._apply_process_data_to_xml(path,zero)
+            self.assertEqual(field(next(ET.parse(zero_out).getroot().iter("Pressure")),
+                                   "Pressure1"),"0")
+            diagnostic=config()
+            diagnostic["requireVerifiedMasterCompleteness"]=False
+            diagnostic["material"]["mapRows"]=[]
+            patched._apply_process_data_to_xml(path,diagnostic)  # nonreleasing
+
+    def test_partial_mandatory_positional_support_transfer_rejects(self):
+        branch='/TEST-100-6"-P4110001-93833-01/B1'
+        xml=('<PipeStressExport><Pipe><Branch><Branchname>'+branch+'</Branchname>'
+             '<Node><NodeNumber>10</NodeNumber><ComponentType>ANCI</ComponentType>'
+             '<Position>0 0 0</Position></Node>'
+             '<Node><NodeNumber>20</NodeNumber><ComponentType>ANCI</ComponentType>'
+             '<Position>100 0 0</Position></Node></Branch></Pipe></PipeStressExport>')
+        def entry(kind,name,pos):
+            return {"type":kind,"attributes":{
+                "NAME":name,"DTXR":"GUIDE","POSI":pos,
+                "CMPSUPGAP":"4.5","NODETYPE":"8"}}
+        def staged(extra):
+            return [{"type":"BRANCH","name":branch,"children":[
+                entry("SUPPORT","/PS1","100 0 0"),extra]}]
+        with TemporaryDirectory() as folder:
+            path=Path(folder)/"source.xml"
+            stage=Path(folder)/"stage.json"
+            path.write_text(xml)
+            cfg={"dtxrPositionOffset":{"enabled":True,"xOffset":0,
+                                        "yOffset":0,"zOffset":0,
+                                        "tolerance":0.5,"autoCalibrate":False}}
+            stage.write_text(json.dumps(staged(entry("SUPPORT","/PS2","200 0 0"))))
+            with self.assertRaisesRegex(ValueError,
+                                        "XML229_STAGED_POSITION_PARTIAL_TRANSFER"):
+                patched._maybe_enrich_from_staged_json(path,stage,dict(cfg))
+            # An unrelated positional PIPE annotation is explicitly excluded;
+            # it must not suppress the valid SUPPORT transfer.
+            stage.write_text(json.dumps(staged(entry("PIPE","/PIPE1","200 0 0"))))
+            out=patched._maybe_enrich_from_staged_json(path,stage,dict(cfg))
+            self.assertIn("GUIDE",field(node_by_number(ET.parse(out).getroot(),20),"DTXR_POS"))
+
+    def test_authoritative_xml_restraint_conflicts_and_stale_replacement(self):
+        branch='/TEST-100-6"-P4110001-93833-01/B1'
+        def make_node(rest_type, gap, source="original"):
+            n=ET.Element("Node")
+            ET.SubElement(n,"NodeNumber").text="20"
+            ET.SubElement(n,"DTXR_POS").text="GUIDE"
+            r=ET.SubElement(n,"Restraint")
+            if source: r.set("source",source)
+            ET.SubElement(r,"Type").text=rest_type
+            ET.SubElement(r,"Gap").text=gap
+            ET.SubElement(r,"Stiffness").text="12345"
+            return n
+        owner=(branch,"20")
+        attrs={"DTXR":"GUIDE","NAME":"/PS1","CMPSUPGAP":"6mm",
+               "NODETYPE":"8"}
+        def cfg(stamped=False):
+            return {"_stagedPositionMemberRows":{owner:[{
+                "sourceType":"SUPPORT","sourceAttrs":attrs}]},
+                "_originalDtxrStampedOwners":[owner] if stamped else []}
+        with self.assertRaisesRegex(ValueError,"XML229_SOURCE_XML_RESTRAINT_GAP_CONFLICT"):
+            patched._apply_staged_position_restraints(
+                make_node("GUI","3"),"",cfg(),branch)
+        with self.assertRaisesRegex(ValueError,"XML229_SOURCE_XML_RESTRAINT_TYPE_CONFLICT"):
+            patched._apply_staged_position_restraints(
+                make_node("+Y","6"),"",cfg(),branch)
+        retained=make_node("GUI","6")
+        patched._apply_staged_position_restraints(retained,"",cfg(),branch)
+        self.assertEqual(field(next(retained.iter("Restraint")),"Stiffness"),"12345")
+        generated=make_node("+Y","0",source="generated")
+        patched._apply_staged_position_restraints(generated,"",cfg(),branch)
+        self.assertEqual(field(next(generated.iter("Restraint")),"Type"),"GUI")
+        with self.assertRaisesRegex(ValueError,"XML229_XML_RESTRAINT_PROVENANCE_UNRESOLVED"):
+            patched._apply_staged_position_restraints(
+                make_node("+Y","0",source=""),"",cfg(),branch)
+        stamped=make_node("+Y","0",source="")
+        patched._apply_staged_position_restraints(stamped,"",cfg(True),branch)
+        self.assertEqual(field(next(stamped.iter("Restraint")),"Type"),"GUI")
+
     def test_legacy_without_master_keeps_zero_wall_for_existing_writer_fallback(self):
         with TemporaryDirectory() as directory:
             source = Path(directory) / "first.xml"
