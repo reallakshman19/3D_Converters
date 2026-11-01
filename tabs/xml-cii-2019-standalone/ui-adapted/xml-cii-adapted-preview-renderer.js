@@ -47,10 +47,11 @@ function writeCache(key, fp, data) {
   } catch {}
 }
 
-function publishPreviewResult(host, branchRows = [], nodeRows = []) {
+function publishPreviewResult(host, branchRows = [], nodeRows = [], formatPreviewPasses = []) {
   const result = {
     branchRows: Array.isArray(branchRows) ? branchRows : [],
     nodeRows: Array.isArray(nodeRows) ? nodeRows : [],
+    formatPreviewPasses: Array.isArray(formatPreviewPasses) ? formatPreviewPasses : [],
   };
   if (host) host.__xmlCiiPreviewResult = result;
   return result;
@@ -308,11 +309,12 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     return previewResult;
   }
 
-  let stagedSource, branchRows, nodeRows;
+  let stagedSource, branchRows, nodeRows, formatPreviewPasses = [];
   if (_pvFromCache) {
     stagedSource = { text: '', label: '(from cache)' };
     branchRows = _pvCached.data.branchRows;
     nodeRows = _pvCached.data.nodeRows || [];
+    formatPreviewPasses = _pvCached.data.formatPreviewPasses || [];
   } else if (options.precomputedPreview) {
     // A Worker result is already computed; do not rerun 10k-master matching in UI.
     const prepared = options.precomputedPreview;
@@ -325,11 +327,13 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     }
     stagedSource = options.precomputedStagedSource || { text: '', label: '' };
     ({ branchRows, nodeRows } = prepared);
+    formatPreviewPasses = prepared.formatPreviewPasses || [];
   } else {
     stagedSource = await _resolvePreviewStagedJsonText(options, config);
-    ({ branchRows, nodeRows } = xmlCiiDryRunPreview(xmlText, config, stagedSource.text));
+    ({ branchRows, nodeRows, formatPreviewPasses } =
+      xmlCiiDryRunPreview(xmlText, config, stagedSource.text));
   }
-  const previewResult = publishPreviewResult(host, branchRows, nodeRows);
+  const previewResult = publishPreviewResult(host, branchRows, nodeRows, formatPreviewPasses);
 
   if (!branchRows.length) {
     host.innerHTML = `${_manualPreviewActionHtml('Build Preview', false, config)}<div class="model-converters-workflow-detail-note">No branches found in XML.</div>`;
@@ -463,7 +467,20 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     }
   });
 
-  host.innerHTML = `${_manualPreviewActionHtml('Rebuild Preview', true, config)}<div class="bulk-map-container-host"></div>${table.renderHTML()}`;
+  const passReview = (formatPreviewPasses || []).length > 1
+    ? '<section class="model-converters-workflow-detail-note" data-mc-format-review-passes="2">'+
+      '<strong>Format 1 / Format 2 conflict: two independent 4 Preview passes (not applied automatically).</strong>'+
+      '<div style="overflow-x:auto"><table><thead><tr><th>Pass</th><th>Branch</th><th>Line Key</th><th>Piping Class</th><th>Rating (optional)</th><th>Result</th></tr></thead><tbody>'+
+      formatPreviewPasses.flatMap(pass=>(pass.branchRows||[])
+        .filter(row=>branchRows.some(original=>original.branchName===row.branchName &&
+          original.extractionStatus==='AMBIGUOUS'))
+        .slice(0,20).map(row=>'<tr><td>Format '+(pass.formatIndex+1)+'</td><td>'+_esc(row.branchName)+
+          '</td><td>'+_esc(row.lineKey||'UNMATCHED')+'</td><td>'+
+          _esc(row.pipingClass||'UNMATCHED')+'</td><td>'+_esc(row.rating||'—')+'</td><td>'+
+          _esc(row.extractionStatus)+'</td></tr>')).join('')+
+      '</tbody></table></div><p>Review both passes and assign the intended source identity in Regex Tester. XML→CII may still run without master enrichment.</p></section>'
+    : '';
+  host.innerHTML = `${_manualPreviewActionHtml('Rebuild Preview', true, config)}${passReview}<div class="bulk-map-container-host"></div>${table.renderHTML()}`;
   const mapContainer = host.querySelector('.bulk-map-container-host');
   if (mapContainer) {
     const lineListKeys = _xmlCiiLineListKeys(config);
@@ -494,7 +511,7 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
   if (defaultRows.length) host.insertAdjacentHTML('afterbegin', `<div class="model-converters-workflow-detail-note" style="margin:0 0 8px;border-color:#7f1d1d;color:#7f1d1d;background:#fff7f7;">${defaultRows.length} line${defaultRows.length === 1 ? '' : 's'} use config defaults. Default values are shown in dark red.</div>`);
 
   if (!_pvFromCache && !options.skipLegacyCache) {
-    writeCache(PV_CACHE_KEY, _pvFp, { branchRows, nodeRows });
+    writeCache(PV_CACHE_KEY, _pvFp, { branchRows, nodeRows, formatPreviewPasses });
   }
 
   table.bind(host);
