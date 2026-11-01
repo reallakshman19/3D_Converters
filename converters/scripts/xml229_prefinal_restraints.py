@@ -349,7 +349,23 @@ def replay_prefinal_restraints(expected, packet, staged_json_path, config, requi
             present = {present_type(field(r, 'Type')) for r in children(node, 'Restraint')}
             for kind in ('REST', 'GUIDE', 'LINESTOP'):
                 if kind in evidence:
-                    append_profile(node, kind, evidence[kind], config, present)
+                    attrs = evidence[kind]
+                    source_value = source_gap(attrs)
+                    if source_value:
+                        from_source = numeric(source_value)
+                        require(from_source is not None,
+                                'NATIVE_PREFINAL_RESTRAINT_GAP_INVALID')
+                        selected_type = node_type_mutation(attrs, config)
+                        target_types = ([selected_type] if selected_type else
+                                        profile_for(kind, config)['xmlTypes'])
+                        for original in children(node, 'Restraint'):
+                            if present_type(field(original, 'Type')) not in {
+                                    present_type(v) for v in target_types}:
+                                continue
+                            old_value = field(original, 'CMPSUPGAP') or field(original, 'Gap')
+                            require(bool(old_value) and numeric(old_value) == from_source,
+                                    'NATIVE_PREFINAL_RESTRAINT_SOURCE_GAP_CONFLICT')
+                    append_profile(node, kind, attrs, config, present)
         rows = children(node, 'Restraint')
         if typ == 'ATTA' and (not rows or all(map(placeholder, rows))):
             for r in rows:
