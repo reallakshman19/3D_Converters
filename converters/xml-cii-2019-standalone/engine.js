@@ -55,12 +55,25 @@ except Exception as exc:
         cls = type(exc)
         if cls.__name__ == 'NativeMassError' and cls.__module__ == 'xml229_native_final_mass_binding':
             candidate = getattr(exc, 'code', None)
-        elif cls is ValueError:
+        elif isinstance(exc, ValueError):
             # Some writer custody guards use 'CODE: sensitive details'. Never
             # transfer those details, only the exact first token.
             candidate = str(exc).split(':', 1)[0]
         else:
-            candidate = None
+            # Exception-class-only custody: no traceback, paths, private
+            # source rows, or arbitrary class names cross the Worker boundary.
+            safe_class_codes = {
+                TypeError: 'NATIVE_PYTHON_TYPE_ERROR',
+                KeyError: 'NATIVE_PYTHON_KEY_ERROR',
+                AttributeError: 'NATIVE_PYTHON_ATTRIBUTE_ERROR',
+                ImportError: 'NATIVE_PYTHON_IMPORT_ERROR',
+                ModuleNotFoundError: 'NATIVE_PYTHON_IMPORT_ERROR',
+                NameError: 'NATIVE_PYTHON_NAME_ERROR',
+                RecursionError: 'NATIVE_PYTHON_RECURSION_ERROR',
+                MemoryError: 'NATIVE_PYTHON_MEMORY_ERROR',
+                RuntimeError: 'NATIVE_PYTHON_RUNTIME_ERROR',
+            }
+            candidate = safe_class_codes.get(cls)
         if isinstance(candidate, str) and re.fullmatch(r'[A-Z][A-Z0-9_]{2,79}', candidate):
             job_native_failure_code = candidate
     traceback.print_exc()

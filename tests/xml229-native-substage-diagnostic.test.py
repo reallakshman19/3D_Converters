@@ -58,7 +58,7 @@ class NativeSubstageWitnessTests(unittest.TestCase):
                  side_effect=ValueError(private)):
             with self.assertRaisesRegex(ValueError,"SECRET_CUSTOMER_PATH"):
                 runtime.main()
-        self.assertEqual(sys._xml229_native_failure_stage,"STAGED_ENRICHMENT")
+        self.assertEqual(sys._xml229_native_failure_stage,"STAGED_POSITION_TRANSFER")
 
     def test_native_worker_bundle_loads_prefinal_support_mapper(self):
         # Reproduce the fresh Worker import boundary without a full Owner

@@ -223,6 +223,14 @@ def _semantic_xml(element):
             tuple(_semantic_xml(c) for c in element if isinstance(c.tag, str)))
 
 
+def _native_lineage_probe(stage):
+    """Emit only a fixed stage identifier, never Owner source or exception data."""
+    import sys
+    if getattr(sys, '_xml229_native_progress_enabled', False):
+        sys._xml229_native_failure_stage = stage
+        print('XML229_NATIVE_STAGE:' + stage, flush=True)
+
+
 def _validate_finalized_geometry(packet, source, staged_json_path=None, support_config=None):
     """Challenge the exact pre-acceptance Worker XML and original ordinal map.
 
@@ -377,6 +385,7 @@ def _validate_finalized_geometry(packet, source, staged_json_path=None, support_
     # All other XML fields remain covered by the existing entire-source check.
     expected = parse_bytes(ET.tostring(source, encoding="utf-8"))
     from xml229_prefinal_restraints import replay_prefinal_restraints, restraint_semantics
+    _native_lineage_probe('LINEAGE_PREFINAL_RESTRAINT_REPLAY')
     supports_verified = replay_prefinal_restraints(
         expected, packet, staged_json_path, support_config, require)
     for bi, (branch, ordinals) in enumerate(zip(branches(expected), retained)):
@@ -398,6 +407,7 @@ def _validate_finalized_geometry(packet, source, staged_json_path=None, support_
         compared_snapshot = parse_bytes(ET.tostring(snapshot, encoding='utf-8'))
         restraint_semantics(compared_expected)
         restraint_semantics(compared_snapshot)
+    _native_lineage_probe('LINEAGE_FINAL_SOURCE_COMPARE')
     require(_semantic_xml(compared_expected) == _semantic_xml(compared_snapshot),
             "NATIVE_FINALIZED_GEOMETRY_SOURCE_DRIFT")
     require(child(snapshot, LINEAGE_STAGE) is None and
@@ -593,13 +603,16 @@ def stage_native_original_lineage(original_path, packet_path, staged_json_path=N
     transformations and parsed into native nodes. They do not authorize any
     geometry split or invent a mass owner.
     """
+    _native_lineage_probe('LINEAGE_PACKET_VALIDATE')
     packet, source = read_packet(packet_path, original_path)
     require(child(source, LINEAGE_STAGE) is None and
             not any(child(node, LINEAGE_TAG) is not None
                     for branch in branches(source) for node in nodes(branch)),
             "NATIVE_UNTRUSTED_LINEAGE_TAG")
+    _native_lineage_probe('LINEAGE_GEOMETRY_VERIFY')
     final_source, retained_by_original = _validate_finalized_geometry(
         packet, source, staged_json_path, support_config)
+    _native_lineage_probe('LINEAGE_OWNER_CENSUS')
     source_branches = branches(source)
     seen = set()
     for item in packet["components"]:

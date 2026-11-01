@@ -11,6 +11,7 @@ import argparse
 import json
 import math
 import re
+import sys
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -1184,6 +1185,10 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
         changed = True
     if _truthy(support_config.get("splitCondensedValveFlange")) and _renumber_length_bearing_negative_nodes(root, namespace):
         changed = True
+    if support_config.get("requireVerifiedMasterCompleteness") is True:
+        sys._xml229_native_failure_stage = 'VERIFIED_MASTER_COMPLETENESS'
+        if getattr(sys, '_xml229_native_progress_enabled', False):
+            print('XML229_NATIVE_STAGE:VERIFIED_MASTER_COMPLETENESS', flush=True)
     _assert_verified_master_completeness(
         root, namespace, support_config, class_wall_index, class_meta_index,
         material_ids, class_corrosion_index)

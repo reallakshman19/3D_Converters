@@ -54,3 +54,36 @@ test('served docs diagnostic remains byte-identical to the module under test',as
     import.meta.url),'utf8');
   assert.equal(root,served);
 });
+
+
+test('P0 source/master/staged typed failures survive redacted native Worker receipt',()=>{
+  const codes=[
+    ['XML229_VERIFIED_LINE_LIST_UNRESOLVED','VERIFIED_MASTER_COMPLETENESS'],
+    ['XML229_VERIFIED_PRESSURE_MISSING','VERIFIED_MASTER_COMPLETENESS'],
+    ['XML229_VERIFIED_CLASS_DN_WALL_MISSING','VERIFIED_MASTER_COMPLETENESS'],
+    ['XML229_VERIFIED_MATERIAL_CODE_UNAPPROVED','VERIFIED_MASTER_COMPLETENESS'],
+    ['XML229_STAGED_POSITION_PARTIAL_TRANSFER','STAGED_POSITION_TRANSFER'],
+    ['XML229_SOURCE_XML_RESTRAINT_GAP_CONFLICT','SOURCE_VALUE_HYDRATION'],
+    ['NATIVE_PREFINAL_RESTRAINT_CONFIG_INVALID','LINEAGE_PREFINAL_RESTRAINT_REPLAY'],
+    ['NATIVE_PYTHON_IMPORT_ERROR','STAGED_POSITION_TRANSFER'],
+    ['NATIVE_PYTHON_TYPE_ERROR','SOURCE_VALUE_HYDRATION'],
+    ['NATIVE_PYTHON_ATTRIBUTE_ERROR','LINEAGE_GEOMETRY_VERIFY'],
+  ];
+  for(const [code,stage] of codes){
+    const receipt=diagnoseXml229NativeConverterFailure({
+      ok:false,nativeFailurePhase:'CII_CONVERSION',
+      nativePythonFailure:{stage,code},
+      error:'private://client/path/model.xml',logs:['Traceback customer'],
+    });
+    assert.equal(receipt.code,code);
+    assert.equal(receipt.phase,stage);
+    assert.equal(receipt.nativeCiiReleaseAuthorized,false);
+    assert.doesNotMatch(JSON.stringify(receipt),/private:|client\/path|Traceback|customer/);
+  }
+  const unknown=diagnoseXml229NativeConverterFailure({
+    ok:false,nativeFailurePhase:'CII_CONVERSION',
+    nativePythonFailure:{stage:'STAGED_POSITION_TRANSFER',
+      code:'XML229_VERIFIED_UNTRUSTED_NEW_CODE'},
+  });
+  assert.equal(unknown.code,'UNCLASSIFIED_EXCEPTION');
+});

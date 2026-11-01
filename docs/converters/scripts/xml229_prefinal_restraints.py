@@ -313,12 +313,14 @@ def replay_prefinal_restraints(expected, packet, staged_json_path, config, requi
     source_nodes = [(field(b, 'Branchname'), n) for b in expected.iter() if local(b) == 'Branch'
                     for n in children(b, 'Node')]
     groups = calibrated_groups(source_nodes, source_entries(parsed, config), config, field)
-    from xml229_prefinal_restraint_source import resolve, tolerance
+    from xml229_prefinal_restraint_source import resolve, tolerance, _ResolutionIndex
+    resolver_index = _ResolutionIndex(groups, tolerance(config))
     for branch, node in source_nodes:
         typ = field(node, 'ComponentType').upper()
         if typ not in ('ATTA', 'ANCI'):
             continue
-        evidence = kinds(resolve(node, branch, groups, tolerance(config), field, require), require, config)
+        evidence = kinds(resolve(node, branch, groups, tolerance(config), field, require,
+                                 resolver_index), require, config)
         if evidence:
             for r in children(node, 'Restraint'):
                 if placeholder(r):
