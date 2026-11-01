@@ -64,21 +64,21 @@ function supportKindFromMember(member,config={}) {
   const desc = [attrs.DTXR, attrs.DESC, attrs.DESCRIPTION, member?.description]
     .map(text).filter(Boolean).join(' ').toUpperCase();
   const hasSavedMapper = Array.isArray(config?.supportTypeMapper?.rows);
-  // When Step 7 is saved, its exact aliases (and ambiguity policy) govern.
-  // The legacy keyword guesses are ONLY for older configs without a mapper.
-  // Otherwise removed/changed keywords could still leak into native CII.
-  if (!hasSavedMapper) {
-    const semantic = [
-      /\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b/.test(desc) && 'LINESTOP',
-      /\bGUIDE\b/.test(desc) && 'GUIDE',
-      (/(?:\bPIPE[- ]?REST\b|\bREST\b)/.test(desc) ||
-        (!/\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR|GUIDE)\b/.test(desc)
-          && /\bSHOE\b/.test(desc))) && 'REST',
-    ].filter(Boolean);
-    if (new Set(semantic).size > 1)
-      throw Object.assign(new Error('Conflicting source support descriptions'),
-        {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
-    if (semantic.length) return semantic[0];
+  // Explicit source engineering semantics are not editable synonyms.
+  // Step 7 keywords may classify uncertain text, never reassign a verified
+  // GUIDE/REST/LINESTOP description to another set of engineering DOFs.
+  const explicitKinds = [
+    /\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b/.test(desc) && 'LINESTOP',
+    /\bGUIDE\b/.test(desc) && 'GUIDE',
+    /\b(?:PIPE[- ]?REST|REST)\b/.test(desc) && 'REST',
+  ].filter(Boolean);
+  if(new Set(explicitKinds).size>1)
+    throw Object.assign(new Error('Conflicting explicit source support semantics'),
+      {code:'PREFINAL_RESTRAINT_SEMANTIC_CONFLICT'});
+  const explicitKind=explicitKinds[0]||'';
+  if(!hasSavedMapper){
+    if(explicitKind)return explicitKind;
+    if(/\bSHOE\b/.test(desc))return 'REST'; // legacy accessory fallback only
   }
   // Use the user-authored Step 7 mapper rows, not a second hard-coded alias list.
   // HIGH/MEDIUM semantic intent can override a stale generated REST label;
@@ -101,6 +101,9 @@ function supportKindFromMember(member,config={}) {
     if(!Number.isFinite(mediumMinimum)||mediumMinimum<0||mediumMinimum>1)
       throw Object.assign(new Error('Invalid Step 7 confidence threshold'),
         {code:'PREFINAL_RESTRAINT_CONFIDENCE_INVALID'});
+    if(explicitKind&&mapper.status==='matched'&&mapper.supportKind!==explicitKind)
+      throw Object.assign(new Error('Step 7 alias contradicts explicit source support semantics'),
+        {code:'PREFINAL_RESTRAINT_SEMANTIC_CONFLICT'});
     if(mapper.status==='matched'&&mapper.confidenceScore>=mediumMinimum&&
        GOVERNED_KINDS.includes(mapper.supportKind))return mapper.supportKind;
   }
@@ -110,6 +113,10 @@ function supportKindFromMember(member,config={}) {
   if (canonical.length > 1)
     throw Object.assign(new Error('Conflicting canonical support kinds'),
       {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+  if(explicitKind&&canonical.length&&canonical[0]!==explicitKind)
+    throw Object.assign(new Error('Canonical support identity contradicts explicit source description'),
+      {code:'PREFINAL_RESTRAINT_SEMANTIC_CONFLICT'});
+  if(explicitKind)return explicitKind;
   if (canonical.length) return canonical[0];
   if(mapper?.status==='matched'&&GOVERNED_KINDS.includes(mapper.supportKind))
     return mapper.supportKind;
