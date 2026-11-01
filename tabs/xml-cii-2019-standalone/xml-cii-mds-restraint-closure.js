@@ -55,58 +55,76 @@ function memberAttributes(member) {
 }
 
 function supportKindFromMember(member) {
-  const captured = safeObject(member?.capturedFields);
   const attrs = memberAttributes(member);
-  const code = text(captured.MDSSUPPTYPE || attrs.MDSSUPPTYPE).toUpperCase();
+  // An explicit source description wins over abbreviated MDS code aliases.
+  // This mirrors the old confidence mapper, not its legacy axis defaults.
+  const desc = [attrs.DTXR, attrs.DESC, attrs.DESCRIPTION, member?.description]
+    .map(text).filter(Boolean).join(' ').toUpperCase();
+  const semantic = [
+    /\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b/.test(desc) && 'LINESTOP',
+    /\bGUIDE\b/.test(desc) && 'GUIDE',
+    /\b(?:PIPE[- ]?REST|REST|SHOE)\b/.test(desc) && 'REST',
+  ].filter(Boolean);
+  if (new Set(semantic).size > 1)
+    throw Object.assign(new Error('Conflicting source support descriptions'),
+      {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+  if (semantic.length) return semantic[0];
+  const canonical = [...new Set(['SUPPORT_KIND', 'SUPPORT_MAPPER_KIND', 'SUPPORT_TYPE']
+    .map(key=>text(attrs[key]).toUpperCase().replace(/\s+/g,''))
+    .filter(kind=>GOVERNED_KINDS.includes(kind)))];
+  if (canonical.length > 1)
+    throw Object.assign(new Error('Conflicting canonical support kinds'),
+      {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+  if (canonical.length) return canonical[0];
+  const code = text(attrs.MDSSUPPTYPE || member?.capturedFields?.MDSSUPPTYPE).toUpperCase();
   if (code.startsWith('GT')) return 'GUIDE';
   if (code.startsWith('ST')) return 'LINESTOP';
   if (code === 'PIPE-REST' || code.startsWith('AT')) return 'REST';
-  const evidence = [
-    captured.DTXR,
-    captured.SPRE,
-    captured.SPREF,
-    member?.labeled,
-    member?.description,
-    member?.dtxr,
-    member?.raw?.type,
-  ].map(text).join(' ').toUpperCase();
-  if (/\b(?:PIPE[- ]?REST|REST|SHOE|WEAR\s*PAD|BEARING\s*PLATE)\b/.test(evidence)) return 'REST';
-  // Native replay already accepts one unambiguous source description kind.
-  // Bind that exact member's gap attributes; never infer from nearby members.
-  const description = text(member?.description).toUpperCase();
-  const descriptorKinds = [
-    /\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT)\b/.test(description) && 'LINESTOP',
-    /\bGUIDE\b/.test(description) && 'GUIDE',
-  ].filter(Boolean);
-  return descriptorKinds.length === 1 ? descriptorKinds[0] : '';
+  return /\b(?:PIPE[- ]?REST|REST|SHOE)\b/.test(text(attrs.SPRE).toUpperCase()) ? 'REST' : '';
+}
+
+function sourceGapText(attrs){
+  return ['CMPSUPGAP','CMPSUPGAP_POS','CMPSUPGAP_PS','NODEGAP']
+    .map(key=>text(attrs?.[key])).find(Boolean)||'';
 }
 
 function supportGapNumber(attrs){
-  const raw=text(attrs?.CMPSUPGAP??attrs?.CMPSUPGAP_POS??attrs?.CMPSUPGAP_PS);
-  if(!raw)return null;
-  const value=Number(raw.match(/[-+]?(?:\d+\.?\d*|\.\d+)(?:[Ee][+-]?\d+)?/)?.[0]);
-  if(!Number.isFinite(value))throw Object.assign(new Error('Invalid JSON support gap'),
-    {code:'PREFINAL_RESTRAINT_GAP_INVALID'});
-  return value;
+  const raw=['CMPSUPGAP','CMPSUPGAP_POS','CMPSUPGAP_PS','NODEGAP']
+    .map(key=>text(attrs?.[key])).filter(Boolean);
+  const values=raw.map(value=>Number(value.match(/[-+]?(?:\d+\.?\d*|\.\d+)(?:[Ee][+-]?\d+)?/)?.[0]));
+  if(values.some(v=>!Number.isFinite(v)))throw Object.assign(
+    new Error('Invalid JSON support gap'),{code:'PREFINAL_RESTRAINT_GAP_INVALID'});
+  if(values.some(v=>v!==values[0]))throw Object.assign(
+    new Error('Conflicting source gap aliases'),{code:'PREFINAL_RESTRAINT_GAP_AMBIGUOUS'});
+  return values.length?values[0]:null;
 }
 
 function evidenceByKind(record, requireUnambiguous = false) {
-  const result = new Map();
-  for (const member of Array.isArray(record?.positionMembers) ? record.positionMembers : []) {
-    const kind = supportKindFromMember(member);
-    if (!kind) continue;
-    const attrs=memberAttributes(member),previous=result.get(kind);
-    const gap=a=>text(a?.CMPSUPGAP??a?.CMPSUPGAP_POS??a?.CMPSUPGAP_PS);
-    const numeric=requireUnambiguous?supportGapNumber(attrs):null;
-    if(requireUnambiguous&&previous&&gap(previous)&&gap(attrs)&&
+  const result=new Map();
+  for(const member of Array.isArray(record?.positionMembers)?record.positionMembers:[]){
+    const kind=supportKindFromMember(member);
+    if(!kind)continue;
+    const original=memberAttributes(member);
+    const numeric=requireUnambiguous?supportGapNumber(original):null;
+    const raw=sourceGapText(original);
+    // The current XML writer understands CMPSUPGAP; the older source also
+    // stored the same gap in NODEGAP. Preserve its value, including zero.
+    const attrs=raw&&!text(original.CMPSUPGAP)&&!text(original.CMPSUPGAP_POS)
+      &&!text(original.CMPSUPGAP_PS)?{...original,CMPSUPGAP:raw}:original;
+    const previous=result.get(kind);
+    if(requireUnambiguous&&previous&&sourceGapText(previous)&&raw&&
        supportGapNumber(previous)!==numeric)
       throw Object.assign(new Error('Conflicting JSON gaps for the same support kind'),
         {code:'PREFINAL_RESTRAINT_GAP_AMBIGUOUS'});
-    if(!previous||(!gap(previous)&&gap(attrs)))result.set(kind,attrs);
+    if(!previous||(!sourceGapText(previous)&&raw))result.set(kind,attrs);
   }
-  for (const kind of Array.isArray(record?.derivedSupportTypes) ? record.derivedSupportTypes : []) {
-    const normalized = text(kind).toUpperCase().replace(/\s+/g, '');
-    if (GOVERNED_KINDS.includes(normalized) && !result.has(normalized)) result.set(normalized, {});
+  // Aggregated trace kinds can contain a lower-confidence GT/ST alias that
+  // the resolved source member explicitly contradicted. Never re-add it.
+  if(!result.size){
+    for(const kind of Array.isArray(record?.derivedSupportTypes)?record.derivedSupportTypes:[]){
+      const normalized=text(kind).toUpperCase().replace(/\s+/g,'');
+      if(GOVERNED_KINDS.includes(normalized))result.set(normalized,{});
+    }
   }
   return result;
 }
