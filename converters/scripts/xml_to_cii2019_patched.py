@@ -405,6 +405,8 @@ def _line_key_from_row(row: dict[str, Any], config: dict[str, Any]) -> str:
 def _matching_linelist_rows(line_key: str, config: dict[str, Any]) -> list[dict[str, Any]]:
     rows = config.get("linelist", {}).get("masterRows", []) if isinstance(config.get("linelist"), dict) else []
     wanted = re.sub(r"\s+", "", line_key.upper())
+    if not wanted:
+        return []  # an unresolved format must never join an empty Line List key
     exact = [row for row in rows if isinstance(row, dict) and _line_key_from_row(row, config) == wanted]
     if exact or not re.fullmatch(r"P[0-9]{7}", wanted):
         return exact
