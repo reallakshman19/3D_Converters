@@ -19,6 +19,10 @@ import {decorateJsonTraceLedger}
   from '../tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js';
 import {DEFAULT_RESTRAINT_TYPE_MUTATION_ROWS,mutateRestraintType}
   from '../converters/xml-cii2019-core/restraint-type-mutation.js';
+import {runStandaloneRegexTester}
+  from '../tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js';
+import {extractBranchFieldsWithFormats}
+  from '../converters/xml-cii2019-core/branch-format-extraction.js';
 
 installWeightBasisXmlDom(globalThis);
 const branch='/GLRD-1000-4"-B4110003-11502-01/B1';
@@ -194,6 +198,183 @@ test('Step 8 contradictory duplicate mutations fail closed instead of first-matc
     prepareXml229PrefinalRestraints({xmlText:xml,stagedJsonText:original(),config}),
     {code:'PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'},
   );
+});
+
+test('CONFIG-ONLY Step 7 alias change reaches same-source native CII restraint TYPE',async()=>{
+  const source=JSON.parse(original());
+  const attrs=source[0].children[1].attributes;
+  attrs.DTXR='CUSTOM-FREE-SHOE-LOCK';
+  delete attrs.NODETYPE; // TYPE is selected by the edited mapper, not a source override.
+  const stage=JSON.stringify(source);
+  const baseline=setup().config;
+  baseline.supportTypeMapper.rows.find(r=>r.kind==='GUIDE').aliases.push('CUSTOM-FREE-SHOE-LOCK');
+  const changed=structuredClone(baseline);
+  changed.supportTypeMapper.rows.find(r=>r.kind==='GUIDE').aliases=
+    changed.supportTypeMapper.rows.find(r=>r.kind==='GUIDE').aliases.filter(a=>a!=='CUSTOM-FREE-SHOE-LOCK');
+  changed.supportTypeMapper.rows.find(r=>r.kind==='REST').aliases.push('CUSTOM-FREE-SHOE-LOCK');
+  const before=await prepareXml229PrefinalRestraints({xmlText:xml,stagedJsonText:stage,config:baseline});
+  const after=await prepareXml229PrefinalRestraints({xmlText:xml,stagedJsonText:stage,config:changed});
+  assert.deepEqual(nodeRows(before.document)[1].rows.map(r=>r.type),['GUI']);
+  assert.deepEqual(nodeRows(after.document)[1].rows.map(r=>r.type),['+Y']);
+  const dir=await mkdtemp(join(tmpdir(),'xml229-config-change-cii-'));
+  try{
+    const py=process.env.PYTHON||(process.platform==='win32'?'python':'python3');
+    const actual=[];
+    for(const [label,prepared] of [['before',before],['after',after]]){
+      const sourceFile=join(dir,label+'.xml');
+      const ciiFile=join(dir,label+'.cii');
+      await writeFile(sourceFile,new XMLSerializer().serializeToString(prepared.document));
+      execFileSync(py,[PYPATH,'--input',sourceFile,'--output',ciiFile]);
+      const cii=await readFile(ciiFile,'utf8');
+      const lines=(cii.split('#$ RESTRANT\n')[1]?.split('#
+  const {config}=setup();
+  config.inputXmlRestraintTypeMutation.rows = [
+    {label:'+Y',from:'17',to:'14'},
+    {label:'LIM',from:'7',to:'8'},
+    {label:'GUI',from:'10',to:'9'},
+  ];
+  await assert.rejects(
+    prepareXml229PrefinalRestraints({xmlText:xml,stagedJsonText:original(),config}),
+    {code:'PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT'},
+  );
+});
+
+test('co-located PS-4131 .1/.2/.3 become three slots at one native node',async()=>{
+  const {config}=setup();
+  const source=JSON.parse(original());
+  for(const item of source[0].children)item.attributes.POSI='100 200 0';
+  const xmlSingle='<PipeStressExport><Pipe><Branch><Branchname>'+branch+'</Branchname>'
+    +xmlNode(4130,'BEFORE','PIPE',-100)
+    +xmlNode(4131,'PS-4131','ANCI',0)
+    +xmlNode(4140,'AFTER','PIPE',100)
+    +'</Branch></Pipe></PipeStressExport>';
+  const prepared=await prepareXml229PrefinalRestraints({
+    xmlText:xmlSingle,stagedJsonText:JSON.stringify(source),config,
+  });
+  const n=[...prepared.document.getElementsByTagName('Node')].find(n=>
+    n.getElementsByTagName('NodeNumber')[0]?.textContent==='4131');
+  const rs=[...n.getElementsByTagName('Restraint')].map(r=>({
+    type:r.getElementsByTagName('Type')[0]?.textContent,
+    gap:Number(r.getElementsByTagName('Gap')[0]?.textContent),
+  }));
+  assert.deepEqual(rs,[{type:'+Y',gap:0},{type:'GUI',gap:4.5},{type:'LIM',gap:7.25}]);
+  const dir=await mkdtemp(join(tmpdir(),'xml229-ps4131-colocated-'));
+  try{
+    const x=join(dir,'colocated.xml'),out=join(dir,'native.cii');
+    await writeFile(x,new XMLSerializer().serializeToString(prepared.document));
+    const py=process.env.PYTHON||(process.platform==='win32'?'python':'python3');
+    execFileSync(py,[PYPATH,'--input',x,'--output',out]);
+    const cii=await readFile(out,'utf8');
+    const section=cii.split('#$ RESTRANT\n')[1]?.split('#$')[0]||'';
+    const slotLines=section.trim().split('\n');
+    const matched=[];
+    for(let i=0;i<slotLines.length;i+=4){
+      const values=slotLines[i].trim().split(/\s+/).map(Number);
+      if(values[0]===4131&&values[1]>0)matched.push([values[1],values[3]]);
+    }
+    assert.deepEqual(matched,[[14,0],[8,4.5],[9,7.25]]);
+    console.log('PS4131_COLOCATED_NATIVE_RECEIPT '+JSON.stringify({
+      source:'SYNTHETIC_NOT_OWNER_JSON',node:4131,slots:matched}));
+  }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('read-only authentic Firstpass co-position NODETYPE conflict census',async()=>{
+  const source=await readFile(fileURLToPath(new URL('../Benchmarks/1885Sjson/FirstpassXML',import.meta.url)),'utf8');
+  const stage=await readFile(fileURLToPath(new URL('../Benchmarks/1885Sjson/Sjson.json',import.meta.url)),'utf8');
+  const ledger=decorateJsonTraceLedger(
+    buildStandaloneDtxrResolutionLedger(source,stage,{}),
+    {captureFields:['NODETYPE','SUPPORT_KIND','SUPPORT_TYPE','MDSSUPPTYPE']});
+  const duplicates=[];
+  for(const rec of ledger.records||[]){
+    const grouped=new Map();
+    for(const m of rec.positionMembers||[]){
+      const a=m.raw?.attributes||m.attributes||{};
+      const kind=String(a.SUPPORT_KIND||a.SUPPORT_MAPPER_KIND||a.SUPPORT_TYPE||'');
+      if(!kind||!a.NODETYPE)continue;
+      if(!grouped.has(kind))grouped.set(kind,[]);
+      grouped.get(kind).push({nodeType:String(a.NODETYPE),mds:String(a.MDSSUPPTYPE||''),
+        type:String(m.raw?.type||m.type||''),name:String(a.NAME||''),desc:String(a.DTXR||m.description||'')});
+    }
+    for(const [kind,values] of grouped){
+      if(new Set(values.map(v=>v.nodeType)).size>1)
+        duplicates.push({branch:rec.xmlBranch,node:rec.xmlNodeNumber,kind,values:values.slice(0,8)});
+    }
+  }
+  console.log('FIRSTPASS_RAW_NODETYPE_COLLISION_AUDIT '+JSON.stringify({
+    records:ledger.records?.length,conflicts:duplicates.length,examples:duplicates.slice(0,6)}));
+  assert.ok(Array.isArray(ledger.records));
+});
+
+test('authentic-style REST primary type14 dominates co-located AT01/AT05 hardware type4',async()=>{
+  const {config}=setup();
+  const source=[{type:'BRANCH',name:branch,children:[
+    {type:'SUPPORT',attributes:{NAME:'/PS-12244/DATUM',POSI:'100 200 0',
+      DTXR:'Pipe Rest XRT01',SUPPORT_KIND:'REST',NODETYPE:'14',NODEGAP:'0'}},
+    {type:'SUPPORT',attributes:{NAME:'/PS-12244.1',POSI:'100 200 0',
+      DTXR:'PIPE SHOE FOR HORIZ LINES',MDSSUPPTYPE:'AT01',
+      SUPPORT_KIND:'REST',NODETYPE:'4',NODEGAP:'0'}},
+    {type:'SUPPORT',attributes:{NAME:'/PS-12244.2',POSI:'100 200 0',
+      DTXR:'WEAR PLATE TYPE-421 PAD',MDSSUPPTYPE:'AT05',
+      SUPPORT_KIND:'REST',NODETYPE:'4',NODEGAP:'0'}},
+  ]}];
+  const fixture='<PipeStressExport><Pipe><Branch><Branchname>'+branch+'</Branchname>'
+    +xmlNode(4130,'BEFORE','PIPE',-100)+xmlNode(4131,'PS-12244','ANCI',0)
+    +xmlNode(4140,'AFTER','PIPE',100)+'</Branch></Pipe></PipeStressExport>';
+  const doc=(await prepareXml229PrefinalRestraints({
+    xmlText:fixture,stagedJsonText:JSON.stringify(source),config})).document;
+  const n=[...doc.getElementsByTagName('Node')].find(x=>
+    x.getElementsByTagName('NodeNumber')[0]?.textContent==='4131');
+  const types=[...n.getElementsByTagName('Restraint')].map(x=>
+    x.getElementsByTagName('Type')[0]?.textContent);
+  assert.deepEqual(types,['+Y'],'source hardware is not a competing restraint');
+});
+
+test('directional anchor on shoe is LINESTOP, not REST/LINESTOP ambiguity',async()=>{
+  const {mapper,config}=setup();
+  const text='Directional Anchor On Shoe for Hot Insulated Pipe';
+  const audit=runStandaloneSupportTypeMapper({supportConfigJson:JSON.stringify(config),testInput:text});
+  assert.equal(audit.previewRows[0].supportKind,'LINESTOP');
+  const att={DTXR:text,MDSSUPPTYPE:'ST06',SUPPORT_KIND:'LINESTOP',NODETYPE:'9',NODEGAP:'0'};
+  assert.equal(resolveXmlCiiSupportDescriptor(att,config).primaryKind,'LINESTOP');
+});
+)[0]||'').trim().split('\n');
+      const record=lines.filter((_,i)=>i%4===0).map(x=>x.trim().split(/\s+/).map(Number))
+        .find(fields=>fields[0]===41312);
+      assert.ok(record,label+' has exact support owner 41312');
+      actual.push(record[1]);
+    }
+    assert.deepEqual(actual,[8,14], 'only saved Step 7 mapping changed: native CII GUI8 -> REST14');
+  }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('CONFIG-ONLY smart-regex extraction change reaches core and fails closed on missing rule',()=>{
+  const initial=setup().config;
+  const format={
+    enabled:true,tokenDelimiter:'-',lineKeyJoiner:'',
+    lineKey:{tokenPosition:4,extractMode:'TOKEN'},
+    pipingClass:{tokenPosition:5,extractMode:'TOKEN'},
+    rating:{},bore:{tokenPosition:3,extractMode:'TOKEN'},
+  };
+  const good=runStandaloneRegexTester({sourceText:xml,sourceKind:'xml',
+    extractionConfig:{activeFormatIndex:0,formats:[format],ratingSequence:[]},
+    supportConfigJson:JSON.stringify(initial)});
+  assert.equal(good.matchedRows.length,1);
+  assert.equal(good.matchedRows[0].lineKey,'B4110003');
+  assert.equal(good.matchedRows[0].pipingClass,'11502');
+  assert.equal(extractBranchFieldsWithFormats(branch,JSON.parse(good.supportConfigJson)).lineKey,'B4110003');
+  const wrong={...format,lineKey:{regex:'-(B9999999)-',group:1,tokenPosition:4,extractMode:'REGEX'}};
+  const bad=runStandaloneRegexTester({sourceText:xml,sourceKind:'xml',
+    extractionConfig:{activeFormatIndex:0,formats:[wrong],ratingSequence:[]},
+    supportConfigJson:good.supportConfigJson});
+  assert.equal(bad.matchedRows.length,0);
+  assert.equal(bad.rejectedRows.length,1);
+  const saved=JSON.parse(bad.supportConfigJson);
+  const extracted=extractBranchFieldsWithFormats(branch,saved);
+  assert.equal(extracted.status,'UNMATCHED');
+  assert.equal(extracted.lineKey,'','unmatched changed config cannot borrow stale prior line key');
+  assert.deepEqual(saved.supportTypeMapper,initial.supportTypeMapper,'smart regex preserves Step 7');
+  assert.deepEqual(saved.inputXmlRestraintTypeMutation,initial.inputXmlRestraintTypeMutation,
+    'smart regex preserves Step 8');
 });
 
 test('legacy saved reversed GUI/LIM mutation must not silently reach Final',async()=>{
