@@ -9,6 +9,10 @@ files:
     - tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js
     - tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs
     - tests/xml-cii-j04-service-release-gate.test.mjs
+    - tests/xml229-issue376-source-native-matrix.mjs
+    - scripts/xml229-issue376-browser-native-probe.mjs
+    - scripts/xml229-issue376-ui-click-e2e.mjs
+    - scripts/xml229-ef05-native-output-e2e.mjs
   mirrors:
     - docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js
     - docs/tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs

@@ -86,3 +86,36 @@ The first actionable next command in a complete checkout is `node --test tests/x
 The first PR code did not sufficiently guard manually authored Preview facts/support mappings on the raw route. A subsequent exact-head commit now rejects fallback rather than silently dropping job/manual/Preview/supportMapper facts or nonempty config overrides. It retains all non-master source configuration fields (including dtxrPositionOffset geometry/JSON calibration) while deleting only optional master-derived formatting/mapping fields. Two focused transport tests were added for authored fact refusal and preserving coordinate calibration. The source/docs mirror code remains byte-identical. This refinement changes no native mass authority or staged JSON failure policy.
 
 Exact-head current CI sampled immediately after ea60bb5557682ef3ee6bcc07788ce2c7d1e07920: workflows QUEUED; no complete acceptance claimed. Additional Node/Chrome/native output validation remains NOT_RUN in this session. The legacy WIP and PR report reflect scope supersession from timing-only plan to optional enrichment. Do not change another PR to address this.
+
+
+## Full EF05 end-to-end qualification — exact tested code head 182218290fbce6624d322ffb156434c8eb567100
+The draft is **not authorized for merge**. 2026-11-02 GitHub Actions run https://github.com/reallakshman19/3D_Converters/actions/runs/41361694868 checked out this exact head and used a local isolated HTTP server + actual Chromium + native Pyodide/Python engine.
+
+### PASS — user-facing no-master XML-only conversion (actual browser clicks)
+- Source: `Benchmarks/EF-05-PRO.TEST.xml`, SHA256 `2573883480af904096dea2663c9cf585be2db28dd047785397b4d61edee0a030`, 898252 original bytes, 41 branches, 1654 nodes.
+- Fresh page: source XML file selection -> Output/Run -> explicit XML-only participation -> Run -> browser CII download -> downloaded file independently checked by `converters/scripts/cii_syntax_check_2019.py`.
+- `XML229_ISSUE376_REAL_UI_DOWNLOAD`: PASS, filename `EF-05-PRO.TEST_xml_to_cii2019_standalone.cii`; 1,540,393 B, 600 ELEMENTS, 16,380ms elapsed, SHA256 `b4b563854f5ad647cd72d8a985436961a855b0a5f731c7b2a50f06eea227e32a`. No master imports, no selected staged JSON, no governed Final release.
+- Source-safe CI artifact: https://github.com/reallakshman19/3D_Converters/actions/runs/41361694868/artifacts/13104973673; JSON `stages.issue376UiXmlOnly`. Original full E2E JSON root has `ok:false` because *later* combined Weight advisory step fails; per-phase PASS is independently witnessed.
+
+### PASS — browser Worker native with optional formats
+Same exact browser run: real JavaScript service -> Worker -> Pyodide -> CII generated for both zero-masters and two conflicting enabled formats; both independently syntax PASS, same CII digest, 600 elements, 183 RIGID, `nativeReleaseNotImplied:true`. Exact log markers `XML229_ISSUE376_REAL_BROWSER_NATIVE`, `stages.issue376BrowserNative`.
+
+### PASS — seven-case real Python source conversion and two Preview review passes
+GitHub P1 focused tests run https://github.com/reallakshman19/3D_Converters/actions/runs/41361694602 SUCCESS. The tests include `tests/xml229-issue376-source-native-matrix.mjs`, using real 41-branch XML, real native Python converter and independent CAESAR II 2019 syntax checking with zero, Line List only, Piping Class only, Material Map only, all three loaded without configured format, conflicting enabled Format 1/2, and absent optional Rating. All seven yield identical CII SHA. Two independent read-only Preview format passes exist, no silent selection or required Rating. This is a source/config test, not proof of full private Owner configurational coverage.
+
+### EXPECTED FAIL CLOSED — selected JSON
+Actual native use of the public 14.5 MB staged JSON rejects `XML229_STAGED_POSITION_AMBIGUOUS`. This independent position-owner failure remains explicitly unresolved and was not suppressed by #378. Governed engineering Final mass acceptance and independent native release remain separate.
+
+### FAIL — original combined full UI journey
+In [workflow #41361694868](https://github.com/reallakshman19/3D_Converters/actions/runs/41361694868), the existing full UI path loaded all 41 branches, four masters and original indexed JSON, ran verified Preview (41 branches) and opened GC-PW Weight review. It then failed `locator.waitFor` at `[data-p4-weight-root] [data-p4-instrument-advisory]`. Therefore the full Action job FAIL is **correct**, even though the separately witnessed XML-only click/download PASS is real. Do not weaken or skip the original independent test to make the workflow green.
+
+### Scope and remaining acceptance
+- Main implementation: `xml-cii-workflow-service.js` fallback with original source only, never promoting conflicting enrichment; matching `docs/` mirror; GCPW Worker passes through display-only Format review passes, matching mirror.
+- Test code: `tests/xml-cii-j04-service-release-gate.test.mjs`, `tests/xml229-issue376-source-native-matrix.mjs`, `scripts/xml229-issue376-browser-native-probe.mjs`, `scripts/xml229-issue376-ui-click-e2e.mjs` and extra probes in `scripts/xml229-ef05-native-output-e2e.mjs`.
+- Tests are intentionally **before** the original legacy Weight advisory, so their positive evidence is not suppressed by that independent failure; the old failing assertion remains intact.
+- Not yet independently proved: XML+JSON with unambiguous mandatory claims and Final approved masses, full Owner-configured Format 1/2 **visible** two-pass UI conflict, independent CII physical/geometry/mass Release; Preview slow phase optimization. Do not claim them solved.
+- Active PR #260 exact Worker overlap and #253 Preview nearby; coordination required before merge. No native runtime/writer/units change, no master data change, no workflow edit and no deployment.
+
+Validation register: [PASS/REMOTE_EXECUTION/INDEPENDENT_REPRODUCTION] full UI XML-only downloaded .cii and independent syntax; [PASS/REMOTE_EXECUTION/INDEPENDENT_REPRODUCTION] Chromium native two cases; [PASS/REMOTE_EXECUTION/INDEPENDENT_REPRODUCTION] 7 real native Python cases; [PASS/REMOTE_EXECUTION/IMPLEMENTATION_COUPLED] two format passes; [EXPECTED_FAIL/REMOTE_EXECUTION/SAFETY_GUARD] source+JSON ambiguous staged position; [FAIL/REMOTE_EXECUTION/EXISTING_GUI_INTEGRATION] instrument advisory not visible; [NOT_RUN] independent governed Final source→native mass/geometry release.
+
+EXACT_NEXT_ACTION: do **not** merge; keep #378 draft. Coordinate PR260 overlap and review code at tested head 182218290fbce6624d322ffb156434c8eb567100; independently resolve legacy instrument-advisory CI issue under separately approved scope and exercise real Owner private staged JSON+accepted Final packet before native release. Maintain issue #376 for the wider RCA and performance investigation.
