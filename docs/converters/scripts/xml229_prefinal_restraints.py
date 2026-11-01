@@ -103,9 +103,9 @@ def kinds(entries, require, config=None):
         if custom_kind:
             require(custom_kind in ('REST','GUIDE','LINESTOP'),
                     'NATIVE_PREFINAL_RESTRAINT_KIND_UNSUPPORTED')
-        if semantic:
+        if semantic or custom_kind:
             configured_mapper_semantic_conflict(a, e['desc'], config,
-                                                 semantic[0], require)
+                                                 semantic[0] if semantic else custom_kind, require)
         mapped_kind, score = ('', 0) if semantic or custom_kind else mapped_support_kind(
             a, e['desc'], config, require)
         code = text(a.get('MDSSUPPTYPE')).upper()
