@@ -452,6 +452,70 @@ class NativeSubstageWitnessTests(unittest.TestCase):
             'material':{'mapRows':[{'Material':'ASTM A790 UNS S31803',
                                     'Code':'A790-S31803'}]}}),{})
 
+
+    def test_material_scoped_pin_reaches_native_cii_not_class_guess(self):
+        """Only a specifically approved Material pin may supply this numeric ID."""
+        import xml_to_cii2019_patched as native
+        name='ASTM A790 UNS S31803'
+        rows=[{'Piping Class':'93833','convertedBore':150,'Material_Name':name,
+               'Rating':'900','Wall thickness':'7.112'}]
+        config={'pipingClass':{'masterRows':rows},
+                'material':{'mapRows':[{'Material':'A790-S32803','Code':'338'}]},
+                'overrides':{'materialCode':{'MAT:A790-S31803':'741',
+                                             'PC:93833':'999'}}}
+        codes=native._material_ids_from_config(config,{name})
+        self.assertEqual(codes,{name:741})
+        # The custom 741 is a SYNTHETIC explicit owner pin; the default
+        # A790-S32803 row cannot silently substitute for S31803.
+        small=('<PipeStressExport><Pipe><Branch>'
+               '<Branchname>/GLRD-1000-6"-P4110001-93833-01/B6</Branchname>'
+               '<Temperature><Temperature1>-100000</Temperature1></Temperature>'
+               '<Pressure><Pressure1>0</Pressure1></Pressure>'
+               '<Node><NodeNumber>10</NodeNumber><ComponentType>BRAN</ComponentType>'
+               '<OutsideDiameter>168.3</OutsideDiameter><WallThickness>0</WallThickness>'
+               '<Position>0 0 0</Position></Node>'
+               '<Node><NodeNumber>20</NodeNumber><ComponentType>PIPE</ComponentType>'
+               '<OutsideDiameter>168.3</OutsideDiameter><WallThickness>0</WallThickness>'
+               '<Position>100 0 0</Position></Node>'
+               '</Branch></Pipe></PipeStressExport>')
+        with TemporaryDirectory() as folder:
+            path=Path(folder)/'source.xml'; cii=Path(folder)/'out.cii'
+            path.write_text(small,encoding='utf-8')
+            enriched=native._apply_process_data_to_xml(path,config)
+            try:
+                root=ET.parse(enriched).getroot()
+                branch=next(root.iter('Branch'))
+                first=next(branch.iter('Node'))
+                self.assertEqual(first.findtext('MaterialCode'),'741')
+                self.assertEqual(first.findtext('PipingClassRating'),'900')
+                run=subprocess.run([sys.executable,str(SCRIPTS/'xml_to_cii2019.py'),
+                                    '--input',str(enriched),'--output',str(cii)],
+                                   capture_output=True,text=True,timeout=30)
+                self.assertEqual(run.returncode,0,run.stderr)
+                misc=cii.read_text().split('#'+'$ MISCEL_1',1)[1].split('#'+'$ ',1)[0]
+                self.assertEqual(float(misc.splitlines()[1].split()[0]),741)
+            finally:
+                if enriched!=path:enriched.unlink(missing_ok=True)
+
+    def test_material_scoped_pin_conflicts_fail_closed(self):
+        import xml_to_cii2019_patched as native
+        name='ASTM A790 UNS S31803'
+        source={'material':{'mapRows':[{'Material Name':name,'Material Code':'738'}]}}
+        self.assertEqual(native._material_ids_from_config(source,{name}),{name:738})
+        self.assertEqual(native._material_ids_from_config({
+            'overrides':{'materialCode':{'PC:93833':'738','P4110001':'738',
+                                         'MAT:A790-S32803':'338'}}},{name}),{})
+        conflict={**source,'overrides':{'materialCode':{name:'741'}}}
+        with self.assertRaisesRegex(ValueError,'XML229_MATERIAL_PIN_MAP_CONFLICT'):
+            native._material_ids_from_config(conflict,{name})
+        with self.assertRaisesRegex(ValueError,'XML229_MATERIAL_PIN_INVALID'):
+            native._material_ids_from_config({
+                'overrides':{'materialCode':{name:'A790-S31803'}}},{name})
+        with self.assertRaisesRegex(ValueError,'XML229_MATERIAL_PIN_CONFLICT'):
+            native._material_ids_from_config({'overrides':{'materialCode':{
+                name:'741','MAT:A790-S31803':'742'}}},{name})
+
+
     def test_valve_5950_5960_positive_final_mass_can_be_consumed_when_accepted(self):
         """Synthetic accepted positive kg, with real BM2 valve ref/XYZ witness."""
         from xml229_native_final_mass_binding import bind_native_final_xml,emitted_sections
