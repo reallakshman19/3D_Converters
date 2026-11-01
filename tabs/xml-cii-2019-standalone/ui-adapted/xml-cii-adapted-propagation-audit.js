@@ -118,6 +118,7 @@ function statusFor(tabValue, enrichedValue, inCii, enrichedAvailable, ciiAvailab
 export async function buildXmlCiiPropagationAudit(state) {
   const fresh = await freshDryRun(state);
   const branchRows = previewBranchRows(state, fresh);
+  const freshPreviewAvailable = !!(fresh && Array.isArray(fresh.branchRows) && fresh.branchRows.length);
   const wmRows = weightMatchRows(state);
   const enriched = parseEnrichedXml(state.result?.enrichedText || '');
   const ciiText = state.result?.ciiText || '';
@@ -132,6 +133,12 @@ export async function buildXmlCiiPropagationAudit(state) {
   const finalAuthority = massProof?.massesConsumedInNativeRigid === true;
 
   const rows = [];
+  if (!freshPreviewAvailable) rows.push({
+    scope: 'run', key: '4 Preview (live source)', node: '', field: 'Source-revision custody',
+    fieldId: 'preview', stageTab: 'fresh Preview unavailable',
+    stageEnriched: 'no source-attested Preview value', stageCii: 'unverified',
+    status: 'preview-unverified',
+  });
   if (ciiParseFailure) rows.push({
     scope: 'run', key: 'Native CII', node: '', field: 'CII structural parse',
     fieldId: 'cii', stageTab: 'n/a', stageEnriched: 'n/a',
@@ -166,7 +173,7 @@ export async function buildXmlCiiPropagationAudit(state) {
         stageTab: t(tabValue) || '—',
         stageEnriched: enriched.available ? (t(enrichedValue) || '—') : 'n/a',
         stageCii: ciiAvailable ? (inCii === null ? 'unverified' : inCii ? 'field matched' : 'field mismatch') : 'n/a',
-        status: statusFor(tabValue, enrichedValue, inCii, enriched.available && !!enrichedBranch, ciiAvailable),
+        status: freshPreviewAvailable ? statusFor(tabValue, enrichedValue, inCii, enriched.available && !!enrichedBranch, ciiAvailable) : 'preview-unverified',
       });
     }
   }
@@ -223,6 +230,10 @@ const STATUS_STYLES = {
   'missing-in-enriched': { label: '✗ lost tab→XML', color: '#f87171', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.25)' },
   'mismatch-enriched': { label: '≠ mismatch tab→XML', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)' },
   'missing-in-cii': { label: '✗ lost XML→CII', color: '#f87171', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.25)' },
+  'preview-unverified': { label: '⚠ Preview stale/absent', color: '#fbbf24', bg: 'transparent', border: '#fbbf24' },
+  'unverified-cii': { label: '⚠ CII unverified', color: '#fbbf24', bg: 'transparent', border: '#fbbf24' },
+  'final-unverified': { label: '⚠ Final authority missing', color: '#fbbf24', bg: 'transparent', border: '#fbbf24' },
+  'unverified-enriched': { label: '⚠ XML unverified', color: '#fbbf24', bg: 'transparent', border: '#fbbf24' },
   'pending-run': { label: '… run pending', color: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)' },
   'no-tab-value': { label: '– no tab value', color: '#64748b', bg: 'transparent', border: 'rgba(100,116,139,0.2)' },
 };
