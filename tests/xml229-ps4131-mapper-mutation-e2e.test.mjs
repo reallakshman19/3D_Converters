@@ -142,6 +142,40 @@ test('edited Step 7 semantic alias changes governed Step 8/native output, not on
     'custom mapper label must govern Final instead of being display only');
 });
 
+test('Step 7 changed/removed GUIDE keyword governs pre-Final, not legacy semantic regex',async()=>{
+  const {config}=setup();
+  const rest=config.supportTypeMapper.rows.find(row=>row.kind==='REST');
+  const guide=config.supportTypeMapper.rows.find(row=>row.kind==='GUIDE');
+  guide.aliases=guide.aliases.filter(alias=>alias.toUpperCase()!=='GUIDE');
+  rest.aliases.push('GUIDE');
+  const source=JSON.parse(original());
+  source[0].children[1].attributes.DTXR='GUIDE';
+  source[0].children[1].attributes.NODETYPE='17';
+  const prepared=await prepareXml229PrefinalRestraints({
+    xmlText:xml,stagedJsonText:JSON.stringify(source),config,
+  });
+  assert.deepEqual(nodeRows(prepared.document)[1].rows.map(row=>row.type),['+Y'],
+    'explicit REST assignment must outrank hard-coded old GUIDE semantic');
+  rest.aliases=rest.aliases.filter(alias=>alias.toUpperCase()!=='GUIDE');
+  const disabled=await prepareXml229PrefinalRestraints({
+    xmlText:xml,stagedJsonText:JSON.stringify(source),config,
+  });
+  assert.deepEqual(nodeRows(disabled.document)[1].rows,[],
+    'removed saved GUIDE keyword must not be silently resurrected');
+  const audit=runStandaloneSupportTypeMapper({supportConfigJson:JSON.stringify(config),
+    testInput:'GUIDE'});
+  assert.equal(audit.previewRows[0]?.status,'unmatched');
+});
+
+test('Step 8 contradictory duplicate mutations fail closed instead of first-match',async()=>{
+  const {config}=setup();
+  config.inputXmlRestraintTypeMutation.rows.push({label:'bad duplicate',from:'10',to:'9'});
+  await assert.rejects(
+    prepareXml229PrefinalRestraints({xmlText:xml,stagedJsonText:original(),config}),
+    {code:'PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'},
+  );
+});
+
 test('legacy saved reversed GUI/LIM mutation must not silently reach Final',async()=>{
   const {config}=setup();
   config.inputXmlRestraintTypeMutation.rows = [
