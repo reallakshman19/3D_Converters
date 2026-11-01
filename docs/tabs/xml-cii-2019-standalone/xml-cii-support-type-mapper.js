@@ -194,7 +194,16 @@ function rowMatches(evidence, row) {
 }
 
 export function classifySupportText(value, mapperRows = createDefaultSupportTypeMapperConfig()) {
-  const candidates = mapperRows.flatMap((row) => rowMatches(value, row).map((match) => ({ row, kind: row.kind, ...match })));
+  const primaryIntent = /\b(?:LINE\s*STOP|LINESTOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR|LATERAL\s+GUIDE|GUIDE)\b/i.test(text(value));
+  const candidates = mapperRows.flatMap((row) => rowMatches(value, row).map((match) => {
+    // A wear pad describes attachment hardware; it is not a second restraint
+    // when this occurrence explicitly states a controlling stop/guide function.
+    if (primaryIntent && row.kind === 'REST' && ['WEARPAD','SHOE'].includes(norm(match.alias))) {
+      return {row,kind:row.kind,...match,score:0.75,confidence:'MEDIUM',
+        matchMode:'accessory-not-controlling-restraint'};
+    }
+    return {row,kind:row.kind,...match};
+  }));
   if (!candidates.length) {
     return { status: 'unmatched', supportKind: '', ciiKind: '', ciiPreview: '', confidence: 'NONE', confidenceScore: 0, matchedAlias: '', candidates: [], suppressedCandidates: [], matches: [] };
   }

@@ -164,10 +164,25 @@ export function bindResolverEvents(container, stateRef, render) {
   });
   onChange(container, 'resolver-coordinate-tolerance', (value) => {
     const tol = parseFloat(value);
-    if (Number.isFinite(tol) && tol >= 0) {
+    if (Number.isFinite(tol) && tol > 0 && tol <= 1000) {
       stateRef.current = patchResolverJsonTraceConfig(stateRef.current, { coordinateTolerance: tol });
       render();
     }
+  });
+  const patchDatum = (change) => {
+    const previous = stateRef.current.resolverJsonTraceConfig?.dtxrPositionOffset || {};
+    stateRef.current = patchResolverJsonTraceConfig(stateRef.current, {
+      dtxrPositionOffset: {xOffset:0,yOffset:0,zOffset:100000,...previous,...change},
+    });
+    render();
+  };
+  const datumToggle = container.querySelector('[data-field="resolver-datum-offset-enabled"]');
+  if(datumToggle) datumToggle.addEventListener('change',
+    (event) => patchDatum({enabled:event.target.checked}));
+  onChange(container,'resolver-datum-offset-u-mm',(value)=>{
+    const number=Number(value);
+    if(value.trim() && Number.isFinite(number) && Math.abs(number)<=10000000)
+      patchDatum({zOffset:number});
   });
 }
 export function bindManualEvents(container, stateRef, render) { for (const field of ['manual-policy', 'manual-tolerance', 'manual-restraints-text']) onChange(container, field, (value) => { stateRef.current = updateManualElementSideloadConfig(stateRef.current, field, value); }); }

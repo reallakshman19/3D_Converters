@@ -148,6 +148,8 @@ function _renderRestraintTypeMutationCard(configObj, syncJsonText, controls) {
   info.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border:1px solid #60a5fa;border-radius:50%;font-size:11px;color:#bfdbfe;cursor:help;';
   title.appendChild(info);
   card.appendChild(title);
+  const scopeNote = createElement('p', 'Applies From TYPE → To TYPE to qualified JSON NODETYPE and InputXML. Native CAESAR II: REST/+Y=14, GUIDE/GUI=8, LINE STOP/LIM=9. Older saved 7→8 (LIM) or 10→9 (GUI) mappings are inconsistent and governed Final rejects them.', 'xml-cii-phase-help');
+  card.appendChild(scopeNote);
   controls.restraintTypeMutationEnabled = makeCheckbox(card, 'Enable InputXML restraint TYPE mutation', cfg.enabled !== false, (val) => {
     cfg.enabled = val;
     syncJsonText();

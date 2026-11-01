@@ -2,8 +2,8 @@ import { restraintTypeToCaesarCode } from './restraint-type-codes.js';
 
 export const DEFAULT_RESTRAINT_TYPE_MUTATION_ROWS = Object.freeze([
   Object.freeze({ label: '+Y', from: '17', to: '14' }),
-  Object.freeze({ label: 'LIM', from: '7', to: '8' }),
-  Object.freeze({ label: 'GUI', from: '10', to: '9' }),
+  Object.freeze({ label: 'LIM', from: '7', to: '9' }),
+  Object.freeze({ label: 'GUI', from: '10', to: '8' }),
   Object.freeze({ label: 'X', from: '1', to: '2' }),
   Object.freeze({ label: 'Y', from: '2', to: '3' }),
   Object.freeze({ label: 'Z', from: '3', to: '5' }),
@@ -14,6 +14,7 @@ export const RESTRAINT_TYPE_MUTATION_INFO = [
   'Restraint TYPE is first normalized with the Python XML->CII native code table.',
   'Numeric TYPE values pass through when they are in the CAESAR II 1-62 range.',
   'The editable rows then mutate specific source TYPE codes into target TYPE codes before enrichment.',
+  'Native CAESAR meanings: +Y=14, GUI=8, LIM=9. Review imported/custom rows against these meanings.',
 ].join('\n');
 
 const text = (value) => String(value ?? '').trim();

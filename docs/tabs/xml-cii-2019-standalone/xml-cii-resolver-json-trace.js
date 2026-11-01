@@ -21,6 +21,7 @@ export function createDefaultResolverJsonTraceConfig() {
     posAliases: ['DTXR_POS', 'POSI', 'POS', 'APOS', 'LPOS', 'BPOS', 'HPOS', 'TPOS', 'SPOS', 'EPOS', 'SUPPORTCOORD'],
     captureFields: DEFAULT_JSON_TRACE_CAPTURE_FIELDS.map((field) => ({ ...field })),
     coordinateTolerance: 6.0,
+    dtxrPositionOffset: {enabled:false,xOffset:0,yOffset:0,zOffset:100000},
     sourceSchema: {},
     coordinateAlignment: {},
   };
@@ -48,7 +49,7 @@ function configFrom(input = {}) {
     posAliases: arrayOr(source.posAliases, defaults.posAliases),
     captureFields: normalizeJsonTraceCaptureFields(source.captureFields),
     coordinateTolerance: Number(source.coordinateTolerance ?? defaults.coordinateTolerance) || defaults.coordinateTolerance,
-    dtxrPositionOffset: safeObject(source.dtxrPositionOffset || parsed.dtxrPositionOffset),
+    dtxrPositionOffset: safeObject(source.dtxrPositionOffset || parsed.dtxrPositionOffset || defaults.dtxrPositionOffset),
     sourceSchema: safeObject(source.sourceSchema || parsed.sourceSchema),
     coordinateAlignment: safeObject(source.coordinateAlignment || parsed.coordinateAlignment),
   };
@@ -58,6 +59,8 @@ function writeSupportConfig(supportConfigJson, jsonConfig) {
   const config = parseSupportConfig(supportConfigJson);
   const { sourceSchema, coordinateAlignment, ...traceConfig } = jsonConfig;
   config.jsonTrace = { ...config.jsonTrace, ...traceConfig };
+  config.resolverJsonTrace = { ...config.resolverJsonTrace, ...traceConfig };
+  config.dtxrPositionOffset = { ...traceConfig.dtxrPositionOffset };
   if (Object.keys(safeObject(sourceSchema)).length) config.sourceSchema = sourceSchema;
   if (Object.keys(safeObject(coordinateAlignment)).length) config.coordinateAlignment = coordinateAlignment;
   return JSON.stringify(config, null, 2);
