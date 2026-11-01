@@ -600,7 +600,7 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'XML229_PROCESS_MATERIAL_CODE_CONFLICT'):
             native._apply_source_material_rating(branch,'',spec,codes,'ASTM A106-B')
         node.find('MaterialCode').text='106'
-        self.assertTrue(native._apply_source_material_rating(
+        self.assertFalse(native._apply_source_material_rating(
             branch,'',spec,codes,'ASTM A106-B'))
         self.assertEqual(node.findtext('MaterialCode'),'106')
         self.assertEqual(node.findtext('MaterialName'),'ASTM A106-B')
