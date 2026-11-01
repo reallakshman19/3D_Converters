@@ -89,6 +89,10 @@ class Bm2SupportSourceWitness(unittest.TestCase):
         result = kinds([entry], require)
         self.assertEqual(source_gap(result["GUIDE"]), "0")
         entry["attrs"]["CMPSUPGAP"] = "5"
+        # Authored CMPSUPGAP outranks same-member legacy NODEGAP=0 only.
+        result = kinds([entry], require)
+        self.assertEqual(source_gap(result["GUIDE"]), "5")
+        entry["attrs"]["NODEGAP"] = "2"
         with self.assertRaisesRegex(ValueError, "NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS"):
             kinds([entry], require)
 
