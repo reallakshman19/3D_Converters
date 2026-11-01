@@ -258,7 +258,28 @@ export async function runManualElementSideloadFromUi(container, stateRef, render
 }
 export function buildPreviewAuditFromUi(stateRef, render) { stateRef.current = applyPreviewDiagnosticsAuditReport(stateRef.current, buildStandalonePreviewDiagnosticsAudit(stateRef.current)); render(); }
 export function runWeightMatchFromUi(stateRef, render, finalize) { stateRef.current = updateWorkflowState(stateRef.current, { weightMatchRunning: true }); render(); const result = runStandaloneWeightMatch({ ...stateRef.current, weightMatchOverridesJson: stateRef.current.weightMatchOverridesJson }); stateRef.current = applyStandaloneWeightMatchResult(stateRef.current, result, finalize); render(); }
-export function runSupportMapperFromUi(stateRef, render, save) { stateRef.current = updateWorkflowState(stateRef.current, { supportTypeMapperRunning: true }); render(); const result = runStandaloneSupportTypeMapper({ ...stateRef.current, mapperRows: stateRef.current.supportTypeMapperConfig, testInput: stateRef.current.supportTypeMapperTestInput }); stateRef.current = applyStandaloneSupportTypeMapperResult(stateRef.current, result, save); render(); }
+export function runSupportMapperFromUi(stateRef, render, save) {
+  stateRef.current = updateWorkflowState(stateRef.current, { supportTypeMapperRunning: true });
+  render();
+  const result = runStandaloneSupportTypeMapper({
+    ...stateRef.current,
+    mapperRows: stateRef.current.supportTypeMapperConfig,
+    testInput: stateRef.current.supportTypeMapperTestInput,
+  });
+  const fatal = result.diagnostics.find(row=>row.level==='error');
+  if(save && fatal) {
+    // Keep the invalid edits visible for correction, but do NOT persist the
+    // unsafe mapping in active Worker supportConfigJson.
+    stateRef.current = updateWorkflowState(stateRef.current, {
+      supportTypeMapperResult: result,
+      supportTypeMapperRunning: false,
+      supportTypeMapperStatus: 'Save blocked: '+fatal.message,
+    });
+  } else {
+    stateRef.current = applyStandaloneSupportTypeMapperResult(stateRef.current, result, save);
+  }
+  render();
+}
 export function refreshOutputRunFromUi(stateRef, render) { stateRef.current = applyStandaloneOutputRunReadiness(stateRef.current, buildStandaloneOutputRunReadiness(stateRef.current)); render(); }
 
 function traceResult(state) {

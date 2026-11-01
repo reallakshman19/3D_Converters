@@ -41,7 +41,11 @@ function normalizeMapperRow(row = {}, index = 0) {
   return {
     rowId: text(row.rowId || row.id) || `${kind.toLowerCase()}-${index + 1}`,
     kind,
-    aliases: splitAliases(row.aliases || row.patterns || row.detectionText).length ? splitAliases(row.aliases || row.patterns || row.detectionText) : [...base.aliases],
+    // An explicitly cleared alias list is intentional; restoring built-in
+    // keywords here would make Step 7 edits ineffective during native Run.
+    aliases: row.aliases !== undefined || row.patterns !== undefined || row.detectionText !== undefined
+      ? splitAliases(row.aliases ?? row.patterns ?? row.detectionText)
+      : [...base.aliases],
     ciiKind: text(row.ciiKind || row.ciiOutputKind) || base.ciiKind,
     ciiPreview: text(row.ciiPreview || row.preview) || base.ciiPreview,
     source: text(row.source) || 'support-type-mapper',
@@ -59,6 +63,22 @@ function aliasKey(row, alias) { return `${norm(alias)}::${row.kind}`; }
 function duplicateDiagnostics(rows) {
   const seen = new Map();
   const diagnostics = [];
+  // Engineering meaning is not an editable keyword synonym. A saved row
+  // assigning the literal GUIDE to REST would change restrained DOFs.
+  const reserved = new Map([
+    ['GUIDE','GUIDE'],['LATERALGUIDE','GUIDE'],
+    ['REST','REST'],['PIPEREST','REST'],
+    ['LINESTOP','LINESTOP'],['PIPESTOP','LINESTOP'],
+    ['LIMITSTOP','LINESTOP'],['AXIALSTOP','LINESTOP'],
+    ['DIRECTIONALANCHOR','LINESTOP'],['ANCHOR','ANCHOR'],
+  ]);
+  for (const row of rows) for(const alias of row.aliases || []) {
+    const expected = reserved.get(norm(alias));
+    if(expected && row.kind!==expected)
+      diagnostics.push({level:'error',source:'support-type-mapper',
+        type:'explicit-semantic-alias-reclassification',kind:row.kind,
+        message:`Cannot assign explicit ${alias} (${expected}) to ${row.kind}; engineering DOFs cannot be changed by a keyword.`});
+  }
   for (const row of rows) for (const alias of row.aliases) {
     const key = aliasKey(row, alias);
     if (seen.has(key)) diagnostics.push({ level: 'warning', source: 'support-type-mapper', type: 'duplicate-alias', kind: row.kind, message: `Duplicate alias ${alias} for ${row.kind}.` });
@@ -210,7 +230,16 @@ export function classifySupportText(value, mapperRows = createDefaultSupportType
 
   candidates.sort((a, b) => b.score - a.score || a.row.rowId.localeCompare(b.row.rowId) || a.alias.localeCompare(b.alias));
   const topScore = candidates[0].score;
-  const top = candidates.filter((entry) => Math.abs(entry.score - topScore) < 1e-9);
+  const equallyStrong = candidates.filter((entry) => Math.abs(entry.score - topScore) < 1e-9);
+  // An explicit longer alias wins over its own contained generic alias:
+  // "DIRECTIONAL ANCHOR" must not tie with "ANCHOR". Independent equal
+  // evidence (or the exact same alias configured for two kinds) still fails
+  // closed as ambiguous. Never use arbitrary row order to break a tie.
+  const top = equallyStrong.filter((entry) => !equallyStrong.some((other) =>
+    other !== entry && other.kind !== entry.kind &&
+    !other.alias.includes('*') && !entry.alias.includes('*') &&
+    norm(other.alias).length > norm(entry.alias).length &&
+    norm(other.alias).includes(norm(entry.alias))));
   const topKinds = [...new Set(top.map((entry) => entry.kind))];
   if (topKinds.length > 1) {
     return {
@@ -332,7 +361,7 @@ export function runStandaloneSupportTypeMapper(input = {}) {
   const mapperRows = array(input.mapperRows).length ? input.mapperRows.map(normalizeMapperRow) : parsed.mapperRows;
   const testRows = evidenceRows(input);
   const previewRows = testRows.map((row, index) => previewRow(row, index, mapperRows));
-  const diagnostics = [...parsed.diagnostics, ...previewDiagnostics(previewRows)];
+  const diagnostics = [...duplicateDiagnostics(mapperRows), ...previewDiagnostics(previewRows)];
   return {
     schema: 'xml-cii-support-type-mapper-audit/v2',
     mapperRows,

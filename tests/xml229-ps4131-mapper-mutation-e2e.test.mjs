@@ -17,8 +17,12 @@ import {buildStandaloneDtxrResolutionLedger}
   from '../tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js';
 import {decorateJsonTraceLedger}
   from '../tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js';
-import {DEFAULT_RESTRAINT_TYPE_MUTATION_ROWS}
+import {DEFAULT_RESTRAINT_TYPE_MUTATION_ROWS,mutateRestraintType}
   from '../converters/xml-cii2019-core/restraint-type-mutation.js';
+import {runStandaloneRegexTester}
+  from '../tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js';
+import {extractBranchFieldsWithFormats}
+  from '../converters/xml-cii2019-core/branch-format-extraction.js';
 
 installWeightBasisXmlDom(globalThis);
 const branch='/GLRD-1000-4"-B4110003-11502-01/B1';
@@ -140,6 +144,179 @@ test('edited Step 7 semantic alias changes governed Step 8/native output, not on
   });
   assert.deepEqual(nodeRows(prepared.document)[2].rows.map(r=>r.type),['LIM'],
     'custom mapper label must govern Final instead of being display only');
+});
+
+test('explicit GUIDE cannot become REST by Step 7 alias or removal',async()=>{
+  const {config}=setup();
+  const rest=config.supportTypeMapper.rows.find(row=>row.kind==='REST');
+  const guide=config.supportTypeMapper.rows.find(row=>row.kind==='GUIDE');
+  guide.aliases=guide.aliases.filter(alias=>alias.toUpperCase()!=='GUIDE');
+  rest.aliases.push('GUIDE');
+  const source=JSON.parse(original());
+  source[0].children[1].attributes.DTXR='GUIDE';
+  source[0].children[1].attributes.NODETYPE='10';
+  await assert.rejects(
+    prepareXml229PrefinalRestraints({xmlText:xml,stagedJsonText:JSON.stringify(source),config}),
+    {code:'PREFINAL_RESTRAINT_SEMANTIC_CONFLICT'},
+  );
+  rest.aliases=rest.aliases.filter(alias=>alias.toUpperCase()!=='GUIDE');
+  const preserved=await prepareXml229PrefinalRestraints({
+    xmlText:xml,stagedJsonText:JSON.stringify(source),config,
+  });
+  assert.deepEqual(nodeRows(preserved.document)[1].rows.map(row=>row.type),['GUI'],
+    'explicit GUIDE source meaning survives deleted UI alias');
+  const audit=runStandaloneSupportTypeMapper({supportConfigJson:JSON.stringify(config),
+    testInput:'GUIDE'});
+  assert.equal(audit.previewRows[0]?.status,'unmatched');
+});
+
+test('Step 7 unsupported ANCHOR is explicit hold, not invented REST/GUI/LIM',async()=>{
+  const {config}=setup();
+  const source=JSON.parse(original());
+  source[0].children[1].attributes.DTXR='FIXED';
+  source[0].children[1].attributes.NODETYPE='1';
+  await assert.rejects(
+    prepareXml229PrefinalRestraints({xmlText:xml,stagedJsonText:JSON.stringify(source),config}),
+    {code:'PREFINAL_RESTRAINT_KIND_UNSUPPORTED'},
+  );
+});
+
+test('Step 8 label-based TYPE rules normalize exactly like native CAESAR code table',()=>{
+  assert.equal(mutateRestraintType('7',{enabled:true,rows:[{from:'07',to:'GUI'}]}),'8');
+  assert.equal(mutateRestraintType('7',{enabled:true,rows:[{from:'7',to:'+Y'}]}),'14');
+  assert.throws(()=>mutateRestraintType('7',{enabled:true,rows:[
+    {from:'07',to:'GUI'},{from:'7',to:'LIM'}]}),{code:'PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'});
+  assert.throws(()=>mutateRestraintType('7',{enabled:true,rows:[
+    {from:'7',to:'UNKNOWN'}]}),{code:'PREFINAL_RESTRAINT_TYPE_INVALID'});
+});
+
+test('Step 8 contradictory duplicate mutations fail closed instead of first-match',async()=>{
+  const {config}=setup();
+  config.inputXmlRestraintTypeMutation.rows.push({label:'bad duplicate',from:'10',to:'9'});
+  await assert.rejects(
+    prepareXml229PrefinalRestraints({xmlText:xml,stagedJsonText:original(),config}),
+    {code:'PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'},
+  );
+});
+
+test('verified GUIDE refuses an unexplained stale REST at the same node',async()=>{
+  const {config}=setup();
+  const doc=new DOMParser().parseFromString(xml,'application/xml');
+  const guideNode=[...doc.getElementsByTagName('Node')].find(node=>
+    node.getElementsByTagName('NodeName')[0]?.textContent==='PS-4131.2');
+  assert.ok(guideNode);
+  const rest=doc.createElement('Restraint');
+  const restType=doc.createElement('Type');
+  restType.textContent='+Y';
+  const restGap=doc.createElement('Gap');
+  restGap.textContent='0';
+  rest.append(restType,restGap);
+  guideNode.appendChild(rest);
+  await assert.rejects(
+    prepareXml229PrefinalRestraints({
+      xmlText:new XMLSerializer().serializeToString(doc),
+      stagedJsonText:original(),config,
+    }),
+    {code:'PREFINAL_RESTRAINT_SOURCE_KIND_CONFLICT'},
+    'a stale REST cannot survive a unique staged GUIDE unless source also proves REST');
+});
+
+test('exact staged support gap cannot be replaced by stale native XML default',async()=>{
+  const {config}=setup();
+  const doc=new DOMParser().parseFromString(xml,'application/xml');
+  const target=[...doc.getElementsByTagName('Node')].find(n=>
+    n.getElementsByTagName('NodeName')[0]?.textContent==='PS-4131.2');
+  assert.ok(target);
+  const restraint=doc.createElement('Restraint');
+  const kind=doc.createElement('Type');
+  kind.textContent='GUI';
+  restraint.appendChild(kind);
+  const gap=doc.createElement('Gap');
+  gap.textContent='0';
+  restraint.appendChild(gap);
+  target.appendChild(restraint);
+  const withOldGap=new XMLSerializer().serializeToString(doc);
+  await assert.rejects(
+    prepareXml229PrefinalRestraints({
+      xmlText:withOldGap,stagedJsonText:original(),config}),
+    {code:'PREFINAL_RESTRAINT_SOURCE_GAP_CONFLICT'},
+    'verified 4.5 mm support gap must not be silently left as XML 0');
+  gap.textContent='4.5';
+  const matching=await prepareXml229PrefinalRestraints({
+    xmlText:new XMLSerializer().serializeToString(doc),stagedJsonText:original(),config});
+  const row=nodeRows(matching.document)[1].rows;
+  assert.deepEqual(row.map(x=>({type:x.type,gap:x.gap})),[{type:'GUI',gap:4.5}],
+    'matching source gap stays idempotent, without duplicate restraints');
+});
+
+test('CONFIG-ONLY uncertain support alias changes emitted native restraint TYPE',async()=>{
+  const source=JSON.parse(original());
+  const attrs=source[0].children[1].attributes;
+  attrs.DTXR='CUSTOM-CLAMP-ALPHA';
+  delete attrs.NODETYPE;
+  const stage=JSON.stringify(source);
+  const beforeConfig=setup().config;
+  beforeConfig.supportTypeMapper.rows.find(r=>r.kind==='GUIDE').aliases.push('CUSTOM-CLAMP-ALPHA');
+  const afterConfig=structuredClone(beforeConfig);
+  afterConfig.supportTypeMapper.rows.find(r=>r.kind==='GUIDE').aliases=
+    afterConfig.supportTypeMapper.rows.find(r=>r.kind==='GUIDE').aliases.filter(a=>a!=='CUSTOM-CLAMP-ALPHA');
+  afterConfig.supportTypeMapper.rows.find(r=>r.kind==='REST').aliases.push('CUSTOM-CLAMP-ALPHA');
+  const before=await prepareXml229PrefinalRestraints({xmlText:xml,stagedJsonText:stage,config:beforeConfig});
+  const after=await prepareXml229PrefinalRestraints({xmlText:xml,stagedJsonText:stage,config:afterConfig});
+  assert.deepEqual(nodeRows(before.document)[1].rows.map(r=>r.type),['GUI']);
+  assert.deepEqual(nodeRows(after.document)[1].rows.map(r=>r.type),['+Y']);
+  const dir=await mkdtemp(join(tmpdir(),'xml229-config-change-cii-'));
+  try{
+    const py=process.env.PYTHON||(process.platform==='win32'?'python':'python3');
+    const observed=[];
+    for(const [label,prepared] of [['before',before],['after',after]]){
+      const sourceFile=join(dir,label+'.xml');
+      const ciiFile=join(dir,label+'.cii');
+      await writeFile(sourceFile,new XMLSerializer().serializeToString(prepared.document));
+      execFileSync(py,[PYPATH,'--input',sourceFile,'--output',ciiFile]);
+      const cii=await readFile(ciiFile,'utf8');
+      const section=cii.split('#$ RESTRANT\n')[1]?.split('#$')[0]||'';
+      assert.ok(section,label+' emitted RESTRANT');
+      const records=section.trim().split('\n');
+      const row=records.filter((_,i)=>i%4===0)
+        .map(line=>line.trim().split(/\s+/).map(Number))
+        .find(fields=>fields[0]===41312);
+      assert.ok(row,label+' emitted CII restraint for node 41312');
+      observed.push(row[1]);
+    }
+    assert.deepEqual(observed,[8,14],
+      'config-only reassignment of NONEXPLICIT source alias changes actual CII');
+  }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('CONFIG-ONLY smart-regex extraction change reaches core and fails closed on missing rule',()=>{
+  const initial=setup().config;
+  const format={
+    enabled:true,tokenDelimiter:'-',lineKeyJoiner:'',
+    lineKey:{tokenPosition:4,extractMode:'TOKEN'},
+    pipingClass:{tokenPosition:5,extractMode:'TOKEN'},
+    rating:{},bore:{tokenPosition:3,extractMode:'TOKEN'},
+  };
+  const good=runStandaloneRegexTester({sourceText:xml,sourceKind:'xml',
+    extractionConfig:{activeFormatIndex:0,formats:[format],ratingSequence:[]},
+    supportConfigJson:JSON.stringify(initial)});
+  assert.equal(good.matchedRows.length,1);
+  assert.equal(good.matchedRows[0].lineKey,'B4110003');
+  assert.equal(good.matchedRows[0].pipingClass,'11502');
+  assert.equal(extractBranchFieldsWithFormats(branch,JSON.parse(good.supportConfigJson)).lineKey,'B4110003');
+  const wrong={...format,lineKey:{regex:'-(B9999999)-',group:1,tokenPosition:4,extractMode:'REGEX'}};
+  const bad=runStandaloneRegexTester({sourceText:xml,sourceKind:'xml',
+    extractionConfig:{activeFormatIndex:0,formats:[wrong],ratingSequence:[]},
+    supportConfigJson:good.supportConfigJson});
+  assert.equal(bad.matchedRows.length,0);
+  assert.equal(bad.rejectedRows.length,1);
+  const saved=JSON.parse(bad.supportConfigJson);
+  const extracted=extractBranchFieldsWithFormats(branch,saved);
+  assert.equal(extracted.status,'UNMATCHED');
+  assert.equal(extracted.lineKey,'','unmatched changed config cannot borrow stale prior line key');
+  assert.deepEqual(saved.supportTypeMapper,initial.supportTypeMapper,'smart regex preserves Step 7');
+  assert.deepEqual(saved.inputXmlRestraintTypeMutation,initial.inputXmlRestraintTypeMutation,
+    'smart regex preserves Step 8');
 });
 
 test('legacy saved reversed GUI/LIM mutation must not silently reach Final',async()=>{

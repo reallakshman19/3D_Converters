@@ -43,6 +43,22 @@ function hasPreview(result, status, kind) {
   assert(hasPreview(xmlResult, 'unmatched'), 'unmatched text should produce diagnostics');
   assert(xmlResult.diagnostics.some((row) => row.type === 'unmatched-support-text'), 'unmatched diagnostics expected');
   assert(xmlResult.supportConfigJson.includes('supportTypeMapper'), 'mapper config must write back');
+  const forbiddenRows=helper.createDefaultSupportTypeMapperConfig();
+  forbiddenRows.find(row=>row.kind==='REST').aliases.push('GUIDE');
+  const forbidden=helper.runStandaloneSupportTypeMapper({
+    supportConfigJson:'{}',mapperRows:forbiddenRows,testInput:'GUIDE',
+  });
+  assert(forbidden.diagnostics.some(row=>
+    row.level==='error'&&row.type==='explicit-semantic-alias-reclassification'),
+    'Save must reject an editable REST alias that would reclassify literal GUIDE');
+  const allowedRows=helper.createDefaultSupportTypeMapperConfig();
+  allowedRows.find(row=>row.kind==='REST').aliases.push('CUSTOM CLAMP');
+  const allowed=helper.runStandaloneSupportTypeMapper({
+    supportConfigJson:'{}',mapperRows:allowedRows,testInput:'CUSTOM CLAMP',
+  });
+  assert(!allowed.diagnostics.some(row=>row.level==='error'),
+    'genuinely uncertain support words remain configurable');
+
 
   // Governing real trace: each | segment is a separate support occurrence. The
   // explicit LINE STOP phrase must beat the low-confidence GT575 abbreviation.
@@ -81,9 +97,14 @@ function hasPreview(result, status, kind) {
     elementSideLoadText: 'ELEMENT 30-40\nDTXR_POS=Directional Anchor On Shoe\nDTXR_PS=Fixed Anchor',
     supportConfigJson: '{}',
   });
-  assert(hasPreview(inputXmlResult, 'ambiguous', 'LINESTOP'), 'equal-strength Directional Anchor + Shoe evidence must remain review-required');
+  assert(hasPreview(inputXmlResult, 'matched', 'LINESTOP'), 'the specific Directional Anchor alias must outrank generic Anchor and accessory Shoe');
   assert(hasPreview(inputXmlResult, 'matched', 'ANCHOR'), 'InputXML fixed anchor text should match ANCHOR');
-  assert(inputXmlResult.diagnostics.some((row) => row.type === 'ambiguous-support-kind'), 'ambiguous diagnostics expected');
+  const independentConflict = helper.runStandaloneSupportTypeMapper({
+    testInput: 'REST GUIDE',
+    supportConfigJson: '{}',
+  });
+  assert(hasPreview(independentConflict, 'ambiguous'), 'independent equal-strength REST+GUIDE evidence must remain review-required');
+  assert(independentConflict.diagnostics.some((row) => row.type === 'ambiguous-support-kind'), 'real conflicting kinds remain auditable');
 
   const rows = helper.createDefaultSupportTypeMapperConfig();
   rows.find((row) => row.kind === 'REST').aliases.push('Saddle');
@@ -96,6 +117,28 @@ function hasPreview(result, status, kind) {
   state = stateApi.updateSupportTypeMapperConfig(state, 'support-mapper-aliases-LINESTOP', 'Line Stop\nLS\nHard Stop');
   const saved = stateApi.applyStandaloneSupportTypeMapperResult(state, helper.runStandaloneSupportTypeMapper({ ...state, mapperRows: state.supportTypeMapperConfig, testInput: state.supportTypeMapperTestInput }), true);
   assert(saved.supportConfigJson.includes('Hard Stop'), 'state save must write edited mapper rows');
+  const configWithMutation = {
+    inputXmlRestraintTypeMutation: {enabled:true,rows:[{from:'7',to:'GUI'}]},
+    linelist: {fieldMap:{lineSeqNo:'C9'}},
+    supportTypeMapper: {rows: helper.createDefaultSupportTypeMapperConfig()},
+  };
+  const savedAlias = helper.createDefaultSupportTypeMapperConfig();
+  savedAlias.find(row=>row.kind==='REST').aliases=[];
+  const preserved = helper.runStandaloneSupportTypeMapper({
+    supportConfigJson:JSON.stringify(configWithMutation),
+    mapperRows:savedAlias,testInput:'GUIDE',
+  });
+  const retained = JSON.parse(preserved.supportConfigJson);
+  assert.deepStrictEqual(retained.supportTypeMapper.rows.find(row=>row.kind==='REST').aliases, [],
+    'explicitly cleared REST keywords must survive serialized config');
+  assert.deepStrictEqual(retained.inputXmlRestraintTypeMutation,configWithMutation.inputXmlRestraintTypeMutation,
+    'saving Support Mapper must preserve Tab 8 TYPE mutation authority');
+  assert.deepStrictEqual(retained.linelist,configWithMutation.linelist,
+    'saving Support Mapper must preserve smart regex line-list field map');
+  const independentRegexState = {...state,regexTesterConfig:{activeFormatIndex:3,formats:[{id:3,regex:'CUSTOM'}]}};
+  const afterMapperSave = stateApi.applyStandaloneSupportTypeMapperResult(independentRegexState,preserved,true);
+  assert.deepStrictEqual(afterMapperSave.regexTesterConfig,independentRegexState.regexTesterConfig,
+    'saving Support Mapper must not reset the separate smart regex tester rules');
   assert(saved.supportTypeMapperStatus.includes('saved'), 'state save status expected');
 
   const card = new TestElement('section');

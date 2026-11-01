@@ -62,6 +62,22 @@ export function mutateRestraintType(value, config = {}) {
   if (!base) return base;
   const normalizedConfig = normalizeRestraintTypeMutationConfig(config);
   if (normalizedConfig.enabled === false) return base;
-  const match = normalizedConfig.rows.find((row) => normalizeRestraintTypeValue(row.from) === base);
-  return match ? normalizeRestraintTypeValue(match.to) || base : base;
+  // A saved Step 8 configuration cannot silently choose the first of two
+  // contradictory source TYPE mutations. Match the native fail-closed replay.
+  const targets = new Map();
+  for (const row of normalizedConfig.rows) {
+    const source = normalizeRestraintTypeValue(row.from);
+    const target = normalizeRestraintTypeValue(row.to);
+    if (![source, target].every((code) =>
+      /^\d+$/.test(code) && Number(code) >= 1 && Number(code) <= 62)) {
+      throw Object.assign(new Error('Invalid restraint TYPE mutation source/target'),
+        { code: 'PREFINAL_RESTRAINT_TYPE_INVALID' });
+    }
+    if (targets.has(source) && targets.get(source) !== target) {
+      throw Object.assign(new Error('Conflicting restraint TYPE mutation rules'),
+        { code: 'PREFINAL_RESTRAINT_TYPE_AMBIGUOUS' });
+    }
+    targets.set(source, target);
+  }
+  return targets.get(base) || base;
 }

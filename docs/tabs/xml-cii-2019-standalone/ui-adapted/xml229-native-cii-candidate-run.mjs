@@ -68,10 +68,21 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   topologyActionIds:[],
  };
  progress('BUILDING_CONFIGURATION');
+ // The native mass candidate can publish nativeCiiReleaseAuthorized=true.
+ // Therefore its source masters must be complete as well as its Final masses.
+ // An explicit diagnostic-only direct converter invocation is a different
+ // contract and does not acquire this engineering verification claim.
+ let verifiedConfig;
+ try {
+   verifiedConfig=JSON.parse(await enrichSupportConfigJson(state,state.branchScope||null));
+ } catch {fail('NATIVE_VERIFIED_MASTER_CONFIG_INVALID');}
+ if(!verifiedConfig||typeof verifiedConfig!=='object'||Array.isArray(verifiedConfig))
+   fail('NATIVE_VERIFIED_MASTER_CONFIG_INVALID');
+ verifiedConfig.requireVerifiedMasterCompleteness=true;
  const job={
   sourceKind:'xml',sourceName:sourceNameFromState(state),
   sourceText,stagedJsonText,
-  supportConfigJson:await enrichSupportConfigJson(state,state.branchScope||null),
+  supportConfigJson:JSON.stringify(verifiedConfig),
   options,xml229NativeFinalPacket:packet,
  };
  if(!isCurrent())fail('NATIVE_CANDIDATE_BASIS_STALE');

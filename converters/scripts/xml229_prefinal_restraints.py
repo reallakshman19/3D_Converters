@@ -4,6 +4,7 @@ This deliberately does not copy restraint values out of the Worker snapshot.
 The caller retains the whole-XML comparison after replaying this bounded stage.
 """
 from xml229_support_type_mapper import mapped_support_kind
+from xml_to_cii2019 import NATIVE_RESTRAINT_TYPE_CODES
 from decimal import Decimal, InvalidOperation
 import hashlib
 import json
@@ -73,22 +74,39 @@ def kinds(entries, require, config=None):
         # outrank abbreviated GT/ST. Do not copy its legacy DOF/axis defaults.
         desc = ' '.join([text(a.get(k)) for k in ('DTXR', 'DESC', 'DESCRIPTION')] +
                         [text(e['desc'])]).upper()
-        semantic = [
-            k for k, pat in (
+        # With a persisted Step 7 mapper, never let legacy regex literals
+        # defeat edited or removed user aliases. Only pre-mapper configs may
+        # use these historical semantic fallbacks.
+        has_saved_mapper = isinstance((config.get('supportTypeMapper') or {}).get('rows'), list)
+        explicit_kinds = [
+            k for k, pattern in (
                 ('LINESTOP', r'\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b'),
                 ('GUIDE', r'\bGUIDE\b'),
-                ('REST', r'\b(?:PIPE[- ]?REST|REST)\b|\bSHOE\b'))
-            if re.search(pat, desc)
+                ('REST', r'\b(?:PIPE[- ]?REST|REST)\b'))
+            if re.search(pattern, desc)
         ]
-        if 'REST' in semantic and 'LINESTOP' in semantic and \
-                re.search(r'\bSHOE\b', desc) and \
-                not re.search(r'\b(?:PIPE[- ]?REST|REST)\b', desc):
-            semantic.remove('REST')
-        if 'REST' in semantic and 'GUIDE' in semantic and \
-                re.search(r'\bSHOE\b', desc) and \
-                not re.search(r'\b(?:PIPE[- ]?REST|REST)\b', desc):
-            semantic.remove('REST')
-        require(len(set(semantic)) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+        require(len(set(explicit_kinds)) <= 1,
+                'NATIVE_PREFINAL_RESTRAINT_SEMANTIC_CONFLICT')
+        explicit_kind = explicit_kinds[0] if explicit_kinds else ''
+        semantic = []
+        if not has_saved_mapper:
+            semantic = [
+                k for k, pat in (
+                    ('LINESTOP', r'\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b'),
+                    ('GUIDE', r'\bGUIDE\b'),
+                    ('REST', r'\b(?:PIPE[- ]?REST|REST)\b|\bSHOE\b'))
+                if re.search(pat, desc)
+            ]
+            if 'REST' in semantic and 'LINESTOP' in semantic and \
+                    re.search(r'\bSHOE\b', desc) and \
+                    not re.search(r'\b(?:PIPE[- ]?REST|REST)\b', desc):
+                semantic.remove('REST')
+            if 'REST' in semantic and 'GUIDE' in semantic and \
+                    re.search(r'\bSHOE\b', desc) and \
+                    not re.search(r'\b(?:PIPE[- ]?REST|REST)\b', desc):
+                semantic.remove('REST')
+            require(len(set(semantic)) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+
         canonical = {
             text(a.get(k)).upper().replace(' ', '') for k in
             ('SUPPORT_KIND', 'SUPPORT_MAPPER_KIND', 'SUPPORT_TYPE')
@@ -96,11 +114,34 @@ def kinds(entries, require, config=None):
         }
         require(len(canonical) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
         mapped_kind, score = mapped_support_kind(a, e['desc'], config, require)
+        # Engineering source meaning outranks editable aliases: a REST alias
+        # matching an explicit GUIDE may not change its native DOFs.
+        require(not (explicit_kind and mapped_kind and
+                     explicit_kind != mapped_kind),
+                'NATIVE_PREFINAL_RESTRAINT_SEMANTIC_CONFLICT')
+        require(not (explicit_kind and canonical and
+                     explicit_kind not in canonical),
+                'NATIVE_PREFINAL_RESTRAINT_SEMANTIC_CONFLICT')
+        require(not (canonical and mapped_kind and mapped_kind not in canonical),
+                'NATIVE_PREFINAL_RESTRAINT_SEMANTIC_CONFLICT')
+        # Step 7 may classify ANCHOR, but this governed replay only owns
+        # REST/GUIDE/LINESTOP. Never silently discard or turn it into REST.
+        require(mapped_kind in ('', 'REST', 'GUIDE', 'LINESTOP'),
+                'NATIVE_PREFINAL_RESTRAINT_KIND_UNSUPPORTED')
         code = text(a.get('MDSSUPPTYPE')).upper()
-        kind = (semantic[0] if semantic
-                else mapped_kind if score >= .65 and mapped_kind in ('REST','GUIDE','LINESTOP')
+        medium_min = (config.get('supportTypeMapper') or {}).get('confidencePolicy') or {}
+        try:
+            medium_threshold = float(medium_min.get('mediumMinimum', .65))
+        except (ValueError, TypeError):
+            raise ValueError('NATIVE_PREFINAL_RESTRAINT_CONFIDENCE_INVALID')
+        require(0 <= medium_threshold <= 1,
+                'NATIVE_PREFINAL_RESTRAINT_CONFIDENCE_INVALID')
+        kind = (explicit_kind if explicit_kind
+                else semantic[0] if semantic
+                else mapped_kind if score >= medium_threshold and mapped_kind in ('REST','GUIDE','LINESTOP')
                 else next(iter(canonical)) if canonical
                 else mapped_kind if mapped_kind in ('REST','GUIDE','LINESTOP')
+                else '' if has_saved_mapper
                 else 'GUIDE' if code.startswith('GT') else 'LINESTOP' if code.startswith('ST')
                 else 'REST' if code == 'PIPE-REST' or code.startswith('AT') or
                 re.search(r'\b(?:PIPE[- ]?REST|REST|SHOE)\b',
@@ -196,6 +237,22 @@ def profile_for(kind, config):
 
 
 
+def _normalized_mutation_code(value):
+    """Strict CAESAR 1-62 code; mirrors Step 8 JS restraintTypeToCaesarCode."""
+    raw = text(value).upper()
+    if re.fullmatch(r'[0-9]+(?:[.]0+)?', raw):
+        number = int(float(raw))
+        if 1 <= number <= 62:
+            return str(number)
+    elif raw in NATIVE_RESTRAINT_TYPE_CODES:
+        return str(NATIVE_RESTRAINT_TYPE_CODES[raw])
+    elif raw in ('A', 'ANCHOR', 'FIXED', 'FIX'):
+        return '1'
+    elif raw in ('X', 'Y', 'Z'):
+        return {'X': '17', 'Y': '19', 'Z': '18'}[raw]
+    raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_INVALID')
+
+
 def node_type_mutation(attrs, config):
     """Native counterpart of 8 Config mutation; source NODETYPE is numeric."""
     raw = text(attrs.get('NODETYPE'))
@@ -212,12 +269,17 @@ def node_type_mutation(attrs, config):
         rows = rules.get('rows')
         selected = [(row.get('from'), row.get('to')) for row in rows
                     if isinstance(row, dict)] if isinstance(rows, list) else defaults
+        # Step 8 rows are editable. Duplicate source codes with different
+        # target codes must never be resolved by list order (silent first-wins).
+        seen_targets = {}
         for source, target in selected:
-            if text(source) == str(value):
-                if not re.fullmatch(r'[0-9]+', text(target)) or not 1 <= int(target) <= 62:
-                    raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_INVALID')
-                value = int(target)
-                break
+            key = _normalized_mutation_code(source)
+            destination = _normalized_mutation_code(target)
+            if key in seen_targets and seen_targets[key] != destination:
+                raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_AMBIGUOUS')
+            seen_targets[key] = destination
+        if str(value) in seen_targets:
+            value = int(seen_targets[str(value)])
     return present_type(str(value))
 
 def append_profile(node, kind, attrs, config, allowed=None):
@@ -286,10 +348,37 @@ def replay_prefinal_restraints(expected, packet, staged_json_path, config, requi
             for r in children(node, 'Restraint'):
                 if placeholder(r):
                     node.remove(r)
+            expected_types = set()
+            for source_kind, source_attrs in evidence.items():
+                selected = node_type_mutation(source_attrs, config)
+                expected_types.update(present_type(value) for value in
+                                      ([selected] if selected else
+                                       profile_for(source_kind, config)['xmlTypes']))
+            for original in children(node, 'Restraint'):
+                original_type = present_type(field(original, 'Type'))
+                require(original_type not in ('+Y', 'GUI', 'LIM') or
+                        original_type in expected_types,
+                        'NATIVE_PREFINAL_RESTRAINT_SOURCE_KIND_CONFLICT')
             present = {present_type(field(r, 'Type')) for r in children(node, 'Restraint')}
             for kind in ('REST', 'GUIDE', 'LINESTOP'):
                 if kind in evidence:
-                    append_profile(node, kind, evidence[kind], config, present)
+                    attrs = evidence[kind]
+                    source_value = source_gap(attrs)
+                    if source_value:
+                        from_source = numeric(source_value)
+                        require(from_source is not None,
+                                'NATIVE_PREFINAL_RESTRAINT_GAP_INVALID')
+                        selected_type = node_type_mutation(attrs, config)
+                        target_types = ([selected_type] if selected_type else
+                                        profile_for(kind, config)['xmlTypes'])
+                        for original in children(node, 'Restraint'):
+                            if present_type(field(original, 'Type')) not in {
+                                    present_type(v) for v in target_types}:
+                                continue
+                            old_value = field(original, 'CMPSUPGAP') or field(original, 'Gap')
+                            require(bool(old_value) and numeric(old_value) == from_source,
+                                    'NATIVE_PREFINAL_RESTRAINT_SOURCE_GAP_CONFLICT')
+                    append_profile(node, kind, attrs, config, present)
         rows = children(node, 'Restraint')
         if typ == 'ATTA' and (not rows or all(map(placeholder, rows))):
             for r in rows:

@@ -63,22 +63,28 @@ function supportKindFromMember(member,config={}) {
   // This mirrors the old confidence mapper, not its legacy axis defaults.
   const desc = [attrs.DTXR, attrs.DESC, attrs.DESCRIPTION, member?.description]
     .map(text).filter(Boolean).join(' ').toUpperCase();
-  const semantic = [
+  const hasSavedMapper = Array.isArray(config?.supportTypeMapper?.rows);
+  // Explicit source engineering semantics are not editable synonyms.
+  // Step 7 keywords may classify uncertain text, never reassign a verified
+  // GUIDE/REST/LINESTOP description to another set of engineering DOFs.
+  const explicitKinds = [
     /\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b/.test(desc) && 'LINESTOP',
     /\bGUIDE\b/.test(desc) && 'GUIDE',
-    (/(?:\bPIPE[- ]?REST\b|\bREST\b)/.test(desc) ||
-      (!/\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR|GUIDE)\b/.test(desc)
-        && /\bSHOE\b/.test(desc))) && 'REST',
+    /\b(?:PIPE[- ]?REST|REST)\b/.test(desc) && 'REST',
   ].filter(Boolean);
-  if (new Set(semantic).size > 1)
-    throw Object.assign(new Error('Conflicting source support descriptions'),
-      {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
-  if (semantic.length) return semantic[0];
+  if(new Set(explicitKinds).size>1)
+    throw Object.assign(new Error('Conflicting explicit source support semantics'),
+      {code:'PREFINAL_RESTRAINT_SEMANTIC_CONFLICT'});
+  const explicitKind=explicitKinds[0]||'';
+  if(!hasSavedMapper){
+    if(explicitKind)return explicitKind;
+    if(/\bSHOE\b/.test(desc))return 'REST'; // legacy accessory fallback only
+  }
   // Use the user-authored Step 7 mapper rows, not a second hard-coded alias list.
   // HIGH/MEDIUM semantic intent can override a stale generated REST label;
   // LOW GT/ST evidence cannot override a resolved canonical source kind.
   let mapper = null;
-  if (Array.isArray(config?.supportTypeMapper?.rows)) {
+  if (hasSavedMapper) {
     const rows = parseSupportTypeMapperConfig({supportConfig:config}).mapperRows;
     const evidence = [attrs.DTXR,attrs.DESC,attrs.DESCRIPTION,
       member?.description,attrs.CMPSUPTYPE,attrs.MDSSUPPTYPE,attrs.SPRE]
@@ -87,7 +93,25 @@ function supportKindFromMember(member,config={}) {
     if(mapper.status==='ambiguous')
       throw Object.assign(new Error('Conflicting Step 7 mapper classification'),
         {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
-    if(mapper.status==='matched'&&mapper.confidence!=='LOW'&&
+    if(mapper.status==='matched'&&!GOVERNED_KINDS.includes(mapper.supportKind))
+      throw Object.assign(new Error('Step 7 kind lacks governed native restraint DOF authority'),
+        {code:'PREFINAL_RESTRAINT_KIND_UNSUPPORTED'});
+    const sourceCanonical=['SUPPORT_KIND','SUPPORT_MAPPER_KIND','SUPPORT_TYPE']
+      .map(key=>text(attrs[key]).toUpperCase().replace(/\s+/g,''))
+      .filter(kind=>GOVERNED_KINDS.includes(kind));
+    if(mapper.status==='matched'&&sourceCanonical.length&&
+       sourceCanonical.some(kind=>kind!==mapper.supportKind))
+      throw Object.assign(new Error('Step 7 alias contradicts an explicit canonical source support'),
+        {code:'PREFINAL_RESTRAINT_SEMANTIC_CONFLICT'});
+    const configuredMinimum = config.supportTypeMapper?.confidencePolicy?.mediumMinimum;
+    const mediumMinimum = configuredMinimum === undefined ? .65 : Number(configuredMinimum);
+    if(!Number.isFinite(mediumMinimum)||mediumMinimum<0||mediumMinimum>1)
+      throw Object.assign(new Error('Invalid Step 7 confidence threshold'),
+        {code:'PREFINAL_RESTRAINT_CONFIDENCE_INVALID'});
+    if(explicitKind&&mapper.status==='matched'&&mapper.supportKind!==explicitKind)
+      throw Object.assign(new Error('Step 7 alias contradicts explicit source support semantics'),
+        {code:'PREFINAL_RESTRAINT_SEMANTIC_CONFLICT'});
+    if(mapper.status==='matched'&&mapper.confidenceScore>=mediumMinimum&&
        GOVERNED_KINDS.includes(mapper.supportKind))return mapper.supportKind;
   }
   const canonical = [...new Set(['SUPPORT_KIND', 'SUPPORT_MAPPER_KIND', 'SUPPORT_TYPE']
@@ -96,9 +120,16 @@ function supportKindFromMember(member,config={}) {
   if (canonical.length > 1)
     throw Object.assign(new Error('Conflicting canonical support kinds'),
       {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+  if(explicitKind&&canonical.length&&canonical[0]!==explicitKind)
+    throw Object.assign(new Error('Canonical support identity contradicts explicit source description'),
+      {code:'PREFINAL_RESTRAINT_SEMANTIC_CONFLICT'});
+  if(explicitKind)return explicitKind;
   if (canonical.length) return canonical[0];
   if(mapper?.status==='matched'&&GOVERNED_KINDS.includes(mapper.supportKind))
     return mapper.supportKind;
+  // No implicit GT/ST/AT or legacy SPRE classifier after explicit Step 7
+  // keyword removal. A matching canonical identity above remains authoritative.
+  if (hasSavedMapper) return '';
   const code = text(attrs.MDSSUPPTYPE || member?.capturedFields?.MDSSUPPTYPE).toUpperCase();
   if (code.startsWith('GT')) return 'GUIDE';
   if (code.startsWith('ST')) return 'LINESTOP';
@@ -174,7 +205,9 @@ function evidenceByKind(record, config = {}, requireUnambiguous = false) {
   }
   // Aggregated trace kinds can contain a lower-confidence GT/ST alias that
   // the resolved source member explicitly contradicted. Never re-add it.
-  if(!result.size){
+  // Legacy trace-derived kinds are guesses, not independent permission to
+  // bypass an operator's saved Step 7 alias removal.
+  if(!result.size&&!Array.isArray(config?.supportTypeMapper?.rows)){
     for(const kind of Array.isArray(record?.derivedSupportTypes)?record.derivedSupportTypes:[]){
       const normalized=text(kind).toUpperCase().replace(/\s+/g,'');
       if(GOVERNED_KINDS.includes(normalized))result.set(normalized,{});
@@ -267,6 +300,16 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
         }
       }
 
+      if(runtime.requireUnambiguous) {
+        const expected=new Set([...evidence.entries()].map(([kind,attrs])=>
+          sourceNodeType(attrs,config)||EXPECTED_XML_TYPE[kind]));
+        for(const restraint of childrenByName(node,'Restraint')) {
+          const original=normalizeXmlType(childText(restraint,'Type'));
+          if(['+Y','GUI','LIM'].includes(original)&&!expected.has(original))
+            throw Object.assign(new Error('Unmatched XML restraint kind has no exact staged support member'),
+              {code:'PREFINAL_RESTRAINT_SOURCE_KIND_CONFLICT'});
+        }
+      }
       const present = existingTypes(node);
       const kinds = [];
       const entries = [];
@@ -275,13 +318,28 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
         const attrs=evidence.get(kind);
         const explicitGap=sourceGapText(attrs);
         const selectedType=sourceNodeType(attrs,config)||EXPECTED_XML_TYPE[kind];
+        if(runtime.requireUnambiguous && explicitGap) {
+          const actualSourceGap=supportGapNumber(attrs);
+          const existing=childrenByName(node,'Restraint')
+            .filter(r=>normalizeXmlType(childText(r,'Type'))===selectedType);
+          for(const restraint of existing) {
+            const prior=text(childText(restraint,'CMPSUPGAP'))||
+              text(childText(restraint,'Gap'));
+            const priorValue=prior ? supportGapNumber({CMPSUPGAP:prior}) : null;
+            if(priorValue===null || priorValue!==actualSourceGap)
+              throw Object.assign(new Error('Original XML restraint gap conflicts with exact staged support'),
+                {code:'PREFINAL_RESTRAINT_SOURCE_GAP_CONFLICT'});
+          }
+        }
         if (['+Y','GUI','LIM'].includes(selectedType)&&selectedType!==EXPECTED_XML_TYPE[kind])
           throw Object.assign(new Error('Configured NODETYPE mutation contradicts Step 7 support kind'),
             {code:'PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT'});
         const generated=restraintEntriesFromSupportKind(kind, attrs, node, config)
           .map(entry=>({
             ...entry,type:selectedType,
-            gap:kind==='REST'&&explicitGap?String(supportGapNumber(attrs)):entry.gap,
+            // Source-specific CMPSUPGAP outranks defaults for all governed
+            // kinds, not just REST; zero remains an explicit engineering value.
+            gap:explicitGap?String(supportGapNumber(attrs)):entry.gap,
           }))
           .filter(entry=>!present.has(normalizeXmlType(entry?.type || entry)));
         if (!generated.length) continue;
