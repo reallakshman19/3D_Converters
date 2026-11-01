@@ -122,6 +122,8 @@ def kinds(entries, require, config=None):
         require(not (explicit_kind and canonical and
                      explicit_kind not in canonical),
                 'NATIVE_PREFINAL_RESTRAINT_SEMANTIC_CONFLICT')
+        require(not (canonical and mapped_kind and mapped_kind not in canonical),
+                'NATIVE_PREFINAL_RESTRAINT_SEMANTIC_CONFLICT')
         # Step 7 may classify ANCHOR, but this governed replay only owns
         # REST/GUIDE/LINESTOP. Never silently discard or turn it into REST.
         require(mapped_kind in ('', 'REST', 'GUIDE', 'LINESTOP'),
