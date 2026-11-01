@@ -348,6 +348,17 @@ def replay_prefinal_restraints(expected, packet, staged_json_path, config, requi
             for r in children(node, 'Restraint'):
                 if placeholder(r):
                     node.remove(r)
+            expected_types = set()
+            for source_kind, source_attrs in evidence.items():
+                selected = node_type_mutation(source_attrs, config)
+                expected_types.update(present_type(value) for value in
+                                      ([selected] if selected else
+                                       profile_for(source_kind, config)['xmlTypes']))
+            for original in children(node, 'Restraint'):
+                original_type = present_type(field(original, 'Type'))
+                require(original_type not in ('+Y', 'GUI', 'LIM') or
+                        original_type in expected_types,
+                        'NATIVE_PREFINAL_RESTRAINT_SOURCE_KIND_CONFLICT')
             present = {present_type(field(r, 'Type')) for r in children(node, 'Restraint')}
             for kind in ('REST', 'GUIDE', 'LINESTOP'):
                 if kind in evidence:
