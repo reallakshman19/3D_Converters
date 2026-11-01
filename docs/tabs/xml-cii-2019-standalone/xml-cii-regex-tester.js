@@ -13,6 +13,16 @@ export function resetRegexTesterCacheForTests() {
   testerCacheStats.hits = 0;
 }
 
+/** Ordered Line Key click-to-map columns. Re-click removes that exact column. */
+export function toggleRegexLineKeyColumn(previous, clicked) {
+  const target=Number(clicked);
+  const current=String(previous ?? '').split(/[,+]/).map(v=>Number(v.trim()))
+    .filter((v,i,all)=>Number.isSafeInteger(v)&&v>0&&all.indexOf(v)===i);
+  if (!Number.isSafeInteger(target)||target<1) return current.join(',');
+  return (current.includes(target)
+    ?current.filter(v=>v!==target):[...current,target]).join(',');
+}
+
 export function createDefaultRegexTesterConfig() {
   const defaultFormat = {
     tokenDelimiter: '-',
