@@ -301,13 +301,28 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
         const attrs=evidence.get(kind);
         const explicitGap=sourceGapText(attrs);
         const selectedType=sourceNodeType(attrs,config)||EXPECTED_XML_TYPE[kind];
+        if(runtime.requireUnambiguous && explicitGap) {
+          const actualSourceGap=supportGapNumber(attrs);
+          const existing=childrenByName(node,'Restraint')
+            .filter(r=>normalizeXmlType(childText(r,'Type'))===selectedType);
+          for(const restraint of existing) {
+            const prior=text(childText(restraint,'CMPSUPGAP'))||
+              text(childText(restraint,'Gap'));
+            const priorValue=prior ? supportGapNumber({CMPSUPGAP:prior}) : null;
+            if(priorValue===null || priorValue!==actualSourceGap)
+              throw Object.assign(new Error('Original XML restraint gap conflicts with exact staged support'),
+                {code:'PREFINAL_RESTRAINT_SOURCE_GAP_CONFLICT'});
+          }
+        }
         if (['+Y','GUI','LIM'].includes(selectedType)&&selectedType!==EXPECTED_XML_TYPE[kind])
           throw Object.assign(new Error('Configured NODETYPE mutation contradicts Step 7 support kind'),
             {code:'PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT'});
         const generated=restraintEntriesFromSupportKind(kind, attrs, node, config)
           .map(entry=>({
             ...entry,type:selectedType,
-            gap:kind==='REST'&&explicitGap?String(supportGapNumber(attrs)):entry.gap,
+            // Source-specific CMPSUPGAP outranks defaults for all governed
+            // kinds, not just REST; zero remains an explicit engineering value.
+            gap:explicitGap?String(supportGapNumber(attrs)):entry.gap,
           }))
           .filter(entry=>!present.has(normalizeXmlType(entry?.type || entry)));
         if (!generated.length) continue;
