@@ -8,9 +8,10 @@ from zipfile import ZipFile
 import json
 import unittest
 import sys
+import math
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'converters/scripts'))
-from xml229_prefinal_restraint_source import source_entries, calibrated_groups, resolve, tolerance
+from xml229_prefinal_restraint_source import source_entries, calibrated_groups, resolve, tolerance, point
 from xml229_prefinal_restraints import kinds, source_gap, local, children, field
 import xml.etree.ElementTree as ET
 
@@ -132,6 +133,67 @@ class Bm2SupportSourceWitness(unittest.TestCase):
             "matchErrors": errors[:12], "matchErrorCount": len(errors),
         }, sort_keys=True))
         self.assertEqual(len(source_nodes), 1196)
+
+
+    def test_original_bm2_gtst_nearest_geometry_is_diagnostic_only(self):
+        """Old 25 mm snap method is measured, not automatically applied."""
+        xml = ROOT / "Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml"
+        with ZipFile(STAGED) as archive:
+            staged = json.loads(archive.read(MEMBER))
+        root = ET.parse(xml).getroot()
+        by_branch = {
+            field(b, "Branchname"): [(n, point(field(n, "Position")))
+                                     for n in children(b, "Node")]
+            for b in root.iter() if local(b) == "Branch"
+        }
+        report = {}
+        for entry in source_entries(staged, {}):
+            attrs = entry["attrs"]
+            code = attrs.get("MDSSUPPTYPE")
+            if code not in ("GT571", "ST572"):
+                continue
+            p = entry["point"]
+            nodes = [(n, q) for n, q in by_branch.get(entry["branch"], [])
+                     if q is not None]
+            nearest = sorted(((math.dist(p, q), n) for n, q in nodes), key=lambda x: x[0])
+            carriers = sorted(((math.dist(p, q), n) for n, q in nodes
+                               if field(n, "ComponentType").upper() in ("ANCI", "ATTA")),
+                              key=lambda x: x[0])
+            segments = []
+            for (n1, q1), (n2, q2) in zip(nodes, nodes[1:]):
+                direction = tuple(b - a for a, b in zip(q1, q2))
+                norm = sum(v * v for v in direction)
+                if norm <= 1e-12:
+                    continue
+                t = sum((p[i]-q1[i]) * direction[i] for i in range(3)) / norm
+                if not 0 < t < 1:
+                    continue
+                projected = tuple(q1[i] + t * direction[i] for i in range(3))
+                segments.append((math.dist(p, projected), t, n1, n2))
+            segments.sort(key=lambda row: row[0])
+            label = lambda pair: {
+                "distanceMm": round(pair[0], 3),
+                "number": field(pair[1], "NodeNumber"),
+                "type": field(pair[1], "ComponentType"),
+                "nodeName": field(pair[1], "NodeName"),
+            }
+            report[code] = {
+                "stageBranch": entry["branch"], "stagePoint": list(p),
+                "stageOwner": attrs.get("OWNER"),
+                "sameBranchXmlNodes": len(nodes),
+                "nearestXmlNode": label(nearest[0]) if nearest else None,
+                "nearestCarrierNode": label(carriers[0]) if carriers else None,
+                "closestConsecutiveSpan": ({
+                    "distanceMm": round(segments[0][0], 3),
+                    "fraction": round(segments[0][1], 6),
+                    "from": field(segments[0][2], "NodeNumber"),
+                    "to": field(segments[0][3], "NodeNumber"),
+                    "fromType": field(segments[0][2], "ComponentType"),
+                    "toType": field(segments[0][3], "ComponentType"),
+                } if segments else None),
+            }
+        self.assertEqual(set(report), {"GT571", "ST572"})
+        print("BM2_GTST_READONLY_NEAREST_GEOMETRY " + json.dumps(report, sort_keys=True))
 
 
 if __name__ == "__main__":
