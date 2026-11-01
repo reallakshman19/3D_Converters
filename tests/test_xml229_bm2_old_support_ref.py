@@ -97,6 +97,29 @@ class Bm2SupportSourceWitness(unittest.TestCase):
             kinds([entry], require)
 
 
+    def test_actual_1885_rest_datum_outranks_colocated_at01_shoe_gap(self):
+        """Only the PIPE-REST datum owns REST, even when shoe says 10mm."""
+        def require(ok, code):
+            if not ok:
+                raise ValueError(code)
+        datum = {"attrs": {"DTXR": "Pipe Rest XRT01",
+                            "MDSSUPPTYPE": "PIPE-REST", "NODEGAP": "0",
+                            "NAME": "/PS-12171/DATUM", "NODETYPE": "4"},
+                 "desc": "Pipe Rest XRT01", "type": "SUPPORT"}
+        shoe = {"attrs": {"DTXR": "PIPE SHOE FOR HORIZ LINES",
+                           "MDSSUPPTYPE": "AT01", "NODETYPE": "4",
+                           "NAME": "/PS-12171.3",
+                           "CMPSUPGAP": "10mm GAP", "NODEGAP": "0"},
+                "desc": "PIPE SHOE FOR HORIZ LINES", "type": "SUPPORT"}
+        for entries in ([datum, shoe], [shoe, datum]):
+            selected = kinds(entries, require)
+            self.assertEqual(source_gap(selected["REST"]), "0")
+            self.assertEqual(selected["REST"]["NAME"], "/PS-12171/DATUM")
+        distinct = [{**datum, "attrs": {**datum["attrs"], "NAME": "/PS-12171/OTHER",
+                                         "NODEGAP": "7"}}]
+        with self.assertRaisesRegex(ValueError, "NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS"):
+            kinds([datum] + distinct, require)
+
     def test_original_bm2_source_gtst_owner_matching_receipt(self):
         """Read-only native resolver receipt; absence/ambiguity is not invented PASS."""
         xml = ROOT / "Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml"
