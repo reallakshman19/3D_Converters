@@ -97,6 +97,26 @@ test('authored CMPSUPGAP survives a legacy NODEGAP zero placeholder, but rejects
   await assert.rejects(prepare(staged), {code: 'PREFINAL_RESTRAINT_GAP_AMBIGUOUS'});
 });
 
+test('real 1885 REST datum wins over co-located shoe hardware gap, without losing GUIDE', async () => {
+  const staged = source();
+  staged[0].children[0].children.unshift(
+    {type:'SUPPORT', attributes:{
+      DTXR:'Pipe Rest XRT01', MDSSUPPTYPE:'PIPE-REST', NODEGAP:'0',
+      NAME:'/PS-12171/DATUM', SUPPORT_KIND:'REST'}},
+    {type:'SUPPORT', attributes:{
+      DTXR:'PIPE SHOE FOR HORIZ LINES', MDSSUPPTYPE:'AT01', NODETYPE:'4',
+      CMPSUPGAP:'10mm GAP', NODEGAP:'0', NAME:'/PS-12171.3', SUPPORT_KIND:'REST'}},
+  );
+  const prepared = await prepare(staged);
+  const actual = restraints(prepared.document, 40);
+  assert.ok(actual.some(r => r.gap === 0 && r.type === '+Y'),
+    'REST datum gap zero must remain authoritative');
+  assert.ok(actual.some(r => r.gap === 5.5 && r.type === 'GUI'),
+    'independently sourced GUIDE must remain intact');
+  assert.ok(!actual.some(r => r.gap === 10),
+    'auxiliary shoe clearance must not become a REST gap');
+});
+
 test('conflicting description-only GUIDE gaps reject instead of silently selecting one', async () => {
   const staged = source();
   staged[0].children[0].children.push({
