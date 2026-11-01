@@ -63,6 +63,22 @@ function aliasKey(row, alias) { return `${norm(alias)}::${row.kind}`; }
 function duplicateDiagnostics(rows) {
   const seen = new Map();
   const diagnostics = [];
+  // Engineering meaning is not an editable keyword synonym. A saved row
+  // assigning the literal GUIDE to REST would change restrained DOFs.
+  const reserved = new Map([
+    ['GUIDE','GUIDE'],['LATERALGUIDE','GUIDE'],
+    ['REST','REST'],['PIPEREST','REST'],
+    ['LINESTOP','LINESTOP'],['PIPESTOP','LINESTOP'],
+    ['LIMITSTOP','LINESTOP'],['AXIALSTOP','LINESTOP'],
+    ['DIRECTIONALANCHOR','LINESTOP'],['ANCHOR','ANCHOR'],
+  ]);
+  for (const row of rows) for(const alias of row.aliases || []) {
+    const expected = reserved.get(norm(alias));
+    if(expected && row.kind!==expected)
+      diagnostics.push({level:'error',source:'support-type-mapper',
+        type:'explicit-semantic-alias-reclassification',kind:row.kind,
+        message:`Cannot assign explicit ${alias} (${expected}) to ${row.kind}; engineering DOFs cannot be changed by a keyword.`});
+  }
   for (const row of rows) for (const alias of row.aliases) {
     const key = aliasKey(row, alias);
     if (seen.has(key)) diagnostics.push({ level: 'warning', source: 'support-type-mapper', type: 'duplicate-alias', kind: row.kind, message: `Duplicate alias ${alias} for ${row.kind}.` });
@@ -345,7 +361,7 @@ export function runStandaloneSupportTypeMapper(input = {}) {
   const mapperRows = array(input.mapperRows).length ? input.mapperRows.map(normalizeMapperRow) : parsed.mapperRows;
   const testRows = evidenceRows(input);
   const previewRows = testRows.map((row, index) => previewRow(row, index, mapperRows));
-  const diagnostics = [...parsed.diagnostics, ...previewDiagnostics(previewRows)];
+  const diagnostics = [...duplicateDiagnostics(mapperRows), ...previewDiagnostics(previewRows)];
   return {
     schema: 'xml-cii-support-type-mapper-audit/v2',
     mapperRows,
