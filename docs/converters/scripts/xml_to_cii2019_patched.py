@@ -450,8 +450,20 @@ def _kind_from_dtxr(text: str, support_config: dict[str, Any]) -> list[str]:
         # as a single conflicting restraint; classify each independently.
         classified = []
         for occurrence in normalized.split("|"):
+            text_part = occurrence.strip()
             kind, _score = mapped_support_kind(
-                {"DTXR": occurrence.strip()}, "", support_config, require)
+                {"DTXR": text_part}, "", support_config, require)
+            explicit = [
+                code for code, pattern in (
+                    ("LINESTOP", r"\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b"),
+                    ("GUIDE", r"\bGUIDE\b"),
+                    ("REST", r"\b(?:PIPE[- ]?REST|REST)\b"))
+                if re.search(pattern, text_part)
+            ]
+            if len(set(explicit)) > 1 or (explicit and kind and explicit[0] != kind):
+                raise ValueError("XML229_CONFIGURED_SUPPORT_SEMANTIC_CONFLICT")
+            if not kind and explicit:
+                kind = explicit[0]
             if kind and kind not in ("REST", "GUIDE", "LINESTOP"):
                 raise ValueError("XML229_CONFIGURED_SUPPORT_KIND_UNSUPPORTED")
             if kind and kind not in classified:
