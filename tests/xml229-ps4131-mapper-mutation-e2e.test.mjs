@@ -13,6 +13,10 @@ import {resolveXmlCiiSupportDescriptor}
   from '../converters/xml-cii2019-core/support-mapping.js';
 import {prepareXml229PrefinalRestraints}
   from '../tabs/xml-cii-2019-standalone/integration/xml229-prefinal-restraints.mjs';
+import {buildStandaloneDtxrResolutionLedger}
+  from '../tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js';
+import {decorateJsonTraceLedger}
+  from '../tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js';
 import {DEFAULT_RESTRAINT_TYPE_MUTATION_ROWS}
   from '../converters/xml-cii2019-core/restraint-type-mutation.js';
 
@@ -188,4 +192,31 @@ test('co-located PS-4131 .1/.2/.3 become three slots at one native node',async()
     console.log('PS4131_COLOCATED_NATIVE_RECEIPT '+JSON.stringify({
       source:'SYNTHETIC_NOT_OWNER_JSON',node:4131,slots:matched}));
   }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('read-only authentic Firstpass co-position NODETYPE conflict census',async()=>{
+  const source=await readFile(fileURLToPath(new URL('../Benchmarks/1885Sjson/FirstpassXML',import.meta.url)),'utf8');
+  const stage=await readFile(fileURLToPath(new URL('../Benchmarks/1885Sjson/Sjson.json',import.meta.url)),'utf8');
+  const ledger=decorateJsonTraceLedger(
+    buildStandaloneDtxrResolutionLedger(source,stage,{}),
+    {captureFields:['NODETYPE','SUPPORT_KIND','SUPPORT_TYPE','MDSSUPPTYPE']});
+  const duplicates=[];
+  for(const rec of ledger.records||[]){
+    const grouped=new Map();
+    for(const m of rec.positionMembers||[]){
+      const a=m.raw?.attributes||m.attributes||{};
+      const kind=String(a.SUPPORT_KIND||a.SUPPORT_MAPPER_KIND||a.SUPPORT_TYPE||'');
+      if(!kind||!a.NODETYPE)continue;
+      if(!grouped.has(kind))grouped.set(kind,[]);
+      grouped.get(kind).push({nodeType:String(a.NODETYPE),mds:String(a.MDSSUPPTYPE||''),
+        type:String(m.raw?.type||m.type||''),name:String(a.NAME||''),desc:String(a.DTXR||m.description||'')});
+    }
+    for(const [kind,values] of grouped){
+      if(new Set(values.map(v=>v.nodeType)).size>1)
+        duplicates.push({branch:rec.xmlBranch,node:rec.xmlNodeNumber,kind,values:values.slice(0,8)});
+    }
+  }
+  console.log('FIRSTPASS_RAW_NODETYPE_COLLISION_AUDIT '+JSON.stringify({
+    records:ledger.records?.length,conflicts:duplicates.length,examples:duplicates.slice(0,6)}));
+  assert.ok(Array.isArray(ledger.records));
 });
