@@ -34,6 +34,7 @@ on:
       - 'tests/xml229-bm2-source-transfer-contract.test.py'
       - 'tests/xml229-native-source-hydration-contract.test.py'
       - 'tests/xml229-bm2-propagation-proof.test.mjs'
+      - 'tests/xml-cii-standalone-support-type-mapper.test.js'
       - 'tests/xml229-instrument-source-revision.test.py'
       - 'tests/xml229-native-cii-independent-reconciliation.test.mjs'
       - 'tests/xml229-native-cii-real-cli-e2e.test.mjs'
@@ -93,6 +94,7 @@ jobs:
           node --check tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-propagation-audit.js
           node --test tests/xml229-bm2-propagation-proof.test.mjs tests/xml229-description-only-restraint-gap-native.test.mjs
+          node tests/xml-cii-standalone-support-type-mapper.test.js
       - name: Separate independent CII parser, manifest and native Run status
         run: |
           node --check tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-optional-instrument-advisory.mjs
