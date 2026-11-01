@@ -711,6 +711,17 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
         if t2 is not None or t3 is not None:
             diagnostics.append({"type": "process-temperature", "branchName": branch_name, "lineKey": line_key, "t2": t2 or "", "t3": t3 or ""})
 
+    # Stable source identity for each positional owner (not a process-global node number).
+    branch_owner = {}
+    for source_branch in root.iter():
+        if _local(source_branch.tag) != "Branch":
+            continue
+        name = next(((c.text or "").strip() for c in source_branch
+                     if _local(c.tag) == "Branchname"), "")
+        for source_node in source_branch:
+            if _local(source_node.tag) == "Node":
+                branch_owner[id(source_node)] = name
+
     for node in root.iter():
         if _local(node.tag) != "Node":
             continue
@@ -752,6 +763,7 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
                 "type": "dtxr-pos",
                 "nodeNumber": mrow({_local(child.tag): child.text for child in list(node)}, "NodeNumber") or "",
                 "nodeName": mrow({_local(child.tag): child.text for child in list(node)}, "NodeName") or "",
+                "branchName": branch_owner.get(id(node), ""),
                 "count": len(dtxr_pos_values),
                 "previousValue": old_annotation,
                 "newValue": new_annotation,
