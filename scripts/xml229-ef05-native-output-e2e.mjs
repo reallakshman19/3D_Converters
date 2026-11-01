@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 import {checkEf05OptionalAdviceAndSafety} from './xml229-ef05-instrument-safety-e2e.mjs';
 import {verifyEf05Apply80} from './xml229-ef05-apply80-e2e.mjs';
+import {proveXml229Issue376BrowserNative} from './xml229-issue376-browser-native-probe.mjs';
 import {verifyEf05OwnerBasisCustody} from './xml229-ef05-owner-custody-e2e.mjs';
 import {readFile,mkdir,writeFile,mkdtemp,rm} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
@@ -109,6 +110,8 @@ try{
   const actualBranches=await page.locator('.xml-cii-header-status-row').textContent();
   assert.match(actualBranches,/Branches:\s*41\/41/);
   record.passes.push('real 41/41 loaded');
+  // Issue #376: real Worker native output before unrelated advisory panels.
+  await proveXml229Issue376BrowserNative(page,x,record);
   for(const [kind,file] of [
     ['lineList',lineListPath],
     ['pipingClass','docs/Masters/Piping_class_master.json'],
