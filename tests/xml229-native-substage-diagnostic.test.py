@@ -371,6 +371,129 @@ class NativeSubstageWitnessTests(unittest.TestCase):
                                                     ['T1','Temp Max']),'120')
 
 
+
+    def test_material_rating_93833_and_exact_configured_code_to_cii(self):
+        """Real class source + expressly configured map -> CII material slot."""
+        import xml_to_cii2019_patched as native
+        spec=json.loads((ROOT/'docs/Masters/SpecwisePipingClass/93833.json').read_text())
+        source=ROOT/'Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml'
+        cfg={'pipingClass':{'masterRows':spec['rows']},
+             'material':{'mapRows':[{'Material':'ASTM A790 UNS S31803','Code':'741'}]}}
+        enriched=native._apply_process_data_to_xml(source,cfg)
+        try:
+            root=ET.parse(enriched).getroot()
+            branches=[v for v in root.iter() if v.tag.rsplit('}',1)[-1]=='Branch']
+            nodes=[v for v in branches[0] if v.tag.rsplit('}',1)[-1]=='Node']
+            def field(n,key):
+                return next((x.text or '' for x in n if x.tag.rsplit('}',1)[-1]==key),'')
+            self.assertEqual(field(nodes[0],'ComponentType'),'BRAN')
+            self.assertEqual(field(nodes[0],'PipingClass'),'93833')
+            self.assertEqual(field(nodes[0],'PipingClassRating'),'900')
+            self.assertEqual(field(nodes[0],'MaterialName'),'ASTM A790 UNS S31803')
+            self.assertEqual(field(nodes[0],'MaterialCode'),'741')
+            self.assertEqual(field(nodes[1],'MaterialCode'),'')  # ANCI is not a pipe
+        finally:
+            if enriched!=source: enriched.unlink(missing_ok=True)
+        self.assertEqual(native._material_ids_from_config({
+            'material':{'mapRows':[{'Material':'A790-S32803','Code':'338'}]}}),
+            {'A790-S32803':338})
+        # The bundled S32803 spelling is NOT silently accepted for S31803.
+        with TemporaryDirectory() as d:
+            original=Path(d)/'one-pipe.xml'; out=Path(d)/'one-pipe.cii'
+            original.write_text(
+                '<PipeStressExport><Pipe><Branch>'
+                '<Branchname>/GLRD-1000-6"-P4110001-93833-01/B6</Branchname>'
+                '<Temperature><Temperature1>120</Temperature1></Temperature>'
+                '<Pressure><Pressure1>11000</Pressure1></Pressure>'
+                '<MaterialNumber>0</MaterialNumber>'
+                '<Node><NodeNumber>10</NodeNumber><Endpoint>1</Endpoint>'
+                '<ComponentType>BRAN</ComponentType><OutsideDiameter>168.3</OutsideDiameter>'
+                '<WallThickness>0</WallThickness><Position>0 0 0</Position></Node>'
+                '<Node><NodeNumber>20</NodeNumber><Endpoint>2</Endpoint>'
+                '<ComponentType>PIPE</ComponentType><OutsideDiameter>168.3</OutsideDiameter>'
+                '<WallThickness>0</WallThickness><Position>100 0 0</Position></Node>'
+                '</Branch></Pipe></PipeStressExport>',encoding='utf-8')
+            enriched=native._apply_process_data_to_xml(original,cfg)
+            command=[sys.executable,str(SCRIPTS/'xml_to_cii2019.py'),
+                     '--input',str(enriched),'--output',str(out)]
+            result=subprocess.run(command,capture_output=True,text=True,timeout=30)
+            self.assertEqual(result.returncode,0,result.stderr)
+            data=out.read_text(encoding='utf-8')
+            misc=data.split('#'+'$ MISCEL_1',1)[1].split('#'+'$ ',1)[0]
+            self.assertEqual(float(misc.splitlines()[1].split()[0]),741)
+            if enriched!=original: enriched.unlink(missing_ok=True)
+
+    def test_material_rating_conflict_and_unmapped_alias_do_not_fabricate_ids(self):
+        import xml_to_cii2019_patched as native
+        row={'Piping Class':'93833','convertedBore':150,'Rating':'900',
+             'Material_Name':'ASTM A790 UNS S31803'}
+        with self.assertRaisesRegex(ValueError,'XML229_PIPING_CLASS_MATERIAL_RATING_AMBIGUOUS'):
+            native._source_class_meta_index({'pipingClass':{'masterRows':[
+                row,{**row,'Rating':'600'}]}})
+        with self.assertRaisesRegex(ValueError,'XML229_MATERIAL_CODE_AMBIGUOUS'):
+            native._material_ids_from_config({'material':{'mapRows':[
+                {'Material':'ASTM A790 UNS S31803','Code':'741'},
+                {'Material':'ASTM A790 UNS S31803','Code':'742'}]}})
+        self.assertNotIn('ASTM A790 UNS S31803',
+            native._material_ids_from_config({'material':{'mapRows':[
+                {'Material':'A790-S32803','Code':'338'}]}}))
+        self.assertEqual(native._material_ids_from_config({
+            'material':{'mapRows':[{'Material':'ASTM A790 UNS S31803',
+                                    'Code':'A790-S31803'}]}}),{})
+
+    def test_valve_5950_5960_positive_final_mass_can_be_consumed_when_accepted(self):
+        """Synthetic accepted positive kg, with real BM2 valve ref/XYZ witness."""
+        from xml229_native_final_mass_binding import bind_native_final_xml,emitted_sections
+        import hashlib
+        branch='/GLRD-1000-2"-B4110007-93833-01/B1'
+        ref='=134234934/29090'
+        pos1='105399.99 108189.89 101776.22'
+        pos2='105399.99 108557.89 101774.38'
+        source=('<PipeStressExport><Pipe><Branch><Branchname>'+branch+'</Branchname>'
+                '<Temperature><Temperature1>0</Temperature1></Temperature>'
+                '<Pressure><Pressure1>0</Pressure1></Pressure>'
+                '<Node><NodeNumber>5950</NodeNumber><ComponentType>VALV</ComponentType>'
+                '<ComponentRefNo>'+ref+'</ComponentRefNo><Endpoint>1</Endpoint>'
+                '<OutsideDiameter>60.3</OutsideDiameter><WallThickness>3.9116</WallThickness>'
+                '<Position>'+pos1+'</Position><Weight>0</Weight></Node>'
+                '<Node><NodeNumber>5960</NodeNumber><ComponentType>VALV</ComponentType>'
+                '<ComponentRefNo>'+ref+'</ComponentRefNo><Endpoint>2</Endpoint>'
+                '<OutsideDiameter>60.3</OutsideDiameter><WallThickness>3.9116</WallThickness>'
+                '<Position>'+pos2+'</Position><Rigid>2</Rigid><Weight>0</Weight></Node>'
+                '</Branch></Pipe></PipeStressExport>')
+        owner=json.dumps(['TEST-VALVE',0,1,
+                         json.dumps(['VALV',ref,'2',''],separators=(',',':'))],
+                         separators=(',',':'))
+        packet={'schema':'XML229.NativeFinalPhysicalPacket.v1',
+                'basisId':'a'*64,'finalIntentSha256':'b'*64,
+                'sourceId':'TEST-VALVE','sourceXmlSha256':hashlib.sha256(source.encode()).hexdigest(),
+                'physicalCount':1,
+                'components':[{'occurrenceId':owner,'effectiveKg':2.5}]}
+        with TemporaryDirectory() as folder:
+            path=Path(folder)/'valve.xml';manifest=Path(folder)/'packet.json'
+            output=Path(folder)/'accepted.cii'
+            path.write_text(source,encoding='utf-8')
+            manifest.write_text(json.dumps(packet),encoding='utf-8')
+            enriched,owners=bind_native_final_xml(path,path,manifest)
+            try:
+                self.assertEqual(owners[0]['kg'],2.5)
+                result=subprocess.run([
+                    sys.executable,str(SCRIPTS/'xml_to_cii2019.py'),
+                    '--input',str(enriched),'--output',str(output),
+                    '--weight-scale','10'],capture_output=True,text=True,timeout=30)
+                self.assertEqual(result.returncode,0,result.stderr)
+                text=output.read_text(encoding='utf-8')
+                elem=text.split('#'+'$ ELEMENTS',1)[1].split('#'+'$ ',1)[0].splitlines()
+                self.assertEqual(tuple(float(x) for x in elem[1].split()[:2]),(5950.,5960.))
+                pointer=int(float(elem[13].split()[1]))
+                self.assertGreater(pointer,0)
+                slots,weights=emitted_sections(text)
+                self.assertIn(pointer-1,slots)
+                self.assertEqual(weights[pointer-1],25.0)
+            finally:
+                if enriched!=path: enriched.unlink(missing_ok=True)
+
+
     def test_stage_resets_for_each_new_invocation(self):
         sys._xml229_native_failure_stage="EMITTED_MASS_VERIFY"
         with patch.object(runtime.patched,"_parse_args",side_effect=ValueError("BAD_ARGUMENT")):
