@@ -298,17 +298,7 @@ class NativeSubstageWitnessTests(unittest.TestCase):
                                capture_output=True,text=True,timeout=30)
             self.assertEqual(run.returncode,0,run.stderr)
             emitted=cii.read_text(encoding='utf-8')
-            element=emitted.split('#$ ELEMENTS\n',1)[1].split('#
-        sys._xml229_native_failure_stage="EMITTED_MASS_VERIFY"
-        with patch.object(runtime.patched,"_parse_args",side_effect=ValueError("BAD_ARGUMENT")):
-            with self.assertRaisesRegex(ValueError,"BAD_ARGUMENT"):
-                runtime.main()
-        self.assertEqual(sys._xml229_native_failure_stage,"RUNTIME_OPTIONS")
-
-
-if __name__=="__main__":
-    unittest.main()
-,1)[0].splitlines()
+            element=emitted.split('#$ ELEMENTS\n',1)[1].split('#$',1)[0].splitlines()
             self.assertEqual((float(element[0].split()[0]),float(element[0].split()[1])),
                              (10,20))
             self.assertAlmostEqual(float(element[1].split()[0]),7.112,places=6)
