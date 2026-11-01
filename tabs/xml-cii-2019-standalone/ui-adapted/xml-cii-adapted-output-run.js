@@ -20,6 +20,7 @@ import {xml229TopologyDisplayState} from './xml229-topology-review-controller.mj
 import {xml229NativeRunWaitingMessage} from './xml229-run-waiting-message.mjs';
 import {ensureXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace,getXml229CandidateAttempt} from './xml229-flow-trace-registry.mjs';
 import {buildXml229RunHoldAudit} from '../integration/xml229-run-hold-audit.mjs';
+import {xml229RunHoldPlainMeaning} from './xml229-run-hold-explanation.mjs';
 import {isXml229VerifiedReviewCompletionForInput} from '../integration/xml229-live-preview-restoration.mjs';
 import {readXml229NativeFinalObservation} from '../integration/xml229-native-final-observation.mjs';
 import {inspectXml229EngineeringLease} from '../integration/xml229-engineering-basis-authority.mjs';
@@ -418,28 +419,6 @@ async function collectXml229RunHoldAudit(stateRef,report){
    state:input,report:freshReport,session,candidate:params.candidate})};
 }
 
-function xml229RunHoldPlainMeaning(audit){
- const code=audit?.diagnosisCode||'';
- const weights=audit?.evidence?.find(x=>x.name==='weight-final-readiness');
- const mass=weights?.status==='VERIFIED'
-   ?'The current Worker reports a complete accepted Source/Final mass census. '
-   :'Weight/Final evidence is not fully verified for this snapshot. ';
- if(code==='FINAL_INTENT_NOT_OBSERVED')
-   return mass+'Native Final intent has not been read for this display; it is not a missing-weight verdict.';
- if(code==='FINAL_INTENT_READ_FAILED')
-   return mass+'The Worker Final-intent read failed; the audit keeps Weight evidence separate and native Run remains unverified.';
- if(code==='INDEPENDENT_NATIVE_RELEASE_AUTHORITY_ABSENT')
-   return mass+'Final intent is eligible. Actual native CII output and independent mass reconciliation are still required.';
- if(code==='BRANCH_FORMAT_IDENTITY_UNRESOLVED')
-   return mass+'Conversion has not started because configured branch formats are unmatched or conflicting. See Branch format diagnosis and correct the affected Regex Tester formats.';
- if(code==='FINAL_INTENT_SOURCE_OR_BASIS_DRIFT'||code==='FINAL_INTENT_POPULATION_DRIFT')
-   return mass+'The returned Final intent contradicts the current source, Worker basis or mass census; rebuild on one source revision.';
- if(code==='FINAL_INTENT_INVALID')
-   return mass+'The returned Final-intent receipt is malformed; do not use it to run or release CII.';
- if(code==='FINAL_INTENT_NOT_ELIGIBLE')
-   return mass+'The current Worker has not authorized this Final mass population for native binding; inspect the accepted review decisions.';
- return mass+'Inspect the first unverified stage. Diagnostic evidence alone cannot authorize native CII.';
-}
 function renderRunControls(parent, stateRef, state, report, render) {
   const ctrlCard = section(parent, 'Run Conversion');
   const routeLabel=createElement('label','','model-converters-workflow-regex-field');

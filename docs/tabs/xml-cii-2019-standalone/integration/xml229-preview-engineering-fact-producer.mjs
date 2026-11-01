@@ -15,6 +15,7 @@ import {
 import {assertBasisDigest,canonicalJson,digestCanonical,digestUtf8,validateFactRecord,validatePage}
   from '../../../contracts/gc-pw-v1/contract.mjs';
 import {isolatedOriginalPreviewWorkConfig} from './xml229-original-preview-work-config.mjs';
+import {createXml229EngineeringPhaseClock} from './xml229-engineering-phase-clock.mjs';
 import {finalizeXml229WeightGeometry} from './xml229-finalized-weight-geometry.mjs';
 import {prepareXml229PrefinalRestraints} from './xml229-prefinal-restraints.mjs';
 import {indexXml229ComponentBodyBores} from './xml229-component-body-bore.mjs';
@@ -66,14 +67,17 @@ export const XML229_ENGINEERING_FIELDS=Object.freeze([
  */
 export async function openXml229EngineeringFactModel({
   basis,live,xmlText,sourceId,previewResult,
-  expectedOriginalCount,maxPhysical=10000,
+  expectedOriginalCount,maxPhysical=10000,onPhase=()=>{},
 }={}){
   if(!good(sourceId)||typeof xmlText!=='string'||!xmlText.trim()||
     !basis||!live||!previewResult||typeof previewResult!=='object')
     fail('ORIGINAL_INPUT_REQUIRED','Original XML, basis, live master bytes and real Preview result required');
   if(!Number.isSafeInteger(maxPhysical)||maxPhysical<1||maxPhysical>100000)
     fail('INVALID_BOUNDED_POPULATION','Physical Worker window cap must be 1..100000');
+  const clock=createXml229EngineeringPhaseClock(onPhase);
+  const endBasis=clock.start('basis-attestation');
   await attestLiveBasis({...live,basis});
+  endBasis();
   if(live.sources?.[sourceId]!==xmlText||basis.sourceRefs?.length!==1||
     basis.sourceRefs[0]?.sourceId!==sourceId||basis.scope?.length!==1||
     basis.scope[0]?.sourceId!==sourceId||
@@ -82,7 +86,9 @@ export async function openXml229EngineeringFactModel({
   if(previewResult.engineeringAcceptance!=='NOT_ASSESSED'||
     previewResult.fullFactPopulationAccepted!==false)
     fail('PREVIEW_INPUT_AUTHORITY_DRIFT','P4 must verify source-only Preview computation itself');
+  const endProjection=clock.start('source-projection');
   const projection=projectXmlCiiOccurrences({xmlText,mode:'A',sourceId});
+  endProjection();
   const sourceOriginals=[...projection.branches,...projection.nodes];
   if(expectedOriginalCount!==sourceOriginals.length)
     fail('INDEPENDENT_CENSUS_MISMATCH','Original XML branch/node count is not independently attested');
@@ -100,21 +106,28 @@ export async function openXml229EngineeringFactModel({
   // Independent source-cleanup calculation cannot mutate the original
  // master/config buffers whose full content is attested by GC-PW.
  const workConfig=isolatedOriginalPreviewWorkConfig(live.config||{});
+ const endRestraints=clock.start('prefinal-restraints');
  const restraintStage=await prepareXml229PrefinalRestraints({
    xmlText,stagedJsonText:live.stagedSource||'',config:workConfig,
  });
+ endRestraints();
+ const endLedger=clock.start('node-ledger');
  const prepared=preparePreviewNodeOccurrenceDocument({
    xmlText,sourceDocument:restraintStage.document,config:workConfig,
  });
   if(!prepared.document||prepared.ledger.originalCount!==projection.nodeCount)
     fail('SOURCE_CLEANUP_DRIFT','Original source cleanup census incomplete');
+  endLedger();
   const branches=[...prepared.document.getElementsByTagName('Branch')];
   const sourceNodeByOrdinal=new Map(projection.nodes.map(row=>[
     JSON.stringify([row.branchOccurrenceIndex,row.nodeOrdinal]),row]));
+  const endBores=clock.start('bore-index');
   const boreRows=indexXml229PhysicalBores(previewResult.nodeBoreWallRows,sourceNodeByOrdinal,fail);
   const bodyBores=indexXml229ComponentBodyBores({
     xmlText,config:workConfig,sourceDocument:restraintStage.document,
   });
+  endBores();
+  const endPhysical=clock.start('physical-facts');
   const weightRows=new Map();
   for(const row of previewResult.nodeRows){
     if(!Number.isSafeInteger(row.branchOccurrenceIndex)||
@@ -270,11 +283,13 @@ export async function openXml229EngineeringFactModel({
   if(records.length!==2*sourceOriginals.length+
     XML229_ENGINEERING_FIELDS.length*physical.length)
     fail('FIELD_POPULATION_DRIFT','Original source physical fields are incomplete');
+  endPhysical();
   const requiredEngineeringFields={
     branch:['branch.engineering'],node:['node.engineering'],
     'physical-component':['bore.mm','length.mm','rating','mass.kg','component.type','component.ref'],
   };
   const ports={assertBasisDigest,canonicalJson,digestCanonical,validateFactRecord,validatePage};
+  const endFacts=clock.start('fact-verification');
   const model=await openPreviewFactReadModel({
     basis,expectedOccurrences:expected,records,ports,requiredEngineeringFields,
     verifyEngineeringComplete:({records:verified,expectedOccurrences:originals})=>
@@ -284,16 +299,19 @@ export async function openXml229EngineeringFactModel({
   });
   if(!model.info.engineeringReady||model.info.computationStage!=='engineering-verified')
     fail('ENGINEERING_NOT_VERIFIED','Independent original/physical population verification did not succeed');
+  endFacts();
   // The exact cleaned XML inspected by verified Weight Match is the immutable
   // geometry artifact for native Run. Original source ordinals stay in the
   // retained-by-branch ledger; the Worker binds it to the GC-PW source basis.
   if(typeof XMLSerializer!=='function')
     fail('FINALIZED_GEOMETRY_SERIALIZER_REQUIRED','XML serializer unavailable');
+  const endGeometry=clock.start('finalized-geometry');
   const finalizedGeometry=await finalizeXml229WeightGeometry({
     basis,projection,branches,prepared,physical,sourceNodeByOrdinal,
     nonOwnerEndpointStarts,componentSuppressionPairs:canonicalEndpointPairs,sourceId,
     prefinalRestraints:restraintStage.proof,
   },{children,field,fail,canonicalJson});
+  endGeometry();
   const workerResult=Object.freeze({
     ...previewResult,
     coverage:{
