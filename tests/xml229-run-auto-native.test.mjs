@@ -60,8 +60,8 @@ test('shared Pyodide interpreter resets native parser hooks and serializes autom
  assert.match(engine,/importlib\.reload\(sys\.modules\["xml_to_cii2019"\]\)/);
  assert.match(engine,/await pyodide\.runPythonAsync\(RESET_NATIVE_BASE_SNIPPET\)/);
  assert.match(engine,/engineQueue=next\.then\(\(\)=>undefined,\(\)=>undefined\)/);
- assert.match(engine,/runSerializedXmlCii2019Engine\(job\)/);
- assert.match(engine,/runPythonScript\(pyodide, invocation\.scriptPath/);
+ assert.match(engine,/engineQueue\.then\(\(\)=>runSerializedXmlCii2019Engine\(job, runtime\)\)/);
+ assert.match(engine,/runPythonScript\(pyodide, invocation\.scriptPath, invocation\.argv/);
 });
 
 test('converter failure returns allowlisted categories without leaking stderr or paths',()=>{
@@ -104,7 +104,7 @@ test('UI and engine expose bounded failure phase without weakening publication',
  assert.match(action,/verified\?\.nativeCiiReleaseAuthorized!==true/);
  const engine=await readFile(new URL('../converters/xml-cii-2019-standalone/engine.js',import.meta.url),'utf8');
  for(const phase of ['CII_CONVERSION','MASS_PROOF_READ','MASS_PROOF_VERIFY'])
-   assert.ok(engine.includes("nativeFailurePhase='"+phase+"'"));
+   assert.ok(engine.includes("phase('"+phase+"')"));
  assert.match(engine,/partial, nativeFailurePhase\)/);
  const mirror=await readFile(new URL('../docs/converters/xml-cii-2019-standalone/engine.js',import.meta.url),'utf8');
  assert.equal(engine,mirror);
