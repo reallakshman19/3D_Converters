@@ -1,0 +1,19 @@
+name: XML229 Issue 364 BM2 Unique Line List Native
+on:
+  pull_request:
+    paths:
+      - 'converters/scripts/xml_to_cii2019_patched.py'
+      - 'tests/test_xml229_bm2_linelist_unique_alias.py'
+      - '.github/workflows/xml229-issue364-bm2-linelist.yml'
+
+jobs:
+  bm2-linelist-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Original LL_BM2 workbook to native enriched XML and emitted CII
+        run: python -m unittest discover -s tests -p test_xml229_bm2_linelist_unique_alias.py -v
