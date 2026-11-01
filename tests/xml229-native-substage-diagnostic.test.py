@@ -516,6 +516,73 @@ class NativeSubstageWitnessTests(unittest.TestCase):
                 name:'741','MAT:A790-S31803':'742'}}},{name})
 
 
+
+    def test_process_material_higher_authority_than_class_and_native_cii(self):
+        import xml_to_cii2019_patched as native
+        cfg={'pipingClass':{'masterRows':[{'Piping Class':'93833',
+            'convertedBore':150,'Material_Name':'ASTM A790 UNS S31803',
+            'Wall thickness':'7.112','Rating':'900'}]},
+            'material':{'mapRows':[{'Material Name':'ASTM A106-B','Material Code':'106'},
+                                   {'Material Name':'ASTM A790 UNS S31803',
+                                    'Material Code':'741'}]},
+            'linelist':{'masterRows':[{'lineSeqNo':'4110001','MOC':'ASTM A106-B'}],
+                        'fieldMap':{'lineSeqNo':'lineSeqNo','material':'MOC'}}}
+        with TemporaryDirectory() as folder:
+            path=Path(folder)/'process.xml'; cii=Path(folder)/'process.cii'
+            path.write_text('<PipeStressExport><Pipe><Branch>'
+                '<Branchname>/GLRD-1000-6"-P4110001-93833-01/B6</Branchname>'
+                '<Node><NodeNumber>10</NodeNumber><ComponentType>BRAN</ComponentType>'
+                '<OutsideDiameter>168.3</OutsideDiameter><WallThickness>0</WallThickness>'
+                '<Position>0 0 0</Position></Node>'
+                '<Node><NodeNumber>20</NodeNumber><ComponentType>PIPE</ComponentType>'
+                '<OutsideDiameter>168.3</OutsideDiameter><WallThickness>0</WallThickness>'
+                '<Position>100 0 0</Position></Node>'
+                '</Branch></Pipe></PipeStressExport>',encoding='utf-8')
+            enriched=native._apply_process_data_to_xml(path,cfg)
+            try:
+                root=ET.parse(enriched).getroot()
+                pipe=next(root.iter('Node'))
+                self.assertEqual(pipe.findtext('MaterialName'),'ASTM A106-B')
+                self.assertEqual(pipe.findtext('MaterialCode'),'106')
+                self.assertEqual(pipe.findtext('PipingClassRating'),'900')
+                run=subprocess.run([sys.executable,str(SCRIPTS/'xml_to_cii2019.py'),
+                                    '--input',str(enriched),'--output',str(cii)],
+                                   capture_output=True,text=True,timeout=30)
+                self.assertEqual(run.returncode,0,run.stderr)
+                misc=cii.read_text().split('#'+'$ MISCEL_1',1)[1].split('#'+'$ ',1)[0]
+                self.assertEqual(float(misc.splitlines()[1].split()[0]),106)
+            finally:
+                if enriched!=path:enriched.unlink(missing_ok=True)
+
+    def test_unresolved_nonblank_process_material_blocks_class_guess(self):
+        import xml_to_cii2019_patched as native
+        name='ASTM A790 UNS S31803'
+        cls={'pipingClass':{'masterRows':[{'Piping Class':'93833',
+            'convertedBore':150,'Material_Name':name,'Rating':'900'}]},
+             'material':{'mapRows':[{'Material':name,'Code':'741'}]}}
+        process={**cls,'linelist':{'masterRows':[
+            {'lineSeqNo':'4110001','Material':'ASTM A106-B'}]}}
+        branch=ET.Element('Branch')
+        ET.SubElement(branch,'Branchname').text='/GLRD-1000-6"-P4110001-93833-01/B6'
+        node=ET.SubElement(branch,'Node')
+        ET.SubElement(node,'ComponentType').text='PIPE'
+        ET.SubElement(node,'OutsideDiameter').text='168.3'
+        self.assertEqual(native._process_material_for_line('P4110001',process),
+                         'ASTM A106-B')
+        ids=native._material_ids_from_config(process,{name,'ASTM A106-B'})
+        self.assertFalse(native._apply_source_material_rating(
+            branch,'',native._source_class_meta_index(process),{},'')
+            is None)  # no bogus Python missing return
+        node.find('MaterialCode') is None
+        # The higher-authority but unmapped process material cannot acquire 741.
+        ET.SubElement(node,'MaterialName').text='' if node.find('MaterialName') is None else None
+        node.find('MaterialCode') is None
+        with self.assertRaisesRegex(ValueError,'XML229_LINE_MATERIAL_AMBIGUOUS'):
+            native._process_material_for_line('P4110001',{**process,
+             'linelist':{'masterRows':[{'lineSeqNo':'4110001','Material':'ASTM A106-B'},
+                                      {'lineSeqNo':'4110001','Material':name}]}})
+
+
     def test_valve_5950_5960_positive_final_mass_can_be_consumed_when_accepted(self):
         """Synthetic accepted positive kg, with real BM2 valve ref/XYZ witness."""
         from xml229_native_final_mass_binding import bind_native_final_xml,emitted_sections
