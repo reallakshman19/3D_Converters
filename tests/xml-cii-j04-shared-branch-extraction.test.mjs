@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { extractBranchFieldsWithFormats as resolve } from '../converters/xml-cii2019-core/branch-format-extraction.js';
+import {toggleRegexLineKeyColumn} from '../tabs/xml-cii-2019-standalone/xml-cii-regex-tester.js';
 
 const dominant = '/ASIM-1885-3"-S8811000-91261M7-HC-01/B1';
 const alternative = '/ASIM-1885-PL-HOT-S8822000-91261M7-HC-01/B2';
@@ -73,14 +74,37 @@ test('one legacy configuration remains one candidate with old token fallback sem
   assert.deepEqual([r.lineKey, r.pipingClass, r.matchedFormatIndex], ['LN17', 'PC42', 0]);
 });
 
-test('optional engineering field conflicts also fail closed', () => {
+test('rating and bore are optional; competing optional values stay blank', () => {
   const fmt = { lineKey: { regex: '(LN17)' }, pipingClass: { regex: '(PC42)' } };
   const result = resolve('LN17-PC42-B100', { formats: [
-    { ...fmt, bore: { regex: 'B(100)' } },
-    { ...fmt, bore: { regex: 'B(10)' } },
+    { ...fmt, bore: { regex: 'B(100)' }, rating: {regex:'B(100)'} },
+    { ...fmt, bore: { regex: 'B(10)' }, rating: {regex:'B(10)'} },
   ] });
-  assert.equal(result.status, 'AMBIGUOUS');
+  assert.equal(result.status, 'MATCHED');
+  assert.equal(result.lineKey, 'LN17');
+  assert.equal(result.pipingClass, 'PC42');
   assert.equal(result.bore, '');
+  assert.equal(result.rating, '');
+});
+
+test('ordered multi-column line key and concatenate text survive extractor', () => {
+  const branch='/ASIM-1836-4"-P-8810049-31441C4-PP/B1';
+  const format={
+    tokenDelimiter:'-',lineKeyJoiner:'',
+    lineKey:{extractMode:'TOKEN',tokenPosition:'4,5'},
+    pipingClass:{extractMode:'TOKEN',tokenPosition:'6'},
+    rating:{extractMode:'TOKEN',tokenPosition:''},
+  };
+  const compact=resolve(branch,{formats:[format]});
+  assert.equal(compact.status,'MATCHED');
+  assert.equal(compact.lineKey,'P8810049');
+  assert.equal(compact.pipingClass,'31441C4');
+  assert.equal(compact.candidates[0].reasons.rating,undefined);
+  assert.equal(resolve(branch,{formats:[{...format,lineKeyJoiner:'-'}]}).lineKey,
+    'P-8810049');
+  assert.equal(resolve(branch,{formats:[{
+    ...format,lineKey:{...format.lineKey,tokenPosition:'5,4'},
+  }]}).lineKey,'8810049P','click order controls concatenation');
 });
 
 test('resolver never mutates supplied format configuration', () => {
@@ -135,4 +159,15 @@ test('untouched Format-2 UI template is not an eligible competing engineering ru
   assert.equal(result.candidates[1].reasons.format, 'UNCONFIGURED_ALTERNATIVE');
   const active = resolve(branch, { formats: [configured, { ...untouched, enabled: true }] });
   assert.equal(active.status, 'AMBIGUOUS', 'explicitly enabled fallback must still be evaluated');
+});
+
+test('Regex click-to-map Line Key preserves selection order and toggles positions',()=>{
+  const first=toggleRegexLineKeyColumn('',4);
+  const second=toggleRegexLineKeyColumn(first,5);
+  assert.equal(first,'4');
+  assert.equal(second,'4,5');
+  assert.equal(toggleRegexLineKeyColumn(second,4),'5');
+  assert.equal(toggleRegexLineKeyColumn(second,3),'4,5,3');
+  assert.equal(toggleRegexLineKeyColumn('5,4',3),'5,4,3');
+  assert.equal(toggleRegexLineKeyColumn('4,5',5),'4');
 });

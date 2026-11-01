@@ -44,8 +44,8 @@ class NativeHydrationContract(unittest.TestCase):
         fmt['lineKey']={'extractMode':'REGEX',
                         'regex':r'-(P9999999)-', 'group':1,
                         'tokenPosition':4}
-        with self.assertRaisesRegex(ValueError,'XML229_BRANCH_FORMAT_UNMATCHED'):
-            native._line_key_from_branch(branch,cfg)
+        self.assertEqual(native._line_key_from_branch(branch,cfg),'',
+            'unmatched optional Regex leaves Line List unassigned')
         fmt['lineKey']['regex']=r'-(P4110001)-'
         self.assertEqual(native._line_key_from_branch(branch,cfg),'P4110001')
         # Conflicting enabled format claims are never first-row-wins.
@@ -54,13 +54,17 @@ class NativeHydrationContract(unittest.TestCase):
                   'pipingClass':{'extractMode':'TOKEN','tokenPosition':5},
                   'rating':{},'bore':{}}
         cfg['regexTester']['formats'].append(conflict)
+        self.assertEqual(native._line_key_from_branch(branch,cfg),'',
+            'two conflicting saved formats leave master enrichment unassigned')
+        cfg['requireVerifiedMasterCompleteness']=True
         with self.assertRaisesRegex(ValueError,'XML229_BRANCH_FORMAT_AMBIGUOUS'):
             native._line_key_from_branch(branch,cfg)
+        cfg['requireVerifiedMasterCompleteness']=False
         conflict['enabled']=False
         self.assertEqual(native._line_key_from_branch(branch,cfg),'P4110001')
         cfg['regexTester']['formats']=[]
-        with self.assertRaisesRegex(ValueError,'XML229_BRANCH_FORMAT_UNMATCHED'):
-            native._line_key_from_branch(branch,cfg)
+        self.assertEqual(native._line_key_from_branch(branch,cfg),'',
+            'unmatched optional Regex leaves Line List unassigned')
 
     def test_material_scoped_pin_conflicts_fail_closed(self):
         import xml_to_cii2019_patched as native

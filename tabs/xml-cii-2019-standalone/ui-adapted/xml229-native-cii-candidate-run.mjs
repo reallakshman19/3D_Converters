@@ -70,14 +70,17 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   topologyActionIds:[],
  };
  progress('BUILDING_CONFIGURATION');
- // Only this governed candidate can return nativeCiiReleaseAuthorized=true.
- // Its masters must be complete; diagnostic-only converters remain separate.
+ // Masters enrich source XML; they never control whether XML→CII is
+ // attempted. Release still requires independent inspection of the actual
+ // emitted CII and exact Final→RIGID mass ownership.
  let verifiedConfig;
  try { verifiedConfig=JSON.parse(await enrichSupportConfigJson(state,state.branchScope||null)); }
  catch { fail('NATIVE_VERIFIED_MASTER_CONFIG_INVALID'); }
  if(!verifiedConfig||typeof verifiedConfig!=='object'||Array.isArray(verifiedConfig))
   fail('NATIVE_VERIFIED_MASTER_CONFIG_INVALID');
- verifiedConfig.requireVerifiedMasterCompleteness=true;
+ // Master absence or format conflicts must not stop CII serialization.
+ // The native output is still HELD unless its actual engineering fields verify.
+ verifiedConfig.requireVerifiedMasterCompleteness=false;
  const job={
   sourceKind:'xml',sourceName:sourceNameFromState(state),
   sourceText,stagedJsonText,

@@ -25,7 +25,8 @@ function cachedBlockedState() {
     supportConfigJson:wrap('(NEVER)'),
   });
   const report=buildStandaloneOutputRunReadiness(state);
-  assert.equal(getAuthority(report).blocking,true,'fixture must start blocked');
+  assert.equal(getAuthority(report).blocking,false,'format issues are advisory for conversion');
+  assert.equal(getAuthority(report).status,'unresolved-enrichment');
   const cached=applyStandaloneOutputRunReadiness(state,report);
   assert.equal(cached.outputRunReadinessReport,report,'explicit report publication should be retained');
   return cached;

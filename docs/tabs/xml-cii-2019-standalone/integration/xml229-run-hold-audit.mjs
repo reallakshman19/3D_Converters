@@ -136,8 +136,11 @@ function branchFormatSnapshot(report){
  if(!row)return null;
  let failures=[];
  try{const detail=JSON.parse(row.detail||'[]');if(Array.isArray(detail))failures=detail.slice(0,20);}catch{}
- return {blocked:row.blocking===true,
-  reason:row.blocking===true?'BRANCH_FORMAT_IDENTITY_UNRESOLVED':'BRANCH_FORMAT_IDENTITY_VERIFIED',
+ // Conversion readiness is nonblocking; independent engineering release
+ // still records unresolved format identity as a non-authorizing hold.
+ const unresolved=row.status!=='ready';
+ return {blocked:unresolved,
+  reason:unresolved?'BRANCH_FORMAT_IDENTITY_UNRESOLVED':'BRANCH_FORMAT_IDENTITY_VERIFIED',
   sampleLimit:20,failuresInSample:failures.length,
   unmatchedInSample:failures.filter(row=>row?.status==='UNMATCHED').length,
   ambiguousInSample:failures.filter(row=>row?.status==='AMBIGUOUS').length};

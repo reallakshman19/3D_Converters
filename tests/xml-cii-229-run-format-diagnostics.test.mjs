@@ -48,7 +48,8 @@ test('P2 valid 28 original occurrence identities resolve without Preview or Weig
 test('P2 28/28 UNMATCHED old regex gives exact total plus actionable per-format role diagnosis', () => {
   const config = formats({ lineKey: field('(NEVER)'), pipingClass: field('(91261M7)') });
   const row = authority(config);
-  assert.equal(row.blocking, true);
+  assert.equal(row.blocking, false);
+  assert.equal(row.status,'unresolved-enrichment');
   assert.match(row.message, /^28 of 28 selected branch occurrences/);
   assert.match(row.message, /28 UNMATCHED; 0 AMBIGUOUS/);
   const details = JSON.parse(row.detail);
@@ -60,26 +61,22 @@ test('P2 28/28 UNMATCHED old regex gives exact total plus actionable per-format 
   assert.match(details[19].branchOccurrenceId, /::BR-0020$/);
 });
 
-test('P2 28/28 AMBIGUOUS cases expose disagreements even when Line Key and Piping Class agree', () => {
+test('P2 optional Rating disagreements do not prevent extraction or conversion', () => {
   const config = formats(
     { lineKey: field('(S88\\d+)'), pipingClass: field('(91261M7)'), rating: field('(S88\\d+)') },
     { lineKey: field('(S88\\d+)'), pipingClass: field('(91261M7)'), rating: field('(91261M7)') },
   );
   const row = authority(config);
-  assert.equal(row.blocking, true);
-  assert.match(row.message, /0 UNMATCHED; 28 AMBIGUOUS/);
-  const first = JSON.parse(row.detail)[0];
-  assert.equal(first.status, 'AMBIGUOUS');
-  assert.equal(first.formatCandidates.length, 2);
-  assert.equal(first.formatCandidates[0].lineKey, first.formatCandidates[1].lineKey);
-  assert.equal(first.formatCandidates[0].pipingClass, first.formatCandidates[1].pipingClass);
-  assert.notEqual(first.formatCandidates[0].rating, first.formatCandidates[1].rating);
+  assert.equal(row.blocking, false);
+  assert.equal(row.status, 'ready');
+  assert.deepEqual(JSON.parse(row.detail), []);
 });
 
 test('P2 empty authoritative nested array stays fail-closed even with working root formats', () => {
   const config = {regexTester:{formats:[]}, formats:valid.regexTester.formats};
   const row = authority(config);
-  assert.equal(row.blocking, true);
+  assert.equal(row.blocking, false);
+  assert.equal(row.status,'unresolved-enrichment');
   assert.match(row.message, /28 UNMATCHED; 0 AMBIGUOUS/);
   const d = JSON.parse(row.detail)[0];
   assert.deepEqual(d.formatCandidates, []);

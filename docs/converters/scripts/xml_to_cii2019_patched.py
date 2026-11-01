@@ -320,7 +320,9 @@ def _regex_tester_branch_line_key(branch: str, config: dict[str, Any]) -> str | 
         sequence = (rating_cfg.get("ratingSequence", []) if isinstance(rating_cfg, dict) else [])
     for index, fmt in enumerate(regex_cfg["formats"]):
         if not isinstance(fmt, dict):
-            raise ValueError("XML229_BRANCH_FORMAT_INVALID")
+            if config.get("requireVerifiedMasterCompleteness") is True:
+                raise ValueError("XML229_BRANCH_FORMAT_INVALID")
+            continue  # invalid enrichment format is not a conversion error
         if _regex_tester_format_disabled(fmt, index):
             continue
         delimiter = _safe_text(fmt.get("tokenDelimiter")) or "-"
@@ -346,9 +348,15 @@ def _regex_tester_branch_line_key(branch: str, config: dict[str, Any]) -> str | 
             fields["pipingClass"], rating, re.sub(r"[^0-9.]", "", fields["bore"])
         ))
     if not candidates:
-        raise ValueError("XML229_BRANCH_FORMAT_UNMATCHED")
-    if len(set(candidates)) != 1:
-        raise ValueError("XML229_BRANCH_FORMAT_AMBIGUOUS")
+        if config.get("requireVerifiedMasterCompleteness") is True:
+            raise ValueError("XML229_BRANCH_FORMAT_UNMATCHED")
+        return ""  # no source identity; XML fields and geometry still convert
+    # Rating and bore are optional enrichment, not format identity.
+    identities = {(line, cls.upper()) for line, cls, _rating, _bore in candidates}
+    if len(identities) != 1:
+        if config.get("requireVerifiedMasterCompleteness") is True:
+            raise ValueError("XML229_BRANCH_FORMAT_AMBIGUOUS")
+        return ""  # don't pick a competing source master
     return candidates[0][0]
 
 
@@ -397,6 +405,8 @@ def _line_key_from_row(row: dict[str, Any], config: dict[str, Any]) -> str:
 def _matching_linelist_rows(line_key: str, config: dict[str, Any]) -> list[dict[str, Any]]:
     rows = config.get("linelist", {}).get("masterRows", []) if isinstance(config.get("linelist"), dict) else []
     wanted = re.sub(r"\s+", "", line_key.upper())
+    if not wanted:
+        return []  # an unresolved format must never join an empty Line List key
     exact = [row for row in rows if isinstance(row, dict) and _line_key_from_row(row, config) == wanted]
     if exact or not re.fullmatch(r"P[0-9]{7}", wanted):
         return exact
@@ -1063,9 +1073,11 @@ def _assert_verified_master_completeness(
                         source_corrosion, measured_corrosion, abs_tol=1e-6, rel_tol=0):
                     raise ValueError("XML229_VERIFIED_CLASS_CORROSION_CONFLICT")
             meta = class_meta_index.get((cls, dn))
-            if meta is None or not meta[1]:
+            if meta is None:
                 raise ValueError("XML229_VERIFIED_CLASS_RATING_MISSING")
-            if _child_text(node, namespace, "PipingClassRating") != meta[1]:
+            # Owner: Rating is optional enrichment. Verify the XML rating
+            # only when the selected master actually supplies one.
+            if meta[1] and _child_text(node, namespace, "PipingClassRating") != meta[1]:
                 raise ValueError("XML229_VERIFIED_CLASS_RATING_CONFLICT")
             chosen_material = _process_material_for_line(line, support_config) or meta[0]
             actual_material = " ".join(_child_text(node, namespace, "MaterialName").upper().split())
@@ -1104,35 +1116,105 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
                       for match in [re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$",
                                               _child_text(branch, namespace, "Branchname"), re.I)]
                       if match}
-    class_wall_index = _source_class_wall_index(support_config, source_classes)
-    class_meta_index = _source_class_meta_index(support_config, source_classes)
-    class_corrosion_index = _source_class_corrosion_index(support_config, source_classes)
+    # Masters only enrich the XML. A bad master never prevents diagnostic
+    # conversion, but the governed verified-authority gate still rejects it.
+    strict = support_config.get("requireVerifiedMasterCompleteness") is True
+    def optional_master_index(build, absent, code):
+        try:
+            return build(support_config, source_classes)
+        except (ValueError, TypeError) as exc:
+            if strict:
+                raise
+            print("XML229_ENRICHMENT_SKIPPED " + json.dumps({
+                "source": code, "reason": "CONFLICT_OR_INVALID",
+            }, sort_keys=True))
+            return absent
+    class_wall_index = optional_master_index(_source_class_wall_index, {}, "PIPING_CLASS_WALL")
+    class_meta_index = optional_master_index(_source_class_meta_index, {}, "PIPING_CLASS_META")
+    class_corrosion_index = optional_master_index(_source_class_corrosion_index, {}, "PIPING_CLASS_CORROSION")
     material_names = {" ".join(name.upper().split()) for name, _rating in class_meta_index.values() if name}
     for source_branch in root.iter():
         if _local_name(source_branch.tag) != "Branch":
             continue
         source_line = _line_key_from_branch(
             _child_text(source_branch, namespace, "Branchname"), support_config)
-        source_material = _process_material_for_line(source_line, support_config)
+        try:
+            source_material = _process_material_for_line(source_line, support_config)
+        except (ValueError, TypeError):
+            if strict:
+                raise
+            source_material = ""  # conflicting source identity is not guessed
         if source_material:
             material_names.add(" ".join(source_material.upper().split()))
-    material_ids = _material_ids_from_config(support_config, material_names)
+    try:
+        material_ids = _material_ids_from_config(support_config, material_names)
+    except (ValueError, TypeError):
+        if strict:
+            raise
+        print("XML229_ENRICHMENT_SKIPPED " + json.dumps({
+            "source": "MATERIAL_MAP", "reason": "CONFLICT_OR_INVALID",
+        }, sort_keys=True))
+        material_ids = {}
     staged_pos_owners = set(tuple(row) for row in support_config.get("_stagedPositionOwners", ()))
     for branch in root.iter():
         if _local_name(branch.tag) != "Branch":
             continue
         # Class enrichment runs on exactly the XML that the native parser sees.
         # It is independent of staged JSON and of Preview-only presentation.
-        changed = _apply_source_class_wall(branch, namespace, class_wall_index) or changed
-        changed = _apply_source_class_corrosion(
-            branch, namespace, class_corrosion_index) or changed
-        pressure = _ensure_child(branch, namespace, "Pressure")
+        class_branch = ET.fromstring(ET.tostring(branch))
+        try:
+            class_changed = _apply_source_class_wall(
+                class_branch, namespace, class_wall_index)
+            class_changed = _apply_source_class_corrosion(
+                class_branch, namespace, class_corrosion_index) or class_changed
+        except (ValueError, TypeError):
+            if strict:
+                raise
+            class_changed = False
+            print("XML229_ENRICHMENT_SKIPPED " + json.dumps({
+                "source": "PIPING_CLASS_DIMENSION", "reason": "CONFLICT_OR_INVALID",
+            }, sort_keys=True))
+        if class_changed:
+            branch[:] = list(class_branch)
+            changed = True
         line_key = _line_key_from_branch(_child_text(branch, namespace, "Branchname"), support_config)
-        process_material = _process_material_for_line(line_key, support_config)
-        changed = _apply_source_material_rating(
-            branch, namespace, class_meta_index, material_ids, process_material) or changed
+        try:
+            process_material = _process_material_for_line(line_key, support_config)
+        except (ValueError, TypeError):
+            if strict:
+                raise
+            process_material = ""
+            print("XML229_ENRICHMENT_SKIPPED " + json.dumps({
+                "source": "LINE_MATERIAL", "reason": "CONFLICT_OR_INVALID",
+            }, sort_keys=True))
+        # Stage material enrichment in isolation, so a contradiction cannot
+        # partially mutate original XML before conversion continues.
+        material_branch = ET.fromstring(ET.tostring(branch))
+        try:
+            updated_material = _apply_source_material_rating(
+                material_branch, namespace, class_meta_index, material_ids, process_material)
+        except (ValueError, TypeError):
+            if strict:
+                raise
+            updated_material = False
+            print("XML229_ENRICHMENT_SKIPPED " + json.dumps({
+                "source": "MATERIAL_RATING", "reason": "CONFLICT_OR_INVALID",
+            }, sort_keys=True))
+        if updated_material:
+            branch[:] = list(material_branch)
+            changed = True
+        # Capture the live branch child only AFTER optional material staging
+        # commits. Earlier references may point to detached ET nodes.
+        pressure = _ensure_child(branch, namespace, "Pressure")
         hydro = ""
         linelist_rows = _matching_linelist_rows(line_key, support_config)
+        if len(linelist_rows) > 1 and not strict:
+            # A duplicated or conflicting line key may not choose arbitrary
+            # process fields; retain the original XML and continue to CII.
+            print("XML229_ENRICHMENT_SKIPPED " + json.dumps({
+                "source": "LINE_LIST", "reason": "AMBIGUOUS_SOURCE_ROWS",
+            }, sort_keys=True))
+            linelist_rows = []
         line_sources: dict[str, str] = {}
         if linelist_rows:
             temperature = _ensure_child(branch, namespace, "Temperature")

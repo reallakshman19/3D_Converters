@@ -414,7 +414,9 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
     let lineKeyMethod = lineListRawMatch ? 'exact' : 'none';
     let lineKeyConfidence = lineListRawMatch ? 1 : 0;
     let lineKeyProposed = '';
-    if (!lineListRawMatch) {
+    if (!lineListRawMatch && (!extracted || extracted.status === 'MATCHED')) {
+      // When configured identities disagree, do not resurrect an arbitrary
+      // Line List row through fuzzy/approximate enrichment.
       const similar = _xmlCiiFindSimilarLineListRow(branchName, lineKey, config);
       if (similar) {
         lineListRawMatch = { row: similar.row, index: similar.index };
@@ -558,7 +560,30 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
 
     _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreMm, branchRating, resolvedPipingClass: resolved.pipingClass, stagedIndex, config, nodeRows, nodeOccurrenceLedger });
   }
-  return { branchRows, nodeRows };
+  const reviewed = branchRows.some(row=>row.extractionStatus==='AMBIGUOUS');
+  const formats = Array.isArray(config?.regexTester?.formats)
+    ? config.regexTester.formats : (Array.isArray(config?.formats) ? config.formats : []);
+  let formatPreviewPasses = [];
+  if (reviewed && !runtime._formatReviewPass && formats.length >= 2) {
+    // Run two independent 4 Preview passes for disagreeing format authority.
+    // Neither pass writes an override or becomes source authority automatically.
+    formatPreviewPasses = [0,1].filter(index=>formats[index]?.enabled!==false)
+      .map(index=>{
+        const scopedFormats=formats.map((fmt,i)=>({...fmt,enabled:i===index}));
+        const scopedConfig=Array.isArray(config?.regexTester?.formats)
+          ?{...config,regexTester:{...config.regexTester,formats:scopedFormats}}
+          :{...config,formats:scopedFormats};
+        const pass=xmlCiiDryRunPreview(xmlText,scopedConfig,stagedJsonText,
+          {...runtime,_formatReviewPass:true});
+        return {formatIndex:index,branchRows:pass.branchRows.map(row=>({
+          branchName:row.branchName,lineKey:row.lineKey,
+          pipingClass:row.pipingClass,rating:row.rating,
+          extractionStatus:row.extractionStatus,material:row.material,
+          p1:row.p1,t1:row.t1,t2:row.t2,t3:row.t3,density:row.density,
+        }))};
+      });
+  }
+  return { branchRows, nodeRows, formatPreviewPasses };
 }
 
 function _xmlCiiDryRunNodeRow({ branch, branchName, branchOccurrenceIndex, boreMm, branchRating, resolvedPipingClass, stagedIndex, config, nodeRows, nodeOccurrenceLedger }) {

@@ -1,5 +1,5 @@
 import { createElement, appendLabeledControl } from './xml-cii-adapted-dom.js';
-import { parseStandaloneRegexBranchSamples, runStandaloneRegexTester, analyzeStandaloneRegexFormats } from '../xml-cii-regex-tester.js?v=20260928-issue776-authority-1';
+import { parseStandaloneRegexBranchSamples, runStandaloneRegexTester, analyzeStandaloneRegexFormats, toggleRegexLineKeyColumn } from '../xml-cii-regex-tester.js?v=20260928-issue776-authority-1';
 import { renderBranchSamples, renderMatched, renderRejected, renderDiagnostics } from './xml-cii-adapted-regex-results.js';
 import { renderRatingSequenceEditor } from './xml-cii-adapted-regex-rating.js?v=20261001-weight-output-2';
 import { updateRegexTesterConfig, applyStandaloneRegexTesterResult } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
@@ -148,7 +148,10 @@ function renderRegexRules(parent, state, stateRef, render) {
     ? value => { applyEditedRegexRule(stateRef, 'regex-format-enabled', value); render(); }
     : null));
   appendInput(section, 'Token delimiter fallback:', 'regex-token-delimiter', activeF.tokenDelimiter || '-', 'text', stateRef, render);
-  appendInput(section, 'Line key joiner:', 'regex-line-key-joiner', activeF.lineKeyJoiner || '', 'text', stateRef, render);
+  const joinerInput=appendInput(section, 'Concatenate key (between selected Line Key columns; blank = no separator):',
+    'regex-line-key-joiner', activeF.lineKeyJoiner ?? '', 'text', stateRef, render);
+  joinerInput.placeholder='Default: no separator (P + 8810049 → P8810049); or enter -';
+  joinerInput.setAttribute('aria-label','Concatenate Line Key columns with separator');
   
   const actions = createElement('div', '', 'xml-cii-regex-actions');
   actions.append(actionButton('test-regex', state.regexTesterRunning ? 'Testing…' : 'Run Extraction'));
@@ -189,6 +192,11 @@ function _renderTokenCards(flexRow, tokens, activeF, stateRef, updatePos) {
   
   const replaceToken = (key, pos) => {
     const list = getSelectedTokens(key);
+    if (key === 'lineKey') {
+      // Ordered multi-column selection: each click appends, clicking an
+      // already selected position removes just that column. Never sort.
+      return toggleRegexLineKeyColumn(list.join(','),pos);
+    }
     return list.length === 1 && list[0] === pos ? '' : String(pos);
   };
 
@@ -247,7 +255,8 @@ function _renderTokenCards(flexRow, tokens, activeF, stateRef, updatePos) {
       return b;
     };
     
-    card.appendChild(btn('Line Key', isLk, '#3b82f6', 'Set as Line Key', () => updatePos('lineKey', replaceToken('lineKey', pos))));
+    card.appendChild(btn('Line Key', isLk, '#3b82f6',
+      'Toggle Line Key column (multiple selections join in click order)', () => updatePos('lineKey', replaceToken('lineKey', pos))));
     card.appendChild(btn('Piping Class', isPc, '#10b981', 'Set as Piping Class', () => updatePos('pipingClass', replaceToken('pipingClass', pos))));
     card.appendChild(btn('Rating', isRt, '#eab308', 'Set as Rating', () => updatePos('rating', replaceToken('rating', pos))));
     card.appendChild(btn('Bore', isBr, '#f97316', 'Set as Bore', () => updatePos('bore', replaceToken('bore', pos))));
@@ -301,6 +310,9 @@ function renderVisualTokenBuilder(parent, state, result, stateRef, render) {
   container.style.background = 'rgba(59, 130, 246, 0.05)';
   
   container.appendChild(createElement('h4', '⚡ Interactive Click-to-Map Token Builder'));
+  container.appendChild(createElement('p',
+    'Line Key: click multiple columns in sequence; click again to remove. Use Concatenate key above: empty joins P and 8810049 as P8810049, or enter "-" for P-8810049.',
+    'xml-cii-phase-help'));
   
   const selectWrapper = createElement('div');
   Object.assign(selectWrapper.style, { display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px', width: '100%', marginBottom: '12px' });
@@ -365,6 +377,15 @@ function renderVisualTokenBuilder(parent, state, result, stateRef, render) {
   };
 
   _renderTokenCards(flexRow, tokens, activeF, stateRef, updatePos);
+  const selectedPositions=String(activeF.lineKey?.tokenPosition || '').split(/[,+]/)
+    .map(v=>Number(v.trim())).filter(n=>Number.isSafeInteger(n)&&n>0);
+  const selectedParts=selectedPositions.map(n=>tokens[n-1] || '');
+  const keyValue=selectedParts.every(Boolean)
+    ?selectedParts.join(String(activeF.lineKeyJoiner ?? '')):'';
+  const preview=createElement('p',
+    'Selected Line Key columns: '+(selectedPositions.join(' → ')||'none')+
+    ' · Concatenated key: '+(keyValue||'not available'), 'xml-cii-phase-help');
+  container.appendChild(preview);
   
   container.appendChild(flexRow);
   parent.appendChild(container);
