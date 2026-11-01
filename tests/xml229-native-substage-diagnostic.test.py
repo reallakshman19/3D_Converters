@@ -656,6 +656,27 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         config['inputXmlRestraintTypeMutation']['enabled']=False
         self.assertEqual(node_type_mutation({'NODETYPE':'7'},config),'7')
 
+    def test_saved_step7_more_specific_alias_outranks_nested_generic_native(self):
+        from xml229_support_type_mapper import mapped_support_kind
+        def require(condition, code):
+            if not condition:
+                raise ValueError(code)
+        config={'supportTypeMapper':{'rows':[
+            {'kind':'REST','aliases':['Shoe']},
+            {'kind':'LINESTOP','aliases':['Directional Anchor']},
+            {'kind':'ANCHOR','aliases':['Anchor']}]}}
+        kind,score=mapped_support_kind(
+            {'DTXR':'Directional Anchor On Shoe for Hot Insulated Pipe'},
+            '',config,require)
+        self.assertEqual(kind,'LINESTOP')
+        self.assertGreaterEqual(score,.9)
+        # A tie between independent explicit claims MUST still fail closed.
+        config['supportTypeMapper']['rows']=[
+            {'kind':'REST','aliases':['GUIDE']},
+            {'kind':'GUIDE','aliases':['GUIDE']}]
+        with self.assertRaisesRegex(ValueError,'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS'):
+            mapped_support_kind({'DTXR':'GUIDE'},'',config,require)
+
     def test_saved_step7_mapper_also_controls_patched_native_dtxr_keyword_fallback(self):
         import xml_to_cii2019_patched as native
         config={'supportTypeMapper':{'rows':[
