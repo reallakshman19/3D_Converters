@@ -163,6 +163,19 @@ function evidenceByKind(record, config = {}, requireUnambiguous = false) {
     const attrs=raw&&!text(original.CMPSUPGAP)&&!text(original.CMPSUPGAP_POS)
       &&!text(original.CMPSUPGAP_PS)?{...original,CMPSUPGAP:raw}:original;
     const previous=result.get(kind);
+    // A PIPE-REST datum and its AT01/AT05 hardware can share exact XYZ.
+    // The shoe/plate is not an independent REST gap owner: first select the
+    // structural restraint member, THEN compare gaps among equivalent owners.
+    // Otherwise an actual 0mm REST and a shoe with 10mm clearance falsely
+    // become a conflicting REST source for the same restraint.
+    if (requireUnambiguous && previous && kind === 'REST') {
+      const previousHardware = isRestHardwareMember(previous,kind);
+      const currentHardware = isRestHardwareMember(attrs,kind);
+      if (previousHardware !== currentHardware) {
+        if (previousHardware) result.set(kind,attrs);
+        continue;
+      }
+    }
     if(requireUnambiguous&&previous&&sourceGapText(previous)&&raw&&
        supportGapNumber(previous)!==numeric)
       throw Object.assign(new Error('Conflicting JSON gaps for the same support kind'),
