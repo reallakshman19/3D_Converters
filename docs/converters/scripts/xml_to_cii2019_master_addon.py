@@ -677,8 +677,10 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
     dtxr_index = build_dtxr_ps_index(staged_json, unpositioned_only=True)
     dtxr_pos_entries = build_dtxr_pos_entries(staged_json, dtxr_position_offset)
     pos_owners, pos_ambiguous = _position_bound_dtxr(root, dtxr_pos_entries, dtxr_position_offset)
+    assigned_entries = {id(entry) for owner_entries in pos_owners.values() for entry in owner_entries}
     stats = {"temperature2": 0, "temperature3": 0, "dtxrPs": 0,
-             "dtxrPos": 0, "dtxrPosAmbiguous": pos_ambiguous}
+             "dtxrPos": 0, "dtxrPosAmbiguous": pos_ambiguous,
+             "dtxrPosUnmatched": sum(id(e) not in assigned_entries for e in dtxr_pos_entries)}
     # PS-only fallback is also unique within this exact XML source basis.
     ps_nodes: dict[str, set[int]] = {}
     for source_node in root.iter():
@@ -741,12 +743,24 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
             if entry["dtxr"] not in dtxr_pos_values:
                 dtxr_pos_values.append(entry["dtxr"])
         if dtxr_pos_values:
-            _set_child_text(node, "DTXR_POS", "|".join(dtxr_pos_values))
+            previous = _get_child(node, "DTXR_POS")
+            old_annotation = (previous.text or "").strip() if previous is not None else ""
+            new_annotation = "|".join(dtxr_pos_values)
+            _set_child_text(node, "DTXR_POS", new_annotation)
             stats["dtxrPos"] += 1
             diagnostics.append({
                 "type": "dtxr-pos",
-                "nodeNumber": mrow({ _local(child.tag): child.text for child in list(node) }, "NodeNumber") or "",
+                "nodeNumber": mrow({_local(child.tag): child.text for child in list(node)}, "NodeNumber") or "",
+                "nodeName": mrow({_local(child.tag): child.text for child in list(node)}, "NodeName") or "",
                 "count": len(dtxr_pos_values),
+                "previousValue": old_annotation,
+                "newValue": new_annotation,
+                "operation": "unchanged" if old_annotation == new_annotation else "source-bound-replace",
+                "members": [
+                    {"dtxr": e["dtxr"], "rawPosition": e.get("rawPoint"),
+                     "convertedPosition": e.get("point"), "branch": e.get("branchName")}
+                    for e in positioned
+                ],
             })
 
     xml_text = ET.tostring(root, encoding="unicode")
