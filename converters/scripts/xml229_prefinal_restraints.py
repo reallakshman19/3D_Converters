@@ -66,10 +66,16 @@ def kinds(entries, require):
                 else 'REST' if code == 'PIPE-REST' or code.startswith('AT') or
                 re.search(r'\b(?:PIPE[- ]?REST|REST|SHOE|WEAR\s*PAD|BEARING\s*PLATE)\b', desc) else '')
         # Description-derived kinds are used only if no explicit member supplied it.
+        description_kinds = []
         for k, pattern in [('LINESTOP', r'\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT)\b'),
                            ('GUIDE', r'\bGUIDE\b'), ('REST', r'\b(?:REST|PIPE\s*REST|WEAR\s*PLATE|SHOE)\b')]:
             if re.search(pattern, e['desc'].upper()):
                 derived.add(k)
+                description_kinds.append(k)
+        # An unambiguous description-only member owns its own gap evidence.
+        # Multi-kind descriptions retain the previous review-only fallback.
+        if not kind and len(description_kinds) == 1:
+            kind = description_kinds[0]
         if not kind:
             continue
         raw = source_gap(a)
