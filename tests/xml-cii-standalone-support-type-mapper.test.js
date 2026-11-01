@@ -96,6 +96,28 @@ function hasPreview(result, status, kind) {
   state = stateApi.updateSupportTypeMapperConfig(state, 'support-mapper-aliases-LINESTOP', 'Line Stop\nLS\nHard Stop');
   const saved = stateApi.applyStandaloneSupportTypeMapperResult(state, helper.runStandaloneSupportTypeMapper({ ...state, mapperRows: state.supportTypeMapperConfig, testInput: state.supportTypeMapperTestInput }), true);
   assert(saved.supportConfigJson.includes('Hard Stop'), 'state save must write edited mapper rows');
+  const configWithMutation = {
+    inputXmlRestraintTypeMutation: {enabled:true,rows:[{from:'7',to:'GUI'}]},
+    linelist: {fieldMap:{lineSeqNo:'C9'}},
+    supportTypeMapper: {rows: helper.createDefaultSupportTypeMapperConfig()},
+  };
+  const savedAlias = helper.createDefaultSupportTypeMapperConfig();
+  savedAlias.find(row=>row.kind==='REST').aliases=[];
+  const preserved = helper.runStandaloneSupportTypeMapper({
+    supportConfigJson:JSON.stringify(configWithMutation),
+    mapperRows:savedAlias,testInput:'GUIDE',
+  });
+  const retained = JSON.parse(preserved.supportConfigJson);
+  assert.deepStrictEqual(retained.supportTypeMapper.rows.find(row=>row.kind==='REST').aliases, [],
+    'explicitly cleared REST keywords must survive serialized config');
+  assert.deepStrictEqual(retained.inputXmlRestraintTypeMutation,configWithMutation.inputXmlRestraintTypeMutation,
+    'saving Support Mapper must preserve Tab 8 TYPE mutation authority');
+  assert.deepStrictEqual(retained.linelist,configWithMutation.linelist,
+    'saving Support Mapper must preserve smart regex line-list field map');
+  const independentRegexState = {...state,regexTesterConfig:{activeFormatIndex:3,formats:[{id:3,regex:'CUSTOM'}]}};
+  const afterMapperSave = stateApi.applyStandaloneSupportTypeMapperResult(independentRegexState,preserved,true);
+  assert.deepStrictEqual(afterMapperSave.regexTesterConfig,independentRegexState.regexTesterConfig,
+    'saving Support Mapper must not reset the separate smart regex tester rules');
   assert(saved.supportTypeMapperStatus.includes('saved'), 'state save status expected');
 
   const card = new TestElement('section');
