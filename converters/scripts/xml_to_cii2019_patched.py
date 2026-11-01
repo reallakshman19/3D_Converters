@@ -484,6 +484,64 @@ def _apply_source_bound_piping_class(branch: ET.Element, namespace: str,
     return changed
 
 
+
+def _apply_staged_position_restraints(node: ET.Element, namespace: str,
+                                       support_config: dict[str, Any],
+                                       branch_name: str) -> bool:
+    """Reconcile the *source-bound, newly claimed* POS owner, not stale DTXR tags.
+
+    Source POS claims are authoritative for this Run only after unique position
+    matching in the addon. Existing anonymous XML restraint values are recorded
+    and replaced on these claimed nodes, not on unrelated nodes. An absent
+    LINE STOP gap is an unresolved source fact, never zero by implication.
+    """
+    node_no = _child_text(node, namespace, "NodeNumber")
+    pos_text = _child_text(node, namespace, "DTXR_POS")
+    if not pos_text:
+        raise ValueError(f"XML229_STAGED_POS_OWNER_MISSING branch={branch_name} node={node_no}")
+    gap_by_kind: dict[str, float] = {}
+    for entry in pos_text.split("|"):
+        entry = entry.strip()
+        if not entry:
+            continue
+        kinds = _kind_from_dtxr(entry, support_config)
+        gap = _parse_cmpsupgap_from_dtxr_entry(entry)
+        if any(kind in {"LINESTOP", "LIMIT"} for kind in kinds) and gap is None:
+            raise ValueError(f"XML229_STAGED_LINESTOP_GAP_MISSING branch={branch_name} node={node_no}")
+        if gap is not None:
+            for kind in kinds:
+                if kind in gap_by_kind and abs(gap_by_kind[kind] - gap) > 1e-8:
+                    raise ValueError(f"XML229_STAGED_GAP_CONFLICT branch={branch_name} node={node_no}")
+                gap_by_kind[kind] = gap
+    specs = _specs_from_dtxr_text(pos_text, support_config, gap_by_kind)
+    if not specs:
+        raise ValueError(f"XML229_STAGED_POS_UNRESOLVED branch={branch_name} node={node_no}")
+    prior = [child for child in list(node) if _local_name(child.tag) == "Restraint"]
+    original = [{
+        "type": _child_text(rest, namespace, "Type"),
+        "gap": _child_text(rest, namespace, "Gap"),
+    } for rest in prior]
+    for rest in prior:
+        node.remove(rest)
+    for spec in specs:
+        restraint = ET.Element(_q(namespace, "Restraint"))
+        _set_child(restraint, namespace, "Type", str(int(round(spec.type_code))))
+        _set_child(restraint, namespace, "Stiffness", format(spec.stiffness, ".12g"))
+        _set_child(restraint, namespace, "Gap", format(spec.gap, ".12g"))
+        _set_child(restraint, namespace, "Friction", format(spec.friction, ".12g"))
+        node.append(restraint)
+    print("XML229_STAGED_RESTRAINT_BIND " + json.dumps({
+        "branch": branch_name,
+        "node": node_no,
+        "posAnnotation": pos_text,
+        "supersededXml": original,
+        "nativeRestraints": [{
+            "typeCode": int(round(spec.type_code)), "gapMm": spec.gap,
+        } for spec in specs],
+    }, sort_keys=True))
+    return True
+
+
 def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -> Path:
     _normalize_process_field_map(support_config)
     tree = ET.parse(xml_path)
@@ -494,6 +552,7 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
     changed = False
     skip_dtxr_restraint_fallback = _xml_restraints_are_authoritative(xml_path, support_config)
     insulation_density_default = _to_float(support_config.get("insulationDensityDefault"), 210.0)
+    staged_pos_owners = set(tuple(row) for row in support_config.get("_stagedPositionOwners", ()))
     for branch in root.iter():
         if _local_name(branch.tag) != "Branch":
             continue
@@ -524,14 +583,19 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
                 _set_child(branch, namespace, "FluidDensity", density); changed = True
         _set_child(pressure, namespace, "HydroPressure", hydro if hydro else _child_text(pressure, namespace, "HydroPressure") or 0)
         changed = True
+        branch_name = _child_text(branch, namespace, "Branchname")
         max_insulation = _numeric_text(_child_text(branch, namespace, "InsulationThickness")) or 0.0
         for node in _branch_nodes(branch, namespace):
             max_insulation = max(max_insulation, _numeric_text(_child_text(node, namespace, "InsulationThickness")) or 0.0)
             if _child_text(node, namespace, "ComponentType").upper() in NO_AUTO_WEIGHT_COMPONENT_TYPES and (_numeric_text(_child_text(node, namespace, "Weight")) or 0.0) != 0.0:
                 _set_child(node, namespace, "Weight", "0"); changed = True
-            has_explicit_restraints = any(_local_name(child.tag) == "Restraint" for child in list(node))
-            if not skip_dtxr_restraint_fallback and not has_explicit_restraints and _apply_dtxr_restraints_to_node(node, namespace, support_config, use_dtxr_only=True):
-                changed = True
+            claimed_pos = (branch_name, _child_text(node, namespace, "NodeNumber")) in staged_pos_owners
+            if claimed_pos:
+                changed = _apply_staged_position_restraints(node, namespace, support_config, branch_name) or changed
+            else:
+                has_explicit_restraints = any(_local_name(child.tag) == "Restraint" for child in list(node))
+                if not skip_dtxr_restraint_fallback and not has_explicit_restraints and _apply_dtxr_restraints_to_node(node, namespace, support_config, use_dtxr_only=True):
+                    changed = True
         _set_child(branch, namespace, "InsulationDensity", insulation_density_default if max_insulation >= 50.0 else 0)
         changed = True
     if _truthy(support_config.get("splitCondensedValveFlange")) and _renumber_length_bearing_negative_nodes(root, namespace):
@@ -834,9 +898,12 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
         "ambiguous": stats.get("dtxrPosAmbiguous", 0),
         "unmatchedPositionClaims": stats.get("dtxrPosUnmatched", 0),
     }, sort_keys=True))
+    pos_owners = []
     for diagnostic in result.get("diagnostics", ()):
         if diagnostic.get("type") == "dtxr-pos":
+            pos_owners.append((diagnostic["branchName"], str(diagnostic["nodeNumber"])))
             print("XML229_DTXR_SOURCE_TO_NODE " + json.dumps(diagnostic, sort_keys=True))
+    support_config["_stagedPositionOwners"] = pos_owners
     with tempfile.NamedTemporaryFile(
             mode="w", encoding="utf-8", prefix=f"{input_xml.stem}_dtxr_",
             suffix=".xml", delete=False) as target:
