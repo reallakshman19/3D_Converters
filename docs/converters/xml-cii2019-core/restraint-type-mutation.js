@@ -69,7 +69,7 @@ export function mutateRestraintType(value, config = {}) {
     const source = normalizeRestraintTypeValue(row.from);
     const target = normalizeRestraintTypeValue(row.to);
     if (![source, target].every((code) =>
-      /^\\d+$/.test(code) && Number(code) >= 1 && Number(code) <= 62)) {
+      /^\d+$/.test(code) && Number(code) >= 1 && Number(code) <= 62)) {
       throw Object.assign(new Error('Invalid restraint TYPE mutation source/target'),
         { code: 'PREFINAL_RESTRAINT_TYPE_INVALID' });
     }
