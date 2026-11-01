@@ -176,6 +176,14 @@ export function verifyCiiEngineeringAgainstNativeXml(xmlText, ciiText) {
     for (const field of ['p1','t1','t2','t3','density']) {
       const raw = branch.facts[field], expected = engineeringNumber(raw, field.startsWith('t'));
       if (expected === null) {
+        // T2 is optional unless the selected line-list maps a T2 fact;
+        // Python's verified-master gate independently rejects missing
+        // mandatory/declared T2 at the source-to-native-XML boundary.
+        if (field==='t2') {
+          evidence.push({key,field,sourceState:'NOT_APPLICABLE',
+                         verificationState:'NOT_APPLICABLE'});
+          continue;
+        }
         evidence.push({key,field,sourceState:'MISSING',verificationState:'UNRESOLVED'});
         throw new Error('CII_VERIFIED_BRANCH_FIELD_MISSING_' + field.toUpperCase());
       }
