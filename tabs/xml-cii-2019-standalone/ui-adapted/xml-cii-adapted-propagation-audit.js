@@ -1,4 +1,4 @@
-import {engineeringNumber, parseCiiEngineeringFields, ciiBranchFieldMatches, ciiNodeWeightMatches} from './xml-cii-adapted-propagation-proof.mjs';
+import {engineeringNumber, parseCiiEngineeringFields, ciiBranchFieldMatches, ciiNodeWeightMatches, ciiElementFieldMatches} from './xml-cii-adapted-propagation-proof.mjs';
 import { createElement } from './xml-cii-adapted-dom.js';
 import { renderStandaloneMatchedAuditPanel } from './xml-cii-adapted-preview-diagnostics-audit.js?v=20261001-weight-output-2';
 
@@ -89,6 +89,8 @@ function parseEnrichedXml(enrichedText) {
         nodeNumber,
         componentType: childText(node, 'ComponentType'),
         weight: childText(node, 'Weight'),
+        wallThickness: childText(node, 'WallThickness'),
+        corrosion: childText(node, 'CorrosionAllowance'),
       });
     }
   }
@@ -174,6 +176,30 @@ export async function buildXmlCiiPropagationAudit(state) {
         stageEnriched: enriched.available ? (t(enrichedValue) || '—') : 'n/a',
         stageCii: ciiAvailable ? (inCii === null ? 'unverified' : inCii ? 'field matched' : 'field mismatch') : 'n/a',
         status: freshPreviewAvailable ? statusFor(tabValue, enrichedValue, inCii, enriched.available && !!enrichedBranch, ciiAvailable) : 'preview-unverified',
+      });
+    }
+  }
+
+  // Preview wall/corrosion expectations are checked in the exact owning element.
+  // The CII 0.01 writer fallback is unchanged and is not proof of a master.
+  for (const row of branchRows) {
+    const first = ciiParsed?.elements.find(e => e.branch === row.branchName) || null;
+    const xmlNode = first ? enriched.nodes.get(`${row.branchName}|${first.from}`) : null;
+    for (const [fieldId, label, previewValue, xmlValue] of [
+      ['wallThickness', 'Wall thickness (first element)', row.wallThickness, xmlNode?.wallThickness],
+      ['corrosion', 'Corrosion (first element)', row.corrosion, xmlNode?.corrosion],
+    ]) {
+      const inCii = first && ciiElementFieldMatches(
+        ciiParsed, first.branch, first.from, first.to, fieldId, xmlValue);
+      const verified = freshPreviewAvailable && !!first && !!xmlNode;
+      rows.push({
+        scope: 'element', key: row.branchName,
+        node: first ? `${first.from}→${first.to}` : '',
+        field: label, fieldId,
+        stageTab: t(previewValue) || '—',
+        stageEnriched: xmlNode ? (t(xmlValue) || '—') : 'node not found',
+        stageCii: first ? (inCii === true ? 'field matched' : inCii === null ? 'unverified' : 'field mismatch') : 'element not found',
+        status: verified ? statusFor(previewValue, xmlValue, inCii, true, true) : 'preview-unverified',
       });
     }
   }
