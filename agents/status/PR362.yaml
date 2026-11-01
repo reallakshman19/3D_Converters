@@ -36,4 +36,3 @@ publication_overlap: COORDINATION_REQUIRED_PRS_252_253_260_273_312_329_335_346
 pr_url: https://github.com/reallakshman19/3D_Converters/pull/362
 report_basis_head: 7bc9e21c0f3e53303b5a5d32e6286dcd6d1eeeb8
 ci_observation: FIVE_FAILURES_OTHERS_RUNNING_OR_PASSED_NOT_ALL_GREEN
-merge_authority: OWNER_ONLY_NOT_GRANTED
