@@ -102,3 +102,46 @@ test('unrelated unclassified descriptor does not create a GUIDE or LINESTOP', as
   const result = await prepare(staged);
   assert.deepEqual(restraints(result.document, 40).map(row => row.type), ['+Y']);
 });
+
+
+test('old confidence: high LINE STOP meaning beats low GT code without inventing GUIDE', async () => {
+  const staged = source();
+  const attrs = staged[0].children[0].children[0].attributes;
+  attrs.DTXR = 'LINE STOP ON BARE PIPE WITH WEAR PAD';
+  attrs.MDSSUPPTYPE = 'GT575';
+  attrs.CMPSUPGAP = '10';
+  const result = await prepare(staged);
+  assert.deepEqual(restraints(result.document, 40).map(({type, gap}) => [type, gap]), [['LIM', 10]]);
+});
+
+test('actual BM2 GT571/ST572 canonical REST evidence outranks abbreviated source code', async () => {
+  const staged = source();
+  for (const [entry, code] of [[staged[0].children[0].children[0], 'GT571'],
+                               [staged[0].children[1].children[0], 'ST572']]) {
+    entry.attributes = {
+      NAME: '/PS40/DATUM', DTXR: '', MDSSUPPTYPE: code, SUPPORT_KIND: 'REST',
+      SUPPORT_TYPE: 'REST', SUPPORT_MAPPER_KIND: 'REST', NODETYPE: '14', NODEGAP: '0',
+    };
+  }
+  staged[0].children[1].children[0].attributes.NAME = '/PS50/DATUM';
+  const result = await prepare(staged);
+  assert.deepEqual(restraints(result.document, 40).map(r => r.type), ['+Y']);
+  assert.deepEqual(restraints(result.document, 50).map(r => r.type), ['+Y']);
+});
+
+test('unambiguous NODEGAP zero does not get replaced by profile gap for GUIDE/LIM', async () => {
+  const staged = source();
+  for (const child of [staged[0].children[0].children[0], staged[0].children[1].children[0]]) {
+    delete child.attributes.CMPSUPGAP;
+    child.attributes.NODEGAP = '0';
+  }
+  const result = await prepare(staged);
+  assert.deepEqual(restraints(result.document, 40).map(r => r.gap), [0]);
+  assert.deepEqual(restraints(result.document, 50).map(r => r.gap), [0]);
+});
+
+test('conflicting NODEGAP and CMPSUPGAP refuse a fabricated source gap', async () => {
+  const staged = source();
+  staged[0].children[0].children[0].attributes.NODEGAP = '0';
+  await assert.rejects(prepare(staged), {code: 'PREFINAL_RESTRAINT_GAP_AMBIGUOUS'});
+});
