@@ -44,6 +44,12 @@ export function parseCiiEngineeringFields(text) {
     const n = fields(line, 2);
     return { index: index + 1, forceN: Number(n[1]) };
   });
+  // MISCEL_1 stores exact per-element numeric material IDs in groups of six.
+  // The native writer may emit padded trailing slots; never search globally.
+  const misc = (sections.get('MISCEL_1') || [])
+    .filter(line => line.trim())
+    .flatMap(line => line.trim().split(/\s+/).map(x => engineeringNumber(x)));
+  if (misc.some(x=>x===null)) throw new Error('CII_MATERIAL_SLOT_MALFORMED');
   const elements = [];
   for (let i = 0; i < rows.length; i += 15) {
     const block = rows.slice(i, i + 15);
@@ -68,6 +74,7 @@ export function parseCiiEngineeringFields(text) {
       wallThickness: Number(r2[0]), corrosion: Number(r2[2]),
       t1: Number(r2[3]), t2: Number(r2[4]), t3: Number(r2[5]),
       p1: Number(r4[0]), density: Number(r6[1]), rigidPointer,
+      materialCode: misc[i / 15] ?? null,
     });
   }
   const restraintLines = (sections.get('RESTRANT') || []).filter(line => line.trim());
@@ -159,6 +166,7 @@ export function verifyCiiEngineeringAgainstNativeXml(xmlText, ciiText) {
       if (!number || nodes.has(number)) throw new Error('CII_VERIFIED_NODE_IDENTITY_AMBIGUOUS');
       nodes.set(number, {wallThickness:value(node,'WallThickness'),
         corrosion:value(node,'CorrosionAllowance'), type:value(node,'ComponentType'),
+        materialCode:value(node,'MaterialCode'),
         restraints:children(node,'Restraint').map(r=>({
           type:value(r,'Type'),gap:value(r,'Gap')}))});
     }
@@ -200,6 +208,13 @@ export function verifyCiiEngineeringAgainstNativeXml(xmlText, ciiText) {
       if (wall===null || wall<=0 || !approx(wall,element.wallThickness))
         throw new Error('CII_VERIFIED_ELEMENT_WALL_CONFLICT');
       evidence.push({key,field:'wallThickness',sourceState:'PRESENT',
+                     verificationState:'VERIFIED'});
+      const approvedCode=engineeringNumber(source.materialCode);
+      if (approvedCode===null || approvedCode<=0 ||
+          element.materialCode===null ||
+          !approx(approvedCode,element.materialCode))
+        throw new Error('CII_VERIFIED_ELEMENT_MATERIAL_CODE_CONFLICT');
+      evidence.push({key,field:'materialCode',sourceState:'PRESENT',
                      verificationState:'VERIFIED'});
     }
     const corrosion = engineeringNumber(source.corrosion);
