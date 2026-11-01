@@ -227,6 +227,15 @@ def node_type_mutation(attrs, config):
         rows = rules.get('rows')
         selected = [(row.get('from'), row.get('to')) for row in rows
                     if isinstance(row, dict)] if isinstance(rows, list) else defaults
+        # Step 8 rows are editable. Duplicate source codes with different
+        # target codes must never be resolved by list order (silent first-wins).
+        seen_targets = {}
+        for source, target in selected:
+            key = text(source)
+            destination = text(target)
+            if key in seen_targets and seen_targets[key] != destination:
+                raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_AMBIGUOUS')
+            seen_targets[key] = destination
         for source, target in selected:
             if text(source) == str(value):
                 if not re.fullmatch(r'[0-9]+', text(target)) or not 1 <= int(target) <= 62:
