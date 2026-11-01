@@ -56,9 +56,10 @@ export async function proveXml229Issue376UiDownload(browser,url,sourcePath,recor
   await page.locator('[data-tab="xml-cii-2019-standalone"]').click();
   await page.locator('[data-phase="source"]').click();
   await page.locator('[data-field="source-file"]').setInputFiles(sourcePath);
-  await page.waitForFunction(()=>/Branches:\\s*41\\/41/.test(
-    document.querySelector('.xml-cii-header-status-row')?.textContent||''
-  ),null,{timeout:60000});
+  await page.waitForFunction(()=>{
+    const header=document.querySelector('.xml-cii-header-status-row')?.textContent||'';
+    return header.includes('Branches:')&&header.includes('41/41');
+  },null,{timeout:60000});
   await selectXmlOnlyAndRun(page);
   const [download]=await Promise.all([
     page.waitForEvent('download'),
