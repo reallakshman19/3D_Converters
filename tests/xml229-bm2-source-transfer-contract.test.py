@@ -261,6 +261,10 @@ class SourceTransferRegression(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"XML229_XML_RESTRAINT_PROVENANCE_UNRESOLVED"):
             patched._apply_staged_position_restraints(
                 make_node("+Y","0",source=""),"",cfg(),branch)
+        unmarked_agrees=make_node("GUI","6",source="")
+        patched._apply_staged_position_restraints(
+            unmarked_agrees,"",cfg(),branch)
+        self.assertEqual(field(next(unmarked_agrees.iter("Restraint")),"Stiffness"),"12345")
         stamped=make_node("+Y","0",source="")
         patched._apply_staged_position_restraints(stamped,"",cfg(True),branch)
         self.assertEqual(field(next(stamped.iter("Restraint")),"Type"),"GUI")
