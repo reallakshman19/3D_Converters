@@ -9,7 +9,8 @@ import unittest
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "converters" / "scripts"))
+SCRIPTS = ROOT / "converters" / "scripts"
+sys.path.insert(0, str(SCRIPTS))
 import xml_to_cii2019_patched as patched
 
 BM2 = ROOT / "Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml"
