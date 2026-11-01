@@ -1343,6 +1343,12 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
     stats = result.get("stats") or {}
     if stats.get("dtxrPosAmbiguous", 0):
         raise ValueError("XML229_STAGED_POSITION_AMBIGUOUS")
+    if stats.get("dtxrPosMandatoryUnmatched", 0):
+        rejected = [d for d in result.get("diagnostics", [])
+                    if d.get("type") == "dtxr-position-unmatched"
+                    and d.get("scope") == "MANDATORY"]
+        print("XML229_STAGED_MANDATORY_UNMATCHED " + json.dumps(rejected, sort_keys=True))
+        raise ValueError("XML229_STAGED_POSITION_PARTIAL_TRANSFER")
     source_json = staged_json.read_text(encoding="utf-8-sig")
     has_claims = bool(addon.build_dtxr_ps_index(source_json)) or bool(
         addon.build_dtxr_pos_entries(source_json, support_config.get("dtxrPositionOffset")))
@@ -1357,6 +1363,8 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
         "dtxrPsOwners": stats.get("dtxrPs", 0),
         "ambiguous": stats.get("dtxrPosAmbiguous", 0),
         "unmatchedPositionClaims": stats.get("dtxrPosUnmatched", 0),
+        "mandatoryPositionClaimsUnmatched": stats.get("dtxrPosMandatoryUnmatched", 0),
+        "positionClaimsExcluded": stats.get("dtxrPosExcluded", 0),
     }, sort_keys=True))
     pos_owners = []
     source_members = {}
