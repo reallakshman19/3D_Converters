@@ -157,21 +157,38 @@ class SourceTransferRegression(unittest.TestCase):
                 staged_xml = patched._maybe_enrich_from_staged_json(source, stage, cfg)
                 final_xml = patched._apply_process_data_to_xml(staged_xml, cfg)
                 target = node_by_number(ET.parse(final_xml).getroot(), 3430)
-                return [(field(r, "Type"), field(r, "Gap")) for r in target
-                        if r.tag.rsplit("}", 1)[-1] == "Restraint"]
-            before_tab7 = run("CRADLE RETAINER STYLE-314", {}, "17")
-            from_tab7 = run("CRADLE RETAINER STYLE-314",
+                xml_rows = [(field(r, "Type"), field(r, "Gap")) for r in target
+                            if r.tag.rsplit("}", 1)[-1] == "Restraint"]
+                cii_path = Path(directory) / "node3430-native.cii"
+                cmd = [sys.executable, str(SCRIPTS / "xml_to_cii2019.py"),
+                       "--input", str(final_xml), "--output", str(cii_path)]
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=45)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                cii = cii_path.read_text(encoding="utf-8")
+                self.assertIn("#$ RESTRANT", cii)
+                lines = cii.split("#$ RESTRANT\\n", 1)[1].split("#$", 1)[0].splitlines()
+                native_rows = []
+                for index in range(0, len(lines) - 3, 4):
+                    values = lines[index].split()
+                    if values and float(values[0]) == 3430:
+                        native_rows.append((int(float(values[1])), float(values[3])))
+                return xml_rows, native_rows
+            before_tab7, cii_before_tab7 = run("CRADLE RETAINER STYLE-314", {}, "17")
+            from_tab7, cii_after_tab7 = run("CRADLE RETAINER STYLE-314",
                             {"supportTypeMapper": {"rows": [
                                 {"kind": "REST", "aliases": ["CRADLE RETAINER"]}]}},
                             "17")
             self.assertEqual(from_tab7, [("+Y", "6.0")])
+            self.assertIn((14, 6.0), cii_after_tab7)
+            self.assertNotEqual(cii_before_tab7, cii_after_tab7)
             self.assertNotEqual(before_tab7, from_tab7,
                                 "same source XML + staged JSON must change when REST alias is saved")
             print("XML229_CONFIG_MUTATION_TAB7 " + json.dumps({
                 "branch": branch, "node": 3430, "sourceText": "CRADLE RETAINER STYLE-314",
-                "before": before_tab7, "after": from_tab7, "status": "PASS"}, sort_keys=True))
-            before_tab8 = run("ORBITAL GUARDRAIL QZ-443", {}, "21")
-            from_tab8 = run("ORBITAL GUARDRAIL QZ-443", {
+                "before": before_tab7, "after": from_tab7,
+                "ciiBefore": cii_before_tab7, "ciiAfter": cii_after_tab7, "status": "PASS"}, sort_keys=True))
+            before_tab8, cii_before_tab8 = run("ORBITAL GUARDRAIL QZ-443", {}, "21")
+            from_tab8, cii_after_tab8 = run("ORBITAL GUARDRAIL QZ-443", {
                 "supportMapping": {"version": 2, "rules": [
                     {"id": "user-orbital-guide", "enabled": True,
                      "priority": 1, "source": "staged-json",
@@ -181,11 +198,14 @@ class SourceTransferRegression(unittest.TestCase):
                     "rows": [{"from": "21", "to": "8"}]},
             }, "21")
             self.assertEqual(from_tab8, [("GUI", "6.0")])
+            self.assertIn((8, 6.0), cii_after_tab8)
+            self.assertNotEqual(cii_before_tab8, cii_after_tab8)
             self.assertNotEqual(before_tab8, from_tab8,
                                 "same source XML + staged JSON must change under saved regex and NODETYPE mutation")
             print("XML229_CONFIG_MUTATION_TAB8 " + json.dumps({
                 "branch": branch, "node": 3430, "sourceText": "ORBITAL GUARDRAIL QZ-443",
-                "before": before_tab8, "after": from_tab8, "status": "PASS"}, sort_keys=True))
+                "before": before_tab8, "after": from_tab8,
+                "ciiBefore": cii_before_tab8, "ciiAfter": cii_after_tab8, "status": "PASS"}, sort_keys=True))
             with self.assertRaisesRegex(ValueError, "NATIVE_PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT"):
                 run("ORBITAL GUARDRAIL QZ-443", {
                     "supportMapping": {"version": 2, "rules": [{
