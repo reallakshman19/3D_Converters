@@ -160,6 +160,22 @@ class Bm2SupportSourceWitness(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "NATIVE_PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT"):
             append_profile(ET.Element("Node"), "GUIDE", datum["attrs"], bad)
 
+    def test_cross_tab_edited_alias_and_regex_must_agree(self):
+        def require(ok, code):
+            if not ok:
+                raise ValueError(code)
+        datum = {"type": "SUPPORT", "desc": "ORBITAL GUARDRAIL",
+                 "attrs": {"DTXR": "ORBITAL GUARDRAIL", "NAME": "/PS-EDITED"}}
+        cfg = {"supportTypeMapper": {"rows": [
+                {"kind": "REST", "aliases": ["ORBITAL GUARDRAIL"]}]},
+               "supportMapping": {"rules": [
+                {"id": "user-guide", "enabled": True, "priority": 2,
+                 "source": "staged-json", "field": "DTXR",
+                 "pattern": "ORBITAL GUARDRAIL", "match": "equals",
+                 "kind": "GUIDE"}]}}
+        with self.assertRaisesRegex(ValueError, "NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS"):
+            kinds([datum], require, cfg)
+
     def test_configured_rule_conflicts_and_invalid_regex_reject(self):
         def require(ok, code):
             if not ok:
