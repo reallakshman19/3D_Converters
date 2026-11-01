@@ -198,7 +198,10 @@ export function verifyCiiEngineeringAgainstNativeXml(xmlText, ciiText) {
       const expectedCii = field==='density' ? expected * 1e-6 : expected;
       // The selected writer converts input kg/m3 to kg/cm3; no permissive
       // alternative scale can turn a wrong density field into a pass.
-      if (!approx(expectedCii,element[field]))
+      const isMatch = field==='density'
+        ? Math.abs(expectedCii-element[field]) <= Math.max(1e-12, Math.abs(expectedCii)*1e-5)
+        : approx(expectedCii,element[field]);
+      if (!isMatch)
         throw new Error('CII_VERIFIED_BRANCH_FIELD_CONFLICT_' + field.toUpperCase());
       evidence.push({key,field,sourceState:expected===0?'EXPLICIT_ZERO':'PRESENT',
                      verificationState:'VERIFIED'});
