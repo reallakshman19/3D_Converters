@@ -1,5 +1,5 @@
 import { createElement, appendLabeledControl } from './xml-cii-adapted-dom.js';
-import { parseStandaloneRegexBranchSamples, runStandaloneRegexTester, analyzeStandaloneRegexFormats } from '../xml-cii-regex-tester.js?v=20260928-issue776-authority-1';
+import { parseStandaloneRegexBranchSamples, runStandaloneRegexTester, analyzeStandaloneRegexFormats, toggleRegexLineKeyColumn } from '../xml-cii-regex-tester.js?v=20260928-issue776-authority-1';
 import { renderBranchSamples, renderMatched, renderRejected, renderDiagnostics } from './xml-cii-adapted-regex-results.js';
 import { renderRatingSequenceEditor } from './xml-cii-adapted-regex-rating.js?v=20261001-weight-output-2';
 import { updateRegexTesterConfig, applyStandaloneRegexTesterResult } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
@@ -195,7 +195,7 @@ function _renderTokenCards(flexRow, tokens, activeF, stateRef, updatePos) {
     if (key === 'lineKey') {
       // Ordered multi-column selection: each click appends, clicking an
       // already selected position removes just that column. Never sort.
-      return (list.includes(pos) ? list.filter(n => n !== pos) : [...list, pos]).join(',');
+      return toggleRegexLineKeyColumn(list.join(','),pos);
     }
     return list.length === 1 && list[0] === pos ? '' : String(pos);
   };
