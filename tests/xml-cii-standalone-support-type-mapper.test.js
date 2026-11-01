@@ -43,6 +43,22 @@ function hasPreview(result, status, kind) {
   assert(hasPreview(xmlResult, 'unmatched'), 'unmatched text should produce diagnostics');
   assert(xmlResult.diagnostics.some((row) => row.type === 'unmatched-support-text'), 'unmatched diagnostics expected');
   assert(xmlResult.supportConfigJson.includes('supportTypeMapper'), 'mapper config must write back');
+  const forbiddenRows=helper.createDefaultSupportTypeMapperConfig();
+  forbiddenRows.find(row=>row.kind==='REST').aliases.push('GUIDE');
+  const forbidden=helper.runStandaloneSupportTypeMapper({
+    supportConfigJson:'{}',mapperRows:forbiddenRows,testInput:'GUIDE',
+  });
+  assert(forbidden.diagnostics.some(row=>
+    row.level==='error'&&row.type==='explicit-semantic-alias-reclassification'),
+    'Save must reject an editable REST alias that would reclassify literal GUIDE');
+  const allowedRows=helper.createDefaultSupportTypeMapperConfig();
+  allowedRows.find(row=>row.kind==='REST').aliases.push('CUSTOM CLAMP');
+  const allowed=helper.runStandaloneSupportTypeMapper({
+    supportConfigJson:'{}',mapperRows:allowedRows,testInput:'CUSTOM CLAMP',
+  });
+  assert(!allowed.diagnostics.some(row=>row.level==='error'),
+    'genuinely uncertain support words remain configurable');
+
 
   // Governing real trace: each | segment is a separate support occurrence. The
   // explicit LINE STOP phrase must beat the low-confidence GT575 abbreviation.
