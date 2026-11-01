@@ -1484,6 +1484,16 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
         raise ValueError("XML229_STAGED_TRANSFER_NO_MATCH")
     # A stale REST annotation must never be interpreted as proof the provided
     # staged JSON was consumed; the receipt makes this a distinct run event.
+    excluded = [d for d in result.get("diagnostics", [])
+                if d.get("type") == "dtxr-position-unmatched"
+                and d.get("scope") == "NOT_APPLICABLE"]
+    if excluded:
+        print("XML229_STAGED_SCOPE_EXCLUSIONS " + json.dumps({
+            "count": len(excluded),
+            "reasons": {reason: sum(d.get("reason") == reason for d in excluded)
+                        for reason in sorted({d.get("reason", "") for d in excluded})},
+            "sample": excluded[:20], "sampleTruncated": len(excluded) > 20
+        }, sort_keys=True))
     print("XML229_SOURCE_TRANSFER " + json.dumps({
         "family": "stagedJson",
         "inputHadDtxr": _xml_has_dtxr_annotations(input_xml),
