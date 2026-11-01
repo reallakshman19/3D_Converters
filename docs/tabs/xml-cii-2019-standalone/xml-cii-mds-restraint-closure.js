@@ -300,6 +300,16 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
         }
       }
 
+      if(runtime.requireUnambiguous) {
+        const expected=new Set([...evidence.entries()].map(([kind,attrs])=>
+          sourceNodeType(attrs,config)||EXPECTED_XML_TYPE[kind]));
+        for(const restraint of childrenByName(node,'Restraint')) {
+          const original=normalizeXmlType(childText(restraint,'Type'));
+          if(['+Y','GUI','LIM'].includes(original)&&!expected.has(original))
+            throw Object.assign(new Error('Unmatched XML restraint kind has no exact staged support member'),
+              {code:'PREFINAL_RESTRAINT_SOURCE_KIND_CONFLICT'});
+        }
+      }
       const present = existingTypes(node);
       const kinds = [];
       const entries = [];
