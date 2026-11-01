@@ -682,7 +682,10 @@ class NativeSubstageWitnessTests(unittest.TestCase):
                 self.assertEqual(float(block[1].split()[3]),120)
                 self.assertEqual(float(block[1].split()[5]),-50)
                 self.assertEqual(float(block[3].split()[0]),11000)
-                self.assertAlmostEqual(float(block[5].split()[1]),109.85,places=3)
+                # Patched CII default explicitly converts the supplied
+                # kg/m3 to kg/cm3; bare legacy converter writes raw density.
+                self.assertAlmostEqual(float(block[5].split()[1]),
+                                       float(cell('M9')) * 1e-6,places=10)
                 material=data.split('#'+'$ MISCEL_1\n',1)[1].split('#'+'$ ',1)[0].splitlines()
                 selected=float(material[target//6].split()[target%6])
                 self.assertEqual(selected,741)  # synthetic approved pin only
