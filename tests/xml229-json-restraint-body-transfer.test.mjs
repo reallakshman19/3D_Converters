@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {fileURLToPath} from 'node:url';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -92,7 +93,8 @@ test('real Preview → Worker Final geometry → actual native enriched XML/CII 
  try{
   await Promise.all([['source.xml',XML],['staged.json',stagedSource],['config.json',JSON.stringify(config)],
    ['packet.json',JSON.stringify(packet)]].map(([name,data])=>writeFile(join(folder,name),data)));
-  const result=execFileSync('python3',[new URL('./xml229-json-restraint-native-check.py',import.meta.url).pathname,folder],{encoding:'utf8'});
+  const python=process.env.PYTHON||(process.platform==='win32'?'python':'python3');
+  const result=execFileSync(python,[fileURLToPath(new URL('./xml229-json-restraint-native-check.py',import.meta.url)),folder],{encoding:'utf8'});
   assert.match(result,/SOURCE_JSON_NATIVE_TRANSFER_PASS/);
  }finally{await rm(folder,{recursive:true,force:true});}
 });

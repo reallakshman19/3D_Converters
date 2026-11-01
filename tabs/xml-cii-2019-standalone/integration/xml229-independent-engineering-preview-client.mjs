@@ -9,15 +9,20 @@ const sha=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
 export function runXml229IndependentEngineeringPreview({
   requestId,sourceId,basisId,sourceGenerationId,originalJsonSha256,
   originalStagedBlob,xmlText,config,signal,onProgress=()=>{},
+  reviewSourceKind,sourceXmlSha256,
   deadlineMs=180000,
   workerFactory=()=>new Worker(new URL('./xml229-independent-engineering-preview-worker.mjs',import.meta.url),
     {type:'module'}),
 }={}){
+ const xmlOnly=reviewSourceKind==='XML_ONLY';
+ const sourceValid=xmlOnly
+   ? originalJsonSha256===null&&originalStagedBlob==null&&sha(sourceXmlSha256)&&
+     sourceGenerationId==='xml-only:sha256:'+sourceXmlSha256
+   : sha(originalJsonSha256)&&originalStagedBlob instanceof Blob&&
+     originalStagedBlob.size>0&&originalStagedBlob.size<=100*1024*1024;
  if(!has(requestId)||!has(sourceId)||!has(sourceGenerationId)||
-    !sha(basisId)||!sha(originalJsonSha256)||
+    !sha(basisId)||!sourceValid||
     typeof xmlText!=='string'||!xmlText.trim()||
-    !(originalStagedBlob instanceof Blob)||!originalStagedBlob.size||
-    originalStagedBlob.size>100*1024*1024||
     !Number.isSafeInteger(deadlineMs)||deadlineMs<1||deadlineMs>720000)
    return Promise.reject(error('PREVIEW_WORKER_INPUT_INVALID'));
  if(signal?.aborted)return Promise.reject(error('CANCELLED'));
@@ -43,7 +48,8 @@ export function runXml229IndependentEngineeringPreview({
      if(settled||m?.protocol!==P||m.requestId!==requestId)return;
      if(m.sourceId!==sourceId||m.basisId!==basisId||
         m.sourceGenerationId!==sourceGenerationId||
-        m.originalJsonSha256!==originalJsonSha256){
+        m.originalJsonSha256!==originalJsonSha256||
+        xmlOnly&&(m.reviewSourceKind!=='XML_ONLY'||m.sourceXmlSha256!==sourceXmlSha256)){
        finish(error('PREVIEW_WORKER_BASIS_DRIFT'));return;
      }
      if(m.state==='progress'){
@@ -59,7 +65,8 @@ export function runXml229IndependentEngineeringPreview({
    timer=setTimeout(()=>finish(error('PREVIEW_WORKER_DEADLINE')),deadlineMs);
    if(signal?.aborted){abort();return;}
    try{worker.postMessage({protocol:P,kind:'start',requestId,sourceId,
-     basisId,sourceGenerationId,originalJsonSha256,originalStagedBlob,xmlText,config});}
+     basisId,sourceGenerationId,originalJsonSha256,originalStagedBlob,xmlText,config,
+     reviewSourceKind,sourceXmlSha256});}
    catch{finish(error('PREVIEW_WORKER_POST_FAILED'));}
  });
 }

@@ -7,6 +7,7 @@ import {isXml229VerifiedCompletionForInput}
   from './xml229-verified-output-readiness.mjs';
 import {auditXml229CrossWorkerFlowTrace}
   from '../../../contracts/xml229-flow-trace-v1/audit.mjs';
+import {nativeRunPhase} from '../../../converters/xml-cii-2019-standalone/engine-progress.mjs';
 
 export const XML229_RUN_HOLD_AUDIT_SCHEMA='XML229.RunHoldAudit.v1';
 const whole=n=>Number.isSafeInteger(n)&&n>=0;
@@ -105,7 +106,7 @@ function finalIntentProblem(intent,sessionReceipt,proof){
   return null;
 }
 function classify({hold,source,sessionState,proofValid,proof,readError,
- finalIntent,finalIntentReadError,intentIssue,candidate}){
+ finalIntent,finalIntentReadError,intentIssue,candidate,branchFormat}){
   if(!hold)return 'NO_GOVERNED_NATIVE_HOLD';
   if(source.issue)return source.issue;
   if(sessionState==='CLOSED')return 'WORKER_SESSION_CLOSED';
@@ -116,6 +117,7 @@ function classify({hold,source,sessionState,proofValid,proof,readError,
   const c=proof.counts;
   if(c.unresolved>0)return 'UNRESOLVED_PHYSICAL_MASS';
   if(c.match1>0)return 'MATCH1_NOT_FINAL';
+  if(branchFormat?.blocked)return 'BRANCH_FORMAT_IDENTITY_UNRESOLVED';
   if(source.topologyPending)return 'TOPOFIX_PREFINAL_REVIEW_REQUIRED';
   if(finalIntentReadError)return 'FINAL_INTENT_READ_FAILED';
   if(intentIssue)return intentIssue;
@@ -129,6 +131,17 @@ function classify({hold,source,sessionState,proofValid,proof,readError,
   if(!finalIntent)return 'FINAL_INTENT_NOT_OBSERVED';
   return 'INDEPENDENT_NATIVE_RELEASE_AUTHORITY_ABSENT';
 }
+function branchFormatSnapshot(report){
+ const row=report?.checklistRows?.find(row=>row.id==='branch-format-authority');
+ if(!row)return null;
+ let failures=[];
+ try{const detail=JSON.parse(row.detail||'[]');if(Array.isArray(detail))failures=detail.slice(0,20);}catch{}
+ return {blocked:row.blocking===true,
+  reason:row.blocking===true?'BRANCH_FORMAT_IDENTITY_UNRESOLVED':'BRANCH_FORMAT_IDENTITY_VERIFIED',
+  sampleLimit:20,failuresInSample:failures.length,
+  unmatchedInSample:failures.filter(row=>row?.status==='UNMATCHED').length,
+  ambiguousInSample:failures.filter(row=>row?.status==='AMBIGUOUS').length};
+}
 /** Called on each render AND again from the explicit fresh-evidence download. */
 export function buildXml229RunHoldAudit({
  input={},report=null,sessionState='UNKNOWN',leaseDiagnosis=null,
@@ -136,6 +149,10 @@ export function buildXml229RunHoldAudit({
  finalIntentReadError=null,readError=null,candidate=null,flowTrace=null,
 }={}){
  const source=sourceSnapshot(input);
+ if(sessionReceipt?.reviewSourceKind==='XML_ONLY'&&
+    isXml229VerifiedCompletionForInput(input,sessionReceipt,completion)){
+   source.issue=null;source.xmlOnly=true;
+ }
  source.topologyPending=!!input.xml229TopoFixFreshReviewPending||input.options?.generateTopoFix===true||
    input.options?.useTopoFixForCii===true;
  const hold=report?.checklistRows?.some(x=>
@@ -143,8 +160,9 @@ export function buildXml229RunHoldAudit({
  const leaseReason=leaseReasons.has(leaseDiagnosis?.reason)?leaseDiagnosis.reason:'NO_BOUND_WORKER';
  const valid=isXml229VerifiedCompletionForInput(input,sessionReceipt,completion);
  const intentIssue=finalIntentProblem(finalIntent,sessionReceipt,completion);
+ const branchFormat=branchFormatSnapshot(report);
  const code=classify({hold,source,sessionState,proofValid:valid,
-   proof:completion,readError,finalIntent,finalIntentReadError,intentIssue,candidate});
+   proof:completion,readError,finalIntent,finalIntentReadError,intentIssue,candidate,branchFormat});
  const mass=valid?Object.freeze({
    physicalCount:count(completion.verifiedPhysicalCount),
    factCount:count(completion.verifiedFactCount),
@@ -154,9 +172,9 @@ export function buildXml229RunHoldAudit({
    unresolved:count(completion.counts.unresolved),
  }):null;
  const evidence=[
-   stage('original-json-index',
-     source.issue?'STALE':source.hasReceipt?'VERIFIED':'MISSING',
-     source.issue||'SOURCE_RECEIPT_PRESENT_NOT_ENGINEERING_APPROVAL'),
+   stage(source.xmlOnly?'original-xml-source':'original-json-index',
+     source.issue?'STALE':source.xmlOnly||source.hasReceipt?'VERIFIED':'MISSING',
+     source.issue||(source.xmlOnly?'FULL_XML_SHA_VERIFIED_NO_JSON_INPUT':'SOURCE_RECEIPT_PRESENT_NOT_ENGINEERING_APPROVAL')),
    stage('current-gc-pw-worker',
      sessionState==='CLOSED'?'STALE':sessionReceipt?'VERIFIED':'MISSING',
      sessionState==='CLOSED'?'WORKER_SESSION_CLOSED':
@@ -175,6 +193,8 @@ export function buildXml229RunHoldAudit({
    ...(source.topologyPending?[stage('pre-final-topology-review','HELD',
      (input.options?.topologyActionIds?.length||0)>0
        ?'TOPOFIX_FRESH_WEIGHT_BASIS_REQUIRED':'TOPOFIX_ACTION_SELECTION_REQUIRED')]:[]),
+   ...(branchFormat?[stage('configured-branch-formats',branchFormat.blocked?'HELD':'VERIFIED',
+     branchFormat.reason)]:[]),
    stage('native-final-intent',
      finalIntentReadError?'FAILED':
      !finalIntent?'NOT_REACHED':
@@ -203,6 +223,8 @@ export function buildXml229RunHoldAudit({
      .slice(-256).map(e=>({
        seq:e.seq,elapsedMs:count(e.elapsedMs),kind:String(e.kind).slice(0,48),
        actor:String(e.actor||'').slice(0,32),
+       ...(whole(e.rpcSeq)?{rpcSeq:e.rpcSeq}:{}),
+       ...(typeof e.step==='string'&&/^[a-z][a-z0-9-]{0,63}$/.test(e.step)?{step:e.step}:{}),
        ...(e.code?{code:safeCode(e.code)}:{}),
        ...(e.counts?{counts:Object.fromEntries(
          Object.entries(e.counts).filter(([k,v])=>
@@ -211,8 +233,7 @@ export function buildXml229RunHoldAudit({
  const chronologyIntegrity=flowTrace
    ?auditXml229CrossWorkerFlowTrace(flowTrace)
    :{status:'NOT_AVAILABLE',issues:['NO_FLOW_TRACE'],firstGap:null,summary:{}};
- const first=evidence.find(x=>x.status==='STALE'||x.status==='FAILED'||
-    x.status==='MISSING'||x.status==='HELD'||x.status==='NOT_REACHED');
+ const first=evidence.find(x=>x.status!=='VERIFIED');
  return Object.freeze({
    schema:XML229_RUN_HOLD_AUDIT_SCHEMA,
    gateId:'xml229-original-json-engineering-authority',
@@ -220,6 +241,7 @@ export function buildXml229RunHoldAudit({
    diagnosisCode:code,
    firstUnverifiedBoundary:first?.name||null,
    evidence,
+   ...(branchFormat?{branchFormat}:{}),
    source:{receiptPresent:source.hasReceipt,
      sourceReceiptPhase:source.receipt?.phase==='INDEX_COMMITTED'?
        'INDEX_COMMITTED':'OTHER_OR_UNKNOWN',
@@ -233,6 +255,11 @@ export function buildXml229RunHoldAudit({
        safeCode(finalIntentReadError.code):null},
    nativeCandidate:candidate?{
      status:candidate.status,
+     ...(nativeRunPhase(candidate.phase)?{phase:candidate.phase}:{}),
+     ...(whole(candidate.elapsedMs)?{elapsedMs:candidate.elapsedMs}:{}),
+     ...(Array.isArray(candidate.stages)?{stages:candidate.stages.slice(-32)
+       .filter(row=>nativeRunPhase(row?.phase)&&whole(row.elapsedMs))
+       .map(row=>({phase:row.phase,elapsedMs:row.elapsedMs}))}:{}),
      ...(candidate.code?{failureCode:safeCode(candidate.code)}:{}),
      ...(whole(candidate.nativeRigidObserved)?{nativeRigidObserved:candidate.nativeRigidObserved}:{}),
      ...(whole(candidate.unresolvedNativeOwners)?{unresolvedNativeOwners:candidate.unresolvedNativeOwners}:{}),

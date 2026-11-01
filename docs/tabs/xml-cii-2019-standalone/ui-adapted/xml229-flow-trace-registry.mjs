@@ -4,6 +4,7 @@
  */
 import {createXml229CrossWorkerFlowTrace}
  from '../../../contracts/xml229-flow-trace-v1/trace.mjs';
+import {nativeRunPhase} from '../../../converters/xml-cii-2019-standalone/engine-progress.mjs';
 const live=new WeakMap();
 const key=ref=>ref?.modeABaseRef||ref;
 export function beginXml229FlowTrace(ref){
@@ -47,7 +48,16 @@ export function recordXml229CandidateAttempt(ref,session,value={}){
  const k=key(ref);
  if(!k||typeof k!=='object'||!session||typeof session!=='object')return;
  const status=safeKind(value.status);
+ const prior=candidateAttempts.get(k);
+ const continuing=prior?.session===session&&prior.status==='IN_PROGRESS';
+ const startedAtMs=continuing?prior.startedAtMs:Date.now();
+ const phase=nativeRunPhase(value.phase)||(continuing?prior.phase:null);
+ const stages=continuing?[...prior.stages]:[];
+ if(phase&&stages.at(-1)?.phase!==phase)
+  stages.push({phase,elapsedMs:Math.max(0,Date.now()-startedAtMs)});
  const entry={session,status,
+   startedAtMs,finishedAtMs:status==='IN_PROGRESS'?null:Date.now(),
+   ...(phase?{phase}:{}),stages:Object.freeze(stages.slice(-32)),
    ...(status==='FAILED'?{code:safeFailure(value.code)}:{}),
    ...(count(value.nativeRigidObserved)!==undefined?
      {nativeRigidObserved:value.nativeRigidObserved}:{}),
@@ -58,6 +68,9 @@ export function recordXml229CandidateAttempt(ref,session,value={}){
 export function getXml229CandidateAttempt(ref,session){
  const saved=candidateAttempts.get(key(ref));
  if(!saved||saved.session!==session||session?.closed===true)return null;
- const {session:ignored,...safe}=saved;
- return Object.freeze(safe);
+ const {session:ignored,startedAtMs,finishedAtMs,stages,...safe}=saved;
+ return Object.freeze({...safe,
+  elapsedMs:Math.max(0,(finishedAtMs??Date.now())-startedAtMs),
+  stages:stages.map(row=>({...row})),
+ });
 }

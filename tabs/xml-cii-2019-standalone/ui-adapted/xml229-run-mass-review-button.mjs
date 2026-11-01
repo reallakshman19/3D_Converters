@@ -31,12 +31,19 @@ export function createXml229RunMassReviewButton({
  button.addEventListener('click',open);
  // Initial Run paints can have no live completion. Offer only after the
  // source-bound Worker has independently refreshed the real HOLD audit.
+ const xmlReview=!approved&&getXml229CurrentWorkerHeldReview(stateRef)?.receipt?.reviewSourceKind==='XML_ONLY';
  if(stateRef?.current?.activePhaseId==='run'&&
-    shouldAutoOfferXml229RunMassReview(report,approved))queueMicrotask(()=>{
+    (shouldAutoOfferXml229RunMassReview(report,approved)||xmlReview))queueMicrotask(async()=>{
    const session=getXml229CurrentWorkerHeldReview(stateRef);
    if(stateRef?.current?.activePhaseId!=='run'||
       button.isConnected!==true||!session||session.closed||offered.has(session))
      return;
+   if(xmlReview){
+     try{if(!((await session.readCompletion())?.counts?.unresolved>0))return;}
+     catch{return;}
+     if(stateRef?.current?.activePhaseId!=='run'||
+       getXml229CurrentWorkerHeldReview(stateRef)!==session||!button.isConnected)return;
+   }
    offered.add(session);
    open();
  });

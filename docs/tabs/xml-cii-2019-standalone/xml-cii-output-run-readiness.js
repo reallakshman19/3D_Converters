@@ -104,11 +104,15 @@ function selectedOriginalJsonSourceReceipts(input) {
   return [...(own ? [own] : []), ...selected];
 }
 export function hasOriginalJsonSourceOnlyRunHold(input = {}) {
-  return hasXml229GovernedNativeHold(input);
+  return hasXml229GovernedNativeHold(input)||(!isXml229XmlOnlyApproved(input)&&
+    input.xmlProcessingMode!=='mode-b'&&/<PipeStressExport(?:\s|>)/.test(input.sourceText||''));
 }
 function originalJsonAuthorityRows(input) {
   const receipts=selectedOriginalJsonSourceReceipts(input);
-  if (!receipts.length) return [];
+  if (!receipts.length) return hasOriginalJsonSourceOnlyRunHold(input)?[row(
+    'xml229-original-json-engineering-authority','XML source → Final → native CII release authority',false,
+    'Current source-bound Final decisions must be consumed and independently reconciled against actual native CII.',
+    {blocking:true,severity:'warning',status:'held'})]:[];
   if (!hasOriginalJsonSourceOnlyRunHold(input))return [row(
     'xml229-xml-only-output-participation',
     'Explicit XML-only native output participation',
@@ -307,6 +311,8 @@ export function buildStandaloneOutputRunReadiness(input = {}, {verifiedEngineeri
     native.sourceId===completion.sourceId&&
     native.sourceGenerationId===completion.sourceGenerationId&&
     native.originalJsonSha256===completion.originalJsonSha256&&
+    (completion.reviewSourceKind!=='XML_ONLY'||native.reviewSourceKind==='XML_ONLY'&&
+      native.sourceXmlSha256===completion.sourceXmlSha256)&&
     native.physicalCount===completion.verifiedPhysicalCount&&
     native.finalIntentSha256===verifiedEngineering?.finalIntent?.intentSha256&&
     native.actualCiiSha256===input.result?.xml229ActualCiiSha256&&

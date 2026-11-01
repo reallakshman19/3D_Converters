@@ -1,4 +1,5 @@
 import {readNativeEnrichedArtifact} from './native-enriched-artifact.js';
+import {reportNativeRunPhase} from './engine-progress.mjs';
 import { loadPyodide } from '../../vendor/pyodide/pyodide.mjs';
 import { buildStandaloneCiiInvocation, outputStem } from './invocation-builder.js';
 import { applyStandaloneSifFacts } from '../../tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js';
@@ -33,6 +34,7 @@ import re
 exit_code = 0
 # Reset for every serialized Python invocation; never reuse a prior job's stage.
 sys._xml229_native_failure_stage = 'UNKNOWN'
+sys._xml229_native_progress_enabled = bool(job_governed_native)
 job_native_failure_stage = 'UNKNOWN'
 job_native_failure_code = 'UNCLASSIFIED_EXCEPTION'
 sys.argv = list(job_argv)
@@ -197,12 +199,12 @@ async function runCii(pyodide, job, paths, jobDir, stdout, stderr) {
 // Pyodide globals (stdout, sys.argv and imported Python modules) are shared.
 // A new auto Run must never race a manually requested conversion.
 let engineQueue=Promise.resolve();
-export function runXmlCii2019StandaloneEngine(job){
- const next=engineQueue.then(()=>runSerializedXmlCii2019Engine(job));
+export function runXmlCii2019StandaloneEngine(job, runtime = {}){
+ const next=engineQueue.then(()=>runSerializedXmlCii2019Engine(job, runtime));
  engineQueue=next.then(()=>undefined,()=>undefined);
  return next;
 }
-async function runSerializedXmlCii2019Engine(job) {
+async function runSerializedXmlCii2019Engine(job, runtime) {
   const sourceKind = job.sourceKind === 'inputxml' ? 'inputxml' : 'xml';
   const outputMode = ['cii-only', 'both'].includes(job.options?.outputMode) ? job.options.outputMode : 'enriched-only';
   const normalizedJob = { ...job, sourceKind, options: { ...(job.options || {}), outputMode } };
@@ -210,6 +212,11 @@ async function runSerializedXmlCii2019Engine(job) {
   const stderr = [];
   const partial = { enrichedText: '', enrichedName: '', ...emptyTopologyResult() };
   let nativeFailurePhase='PYODIDE_INITIALIZE';
+  const phase = value => {
+    nativeFailurePhase = value;
+    reportNativeRunPhase(runtime.onProgress, value);
+  };
+  phase('PYODIDE_INITIALIZE');
   try {
     if (normalizedJob.topologyPreFinalOnly === true &&
         (sourceKind !== 'xml' || !topologyRequested(normalizedJob) ||
@@ -217,14 +224,18 @@ async function runSerializedXmlCii2019Engine(job) {
       throw new Error('TOPOFIX_PREFINAL_ONLY_SOURCE_REQUIRED');
     }
     const pyodide = await getPyodide();
-    nativeFailurePhase='SCRIPT_LOAD';
+    phase('SCRIPT_LOAD');
     await ensureScripts(pyodide);
-    nativeFailurePhase='BASE_MODULE_RESET';
+    phase('BASE_MODULE_RESET');
     await pyodide.runPythonAsync(RESET_NATIVE_BASE_SNIPPET);
-    pyodide.setStdout({ batched: (line) => stdout.push(line) });
+    pyodide.setStdout({ batched: (line) => {
+      if (line.startsWith('XML229_NATIVE_STAGE:'))
+        reportNativeRunPhase(runtime.onProgress, line.slice('XML229_NATIVE_STAGE:'.length));
+      else stdout.push(line);
+    } });
     pyodide.setStderr({ batched: (line) => stderr.push(line) });
     const jobDir = `/work/xml_cii_standalone_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
-    nativeFailurePhase='INPUT_PREPARATION';
+    phase('INPUT_PREPARATION');
     pyodide.FS.mkdirTree(jobDir);
     const inputPath = writeTextFile(pyodide, jobDir, normalizedJob.sourceName || (sourceKind === 'inputxml' ? 'input.input.xml' : 'input.xml'), normalizedJob.sourceText);
     const stagedJsonPath = normalizedJob.stagedJsonText ? writeTextFile(pyodide, jobDir, `${outputStem(normalizedJob.sourceName)}_staged.json`, normalizedJob.stagedJsonText) : null;
@@ -250,7 +261,7 @@ async function runSerializedXmlCii2019Engine(job) {
 
     let topology = emptyTopologyResult();
     if (topologyRequested(normalizedJob)) {
-      nativeFailurePhase='TOPOLOGY_STAGE';
+      phase('TOPOLOGY_STAGE');
       topology = await runPsi116TopologyStage(pyodide, normalizedJob, inputPath, jobDir, stdout);
       Object.assign(partial, topology);
       postprocess.push({ branch: 'psi116-topology-sidecars', ...topology.topologySummary, findingsName: topology.topologyFindingsName, planName: topology.topologyFixPlanName });
@@ -271,7 +282,7 @@ async function runSerializedXmlCii2019Engine(job) {
 
     if (outputMode !== 'cii-only' && !massPacket) {
       if (sourceKind === 'xml') {
-        nativeFailurePhase='ENRICH_XML';
+        phase('ENRICH_XML');
         const enriched = await runEnrichedXml(pyodide, normalizedJob, paths, jobDir, stdout);
         const sif = applyStandaloneSifFacts(enriched.enrichedText, 'xml', normalizedJob.sifFacts);
         enrichedText = sif.text;
@@ -290,7 +301,7 @@ async function runSerializedXmlCii2019Engine(job) {
     }
     if (outputMode === 'cii-only' || outputMode === 'both') {
       const ciiPaths = { ...paths, inputPath: topology.ciiInputPath || paths.inputPath };
-      nativeFailurePhase='CII_CONVERSION';
+      phase('CII_CONVERSION');
       let cii;
       try { cii = await runCii(pyodide, normalizedJob, ciiPaths, jobDir, stdout, stderr); }
       finally {
@@ -301,10 +312,10 @@ async function runSerializedXmlCii2019Engine(job) {
       ciiText = cii.ciiText;
       ciiName = cii.ciiName;
       if (massPacket) {
-        nativeFailurePhase='MASS_PROOF_READ';
+        phase('MASS_PROOF_READ');
         const diagnostic=JSON.parse(pyodide.FS.readFile(xml229NativeMassProofPath,
           {encoding:'utf8'}));
-        nativeFailurePhase='MASS_PROOF_VERIFY';
+        phase('MASS_PROOF_VERIFY');
         if (diagnostic?.massesConsumedInNativeRigid !== true||
             diagnostic?.sourcePhysicalCount !== massPacket.physicalCount||
             diagnostic?.actualCiiSha256?.length !== 64||

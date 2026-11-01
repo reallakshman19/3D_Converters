@@ -6,6 +6,11 @@ import {execFileSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {requireXml229NativeOwnerPreflight}
+ from '../tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-owner-preflight.mjs';
+import {reconcileXml229ActualCiiAgainstFinal}
+ from '../converters/xml-cii2019-core/xml229-native-cii-independent-reconciliation.mjs';
+const python=process.env.PYTHON||(process.platform==='win32'?'python':'python3');
 
 export function registerXml229PythonWorkerRevisionTests({XML,SOURCE_ID,masters,selection,config,live,fixture,projectXmlCiiOccurrences,createPreviewBasis,digestUtf8,xmlCiiDryRunPreview,openXml229EngineeringFactModel}){
 test('optional Python source revisions are accepted by actual Preview Worker without implicit kg',async()=>{
@@ -23,7 +28,13 @@ test('optional Python source revisions are accepted by actual Preview Worker wit
   '\n<Node><NodeNumber>340</NodeNumber><ComponentType>INST</ComponentType>'+
   '<ComponentRefNo>1006649732/119370</ComponentRefNo><Endpoint>2</Endpoint>'+
   '<Position>830 0 0</Position><Weight>0</Weight></Node>\n';
- const original=onePair.replace('</Branch>',secondPair+'</Branch>');
+ // Use pipe context and two instruments; each accepted test mass then
+ // belongs to one of the instrument spans under examination.
+ const original=onePair.replace('<ComponentType>GASK</ComponentType>',
+  '<ComponentType>PIPE</ComponentType>')
+  .replace('<ComponentType>RIGID</ComponentType>','<ComponentType>PIPE</ComponentType>')
+  .replace('<Rigid>2</Rigid>','')
+  .replace('</Branch>',secondPair+'</Branch>');
  assert.notEqual(original,onePair);
  const dir=await mkdtemp(join(tmpdir(),'xml229-instrument-worker-'));
  try{
@@ -35,14 +46,14 @@ test('optional Python source revisions are accepted by actual Preview Worker wit
    const manifest=join(dir,'suggestions-'+selected+'.json');
    const revisedPath=join(dir,'revised-'+selected+'.xml');
    const receiptPath=join(dir,'receipt-'+selected+'.json');
-   execFileSync('python3',[py,'inspect','--source',input,'--manifest',manifest],
+   execFileSync(python,[py,'inspect','--source',input,'--manifest',manifest],
     {encoding:'utf8',timeout:30000});
    const choices=JSON.parse(await readFile(manifest,'utf8'));
    assert.equal(choices.components.length,2);
    for(const item of choices.components.slice(0,selected))
     item.classification='RIGID';
    await writeFile(manifest,JSON.stringify(choices));
-   execFileSync('python3',[py,'apply','--source',input,'--manifest',manifest,
+   execFileSync(python,[py,'apply','--source',input,'--manifest',manifest,
     '--revised-source',revisedPath,'--receipt',receiptPath],
     {encoding:'utf8',timeout:30000});
    const xml=await readFile(revisedPath,'utf8');
@@ -66,18 +77,48 @@ test('optional Python source revisions are accepted by actual Preview Worker wit
      engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},
     expectedOriginalCount:projected.branchCount+projected.nodeCount});
    const geometry=opened.finalizedGeometry;
-   assert.equal(geometry.instrumentModelingSuggestions.length,2-selected,
-    'Worker eligibility must agree with the companion source revision');
-   assert.equal(geometry.rigidEdgePromotions.length,0,
-    'Worker must not auto-promote an instrument span');
+   assert.equal(geometry.instrumentModelingSuggestions.length,0);
+   assert.equal(geometry.rigidEdgePromotions.length,2-selected,
+    'Worker classifies only instrument spans not already rigid in source');
    assert.equal(geometry.physicalOwnerCardinality.weightsAccepted,false);
    assert.equal(geometry.sourceXmlSha256,basis.sourceRefs[0].sha256);
    const facts=await opened.model.getFacts({basisId:basis.basisId,
     subjectType:'physical-component',limit:100});
    const mass=facts.items.filter(row=>row.fieldId==='mass.kg');
-   assert.equal(mass.length,3,'one rigid plus two instrument mass owners');
+   assert.equal(mass.length,2,'two instrument mass owners');
    assert(mass.every(row=>row.value===null&&row.authority==='unresolved'),
     'source zero kg must not become accepted mass on selecting Rigid');
+   if(selected===0||selected===2){
+    // Synthetic Final masses test the real native writer and the separate
+    // emitted-CII checker; these are not accepted Owner engineering weights.
+    const packet={schema:'XML229.NativeFinalPhysicalPacket.v1',sourceId:SOURCE_ID,
+     nativeCiiReleaseAuthorized:false,
+     sourceGenerationId:'synthetic-inst-worker-test',
+     sourceXmlSha256:await digestUtf8(xml),basisId:basis.basisId,
+     finalIntentSha256:await digestUtf8('synthetic-inst-test'),
+     physicalCount:opened.physicalOccurrences.length,finalizedGeometry:geometry,
+     components:opened.physicalOccurrences.map((row,i)=>({
+      occurrenceId:row.occurrenceId,effectiveKg:i===1?0:12.5+i})),
+    };
+    assert.equal(requireXml229NativeOwnerPreflight(packet).unsupportedOwners.length,0);
+    const packetPath=join(dir,'packet-'+selected+'.json');
+    const ciiPath=join(dir,'native-'+selected+'.cii');
+    const proofPath=join(dir,'native-'+selected+'.json');
+    await writeFile(packetPath,JSON.stringify(packet));
+    const runner=fileURLToPath(new URL(
+     '../converters/scripts/xml_to_cii2019_runtime_custody.py',import.meta.url));
+    execFileSync(python,[runner,'--input',revisedPath,'--output',ciiPath,
+     '--weight-scale','10','--xml229-native-final-packet',packetPath,
+     '--xml229-native-mass-proof',proofPath],{encoding:'utf8',timeout:30000});
+    const ciiText=await readFile(ciiPath,'utf8');
+    const diagnostic=JSON.parse(await readFile(proofPath,'utf8'));
+    const verified=await reconcileXml229ActualCiiAgainstFinal({
+     originalXmlText:xml,packet,ciiText,writerDiagnostic:diagnostic});
+    assert.equal(verified.massConsumptionVerified,true);
+    assert.equal(verified.physicalCount,2);
+    assert.equal(verified.strictOneToOneOwnerMatch,true);
+    assert.equal(diagnostic.claimedNativeRigidCount,2);
+   }
   }
  }finally{
   await rm(dir,{recursive:true,force:true});
@@ -97,7 +138,7 @@ test('real 41-branch EF-05 Python 0/1/3/14 selections reconcile with JavaScript 
  const workspace=await mkdtemp(join(tmpdir(),'xml229-ef05-real-worker-'));
  try{
   const planPath=join(workspace,'all-pending.json');
-  execFileSync('python3',[cli,'inspect','--source',originalPath,'--manifest',planPath],
+  execFileSync(python,[cli,'inspect','--source',originalPath,'--manifest',planPath],
    {encoding:'utf8',timeout:30000});
   const pending=JSON.parse(await readFile(planPath,'utf8'));
   assert.equal(pending.components.length,14);
@@ -110,7 +151,7 @@ test('real 41-branch EF-05 Python 0/1/3/14 selections reconcile with JavaScript 
    for(const row of choices.components.slice(0,count))
     row.classification='RIGID';
    await writeFile(manifest,JSON.stringify(choices));
-   execFileSync('python3',[cli,'apply','--source',originalPath,
+   execFileSync(python,[cli,'apply','--source',originalPath,
     '--manifest',manifest,'--revised-source',revision,'--receipt',receiptPath],
     {encoding:'utf8',timeout:30000});
    const revisedBytes=await readFile(revision);
@@ -146,8 +187,9 @@ test('real 41-branch EF-05 Python 0/1/3/14 selections reconcile with JavaScript 
      originalProjection.branchCount+originalProjection.nodeCount});
    const g=opened.finalizedGeometry;
    assert.equal(originalProjection.branchCount,41);
-   assert.equal(g.instrumentModelingSuggestions.length,14-count,
-    'actual Worker must omit exactly the chosen rigid classifications');
+   assert.equal(g.instrumentModelingSuggestions.length,0);
+   assert.equal(g.rigidEdgePromotions.filter(x=>x.componentType==='INST').length,
+    14-count,'all remaining INST spans are classified before Final');
    assert.equal(g.physicalOwnerCardinality.weightsAccepted,false);
    assert.equal(g.basisId,newBasis.basisId);
    assert.equal(g.sourceXmlSha256,newBasis.sourceRefs[0].sha256);
@@ -155,8 +197,8 @@ test('real 41-branch EF-05 Python 0/1/3/14 selections reconcile with JavaScript 
    // the separately serialized, ordinal-preserving Worker Preview document.
    const expected=new Set(choices.components.slice(count).map(x=>
     JSON.stringify([x.branchOccurrenceIndex,x.endSourceNodeOrdinal,
-     x.componentRefNo])));
-   const observed=new Set(g.instrumentModelingSuggestions.map(x=>
+     x.componentRefNo.replace(/^=/,'').replace(/\s+/g,'').toUpperCase()])));
+   const observed=new Set(g.rigidEdgePromotions.filter(x=>x.componentType==='INST').map(x=>
     JSON.stringify([x.branchOccurrenceIndex,x.secondSourceNodeOrdinal,
      x.componentRefNo])));
    assert.deepEqual(observed,expected);

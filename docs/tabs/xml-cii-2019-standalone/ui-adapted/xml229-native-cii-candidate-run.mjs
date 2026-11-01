@@ -15,6 +15,7 @@ import {requireXml229NativeOwnerPreflight} from './xml229-native-owner-preflight
 import {diagnoseXml229NativeConverterFailure} from './xml229-native-converter-failure-diagnostic.mjs';
 
 import {nativeEnrichedFields} from '../../../converters/xml-cii-2019-standalone/native-enriched-artifact.js';
+import {reportNativeRunPhase} from '../../../converters/xml-cii-2019-standalone/engine-progress.mjs';
 
 async function currentEnrichedArtifact(native,packet,session,isCurrent){
  try {
@@ -26,13 +27,15 @@ async function currentEnrichedArtifact(native,packet,session,isCurrent){
 
 const fail=(code)=>{const error=new Error(code);error.code=code;throw error;};
 
-export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=()=>true}={}){
+export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=()=>true,onProgress}={}){
+ const progress=phase=>reportNativeRunPhase(onProgress,phase);
  if(state?.options?.generateTopoFix===true||state?.options?.useTopoFixForCii===true||state?.xml229TopoFixFreshReviewPending)
   fail('NATIVE_TOPOFIX_PREFINAL_REVIEW_REQUIRED');
  if(!state||typeof session?.readNativeFinalPacket!=='function'||
     typeof session?.readCompletion!=='function'||
     typeof isCurrent!=='function'||!isCurrent())
   fail('NATIVE_CANDIDATE_CURRENT_WORKER_REQUIRED');
+ progress('READING_FINAL_MASSES');
  const before=await session.readCompletion();
  if(!isCurrent()||before?.verifiedPhysicalCount<1||
     before.counts?.unresolved!==0||before.counts?.match1!==0)
@@ -48,7 +51,8 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
  requireXml229NativeOwnerPreflight(packet);
  // Use the exact independently owned original XML, NOT the selected subset
  // or a cached Preview table. The Python native writer verifies the full SHA.
- const attachment=!state.stagedJsonFile&&!state.stagedJsonText&&
+ progress('RESOLVING_SOURCE');
+ const attachment=packet.reviewSourceKind==='XML_ONLY'?null:!state.stagedJsonFile&&!state.stagedJsonText&&
    typeof session.readNativeOriginalJsonForEngine==='function'
      ?await session.readNativeOriginalJsonForEngine({packet})
      :getXml229NativeJsonReattachment(session);
@@ -58,10 +62,12 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
  if(!isCurrent())fail('NATIVE_CANDIDATE_BASIS_STALE');
  const options={
   ...workflowOptionsFromState(state),
+  ...(packet.reviewSourceKind==='XML_ONLY'?{useRestraintTypeBasedOnJson:false}:{}),
   outputMode:'cii-only',kgToNewton:true,
   analyzeTopology:false,generateTopoFix:false,useTopoFixForCii:false,
   topologyActionIds:[],
  };
+ progress('BUILDING_CONFIGURATION');
  const job={
   sourceKind:'xml',sourceName:sourceNameFromState(state),
   sourceText,stagedJsonText,
@@ -69,7 +75,8 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   options,xml229NativeFinalPacket:packet,
  };
  if(!isCurrent())fail('NATIVE_CANDIDATE_BASIS_STALE');
- const native=await runXmlCii2019StandaloneEngineJob(job);
+ const native=await runXmlCii2019StandaloneEngineJob(job,{onProgress});
+ progress('ENGINE_RESULT');
  if(!isCurrent())fail('NATIVE_CANDIDATE_BASIS_STALE');
  if(native?.ok!==true||!native.ciiText||!native.xml229NativeMassDiagnostic){
   // Preserve the actual native basis guard instead of masking it behind a
@@ -77,10 +84,12 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   // then accept weights against that new source basis.
   const diagnosis=diagnoseXml229NativeConverterFailure(native);
   throw Object.assign(new Error(diagnosis.code),{
-    code:diagnosis.code,xml229NativeFailure:diagnosis,
+    code:diagnosis.code,phase:native?.nativePythonFailure?.stage||native?.nativeFailurePhase,
+    xml229NativeFailure:diagnosis,
     xml229EnrichedArtifact:await currentEnrichedArtifact(native,packet,session,isCurrent),
   });
  }
+ progress('VERIFYING_CII');
  let independent;
  try { independent=await reconcileXml229ActualCiiAgainstFinal({
   originalXmlText:sourceText,packet,ciiText:native.ciiText,
@@ -89,6 +98,7 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   error.xml229EnrichedArtifact=await currentEnrichedArtifact(native,packet,session,isCurrent);
   throw error;
  }
+ progress('RECHECKING_FINAL');
  const after=await session.readNativeFinalIntent();
  const finished=await session.readCompletion();
  if(!isCurrent()||after?.intentSha256!==packet.finalIntentSha256||
@@ -103,6 +113,7 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   fail('NATIVE_CANDIDATE_FINAL_CHANGED_OR_OUTPUT_UNVERIFIED');
  return Object.freeze({
   schema:'XML229.GovernedNativeCandidateResult.v1',
+  ...(packet.reviewSourceKind==='XML_ONLY'?{reviewSourceKind:'XML_ONLY'}:{}),
   ...nativeEnrichedFields(native),
   status:independent.status,
   basisId:packet.basisId,sourceId:packet.sourceId,

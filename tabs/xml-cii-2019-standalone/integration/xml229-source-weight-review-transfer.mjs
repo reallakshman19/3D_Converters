@@ -11,13 +11,15 @@ const SCHEMA='XML229.SourceBoundGC-PWReviewBackup.v1';
 const fail=(code,detail)=>{const e=new Error(detail||code);e.code=code;throw e;};
 const obj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
 const sha=x=>typeof x==='string'&&/^[0-9a-f]{64}$/i.test(x);
+const xmlOnly=p=>p?.reviewSourceKind==='XML_ONLY'&&p.originalJsonSha256===null&&
+ sha(p.sourceXmlSha256)&&p.sourceGenerationId==='xml-only:sha256:'+p.sourceXmlSha256;
 const count=x=>Number.isSafeInteger(x)&&x>=0;
 const validCounts=c=>obj(c)&&['source','match1','final','unresolved']
   .every(k=>count(c[k]));
 const checkProof=(proof,basisId,sourceId)=>{
  if(!obj(proof)||proof.basisId!==basisId||proof.sourceId!==sourceId||
   proof.engineeringFactsVerified!==true||proof.ciiReleaseAuthorized!==false||
-  !sha(proof.originalJsonSha256)||
+  (!sha(proof.originalJsonSha256)&&!xmlOnly(proof))||
   typeof proof.sourceGenerationId!=='string'||!proof.sourceGenerationId||
   !count(proof.verifiedPhysicalCount)||proof.verifiedPhysicalCount<1||
   proof.verifiedFactCount!==proof.verifiedPhysicalCount*7||
@@ -40,6 +42,7 @@ export async function exportXml229SourceBoundReviewBackup(review,{
  return {
   schema:SCHEMA,basisId,sourceId,
   originalJsonSha256:proof.originalJsonSha256,
+  ...(xmlOnly(proof)?{reviewSourceKind:'XML_ONLY',sourceXmlSha256:proof.sourceXmlSha256}:{}),
   captureSourceGenerationId:proof.sourceGenerationId,
   physicalCount:proof.verifiedPhysicalCount,
   factCount:proof.verifiedFactCount,
@@ -59,7 +62,8 @@ export async function restoreXml229SourceBoundReviewBackup(review,backup,{
   fail('REVIEW_BACKUP_SCHEMA_INVALID','Expected original-source GC-PW review backup schema');
  if(backup.basisId!==basisId||backup.sourceId!==sourceId||
    backup.originalJsonSha256!==proof.originalJsonSha256||
-   !sha(backup.originalJsonSha256))
+   (!sha(backup.originalJsonSha256)&&!(xmlOnly(proof)&&
+     backup.reviewSourceKind==='XML_ONLY'&&backup.sourceXmlSha256===proof.sourceXmlSha256)))
   fail('STALE_REVIEW_BACKUP',
    'Backup is bound to a different verified source, staged JSON or exact InputBasis');
  if(typeof backup.captureSourceGenerationId!=='string'||

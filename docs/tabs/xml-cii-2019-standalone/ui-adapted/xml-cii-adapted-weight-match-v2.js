@@ -200,7 +200,8 @@ function persistSharedWeightMatchConfig(stateRef, nextConfig, baseline, calculat
 export function renderAdaptedWeightMatchPanelV2(card, stateRef, options = {}) {
   const source=(stateRef?.modeABaseRef||stateRef)?.current||{};
   const receipt=stateRef?.current?.xml229StagedSourceReceipt||source.xml229StagedSourceReceipt;
-  if(receipt?.schema==='XML229.OriginalStagedSourceReceipt.v1'){
+  if(receipt?.schema==='XML229.OriginalStagedSourceReceipt.v1'||
+    source.xmlProcessingMode!=='mode-b'&&/<PipeStressExport(?:\s|>)/.test(source.sourceText||'')){
     // One existing Weight Match stage, source-verifiable original GC-PW.
     // Legacy issue.key writes are never authoritative for the O1 route.
     return installXml229WorkerHeldWeightPanel(card,stateRef,{existingWorkflow:true});

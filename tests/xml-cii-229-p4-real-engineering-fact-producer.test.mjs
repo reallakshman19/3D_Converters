@@ -172,7 +172,7 @@ test('physical endpoint pairs are identified before accepting weights, without m
               await digestUtf8(opened.finalizedGeometry.xmlText));
 });
 
-test('instrument pair suggests but never requires classification or modifies Rigid',async()=>{
+test('instrument pair is classified rigid before Final without accepting kg',async()=>{
  const xml=XML.replace('<ComponentType>VALV</ComponentType>',
                        '<ComponentType>INST</ComponentType>')
   .replace('<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>2</Endpoint>',
@@ -190,12 +190,15 @@ test('instrument pair suggests but never requires classification or modifies Rig
   expectedOriginalCount:original.branchCount+original.nodeCount,
  });
  const final=opened.finalizedGeometry;
- assert.equal(final.instrumentModelingSuggestions.length,1);
- assert.equal(final.instrumentModelingSuggestions[0].status,'OPTIONAL_REVIEW');
- assert.equal(final.instrumentModelingSuggestions[0].approvalRequiredToView,false);
- assert.equal(final.instrumentModelingSuggestions[0].automaticClassificationApplied,false);
- assert.equal(final.instrumentModelingSuggestions[0].sourceWeightIsAccepted,false);
- assert.equal(final.rigidEdgePromotions.length,0);
+ assert.equal(final.instrumentModelingSuggestions.length,0);
+ assert.deepEqual(final.rigidEdgePromotions,[{
+  branchOccurrenceIndex:0,firstSourceNodeOrdinal:2,secondSourceNodeOrdinal:3,
+  componentType:'INST',componentRefNo:'1006649732/119369',distanceMm:119,
+ }]);
+ assert.equal(final.physicalOwnerCardinality.weightsAccepted,false);
+ assert.match(final.xmlText,/<Rigid>2<\/Rigid>/);
+ assert.equal((xml.match(/<Rigid>2<\/Rigid>/g)||[]).length,1,
+  'original source retains only its original rigid marker');
  assert.equal(final.physicalOwnerCardinality.distinctPhysicalPartCandidates,2);
  assert.equal(opened.physicalOccurrences.length,2);
  assert.match(final.xmlText,/<ComponentType>INST<\/ComponentType>/);

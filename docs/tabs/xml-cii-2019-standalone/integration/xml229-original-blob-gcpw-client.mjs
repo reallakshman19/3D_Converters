@@ -10,6 +10,7 @@
 import {physicalOccurrenceId}
  from '../../../contracts/gc-pw-v1/occurrence-bridge.mjs';
 import {attestXml229IndexedJsonForNative} from './xml229-native-indexed-json-handoff.mjs';
+import {resolveXml229ReviewSourceInput} from './xml229-review-source-input.mjs';
 
 const PROTOCOL='XML229.P4.WorkerHeldOriginalJsonGC-PW.v1';
 const CENSUS='XML229.P4.OriginalWeightCensus.v1';
@@ -49,6 +50,7 @@ function independentCensus({xmlText,sourceId,config,requestId,workerFactory,
 export async function openXml229WorkerHeldOriginalWeightReview({
  xmlText,sourceId,masters,selection,config,overrides={},
  originalStagedBlob,originalStagedSourceReceipt,requestId,maxPhysical=10000,
+ reviewSourceKind,sourceXmlSha256,
  isCurrent,onProgress=()=>{},onFlowTrace=()=>{},signal=null,
  censusTimeoutMs=120000,phaseTimeoutMs=180000,startupTimeoutMs=720000,
  censusWorkerFactory=()=>new Worker(new URL('./xml229-original-physical-census-worker.mjs',import.meta.url),
@@ -67,6 +69,12 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    throw err('ORIGINAL_SOURCE_SCOPE_REQUIRED',
      'Original XML, one full source selection, masters and config required');
  if(!isCurrent())throw err('STALE_INPUT','Original source changed before Worker start');
+ const sourceInput=reviewSourceKind==='XML_ONLY'
+   ? await resolveXml229ReviewSourceInput({reviewSourceKind,sourceXmlSha256,
+     xmlText,originalStagedBlob,originalStagedSourceReceipt})
+   : {kind:'XML_WITH_JSON',identity:originalStagedSourceReceipt};
+ const sourceIdentity=sourceInput.identity;
+ if(!sourceIdentity)throw err('ORIGINAL_STAGED_BLOB_NOT_ATTESTED','Selected JSON source receipt missing');
  const emit=(kind,actor,extra={})=>{try{onFlowTrace({kind,actor,...extra})}catch{}};
  emit('CENSUS_REQUESTED','ui-controller');
  const census=await independentCensus({xmlText,sourceId,config,requestId,
@@ -129,8 +137,10 @@ export async function openXml229WorkerHeldOriginalWeightReview({
    if(m.state==='ready'){
      if(!m.engineeringFactsVerified||m.weightEngineeringAccepted!==false||
         m.finalEngineeringAccepted!==false||
-        m.originalJsonSha256!==originalStagedSourceReceipt?.sha256||
-        m.sourceGenerationId!==originalStagedSourceReceipt?.generationId||
+        m.originalJsonSha256!==sourceIdentity.sha256||
+        m.sourceGenerationId!==sourceIdentity.generationId||
+        sourceInput.kind==='XML_ONLY'&&(m.reviewSourceKind!=='XML_ONLY'||
+          m.sourceXmlSha256!==sourceInput.xmlSha256)||
         m.sourceId!==sourceId||m.physicalCount!==census.counts.physical){
        stop(err('UNVERIFIED_WEIGHT_RESPONSE','Worker asserted wrong original source/fact population'));return;
      }
@@ -173,6 +183,7 @@ export async function openXml229WorkerHeldOriginalWeightReview({
      startupTimeoutMs);
    send({kind:'start',xmlText,sourceId,masters,selection,config,overrides,
      originalStagedBlob,originalStagedSourceReceipt,
+     reviewSourceKind,sourceXmlSha256,
      independentSourceOccurrences:census.independentSourceOccurrences,
      independentPhysicalOccurrences:census.independentPhysicalOccurrences,
      expectedOriginalCount:census.counts.original,maxPhysical});
@@ -216,8 +227,8 @@ export async function openXml229WorkerHeldOriginalWeightReview({
      const result=await rpc({kind:'read',what:'preview',sourceId});
      if(result?.engineeringAcceptance!=='NOT_ASSESSED'||
        result?.fullFactPopulationAccepted!==false||
-       result?.originalStagedSourceSha256!==originalStagedSourceReceipt.sha256||
-       result?.originalStagedSourceGeneration!==originalStagedSourceReceipt.generationId||
+       result?.originalStagedSourceSha256!==sourceIdentity.sha256||
+       result?.originalStagedSourceGeneration!==sourceIdentity.generationId||
        !Array.isArray(result?.branchRows)||!Array.isArray(result?.nodeRows)||
        result?.sourceOccurrences?.branches?.length!==result?.coverage?.sourceBranchCount)
        throw err('VERIFIED_PREVIEW_PRESENTATION_DRIFT',

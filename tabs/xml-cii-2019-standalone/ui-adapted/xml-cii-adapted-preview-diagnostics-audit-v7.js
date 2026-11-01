@@ -22,6 +22,7 @@ import {
 } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 
 import {resolveXml229CurrentPreviewBlob} from './xml-cii-adapted-lfj-o1-intake.js';
+import {hasXml229PreviewJsonSource} from './xml229-preview-json-source.mjs';
 import {xmlCiiBranchScopeFromState} from '../xml-cii-branch-scope.js';
 
 export { renderStandaloneDiagnosticsReportPanel };
@@ -44,13 +45,14 @@ function esc(value) {
 }
 
 function modeASourceInputs(stateRef, sourceId) {
-  if (!sourceId || !stateRef?.modeABaseRef) return null;
   // Read the underlying batch state: sourceRef.current rebuilds the selected
   // XML scope, including a full XML parse, on every access.
-  const base = stateRef.modeABaseRef.current;
-  const source = base?.sourceBatch?.sources?.find((row) => row.sourceId === sourceId);
+  const base = stateRef?.modeABaseRef?.current || stateRef?.current;
+  if (!base) return null;
+  const source = stateRef?.modeABaseRef && sourceId
+    ? base.sourceBatch?.sources?.find((row) => row.sourceId === sourceId) : base;
   if (!source) return null;
-  const active = base.sourceBatch.activeSourceId === sourceId;
+  const active = source === base || base.sourceBatch?.activeSourceId === sourceId;
   return {
     sourceText: active ? base.sourceText : source.sourceText,
     sourceFile: active ? base.sourceFile : source.sourceFile,
@@ -143,8 +145,11 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
     // XML229 production B1 route. This callback never puts File/Blob into
     // state or reads/parses the JSON on the UI thread; the original source
     // Worker will independently verify its complete SHA before Preview.
-    openVerifiedEngineeringSession: ({onProgress,signal}={})=>
-      openXml229P4VerifiedSession(stateRef,{onProgress,signal}),
+    ...(state.xmlProcessingMode!=='mode-b'&&/<PipeStressExport(?:\s|>)/.test(xmlText)?{
+      openVerifiedEngineeringSession: ({onProgress,signal}={})=>
+        openXml229P4VerifiedSession(stateRef,{onProgress,signal}),
+    }:{}),
+    ...(hasXml229PreviewJsonSource(state) ? {
     resolveOriginalWorkerPreviewSource: async () => {
       if(currentJsonTraceScopeId() !== capturedJsonTraceScopeId)
         throw Object.assign(new Error('Original Owner/zone selection changed; rebuild Preview'),
@@ -174,6 +179,7 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
       return resolveXml229CurrentPreviewBlob(
         stateRef?.modeABaseRef||stateRef,options.originalStagedSourceReceipt);
     },
+    } : {}),
     resolveStagedJsonText: async () => {
       if (!previewInputsCurrent(card, stateRef, state.modeASourceId, sourceInputs)) {
         throw new Error('Preview source or branch selection changed during build; rebuild Preview.');
@@ -187,8 +193,7 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
     // verified original-source engineering Preview or substitute an unrelated
     // legacy localStorage result. A full reload without its Worker must Build.
     const originalState=stateRef?.modeABaseRef?.current||state;
-    const governed=originalState?.xml229StagedSourceReceipt?.schema===
-      'XML229.OriginalStagedSourceReceipt.v1';
+    const governed=typeof options.openVerifiedEngineeringSession==='function';
     let previewResult=null;
     const existing=governed?getXml229CurrentWorkerHeldReview(stateRef):null;
     if(existing){
@@ -209,8 +214,9 @@ export async function renderStandalonePreviewReportPanel(card, stateRef, render)
         host.__xmlCiiPreviewOriginalOccurrences=result.sourceOccurrences;
         host.__xmlCiiVerifiedEngineeringReceipt=proof;
         host.dataset.mcPreviewBasisId=receipt.basisId;
-        host.dataset.mcPreviewOriginalJsonSha256=proof.originalJsonSha256;
-        host.dataset.mcPreviewJsonSource='P4_ENGINEERING_VERIFIED';
+        if(proof.originalJsonSha256)host.dataset.mcPreviewOriginalJsonSha256=proof.originalJsonSha256;
+        if(receipt.reviewSourceKind==='XML_ONLY')host.dataset.mcPreviewJsonSource='XML_ONLY_ENGINEERING_VERIFIED';
+        else host.dataset.mcPreviewJsonSource='P4_ENGINEERING_VERIFIED';
         const evidence=document.createElement('div');
         evidence.setAttribute('data-mc-preview-verified-engineering','');
         evidence.setAttribute('role','status');

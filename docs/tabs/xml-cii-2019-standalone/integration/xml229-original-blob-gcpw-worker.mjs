@@ -49,13 +49,11 @@ import {projectXml229AuditedDecisionProvenance}
 import {exportXml229SourceBoundReviewBackup,restoreXml229SourceBoundReviewBackup}
  from './xml229-source-weight-review-transfer.mjs';
 
+import {resolveXml229ReviewSourceInput} from './xml229-review-source-input.mjs';
 installWeightBasisXmlDom(globalThis);
 const PROTOCOL='XML229.P4.WorkerHeldOriginalJsonGC-PW.v1';
-const MAX_BLOB_BYTES=100*1024*1024,MAX_ORIGINAL_COUNT=250000,MAX_PHYSICAL=10000;
-const hash=v=>typeof v==='string'&&/^[0-9a-f]{64}$/.test(v);
+const MAX_ORIGINAL_COUNT=250000,MAX_PHYSICAL=10000;
 const fail=(code,message)=>{const e=new Error(message);e.code=code;e.retryable=false;throw e;};
-const toHex=bytes=>Array.from(new Uint8Array(bytes),
-  b=>b.toString(16).padStart(2,'0')).join('');
 let started=false,active='',cancelled=false,ready=null,sourceReceipt=null,physicalIdentityList=null,originalXmlCustody=null,verifiedPreviewResult=null,finalizedGeometry=null;
 let weightProjection=null,pendingBulk=null,bulkSequence=0,previewAbortController=null;
 // Only contemporaneous successful Worker RPCs prove bulk confirmation.
@@ -65,21 +63,6 @@ const progress=(id,stage)=>post(id,{state:'progress',stage});
 // Bounded categorical events only; request/source/master bytes never leave Worker.
 const flow=(id,kind,counts)=>post(id,{state:'flow-trace',trace:{kind,
   ...(counts?{counts}:{}),actor:'gc-pw-worker'}});
-const sourceReceiptCheck=(r,blob)=>{
- if(r?.schema!=='XML229.OriginalStagedSourceReceipt.v1'||
-    r.phase!=='INDEX_COMMITTED'||r.rightsBasis!=='SOURCE_FACTS_ONLY'||
-    r.engineeringReady!==false||!hash(r.sha256)||
-    typeof r.sourceRevision!=='string'||
-    !r.sourceRevision.endsWith(':sha256:'+r.sha256)||
-    !r.generationId||!r.sourceRefId||
-    !Number.isSafeInteger(r.occurrenceCount)||r.occurrenceCount<1||
-    r.occurrenceCount>2000000||
-    !Number.isSafeInteger(r.pageCount)||r.pageCount<1||
-    !(blob instanceof Blob)||blob.size!==r.byteLength||
-    blob.size<=0||blob.size>MAX_BLOB_BYTES)
-   fail('ORIGINAL_STAGED_BLOB_NOT_ATTESTED',
-    'Original O1 Blob/receipt is not independently committed or outside 100 MiB/2m range');
-};
 function exactCensus(prepared,req,original){
  const sourceIds=[...original.branches,...original.nodes].map(x=>
     JSON.stringify([x.subjectType,x.sourceId,x.occurrenceId]));
@@ -102,7 +85,7 @@ function exactCensus(prepared,req,original){
 }
 async function start(req){
  const {sourceId,xmlText,masters,selection,config,overrides={},originalStagedBlob,
-   originalStagedSourceReceipt:r,expectedOriginalCount}=req;
+   expectedOriginalCount}=req;
  if(typeof xmlText!=='string'||!xmlText.trim()||
     typeof sourceId!=='string'||!sourceId.trim()||
     !masters||typeof masters!=='object'||
@@ -111,15 +94,12 @@ async function start(req){
     selection[0].selectionRef!=='all')
    fail('ORIGINAL_XML_FULL_SCOPE_REQUIRED',
      'One full original Mode A XML, current masters, selected scope and config required');
- sourceReceiptCheck(r,originalStagedBlob);
+ const sourceInput=await resolveXml229ReviewSourceInput(req);
+ const r=sourceInput.identity;
  flow(req.requestId,'GC_PW_WORKER_STARTED');
- progress(req.requestId,'original-json-blob-sha256');
- const buffer=await originalStagedBlob.arrayBuffer();
- const actualSha=toHex(await crypto.subtle.digest('SHA-256',buffer));
- if(actualSha!==r.sha256)
-   fail('ORIGINAL_JSON_SHA256_DRIFT','Worker-held JSON Blob no longer matches original O1 receipt');
+ progress(req.requestId,sourceInput.kind==='XML_ONLY'?'original-xml-sha256':'original-json-blob-sha256');
  if(cancelled)return;
- const stagedSource=new TextDecoder('utf-8',{fatal:true}).decode(buffer);
+ const stagedSource=sourceInput.stagedSource;
  const sources=[{sourceId,mediaType:'application/xml',text:xmlText}];
  progress(req.requestId,'full-original-source-master-basis');
  const basis=await createPreviewBasis({domainId:'xml-cii/2019',sources,selection,masters,
@@ -131,7 +111,7 @@ async function start(req){
     expectedOriginalCount!==original.branchCount+original.nodeCount||
     expectedOriginalCount>MAX_ORIGINAL_COUNT)
    fail('ORIGINAL_XML_SCOPE_OR_SCALE_DRIFT','Original branch/node census wrong or exceeds bounded Worker budget');
- progress(req.requestId,'engineering-preview-using-actual-json');
+ progress(req.requestId,sourceInput.kind==='XML_ONLY'?'engineering-preview-xml-only':'engineering-preview-using-actual-json');
  flow(req.requestId,'PREVIEW_CHILD_REQUESTED');
  // Dry-run enrichers may normalize nested master/config rows. Do not lend
  // their mutable working view the already-attested GC-PW master buffers.
@@ -141,6 +121,7 @@ async function start(req){
    computed=await runXml229IndependentEngineeringPreview({
      requestId:req.requestId,sourceId,basisId:basis.basisId,
      sourceGenerationId:r.generationId,originalJsonSha256:r.sha256,
+     reviewSourceKind:sourceInput.kind,sourceXmlSha256:sourceInput.xmlSha256,
      originalStagedBlob,xmlText,config,signal:abort.signal,
      onProgress:stage=>progress(req.requestId,stage),
    });
@@ -204,6 +185,7 @@ async function start(req){
  flow(req.requestId,'GC_PW_READY',{physical:produced.physicalOccurrences.length,
    facts:session.openedFacts});
  post(req.requestId,{state:'ready',basisId:basis.basisId,
+   reviewSourceKind:sourceInput.kind,sourceXmlSha256:sourceInput.xmlSha256,
    originalJsonSha256:r.sha256,sourceGenerationId:r.generationId,
    sourceId,originalCount:produced.workerOriginalCount,
    physicalCount:produced.physicalOccurrences.length,
@@ -239,6 +221,8 @@ function currentRunAdvisory(){
      fail('GC_PW_FULL_SOURCE_COMPLETENESS_DRIFT',
        'All original physical occurrences and FactRecords must be accounted for');
    return {schema:'XML229.P4.RunAdvisory.v1',basisId,sourceId:ready.basis.scope[0]?.sourceId,
+     ...(sourceReceipt.schema==='XML229.XmlOnlyReviewSource.v1'?{
+       reviewSourceKind:'XML_ONLY',sourceXmlSha256:ready.basis.sourceRefs[0].sha256}:{}),
      originalJsonSha256:sourceReceipt.sha256,
      sourceGenerationId:sourceReceipt.generationId,
      verifiedPhysicalCount:full.physicalCount,
@@ -274,6 +258,8 @@ async function rpc(req){
  const {sourceId,occurrenceId,stage}=req;
  const review=ready.review,basisId=ready.basis.basisId;
  if(req.kind==='read'){
+   if(sourceReceipt.schema==='XML229.XmlOnlyReviewSource.v1'&&req.what==='attest-engine-input')
+     fail('NATIVE_XML_ONLY_R2_ATTESTATION_NOT_SUPPORTED');
    if(req.what==='instrument-suggestions'){
      return {schema:'XML229.OptionalInstrumentModelSuggestions.v1',
        basisId,sourceXmlSha256:finalizedGeometry?.sourceXmlSha256,
@@ -300,6 +286,7 @@ async function rpc(req){
    }
    if(req.what==='native-final-intent'){
      return commitXml229NativeFinalIntent(ready,{
+       ...(sourceReceipt.schema==='XML229.XmlOnlyReviewSource.v1'?{reviewSourceKind:'XML_ONLY',sourceXmlSha256:ready.basis.sourceRefs[0].sha256}:{}),
        originalJsonSha256:sourceReceipt.sha256,
        sourceGenerationId:sourceReceipt.generationId,
      });
@@ -308,6 +295,7 @@ async function rpc(req){
      // Private Worker-owned weight input to the native converter. This is
      // actual accepted Source/Final mass, never candidate or localStorage.
      const intent=await commitXml229NativeFinalIntent(ready,{
+       ...(sourceReceipt.schema==='XML229.XmlOnlyReviewSource.v1'?{reviewSourceKind:'XML_ONLY',sourceXmlSha256:ready.basis.sourceRefs[0].sha256}:{}),
        originalJsonSha256:sourceReceipt.sha256,
        sourceGenerationId:sourceReceipt.generationId,
      });
@@ -325,6 +313,7 @@ async function rpc(req){
          'Every original physical needs an accepted nonnegative Source/Final mass; native zero-mass lineage is verified separately');
      return {
        schema:'XML229.NativeFinalPhysicalPacket.v1',
+       ...(sourceReceipt.schema==='XML229.XmlOnlyReviewSource.v1'?{reviewSourceKind:'XML_ONLY'}:{}),
        basisId:full.basisId,sourceId,
        originalJsonSha256:sourceReceipt.sha256,
        sourceGenerationId:sourceReceipt.generationId,

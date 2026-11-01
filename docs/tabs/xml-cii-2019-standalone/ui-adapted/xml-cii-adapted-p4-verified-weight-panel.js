@@ -3,11 +3,12 @@ import {installXml229TopoFixFreshStartControl} from './xml229-topofix-fresh-work
 import {canXml229AutoCommitSuggestedFinal} from '../integration/xml229-topofix-fresh-worker-handoff.mjs';
 import {xml229P4ConfigEquivalent as configEquivalent} from './xml229-p4-config-equivalence.mjs';
 import {renderXml229VerifiedPanelShell} from './xml229-p4-panel-shell.mjs';
-import {resolveXml229CurrentPreviewBlob} from './xml-cii-adapted-lfj-o1-intake.js';
+import {resolveXml229OptionalReviewCustody} from './xml229-p4-optional-json-custody.mjs';
 import {xmlCiiEnrichedConfigFromState} from './xml-cii-adapted-state.js';
 import {materializeXmlCiiDatasetBackedConfig} from '../xml-cii-dataset-backed-config.js';
 import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-custody.mjs';
 import {digestCanonical} from '../../../contracts/gc-pw-v1/contract.mjs';
+import {hasXml229PreviewJsonSource} from './xml229-preview-json-source.mjs';
 import {xmlCiiBranchScopeFromState,xmlCiiSourceDigest} from '../xml-cii-branch-scope.js';
 import {renderXml229WeightReviewPage} from './xml229-p4-weight-review-presentation.mjs';
 import {installXml229WeightExcelAutoFilter} from './xml229-p4-excel-autofilter.mjs';
@@ -45,6 +46,7 @@ export const captureXml229P4LiveSourceSnapshot=(raw,sourceId)=>({
  datasetRefs:JSON.stringify(raw?.masterContext?.datasetRefs||{}),
  mappingRevisions:JSON.stringify(raw?.masterContext?.appliedMappingRevision||{}),
  rowCounts:JSON.stringify(raw?.masterContext?.rowCounts||{}),
+ jsonInputPresent:hasXml229PreviewJsonSource(raw),
 });
 export function compareXml229P4LiveSourceSnapshot(basis,current,{
  verifyFullSelection=()=>false,
@@ -98,14 +100,11 @@ export function assertXml229P4OriginalFullSelection({
    'Duplicate or missing original selected branch occurrence ID');
  return scope;
 }
-/** Resolve a genuine existing O1 File Blob and all four current masters.
- * One complete original Mode A branch selection only; refuse uncertain joins.
- */
+/** Resolve full original Mode A XML, optional indexed JSON and four attested masters. */
 export async function resolveXml229P4ProductionInputs(stateRef){
  const baseRef=stateRef?.modeABaseRef||stateRef,raw=baseRef?.current;
  const view=stateRef?.current||raw;
- if(!raw?.sourceText||!raw?.xml229StagedSourceReceipt)
-   err('ORIGINAL_O1_BLOB_REQUIRED','Load original XML + O1 indexed JSON first');
+ if(!raw?.sourceText)err('ORIGINAL_XML_REQUIRED','Load original XML first');
  const sourceId=String(view?.modeASourceId||raw?.modeASourceId||
    raw?.sourceBatch?.activeSourceId||'');
  if(raw.sourceBatch?.activeSourceId&&view?.modeASourceId&&
@@ -116,7 +115,7 @@ export async function resolveXml229P4ProductionInputs(stateRef){
  const selection=assertXml229P4OriginalFullSelection({
   sourceText:raw.sourceText,branchSelection:raw.branchSelection||{},
  });
- const source=resolveXml229CurrentPreviewBlob(baseRef,raw.xml229StagedSourceReceipt);
+ const {xmlOnly,source,sourceXmlSha256}=await resolveXml229OptionalReviewCustody(raw,view,baseRef);
  const before=captureXml229P4LiveSourceSnapshot(raw,sourceId);
  const context=view.masterContext||raw.masterContext||{};
  const config=await materializeXmlCiiDatasetBackedConfig(
@@ -125,7 +124,7 @@ export async function resolveXml229P4ProductionInputs(stateRef){
    restoreFailures:raw.masterRestoreFailures||view.masterRestoreFailures||{},
  });
  const isCurrent=()=>{
-   if(!source.isCurrent())return false;
+   if(source&& !source.isCurrent())return false;
    const current=baseRef.current;
    return compareXml229P4LiveSourceSnapshot(before,current,{
      verifyFullSelection:state=>{
@@ -141,16 +140,18 @@ export async function resolveXml229P4ProductionInputs(stateRef){
  if(!isCurrent())
    err('STALE_ORIGINAL_MASTER_SOURCE','Original XML, stage, master or Owner selection changed during hydration');
  const inputLease=await digestCanonical({sourceId,xmlText:raw.sourceText,
-   receiptSha:source.receipt.sha256,generationId:source.receipt.generationId,
+   receiptSha:source?.receipt.sha256??null,
+   generationId:source?.receipt.generationId??'xml-only:sha256:'+sourceXmlSha256,
    selectionRef:'all',config,attestations});
  if(!isCurrent())err('STALE_ORIGINAL_MASTER_SOURCE',
    'Original source/master changed during full content attestation');
  return {xmlText:raw.sourceText,sourceId,masters,
    selection:[{sourceId,selectionRef:'all'}],
    config,overrides:config.overrides||{},
-   originalStagedBlob:source.blob,
-   originalStagedSourceReceipt:source.receipt,
-   requestId:'xml229-p4-'+source.generationId+'-'+sourceId,
+   reviewSourceKind:xmlOnly?'XML_ONLY':'XML_WITH_JSON',sourceXmlSha256,
+   originalStagedBlob:source?.blob??null,
+   originalStagedSourceReceipt:source?.receipt??null,
+   requestId:'xml229-p4-'+(source?.generationId??sourceXmlSha256)+'-'+sourceId,
    inputLease,isCurrent};
 }
 /** Reuse exactly one source-attested original Worker review across Preview
@@ -519,8 +520,9 @@ export function installXml229WorkerHeldWeightPanel(container,stateRef,{
        await applyXml229SourceWideSuggestionDrafts({
          session,drafts:draftValues,minScorePercent,saveDrafts:persistDrafts,
          isCurrent:()=>active===session&&live()===session&&root.isConnected!==false,
-         showFirst:index=>{mode='all';query='';offset=0;},
-         render,table,detail:bulkDetail,say,
+         showFirst:index=>{mode='blank-rigid';query='';offset=Math.floor(index/25)*25;
+           hideShortMm=false;excel.reset();},
+         render:()=>render({suppressAutoCommit:true}),table,detail:bulkDetail,say,
        });
        // Apply all traverses every source physical using fresh Final CAS.
        const {accepted}=await commitXml229AllSelectedFinal({

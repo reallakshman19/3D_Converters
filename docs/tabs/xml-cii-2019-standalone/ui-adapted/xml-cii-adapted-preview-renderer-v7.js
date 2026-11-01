@@ -303,7 +303,8 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     ...options,
     stagedJsonText: stagedSource.text,
     stagedSourceLabel: stagedSource.label,
-    resolveStagedJsonText: async () => stagedSource,
+    // Button rebuilds must revalidate live inputs instead of replaying this snapshot.
+    resolveStagedJsonText: async () => resolveStagedSource(options, config),
   };
 
   let authority = null;

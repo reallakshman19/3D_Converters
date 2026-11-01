@@ -67,7 +67,7 @@ test('the production action records an attempt and publishes only a verified run
  assert.equal(f.stateRef.current.result.ciiText,'FAKE CONTROL-FLOW CII');
  assert.equal(getXml229CandidateAttempt(f.stateRef,f.session).status,'SUCCEEDED');
  assert.deepEqual(getXml229FlowTrace(f.stateRef).snapshot().events.map(e=>e.kind),
-  ['NATIVE_CANDIDATE_REQUESTED','NATIVE_CANDIDATE_SUCCEEDED']);
+  ['NATIVE_CANDIDATE_REQUESTED','CANDIDATE_STAGE','NATIVE_CANDIDATE_SUCCEEDED']);
 });
 test('native success exposes enriched XML through the real artifact table',async()=>{
  const f=setup(),xml='<PipeStressExport><Weight>12.5</Weight></PipeStressExport>';
@@ -114,8 +114,8 @@ test('a typed converter failure remains visible, clears running, and permits an 
  assert.equal(f.stateRef.current.running,false);
  assert.equal(f.downloads.length,0);
  assert.equal(f.stateRef.current.result.xml229NativeFailure.phase,'FINAL_MASS_BINDING');
- assert.deepEqual(getXml229CandidateAttempt(f.stateRef,f.session),
-  {status:'FAILED',code:'NATIVE_FINAL_MASS_REQUIRED'});
+ assert.equal(getXml229CandidateAttempt(f.stateRef,f.session).status,'FAILED');
+ assert.equal(getXml229CandidateAttempt(f.stateRef,f.session).code,'NATIVE_FINAL_MASS_REQUIRED');
  f.ports.runCandidate=async()=>fakeVerified();
  assert.equal(await executeXml229NativeRun(f.ports),true);
 });

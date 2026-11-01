@@ -144,20 +144,24 @@ export async function runPreviewButtonSession({
     if(!current())return null;
     // XML229 P3B.3: original JSON stays in the O1 job. Existing Preview
     // controller, input basis and source-occurrence renderer remain in use.
-    if(scope.mode==='A'&&typeof options.resolveOriginalWorkerPreviewSource==='function'){
+    if(scope.mode==='A'&&(typeof options.resolveOriginalWorkerPreviewSource==='function'||
+       typeof options.openVerifiedEngineeringSession==='function')){
+      let original=null,r=null;
+      if(typeof options.resolveOriginalWorkerPreviewSource==='function'){
       notice(host,{title:'Verifying original JSON source custody…',showCancel:true,cancel});
-      const original=await options.resolveOriginalWorkerPreviewSource(config);
+      original=await options.resolveOriginalWorkerPreviewSource(config);
       if(!current())return null;
-      const r=original?.receipt;
+      r=original?.receipt;
       if(!r||original.isCurrent?.()!==true||!original.blob||
          r.rightsBasis!=='SOURCE_FACTS_ONLY'||r.engineeringReady!==false||
          r.phase!=='INDEX_COMMITTED')
         throw fail('XML229_PREVIEW_ORIGINAL_SOURCE_STALE','Original indexed JSON source is no longer current');
+      }
       // XML229: use the actual 4 Preview Build as the sole user trigger.
       // The verified engineering Worker already computed these Preview rows.
       if(typeof options.openVerifiedEngineeringSession==='function'){
         notice(host,{title:'Verifying original physical Preview in Worker…',
-          message:'Original XML census, staged JSON SHA-256, four masters and full FactRecords.',
+          message:'Original XML census, optional JSON custody, four masters and full FactRecords.',
           showCancel:true,cancel});
         const verified=await options.openVerifiedEngineeringSession({
           signal:session.abortController.signal,
@@ -171,8 +175,11 @@ export async function runPreviewButtonSession({
         const result=await verified.readPreviewResult();
         const proof=await verified.readCompletion();
         if(!current())return null;
-        if(verified.receipt.originalJsonSha256!==r.sha256||
-          verified.receipt.sourceGenerationId!==r.generationId||
+        if((r?(verified.receipt.originalJsonSha256!==r.sha256||
+          verified.receipt.sourceGenerationId!==r.generationId):
+          (verified.receipt.reviewSourceKind!=='XML_ONLY'||
+           verified.receipt.originalJsonSha256!==null||
+           verified.receipt.sourceXmlSha256!==await digestUtf8(xmlText)))||
           proof?.basisId!==verified.receipt.basisId||
           proof?.engineeringFactsVerified!==true||
           proof?.verifiedPhysicalCount!==verified.receipt.physicalCount||
@@ -180,13 +187,13 @@ export async function runPreviewButtonSession({
           throw fail('ENGINEERING_PREVIEW_CUSTODY_DRIFT',
             'Original Preview/GC-PW Worker does not match current indexed source');
         const rendered=await renderResult(result,{text:'',
-          label:'original JSON source-verified engineering Worker'});
+          label:r?'original JSON source-verified engineering Worker':'XML source-verified engineering Worker'});
         if(!current())return null;
         host.__xmlCiiPreviewOriginalOccurrences=result.sourceOccurrences;
         host.__xmlCiiVerifiedEngineeringReceipt=proof;
         host.dataset.mcPreviewBasisId=verified.receipt.basisId;
-        host.dataset.mcPreviewOriginalJsonSha256=r.sha256;
-        host.dataset.mcPreviewJsonSource='P4_ENGINEERING_VERIFIED';
+        if(r)host.dataset.mcPreviewOriginalJsonSha256=r.sha256;
+        host.dataset.mcPreviewJsonSource=r?'P4_ENGINEERING_VERIFIED':'XML_ONLY_ENGINEERING_VERIFIED';
         const evidence=document.createElement('div');
         evidence.setAttribute('data-mc-preview-verified-engineering','');
         evidence.setAttribute('role','status');
@@ -196,7 +203,7 @@ export async function runPreviewButtonSession({
           proof.verifiedFactCount+' complete FactRecords. '+
           'Weight Match uses this same session; native CII Run remains HELD.';
         host.prepend(evidence);
-        options.onOriginalWorkerPreviewCompleted?.({
+        if(r)options.onOriginalWorkerPreviewCompleted?.({
           result,sourceReceipt:r,basisId:verified.receipt.basisId});
         // This completed session belongs to the shared GC-PW review, not to
         // the transient Preview job controller. A repeated Build with an
@@ -328,14 +335,16 @@ export async function runPreviewButtonSession({
       basis,input});
     const result=await handle.promise;
     if(!current())return null;
-    // A user edit made during worker execution must never be hidden by a stale result.
-    const liveBasis=await createPreviewButtonBasis({
-      xmlText,config,stagedJsonText:staged.text,sourceId:scope.sourceId});
-    if(liveBasis.basisId!==basis.basisId)throw fail('STALE_INPUT_BASIS',
-      'Source/master/overrides changed while Preview was computing. Retry with current inputs.');
-    if(!current())return null;
     const sourcePages=await openActualPreviewSourceFactPages({
       basis,xmlText,sourceId:scope.sourceId,sourceOccurrences:result.sourceOccurrences,mode:scope.mode});
+    if(!current())return null;
+    // A user edit made during worker execution must never be hidden by a stale result.
+    // Re-resolve the optional JSON input too: its absence is part of the basis.
+    const latestStaged=await resolveStaged(options,config);
+    const liveBasis=await createPreviewButtonBasis({
+      xmlText,config,stagedJsonText:latestStaged.text,sourceId:scope.sourceId});
+    if(liveBasis.basisId!==basis.basisId)throw fail('STALE_INPUT_BASIS',
+      'Source/master/overrides changed while Preview was computing. Retry with current inputs.');
     if(!current())return null;
     const rendered=await renderResult(result,staged);
     if(!current())return null;

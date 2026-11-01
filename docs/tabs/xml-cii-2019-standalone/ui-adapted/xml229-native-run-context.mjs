@@ -1,5 +1,6 @@
 /** Capture input values, not transient rendering-object identities. */
 import {canonicalJson} from '../../../contracts/gc-pw-v1/contract.mjs';
+import {hasXml229PreviewJsonSource} from './xml229-preview-json-source.mjs';
 
 const rawState=ref=>(ref?.modeABaseRef||ref)?.current;
 const sourceIds=state=>(state?.sourceBatch?.sources||[])
@@ -31,9 +32,12 @@ export function captureXml229NativeRunContext({stateRef,session,liveWorker}){
  const receipt=original?.xml229StagedSourceReceipt;
  const sourceFile=original?.sourceFile,stagedJsonFile=original?.stagedJsonFile;
  const valid=()=>session&&!session.closed&&liveWorker()===session&&
-  receipt?.schema==='XML229.OriginalStagedSourceReceipt.v1'&&
+  ((session.receipt?.reviewSourceKind==='XML_ONLY'&&!hasXml229PreviewJsonSource(original)&&
+   session.receipt.originalJsonSha256===null&&/^[a-f0-9]{64}$/i.test(session.receipt.sourceXmlSha256)&&
+   session.receipt.sourceGenerationId==='xml-only:sha256:'+session.receipt.sourceXmlSha256)||
+  (receipt?.schema==='XML229.OriginalStagedSourceReceipt.v1'&&
   receipt.sha256===session.receipt?.originalJsonSha256&&
-  receipt.generationId===session.receipt?.sourceGenerationId&&
+  receipt.generationId===session.receipt?.sourceGenerationId))&&
   original.xmlProcessingMode!=='mode-b'&&sourceIds(original).length<=1;
  if(typeof liveWorker!=='function'||!valid())return null;
  // Governed review attests the entire original source, never a filtered view.

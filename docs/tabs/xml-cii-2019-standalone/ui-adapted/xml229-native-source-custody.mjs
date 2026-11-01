@@ -2,14 +2,17 @@
  * The current source-bound Worker Final packet, not UI JSON, is the authority.
  */
 import {digestUtf8} from '../../../contracts/gc-pw-v1/contract.mjs';
+import {hasXml229PreviewJsonSource} from './xml229-preview-json-source.mjs';
 
 const fail=code=>{const e=new Error(code);e.code=code;throw e;};
 const text=value=>typeof value==='string'?value:'';
 const sha=value=>typeof value==='string'&&/^[a-f0-9]{64}$/i.test(value);
 
 export async function resolveXml229NativeCandidateSource({state,packet,readFile,attachment=null}={}){
+ const xmlOnly=packet?.reviewSourceKind==='XML_ONLY'&&packet.originalJsonSha256===null&&
+   packet.sourceGenerationId==='xml-only:sha256:'+packet.sourceXmlSha256;
  if(!state||!packet||!sha(packet.sourceXmlSha256)||
-    !sha(packet.originalJsonSha256)||typeof readFile!=='function')
+    !(xmlOnly||packet.reviewSourceKind!=='XML_ONLY'&&sha(packet.originalJsonSha256))||typeof readFile!=='function')
    fail('NATIVE_CANDIDATE_SOURCE_CUSTODY_REQUIRED');
  const sourceFileText=state.sourceFile?text(await readFile(state.sourceFile)):null;
  const sourceStateText=text(state.sourceText);
@@ -21,6 +24,10 @@ export async function resolveXml229NativeCandidateSource({state,packet,readFile,
  if(!sourceText.trim())fail('NATIVE_CANDIDATE_SOURCE_XML_REQUIRED');
  if(await digestUtf8(sourceText)!==packet.sourceXmlSha256)
    fail('NATIVE_CANDIDATE_SOURCE_XML_SHA_DRIFT');
+ if(xmlOnly){
+   if(hasXml229PreviewJsonSource(state)||attachment)fail('NATIVE_CANDIDATE_XML_ONLY_JSON_CONFLICT');
+   return Object.freeze({sourceText,stagedJsonText:''});
+ }
 
  // JSON raw bytes are an OPTIONAL converter input here, not the source of
  // authority: the private O1 Blob and its SHA are independently attested by
