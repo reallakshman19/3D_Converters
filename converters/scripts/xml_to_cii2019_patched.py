@@ -488,34 +488,59 @@ def _apply_source_bound_piping_class(branch: ET.Element, namespace: str,
 def _apply_staged_position_restraints(node: ET.Element, namespace: str,
                                        support_config: dict[str, Any],
                                        branch_name: str) -> bool:
-    """Reconcile the *source-bound, newly claimed* POS owner, not stale DTXR tags.
+    """Replay original position-matched staged members under current Step 7/8.
 
-    Source POS claims are authoritative for this Run only after unique position
-    matching in the addon. Existing anonymous XML restraint values are recorded
-    and replaced on these claimed nodes, not on unrelated nodes. An absent
-    LINE STOP gap is an unresolved source fact, never zero by implication.
+    The source ownership match has already been qualified by XYZ, branch and
+    PS tag in master_addon. Never turn a preview text/keyword-only match into
+    new CII engineering authority; interpret the same original member attrs
+    with the same config as governed pre-Final Python replay.
     """
     node_no = _child_text(node, namespace, "NodeNumber")
+    source_members = support_config.get("_stagedPositionMemberRows", {}).get(
+        (branch_name, node_no), [])
+    if (support_config.get("supportMapping") or {}).get("useJsonForRestraints") is False:
+        return False
     pos_text = _child_text(node, namespace, "DTXR_POS")
     if not pos_text:
         raise ValueError(f"XML229_STAGED_POS_OWNER_MISSING branch={branch_name} node={node_no}")
-    gap_by_kind: dict[str, float] = {}
-    for entry in pos_text.split("|"):
-        entry = entry.strip()
-        if not entry:
-            continue
-        kinds = _kind_from_dtxr(entry, support_config)
-        gap = _parse_cmpsupgap_from_dtxr_entry(entry)
-        if any(kind in {"LINESTOP", "LIMIT"} for kind in kinds) and gap is None:
+    if not source_members:
+        # Older enrichment clients did not transfer source member attributes.
+        # No naked DTXR keyword may impersonate a selected original source.
+        raise ValueError(f"XML229_STAGED_POSITION_SOURCE_MEMBERS_REQUIRED branch={branch_name} node={node_no}")
+
+    from xml229_prefinal_restraints import (kinds as classify_source_kinds,
+                                            source_gap, append_profile, numeric)
+
+    def require(condition, code):
+        if not condition:
+            raise ValueError(code)
+
+    entries = []
+    for member in source_members:
+        attrs = dict(member.get("sourceAttrs") or {})
+        if not attrs.get("DTXR"):
+            attrs["DTXR"] = member.get("dtxr", "")
+        if not any(attrs.get(key) is not None for key in
+                   ("CMPSUPGAP", "CMPSUPGAP_POS", "CMPSUPGAP_PS", "NODEGAP")):
+            gap = _parse_cmpsupgap_from_dtxr_entry(member.get("dtxr", ""))
+            if gap is not None:
+                attrs["CMPSUPGAP"] = str(gap)
+        entries.append({"attrs": attrs, "desc": attrs.get("DTXR", ""),
+                        "type": member.get("sourceType") or "SUPPORT"})
+
+    matched = classify_source_kinds(entries, require, support_config)
+    if not matched:
+        # DTXR from ordinary fittings does not constitute a support restraint.
+        print("XML229_STAGED_NO_SUPPORT_INTENT " + json.dumps(
+            {"branch": branch_name, "node": node_no,
+             "sourceMembers": len(source_members)}, sort_keys=True))
+        return False
+
+    for kind, attrs in matched.items():
+        gap = source_gap(attrs)
+        if kind == "LINESTOP" and (not gap or numeric(gap) is None):
             raise ValueError(f"XML229_STAGED_LINESTOP_GAP_MISSING branch={branch_name} node={node_no}")
-        if gap is not None:
-            for kind in kinds:
-                if kind in gap_by_kind and abs(gap_by_kind[kind] - gap) > 1e-8:
-                    raise ValueError(f"XML229_STAGED_GAP_CONFLICT branch={branch_name} node={node_no}")
-                gap_by_kind[kind] = gap
-    specs = _specs_from_dtxr_text(pos_text, support_config, gap_by_kind)
-    if not specs:
-        raise ValueError(f"XML229_STAGED_POS_UNRESOLVED branch={branch_name} node={node_no}")
+
     prior = [child for child in list(node) if _local_name(child.tag) == "Restraint"]
     original = [{
         "type": _child_text(rest, namespace, "Type"),
@@ -523,21 +548,23 @@ def _apply_staged_position_restraints(node: ET.Element, namespace: str,
     } for rest in prior]
     for rest in prior:
         node.remove(rest)
-    for spec in specs:
-        restraint = ET.Element(_q(namespace, "Restraint"))
-        _set_child(restraint, namespace, "Type", str(int(round(spec.type_code))))
-        _set_child(restraint, namespace, "Stiffness", format(spec.stiffness, ".12g"))
-        _set_child(restraint, namespace, "Gap", format(spec.gap, ".12g"))
-        _set_child(restraint, namespace, "Friction", format(spec.friction, ".12g"))
-        node.append(restraint)
+    for kind in ("REST", "GUIDE", "LINESTOP"):
+        if kind in matched:
+            append_profile(node, kind, matched[kind], support_config)
+
+    added = [r for r in node if _local_name(r.tag) == "Restraint"]
+    if not added:
+        raise ValueError(f"XML229_STAGED_POS_UNRESOLVED branch={branch_name} node={node_no}")
     print("XML229_STAGED_RESTRAINT_BIND " + json.dumps({
-        "branch": branch_name,
-        "node": node_no,
+        "branch": branch_name, "node": node_no,
         "posAnnotation": pos_text,
         "supersededXml": original,
+        "sourceMemberNames": [str(m.get("sourceAttrs", {}).get("NAME", "")) for m in source_members],
         "nativeRestraints": [{
-            "typeCode": int(round(spec.type_code)), "gapMm": spec.gap,
-        } for spec in specs],
+            "type": _child_text(rest, namespace, "Type"),
+            "gapMm": numeric(_child_text(rest, namespace, "Gap")),
+        } for rest in added],
+        "configSource": "saved-Step7-Step8-original-staged-member",
     }, sort_keys=True))
     return True
 
@@ -914,11 +941,15 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
         "unmatchedPositionClaims": stats.get("dtxrPosUnmatched", 0),
     }, sort_keys=True))
     pos_owners = []
+    source_members = {}
     for diagnostic in result.get("diagnostics", ()):
         if diagnostic.get("type") == "dtxr-pos":
-            pos_owners.append((diagnostic["branchName"], str(diagnostic["nodeNumber"])))
+            owner = (diagnostic["branchName"], str(diagnostic["nodeNumber"]))
+            pos_owners.append(owner)
+            source_members[owner] = diagnostic.get("members", [])
             print("XML229_DTXR_SOURCE_TO_NODE " + json.dumps(diagnostic, sort_keys=True))
     support_config["_stagedPositionOwners"] = pos_owners
+    support_config["_stagedPositionMemberRows"] = source_members
     with tempfile.NamedTemporaryFile(
             mode="w", encoding="utf-8", prefix=f"{input_xml.stem}_dtxr_",
             suffix=".xml", delete=False) as target:
