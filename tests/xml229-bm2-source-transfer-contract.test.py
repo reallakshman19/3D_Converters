@@ -159,11 +159,18 @@ class SourceTransferRegression(unittest.TestCase):
                 target = node_by_number(ET.parse(final_xml).getroot(), 3430)
                 return [(field(r, "Type"), field(r, "Gap")) for r in target
                         if r.tag.rsplit("}", 1)[-1] == "Restraint"]
+            before_tab7 = run("CRADLE RETAINER STYLE-314", {}, "17")
             from_tab7 = run("CRADLE RETAINER STYLE-314",
                             {"supportTypeMapper": {"rows": [
                                 {"kind": "REST", "aliases": ["CRADLE RETAINER"]}]}},
                             "17")
             self.assertEqual(from_tab7, [("+Y", "6.0")])
+            self.assertNotEqual(before_tab7, from_tab7,
+                                "same source XML + staged JSON must change when REST alias is saved")
+            print("XML229_CONFIG_MUTATION_TAB7 " + json.dumps({
+                "branch": branch, "node": 3430, "sourceText": "CRADLE RETAINER STYLE-314",
+                "before": before_tab7, "after": from_tab7, "status": "PASS"}, sort_keys=True))
+            before_tab8 = run("ORBITAL GUARDRAIL QZ-443", {}, "21")
             from_tab8 = run("ORBITAL GUARDRAIL QZ-443", {
                 "supportMapping": {"version": 2, "rules": [
                     {"id": "user-orbital-guide", "enabled": True,
@@ -174,6 +181,21 @@ class SourceTransferRegression(unittest.TestCase):
                     "rows": [{"from": "21", "to": "8"}]},
             }, "21")
             self.assertEqual(from_tab8, [("GUI", "6.0")])
+            self.assertNotEqual(before_tab8, from_tab8,
+                                "same source XML + staged JSON must change under saved regex and NODETYPE mutation")
+            print("XML229_CONFIG_MUTATION_TAB8 " + json.dumps({
+                "branch": branch, "node": 3430, "sourceText": "ORBITAL GUARDRAIL QZ-443",
+                "before": before_tab8, "after": from_tab8, "status": "PASS"}, sort_keys=True))
+            with self.assertRaisesRegex(ValueError, "NATIVE_PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT"):
+                run("ORBITAL GUARDRAIL QZ-443", {
+                    "supportMapping": {"version": 2, "rules": [{
+                        "id": "user-orbital-guide", "enabled": True,
+                        "priority": 1, "source": "staged-json", "field": "DTXR",
+                        "pattern": r"ORBITAL\s+GUARDRAIL", "match": "regex",
+                        "kind": "GUIDE"}]},
+                    "inputXmlRestraintTypeMutation": {"enabled": True,
+                        "rows": [{"from": "21", "to": "9"}]},
+                }, "21")
 
     def test_3430_z_datum_existing_rest_does_not_skip_json_enrichment(self):
         # Real XML source position, synthetic GUIDE/LINESTOP and gap only;
