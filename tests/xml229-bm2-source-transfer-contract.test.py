@@ -277,6 +277,55 @@ class SourceTransferRegression(unittest.TestCase):
         patched._apply_staged_position_restraints(stamped,"",cfg(True),branch)
         self.assertEqual(field(next(stamped.iter("Restraint")),"Type"),"GUI")
 
+    def test_optional_masters_and_unmatched_saved_regex_do_not_block_xml(self):
+        name='/ASIM-1836-4"-P8810049-31441C4-PP/B1'
+        xml=('<PipeStressExport><Pipe><Branch><Branchname>'+name+'</Branchname>'
+             '<Node><NodeNumber>10</NodeNumber><ComponentType>PIPE</ComponentType>'
+             '<OutsideDiameter>114.3</OutsideDiameter><WallThickness>6.02</WallThickness>'
+             '<Position>0 0 0</Position></Node>'
+             '<Node><NodeNumber>20</NodeNumber><ComponentType>PIPE</ComponentType>'
+             '<OutsideDiameter>114.3</OutsideDiameter><WallThickness>6.02</WallThickness>'
+             '<Position>100 0 0</Position></Node></Branch></Pipe></PipeStressExport>')
+        def fmt(lk,pc,joiner=''):
+            return {'tokenDelimiter':'-','lineKeyJoiner':joiner,
+                    'lineKey':{'extractMode':'TOKEN','tokenPosition':lk},
+                    'pipingClass':{'extractMode':'TOKEN','tokenPosition':pc},
+                    'rating':{'extractMode':'TOKEN','tokenPosition':''}}
+        with TemporaryDirectory() as folder:
+            source=Path(folder)/'owner.xml'
+            source.write_text(xml)
+            for formats in ([],[fmt('',5)],[fmt('4',5),fmt('3',5)],
+                            [fmt('4',5),fmt('4',5)]):
+                cfg={'regexTester':{'formats':formats}}
+                self.assertEqual(patched._line_key_from_branch(name,cfg),'')
+                out=patched._apply_process_data_to_xml(source,cfg)
+                tree=ET.parse(out).getroot()
+                self.assertEqual(field(node_by_number(tree,10),'WallThickness'),'6.02')
+            good={'regexTester':{'formats':[fmt('4',5)]}}
+            self.assertEqual(patched._line_key_from_branch(name,good),'P8810049')
+            split='/ASIM-1836-4"-P-8810049-31441C4-PP/B1'
+            pair={'regexTester':{'formats':[fmt('4,5',6)]}}
+            self.assertEqual(patched._line_key_from_branch(split,pair),'P8810049')
+            pair['regexTester']['formats'][0]['lineKeyJoiner']='-'
+            self.assertEqual(patched._line_key_from_branch(split,pair),'P-8810049')
+            self.assertEqual(patched._line_key_from_branch(split,{
+                'regexTester':{'formats':[fmt('4,5',6),fmt('4,5',6)]}}),
+                'P8810049')
+
+    def test_conflicting_optional_piping_class_master_does_not_block_xml(self):
+        with TemporaryDirectory() as folder:
+            source=Path(folder)/'owner.xml'
+            branch_sample(source,'/GLRD-1000-6"-P4110001-93833-01/B6')
+            rows=[{'Piping Class':'93833','convertedBore':150,
+                   'Wall thickness':wall} for wall in ('7.112','8.0')]
+            cfg={'pipingClass':{'masterRows':rows}}
+            output=patched._apply_process_data_to_xml(source,cfg)
+            self.assertEqual(field(node_by_number(ET.parse(output).getroot(),10),
+                                   'WallThickness'),'0')
+            cfg['requireVerifiedMasterCompleteness']=True
+            with self.assertRaisesRegex(ValueError,'XML229_PIPING_CLASS_BORE_AMBIGUOUS'):
+                patched._apply_process_data_to_xml(source,cfg)
+
     def test_legacy_without_master_keeps_zero_wall_for_existing_writer_fallback(self):
         with TemporaryDirectory() as directory:
             source = Path(directory) / "first.xml"
