@@ -13,12 +13,14 @@ import {bindXml229RunArtifactDownloads} from './xml229-run-artifact-download.mjs
 import {createXml229RunMassReviewButton} from './xml229-run-mass-review-button.mjs';
 import {offerXml229AutomaticNativeRun} from './xml229-run-auto-native.mjs';
 import {executeXml229NativeRun} from './xml229-native-run-action.mjs';
+import {renderXml229NativeRunDebug} from './xml229-native-run-debug.mjs';
 import {inspectXml229NativeRunEligibility} from './xml229-native-run-eligibility.mjs';
 import {renderXml229TopologyReview} from './xml229-topology-review-ui.mjs';
 import {xml229TopologyDisplayState} from './xml229-topology-review-controller.mjs';
 import {xml229NativeRunWaitingMessage} from './xml229-run-waiting-message.mjs';
 import {ensureXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace,getXml229CandidateAttempt} from './xml229-flow-trace-registry.mjs';
 import {buildXml229RunHoldAudit} from '../integration/xml229-run-hold-audit.mjs';
+import {isXml229VerifiedReviewCompletionForInput} from '../integration/xml229-live-preview-restoration.mjs';
 import {readXml229NativeFinalObservation} from '../integration/xml229-native-final-observation.mjs';
 import {inspectXml229EngineeringLease} from '../integration/xml229-engineering-basis-authority.mjs';
 import {syncXml229CanonicalOutputHeaderBadges} from './xml229-canonical-output-header-badges.mjs';
@@ -391,6 +393,8 @@ async function collectXml229RunHoldAudit(stateRef,report){
  // Read the latest immutable UI state AFTER the two asynchronous calls.
  // The attestor itself demands matching source, generation, basis and census.
  const input=stateRef.current;
+ if(completion&&!await isXml229VerifiedReviewCompletionForInput(
+   (stateRef.modeABaseRef||stateRef).current,session.receipt,completion))completion=null;
  const freshReport=buildStandaloneOutputRunReadiness(input,{
    verifiedEngineering:completion
      ?{sessionReceipt:session.receipt,proof:completion,finalIntent,finalIntentReadError}
@@ -426,6 +430,8 @@ function xml229RunHoldPlainMeaning(audit){
    return mass+'The Worker Final-intent read failed; the audit keeps Weight evidence separate and native Run remains unverified.';
  if(code==='INDEPENDENT_NATIVE_RELEASE_AUTHORITY_ABSENT')
    return mass+'Final intent is eligible. Actual native CII output and independent mass reconciliation are still required.';
+ if(code==='BRANCH_FORMAT_IDENTITY_UNRESOLVED')
+   return mass+'Conversion has not started because configured branch formats are unmatched or conflicting. See Branch format diagnosis and correct the affected Regex Tester formats.';
  if(code==='FINAL_INTENT_SOURCE_OR_BASIS_DRIFT'||code==='FINAL_INTENT_POPULATION_DRIFT')
    return mass+'The returned Final intent contradicts the current source, Worker basis or mass census; rebuild on one source revision.';
  if(code==='FINAL_INTENT_INVALID')
@@ -442,7 +448,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
   routeSelect.dataset.action='xml229-output-participation';
   const approved=isXml229XmlOnlyApproved(state);
   routeSelect.append(
-    createOption('governed','JSON + accepted engineering weights (native CII after Run reconciliation)',!approved),
+    createOption('governed','Source XML + accepted engineering weights (JSON optional; verified native CII)',!approved),
     createOption('xml-only','XML-only test conversion (no draft weights)',approved),
   );
   routeSelect.disabled=actualSourceKind(state)!=='xml'||!!state.running;
@@ -480,6 +486,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
     stateRef,render,approved,report,createElement,updateWorkflowState,noteDiv,
   });
   noteDiv.innerHTML = approved ? 'XML-only mode excludes JSON-derived Weight/Final from native output; independent XML preflight remains mandatory.' : 'Verified unresolved masses automatically open a second Weight-style review popup. If dismissed, use the button above to reopen it. Each Applied Weight starts at an uncommitted 0 kg default; Final decisions are recorded only on explicit confirmation. Native CII remains independently governed.';
+  if(state.xml229CurrentRunReviewStatus)noteDiv.textContent=state.xml229CurrentRunReviewStatus;
   const refreshBtn = button('refresh-output-run', 'Refresh readiness / checklist');
   refreshBtn.style.cssText = 'cursor:pointer;padding:12px;border-radius:6px;background:#1e293b;color:#cbd5e1;border:1px solid #334155;font-size:12px;width:100%;text-align:center;font-weight:700;';
   refreshBtn.addEventListener('click', () => { stateRef.current = applyStandaloneOutputRunReadiness(stateRef.current, buildStandaloneOutputRunReadiness(stateRef.current)); if (typeof render === 'function') render(); });
@@ -563,6 +570,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
     auditPanel.appendChild(auditBtn);
     actionDiv.appendChild(auditPanel);
   }
+  renderXml229NativeRunDebug(actionDiv,stateRef,getXml229CurrentWorkerHeldReview(stateRef));
   const governed=hasOriginalJsonSourceOnlyRunHold(state);
   const weightsReady=report.raw.xml229VerifiedEngineering===true&&
     report.checklistRows.some(r=>r.id==='weight-match'&&r.status==='ready');
@@ -573,6 +581,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
   if(governed){
     const detail=createElement('div',execution.canExecute
       ?'Accepted weights are ready. Use Finalise and Run Conversion to generate and verify CII; Download enables after verification.'
+      :state.running?'Native conversion is running; see the execution stage above.'
       :'Native conversion is waiting: '+execution.blockerIds.map(id=>
         report.checklistRows.find(row=>row.id===id)?.message||id).join(' '),
       'model-converters-workflow-detail-note');
@@ -586,7 +595,7 @@ function renderRunControls(parent, stateRef, state, report, render) {
     color:'#fff',border:'none',fontWeight:'700'});
   finalizeBtn.disabled=!!blocked;
   finalizeBtn.dataset.action=governed&&weightsReady?'xml229-native-run':'run';
-  if(governed)finalizeBtn.addEventListener('click',async()=>{
+  if(governed&&weightsReady)finalizeBtn.addEventListener('click',async()=>{
     if(finalizeBtn.disabled)return;
     finalizeBtn.disabled=true;
     await executeXml229NativeRun({stateRef,
@@ -716,7 +725,8 @@ function renderRunControls(parent, stateRef, state, report, render) {
 function projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint){
  const raw=(stateRef?.modeABaseRef||stateRef)?.current||state;
  const receipt=state?.xml229StagedSourceReceipt||raw.xml229StagedSourceReceipt;
- if(receipt?.schema!=='XML229.OriginalStagedSourceReceipt.v1')return;
+ if(receipt?.schema!=='XML229.OriginalStagedSourceReceipt.v1'&&
+   getXml229CurrentWorkerHeldReview(stateRef)?.receipt?.reviewSourceKind!=='XML_ONLY')return;
  const enabled=raw.sourceBatch?.sources?.filter(x=>x.enabled!==false)||null;
  if(enabled&&enabled.length!==1)return;
  const session=getXml229CurrentWorkerHeldReview(stateRef);
@@ -728,7 +738,9 @@ function projectOriginalReviewIntoRunChecklist(card,stateRef,state,paint){
  const token=card.__xml229ReadinessToken;
  void readXml229NativeFinalObservation(session,
    ()=>getXml229CurrentWorkerHeldReview(stateRef)===session&&!session.closed
- ).then(({stale,completion:proof,finalIntent,finalIntentReadError})=>{
+ ).then(async({stale,completion:proof,finalIntent,finalIntentReadError})=>{
+   if(!await isXml229VerifiedReviewCompletionForInput(
+     (stateRef.modeABaseRef||stateRef).current,session.receipt,proof))return;
    if(stale)return;
    if(card.isConnected===false||card.__xml229ReadinessToken!==token||
       getXml229CurrentWorkerHeldReview(stateRef)!==session)return;

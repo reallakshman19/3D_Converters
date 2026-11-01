@@ -7,6 +7,7 @@ import json
 import sys
 import subprocess
 import unittest
+import xml.etree.ElementTree as ET
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"converters"/"scripts"))
 from xml229_native_final_mass_binding import (
@@ -76,7 +77,7 @@ class NativeFinalMassTests(unittest.TestCase):
         with TemporaryDirectory() as td:
             source=Path(td)/'source.xml'
             manifest=Path(td)/'packet.json'
-            source.write_text(xml)
+            source.write_text(xml, encoding="utf-8", newline="")
             current=packet(xml)
             current['sourceGenerationId']='frozen-l1-original'
             current['physicalCount']=2
@@ -156,8 +157,8 @@ class NativeFinalMassTests(unittest.TestCase):
             transformed=Path(td)/"engine.xml"
             manifest=Path(td)/"packet.json"
             xml=input_xml()
-            original.write_text(xml)
-            transformed.write_text(xml)
+            original.write_text(xml, encoding="utf-8", newline="")
+            transformed.write_text(xml, encoding="utf-8", newline="")
             manifest.write_text(json.dumps(packet(xml)))
             output,owners=bind_native_final_xml(original,transformed,manifest)
             self.assertIn("<Weight>12.5</Weight>",output.read_text())
@@ -182,7 +183,7 @@ class NativeFinalMassTests(unittest.TestCase):
             output=directory/"native.cii"
             proof=directory/"proof.json"
             xml=input_xml()
-            original.write_text(xml)
+            original.write_text(xml, encoding="utf-8", newline="")
             packet_path.write_text(json.dumps(packet(xml)))
             runner=Path(__file__).resolve().parents[1]/"converters"/"scripts"/"xml_to_cii2019_runtime_custody.py"
             process=subprocess.run([
@@ -233,7 +234,7 @@ class NativeFinalMassTests(unittest.TestCase):
             original_xml=final_xml.replace(
                 "\n</Branch>", "\n"+gasket+"\n</Branch>")
             self.assertNotEqual(original_xml,final_xml)
-            source.write_text(original_xml)
+            source.write_text(original_xml, encoding="utf-8", newline="")
             current=packet(original_xml)
             current["sourceGenerationId"]="generation-1"
             current["finalizedGeometry"]={
@@ -303,7 +304,7 @@ class NativeFinalMassTests(unittest.TestCase):
             manifest=directory/'packet.json'
             output=directory/'output.cii'
             proof=directory/'proof.json'
-            source.write_text(xml)
+            source.write_text(xml, encoding="utf-8", newline="")
             p=packet(xml,kg=35.5,signature=['VALV','V-1','2',''])
             p['components'][0]['occurrenceId']=oid(2,'2')
             p['sourceGenerationId']='preweight-physical-part-1'
@@ -399,7 +400,7 @@ class NativeFinalMassTests(unittest.TestCase):
                     previous='20' if negative_owner else '10'
                     source=source.replace(f'<NodeNumber>{previous}</NodeNumber>',
                                           '<NodeNumber>-1</NodeNumber>')
-                    original.write_text(source)
+                    original.write_text(source, encoding="utf-8", newline="")
                     current=packet(source)
                     current['sourceGenerationId']='preaccept-node-id-normalized'
                     # Original max positive is 10 or 20, respectively.
@@ -472,7 +473,7 @@ class NativeFinalMassTests(unittest.TestCase):
         with TemporaryDirectory() as td:
             source=Path(td)/'source.xml'
             packet_file=Path(td)/'accepted.json'
-            source.write_text(xml)
+            source.write_text(xml, encoding="utf-8", newline="")
             p=packet(xml)
             p['physicalCount']=2
             p['components']=[]
@@ -488,10 +489,10 @@ class NativeFinalMassTests(unittest.TestCase):
                 'NATIVE_DOUBLE_ENDPOINT_MASS_OWNER')
             self.assertFalse((Path(td)/'source_xml229_lineaged.xml').exists())
 
-    def test_instrument_requires_original_source_authorized_rigid_end(self):
-        # A supplied Rigid=2 on original INST Endpoint=2 can be consumed as
-        # an existing native mass-bearing edge. The same unclassified source
-        # MUST fail; the converter cannot decide an instrument's stiffness.
+    def test_instrument_requires_source_or_verified_prefinal_rigid_end(self):
+        # INST follows the Owner's rigid-family policy BEFORE Final. Verify
+        # the original source or the independently recomputed promotion;
+        # an old Final packet with no promotion is stale, even for zero kg.
         def make_xml(classified):
             rigid='<Rigid>2</Rigid>' if classified else ''
             return (
@@ -510,16 +511,26 @@ class NativeFinalMassTests(unittest.TestCase):
             ['INST','=INST-1','1',''],separators=(',',':'))],separators=(',',':'))
         second=json.dumps(['SOURCE',0,2,sig],separators=(',',':'))
         runner=Path(__file__).resolve().parents[1]/'converters'/'scripts'/'xml_to_cii2019_runtime_custody.py'
-        for classified,kg in ((True,18.25),(False,18.25),(False,0)):
-            with self.subTest(source_explicitly_classified=classified,kg=kg):
+        for mode,kg in (("SOURCE",18.25),("PREFINAL",18.25),
+                        ("PREFINAL",0),("MISSING",18.25),("MISSING",0),
+                        ("TAMPERED",18.25)):
+            classified = mode == "SOURCE"
+            promoted = mode in ("PREFINAL", "TAMPERED")
+            with self.subTest(classification=mode,kg=kg):
                 with TemporaryDirectory() as td:
                     directory=Path(td)
                     xml=make_xml(classified)
+                    final_xml=xml
+                    if promoted:
+                        final_root=ET.fromstring(xml)
+                        final_nodes=list(final_root.iter('Node'))
+                        ET.SubElement(final_nodes[2],'Rigid').text='2'
+                        final_xml=ET.tostring(final_root,encoding='unicode')
                     source=directory/'original.xml'
                     manifest=directory/'packet.json'
                     output=directory/'result.cii'
                     proof=directory/'proof.json'
-                    source.write_text(xml)
+                    source.write_text(xml, encoding="utf-8", newline="")
                     p=packet(xml,kg=kg)
                     p['sourceGenerationId']='explicit-source-instrument-case'
                     p['components'][0]['occurrenceId']=second
@@ -527,12 +538,18 @@ class NativeFinalMassTests(unittest.TestCase):
                         'schema':'XML229.FinalizedWeightGeometry.v1',
                         'basisId':p['basisId'],
                         'sourceXmlSha256':p['sourceXmlSha256'],
-                        'xmlText':xml,
-                        'sha256':hashlib.sha256(xml.encode()).hexdigest(),
+                        'xmlText':final_xml,
+                        'sha256':hashlib.sha256(final_xml.encode()).hexdigest(),
                         'originalNodeCount':3,
                         'retainedSourceOrdinalsByBranch':[[0,1,2]],
                         'assignedNodeNumbers':[],
-                        'rigidEdgePromotions':[],
+                        'rigidEdgePromotions':[{
+                            'branchOccurrenceIndex':0,
+                            'firstSourceNodeOrdinal':1,
+                            'secondSourceNodeOrdinal':2,
+                            'componentType':'INST','componentRefNo':'INST-1',
+                            'distanceMm':300 if mode == "TAMPERED" else 305,
+                        }] if promoted else [],
                         'physicalOwnerCardinality':{
                             'schema':'XML229.PreAcceptancePhysicalPartCardinality.v1',
                             'sourcePhysicalNodeOccurrences':2,
@@ -558,7 +575,7 @@ class NativeFinalMassTests(unittest.TestCase):
                         '--xml229-native-final-packet',str(manifest),
                         '--xml229-native-mass-proof',str(proof),
                     ],capture_output=True,text=True)
-                    if classified or kg==0:
+                    if classified or mode == "PREFINAL":
                         self.assertEqual(result.returncode,0,result.stderr)
                         evidence=json.loads(proof.read_text())
                         self.assertEqual(evidence['sourcePhysicalCount'],1)
@@ -567,14 +584,11 @@ class NativeFinalMassTests(unittest.TestCase):
                         self.assertEqual(float(evidence['claims'][0]['ciiFromNode']),20)
                         self.assertEqual(float(evidence['claims'][0]['ciiToNode']),30)
                         self.assertTrue(output.exists())
-                        if kg==0 and not classified:
-                            self.assertEqual(evidence['claimedNativeRigidCount'],0)
-                            self.assertEqual(evidence['claimedZeroNonRigidInstrumentCount'],1)
-                            self.assertIsNone(evidence['claims'][0]['rigidRecordIndex'])
-                            self.assertTrue(evidence['claims'][0]['zeroNonRigidInstrument'])
+                        self.assertEqual(evidence['claimedNativeRigidCount'],1)
+                        self.assertFalse(evidence['claims'][0].get('zeroNonRigidInstrument',False))
                     else:
                         self.assertNotEqual(result.returncode,0)
-                        self.assertIn('NATIVE_RIGID_OWNER_UNSUPPORTED',
+                        self.assertIn('NATIVE_PREACCEPTANCE_RIGID_EDGE_DRIFT',
                                       result.stderr)
                         self.assertFalse(output.exists())
                         self.assertFalse(proof.exists())
@@ -601,7 +615,7 @@ class NativeFinalMassTests(unittest.TestCase):
             folder=Path(td);original=folder/'source.xml'
             manifest=folder/'approved.json';output=folder/'actual.cii'
             proof=folder/'proof.json'
-            original.write_text(xml)
+            original.write_text(xml, encoding="utf-8", newline="")
             approved=packet(xml,kg=27.5)
             approved['sourceGenerationId']='cross-family-original-part'
             approved['components'][0]['occurrenceId']=oid(2,'RIGID','2')
@@ -763,7 +777,7 @@ class NativeFinalMassTests(unittest.TestCase):
             manifest=directory/'packet.json'
             output=directory/'output.cii'
             proof=directory/'proof.json'
-            source.write_text(xml)
+            source.write_text(xml, encoding="utf-8", newline="")
             p={"schema":"XML229.NativeFinalPhysicalPacket.v1",
                "basisId":"a"*64,"finalIntentSha256":"b"*64,
                "sourceId":"SYNTHETIC-423",
@@ -824,7 +838,7 @@ class NativeFinalMassTests(unittest.TestCase):
                 "<Position>5 0 0</Position><Rigid>2</Rigid>",
                 "<Position>5 0 0</Position>")
             self.assertIn("<ComponentType>FLAN</ComponentType>",xml)
-            original.write_text(xml)
+            original.write_text(xml, encoding="utf-8", newline="")
             p=packet(xml,signature=["FLAN","REF-1","2","WGT"])
             p["sourceGenerationId"]="generation-flange"
             p["finalizedGeometry"]={
@@ -854,7 +868,7 @@ class NativeFinalMassTests(unittest.TestCase):
                 "<ComponentRefNo>REF-1</ComponentRefNo>",
                 "<NodeNumber>10</NodeNumber><ComponentType>RIGID</ComponentType>"
                 "<ComponentRefNo>OTHER</ComponentRefNo>")
-            original.write_text(invalid)
+            original.write_text(invalid, encoding="utf-8", newline="")
             p["sourceXmlSha256"]=hashlib.sha256(invalid.encode()).hexdigest()
             p["finalizedGeometry"]["sourceXmlSha256"]=p["sourceXmlSha256"]
             p["finalizedGeometry"]["xmlText"]=invalid
@@ -877,7 +891,7 @@ class NativeFinalMassTests(unittest.TestCase):
             original=directory/"source.xml"
             manifest=directory/"packet.json"
             xml=input_xml()
-            original.write_text(xml)
+            original.write_text(xml, encoding="utf-8", newline="")
             # Deliberately drop the accepted RIGID; no mass distribution or
             # remapping to the remaining ordinary PIPE is permissible.
             cleaned=xml.replace(
@@ -908,25 +922,25 @@ class NativeFinalMassTests(unittest.TestCase):
             transformed=Path(td)/"engine.xml"
             manifest=Path(td)/"packet.json"
             xml=input_xml()
-            original.write_text(xml)
-            transformed.write_text(xml)
+            original.write_text(xml, encoding="utf-8", newline="")
+            transformed.write_text(xml, encoding="utf-8", newline="")
             doc=packet(xml)
             manifest.write_text(json.dumps(doc))
-            original.write_text(xml.replace("REF-1","DIFFERENT"))
+            original.write_text(xml.replace("REF-1","DIFFERENT"), encoding="utf-8", newline="")
             with self.assertRaises(NativeMassError) as e:
                 bind_native_final_xml(original,transformed,manifest)
             self.assertEqual(e.exception.code,"ORIGINAL_SOURCE_SHA_DRIFT")
-            original.write_text(xml)
-            transformed.write_text(xml.replace("<Rigid>2</Rigid>","<Rigid>0</Rigid>"))
+            original.write_text(xml, encoding="utf-8", newline="")
+            transformed.write_text(xml.replace("<Rigid>2</Rigid>","<Rigid>0</Rigid>"), encoding="utf-8", newline="")
             with self.assertRaises(NativeMassError) as e:
                 bind_native_final_xml(original,transformed,manifest)
             self.assertEqual(e.exception.code,"NATIVE_RIGID_OWNER_UNSUPPORTED")
             transformed.write_text(xml.replace("<NodeNumber>20</NodeNumber>",
-                "<NodeNumber>21</NodeNumber>"))
+                "<NodeNumber>21</NodeNumber>"), encoding="utf-8", newline="")
             with self.assertRaises(NativeMassError) as e:
                 bind_native_final_xml(original,transformed,manifest)
             self.assertEqual(e.exception.code,"NATIVE_OWNER_LINEAGE_AMBIGUOUS")
-            transformed.write_text(xml)
+            transformed.write_text(xml, encoding="utf-8", newline="")
             doc["components"][0]["effectiveKg"]=0
             manifest.write_text(json.dumps(doc))
             output,owners=bind_native_final_xml(original,transformed,manifest)
@@ -945,8 +959,8 @@ class NativeFinalMassTests(unittest.TestCase):
             original=d/"original.xml"
             enriched=d/"engine.xml"
             manifest=d/"packet.json"
-            original.write_text(original_text)
-            enriched.write_text(original_text)
+            original.write_text(original_text, encoding="utf-8", newline="")
+            enriched.write_text(original_text, encoding="utf-8", newline="")
             manifest.write_text(json.dumps(packet(original_text)))
             _,owners=bind_native_final_xml(original,enriched,manifest)
             graph=model(12.5)
@@ -989,8 +1003,8 @@ class NativeFinalMassTests(unittest.TestCase):
             original=Path(td)/"original.xml"
             enriched=Path(td)/"engine.xml"
             manifest=Path(td)/"packet.json"
-            original.write_text(xml)
-            enriched.write_text(xml)
+            original.write_text(xml, encoding="utf-8", newline="")
+            enriched.write_text(xml, encoding="utf-8", newline="")
             tiny=0.00000001234567
             manifest.write_text(json.dumps(packet(xml,kg=tiny)))
             _,owners=bind_native_final_xml(original,enriched,manifest)
@@ -1013,14 +1027,14 @@ class NativeFinalMassTests(unittest.TestCase):
         with TemporaryDirectory() as td:
             original=Path(td)/"source.xml"
             engine=Path(td)/"engine.xml"
-            original.write_text(input_xml())
-            engine.write_text(input_xml())
+            original.write_text(input_xml(), encoding="utf-8", newline="")
+            engine.write_text(input_xml(), encoding="utf-8", newline="")
             self.assertTrue(assert_preaccepted_geometry_unchanged(original,engine))
             for mutated in (
                 input_xml().replace("<NodeNumber>20</NodeNumber>",
                                     "<NodeNumber>120</NodeNumber>"),
             ):
-                engine.write_text(mutated)
+                engine.write_text(mutated, encoding="utf-8", newline="")
                 self.assertTrue(assert_preaccepted_geometry_unchanged(original,engine),
                     "Renumbering alone must not change finalized physical ownership")
             changed=[
@@ -1038,7 +1052,7 @@ class NativeFinalMassTests(unittest.TestCase):
                     "<Position>8 0 0</Position></Node></Branch>"),
             ]
             for mutated in changed:
-                engine.write_text(mutated)
+                engine.write_text(mutated, encoding="utf-8", newline="")
                 with self.subTest(mutated=mutated[-80:]):
                     with self.assertRaises(NativeMassError) as exc:
                         assert_preaccepted_geometry_unchanged(original,engine)
@@ -1059,7 +1073,7 @@ class NativeFinalMassTests(unittest.TestCase):
                 "</Node><Node><NodeNumber>30</NodeNumber>"
                 "<ComponentType>PIPE</ComponentType>"
                 "<Position>5.1 0 0</Position></Node></Branch>")
-            original.write_text(xml)
+            original.write_text(xml, encoding="utf-8", newline="")
             packet_path.write_text(json.dumps(packet(xml)))
             runner=Path(__file__).resolve().parents[1]/"converters"/"scripts"/"xml_to_cii2019_runtime_custody.py"
             process=subprocess.run([
@@ -1080,13 +1094,13 @@ class NativeFinalMassTests(unittest.TestCase):
             transformed=Path(td)/"enriched.xml"
             packet_path=Path(td)/"packet.json"
             xml=input_xml()
-            original.write_text(xml)
+            original.write_text(xml, encoding="utf-8", newline="")
             packet_path.write_text(json.dumps(packet(xml)))
             staged=stage_native_original_lineage(original,packet_path)
             self.assertIn("XML229OriginalPhysicalId",staged.read_text())
             transformed.write_text(
                 staged.read_text().replace(
-                    "<NodeNumber>20</NodeNumber>","<NodeNumber>120</NodeNumber>"))
+                    "<NodeNumber>20</NodeNumber>","<NodeNumber>120</NodeNumber>"), encoding="utf-8", newline="")
             bound,owners=bind_native_final_xml(
                 original,transformed,packet_path,require_staged_lineage=True)
             self.assertEqual(owners[0]["nodeNumber"],"120")
@@ -1100,7 +1114,7 @@ class NativeFinalMassTests(unittest.TestCase):
             transformed=Path(td)/"enriched.xml"
             packet_path=Path(td)/"packet.json"
             xml=input_xml()
-            original.write_text(xml)
+            original.write_text(xml, encoding="utf-8", newline="")
             packet_path.write_text(json.dumps(packet(xml)))
             staged=stage_native_original_lineage(original,packet_path)
             import xml.etree.ElementTree as ET
@@ -1116,14 +1130,14 @@ class NativeFinalMassTests(unittest.TestCase):
                 bind_native_final_xml(
                     original,transformed,packet_path,require_staged_lineage=True)
             self.assertEqual(e.exception.code,"NATIVE_CHILD_LINEAGE_MISSING_OR_SPLIT")
-            transformed.write_text(xml)
+            transformed.write_text(xml, encoding="utf-8", newline="")
             with self.assertRaises(NativeMassError) as e:
                 bind_native_final_xml(
                     original,transformed,packet_path,require_staged_lineage=True)
             self.assertEqual(e.exception.code,"NATIVE_LINEAGE_STAGE_LOST")
             spoof=xml.replace("<Rigid>2</Rigid>",
                 "<XML229OriginalPhysicalId>forged</XML229OriginalPhysicalId><Rigid>2</Rigid>")
-            original.write_text(spoof)
+            original.write_text(spoof, encoding="utf-8", newline="")
             packet_path.write_text(json.dumps(packet(spoof)))
             with self.assertRaises(NativeMassError) as e:
                 stage_native_original_lineage(original,packet_path)

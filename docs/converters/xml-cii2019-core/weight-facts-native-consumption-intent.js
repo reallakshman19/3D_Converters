@@ -22,9 +22,12 @@ const sha=async source=>{
 function denied(code,message){
  const error=new Error(message);error.code=code;error.retryable=false;throw error;
 }
-function normalizedPopulation(session,{sourceGenerationId,originalJsonSha256}={}){
+function normalizedPopulation(session,{sourceGenerationId,originalJsonSha256,reviewSourceKind,sourceXmlSha256}={}){
  const current=readVerifiedModeAFinalRows(session);
- if(!dig.test(current.basisId)||!dig.test(originalJsonSha256)||
+ const xmlOnly=reviewSourceKind==='XML_ONLY'&&originalJsonSha256===null&&
+   dig.test(sourceXmlSha256)&&sourceGenerationId==='xml-only:sha256:'+sourceXmlSha256&&
+   session.basis.sourceRefs.length===1&&session.basis.sourceRefs[0].sha256===sourceXmlSha256;
+ if(!dig.test(current.basisId)||!(xmlOnly||reviewSourceKind!=='XML_ONLY'&&dig.test(originalJsonSha256))||
     !sourceGenerationId||typeof sourceGenerationId!=='string')
    denied('SOURCE_BASIS_REQUIRED','Original JSON Blob generation and approved source/master InputBasis required');
  if(current.sources.length!==1||current.physicalCount!==current.rows.length||
@@ -58,6 +61,7 @@ export async function commitXml229NativeFinalIntent(session,source){
  const initial=normalizedPopulation(session,source);
  const digestInput=canonicalJson({
    schema:NATIVE_FINAL_INTENT_SCHEMA,
+   ...(source.reviewSourceKind==='XML_ONLY'?{reviewSourceKind:'XML_ONLY',sourceXmlSha256:source.sourceXmlSha256}:{}),
    basisId:initial.current.basisId,
    originalJsonSha256:source.originalJsonSha256,
    sourceGenerationId:source.sourceGenerationId,
@@ -78,6 +82,7 @@ export async function commitXml229NativeFinalIntent(session,source){
  const eligibleForEngineBinding=unresolvedCount===0&&match1OnlyCount===0;
  return Object.freeze({
    schema:NATIVE_FINAL_INTENT_SCHEMA,
+   ...(source.reviewSourceKind==='XML_ONLY'?{reviewSourceKind:'XML_ONLY',sourceXmlSha256:source.sourceXmlSha256}:{}),
    basisId:initial.current.basisId,
    originalJsonSha256:source.originalJsonSha256,
    sourceGenerationId:source.sourceGenerationId,

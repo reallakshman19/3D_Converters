@@ -3,14 +3,18 @@
  * overrides a HOLD, fabricates CII output, or retries failed conversions.
  */
 const attempted=new WeakSet();
+import {hasXml229PreviewJsonSource} from './xml229-preview-json-source.mjs';
 const currentWorker=(session,stateRef)=>!!session&&!session.closed&&
   typeof session.readNativeFinalPacket==='function'&&
-  stateRef?.current?.xml229StagedSourceReceipt?.schema===
+  ((session.receipt?.reviewSourceKind==='XML_ONLY'&&
+    !hasXml229PreviewJsonSource(stateRef?.current)&&session.receipt.originalJsonSha256===null&&
+    session.receipt.sourceGenerationId==='xml-only:sha256:'+session.receipt.sourceXmlSha256)||
+  (stateRef?.current?.xml229StagedSourceReceipt?.schema===
     'XML229.OriginalStagedSourceReceipt.v1'&&
   stateRef.current.xml229StagedSourceReceipt.sha256===
     session.receipt?.originalJsonSha256&&
   stateRef.current.xml229StagedSourceReceipt.generationId===
-    session.receipt?.sourceGenerationId;
+    session.receipt?.sourceGenerationId));
 
 export function xml229CanAutoRunVerifiedFinal({state,report,session}={}){
  const checks=Array.isArray(report?.checklistRows)?report.checklistRows:[];

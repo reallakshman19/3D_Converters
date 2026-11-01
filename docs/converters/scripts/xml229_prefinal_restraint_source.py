@@ -4,6 +4,7 @@ Reads source hierarchy/coordinates, never Worker-claimed kinds or gaps. This is
 the native counterpart of the existing positional/PS source matching contract.
 """
 import html
+import itertools
 import math
 import re
 
@@ -127,17 +128,54 @@ def source_entries(value, config, branch='', inherited=None):
     return out
 
 
+class _PositionIndex:
+    """Candidate acceleration only; callers retain exact distance/branch tests."""
+    def __init__(self, tol):
+        self.tol = tol
+        self.cells, self.unindexed, self.size = {}, [], 0
+
+    def cell(self, pos):
+        if not math.isfinite(self.tol) or self.tol <= 0:
+            return None
+        values = tuple(v / self.tol for v in pos)
+        # Very large quotients lose cell precision: retain the exhaustive path.
+        return tuple(math.floor(v) for v in values) if all(
+            math.isfinite(v) and abs(v) <= 2**50 for v in values) else None
+
+    def add(self, pos):
+        cell = self.cell(pos)
+        if cell is None:
+            self.unindexed.append(self.size)
+        else:
+            self.cells.setdefault(cell, []).append(self.size)
+        self.size += 1
+
+    def nearby(self, pos):
+        cell = self.cell(pos)
+        if cell is None:
+            return range(self.size)
+        return itertools.chain(self.unindexed, *(self.cells.get(tuple(a+b for a, b in zip(cell, delta)), ())
+            for delta in itertools.product((-2, -1, 0, 1, 2), repeat=3)))
+
+
 def position_groups(entries, tol):
-    groups = []
+    groups, roots, normalized = [], [], {}
+    index = _PositionIndex(tol)
     for entry in entries:
-        hits = [(math.dist(g['point'], entry['point']), i) for i, g in enumerate(groups)
-                if branch_root(g['branch']) == branch_root(entry['branch']) and
-                math.dist(g['point'], entry['point']) <= tol]
+        branch = entry['branch']
+        if branch not in normalized:
+            normalized[branch] = branch_root(branch)
+        root = normalized[branch]
+        hits = [(distance, i) for i in index.nearby(entry['point'])
+                if roots[i] == root and
+                (distance := math.dist(groups[i]['point'], entry['point'])) <= tol]
         if hits:
             group = groups[min(hits)[1]]
         else:
             group = dict(point=entry['point'], branch=entry['branch'], entries=[])
             groups.append(group)
+            roots.append(root)
+            index.add(entry['point'])
         group['entries'].append(entry)
     return groups
 
@@ -146,6 +184,7 @@ def resolve(node, branch, groups, tol, field, require):
     pos, tag = point(field(node, 'Position')), tags(field(node, 'NodeName') or field(node, 'ComponentRefNo'))
     tag = next(iter(tag), '')
     explicit, authoritative = [], []
+    scores = {b: relationship(branch, b) for b in dict.fromkeys(g['branch'] for g in groups)}
     for g in groups:
         for e in g['entries']:
             ref = attr(e['attrs'], 'ComponentRefNo', 'COMPONENTREFNO', 'COMPRE',
@@ -159,7 +198,7 @@ def resolve(node, branch, groups, tol, field, require):
         return []
     hits = []
     for i, g in enumerate(groups):
-        score = relationship(branch, g['branch'])
+        score = scores[g['branch']]
         dist = math.dist(pos, g['point']) if pos else math.inf
         if score and dist <= tol:
             hits.append((-score, -int(any(tag and tag in e['tags'] for e in g['entries'])), dist, i, g))
@@ -170,8 +209,8 @@ def resolve(node, branch, groups, tol, field, require):
         return hits[0][4]['entries']
     if explicit:
         return [explicit[0][1]]
-    ps = [(relationship(branch, g['branch']), i, e) for i, g in enumerate(groups)
-          for e in g['entries'] if tag and tag in e['tags'] and relationship(branch, g['branch'])]
+    ps = [(scores[g['branch']], i, e) for i, g in enumerate(groups)
+          for e in g['entries'] if tag and tag in e['tags'] and scores[g['branch']]]
     ps.sort(key=lambda h: (-h[0], h[1]))
     return [ps[0][2]] if ps and (len(ps) == 1 or ps[0][0] > ps[1][0]) else []
 
@@ -180,20 +219,26 @@ def calibrated_groups(source_nodes, entries, config, field):
     tol = tolerance(config)
     groups = position_groups(entries, tol)
     # Auto offset is permitted only when no direct positional match exists.
-    if (config.get('dtxrPositionOffset') or {}).get('enabled') is True or any(
-            point(field(n, 'Position')) and relationship(b, g['branch']) and
-            math.dist(point(field(n, 'Position')), g['point']) <= tol
-            for b, n in source_nodes for g in groups):
+    if (config.get('dtxrPositionOffset') or {}).get('enabled') is True:
+        return groups
+    sources = [(branch, point(field(node, 'Position'))) for branch, node in source_nodes]
+    scores = {(b, gb): relationship(b, gb)
+              for b in dict.fromkeys(b for b, pos in sources)
+              for gb in dict.fromkeys(g['branch'] for g in groups)}
+    index = _PositionIndex(tol)
+    for g in groups:
+        index.add(g['point'])
+    if any(scores[b, groups[i]['branch']] and math.dist(pos, groups[i]['point']) <= tol
+           for b, pos in sources if pos for i in index.nearby(pos)):
         return groups
     options = config.get('resolverJsonTrace') or {}
     precision = max(float(options.get('autoCalibratePrecision') or .1), .001)
     votes = {}
-    for branch, node in source_nodes:
-        pos = point(field(node, 'Position'))
+    for branch, pos in sources:
         if not pos:
             continue
         for g in groups:
-            if not relationship(branch, g['branch']):
+            if not scores[branch, g['branch']]:
                 continue
             offset = tuple(a - b for a, b in zip(pos, g['point']))
             key = tuple(math.floor(v / precision + .5) for v in offset)

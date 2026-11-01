@@ -4,6 +4,7 @@
  * legacy localStorage result, or a DOM-rendered row cannot prove engineering
  * completion. The Worker attests the facts; this verifies the exact live lease.
  */
+import {isXml229AttestedXmlReview} from './xml229-xml-review-attestation.mjs';
 const object=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 const whole=x=>Number.isSafeInteger(x)&&x>=0;
 const same=(a,b)=>typeof a==='string'&&a.length>0&&a===b;
@@ -44,6 +45,8 @@ function originalReceipt(input) {
     sourceId:selected?.sourceId||input?.modeASourceId||input?.sourceBatch?.activeSourceId||''};
 }
 export function isXml229VerifiedCompletionForInput(input,sessionReceipt,proof) {
+  if(sessionReceipt?.reviewSourceKind==='XML_ONLY')
+    return isXml229AttestedXmlReview(input,sessionReceipt,proof);
   const scope=originalReceipt(input);
   if(!scope.governed||!scope.receipt||
      scope.receipt.schema!=='XML229.OriginalStagedSourceReceipt.v1'||
@@ -76,7 +79,7 @@ function rowUpdated(row,patch){return {...row,...patch};}
  */
 export function projectXml229RunChecklist(input,rows,verifiedEngineering=null) {
   const scope=originalReceipt(input);
-  if(!scope.governed)return {rows,verified:false};
+  if(!scope.governed&&verifiedEngineering?.sessionReceipt?.reviewSourceKind!=='XML_ONLY')return {rows,verified:false};
   const verified=isXml229VerifiedCompletionForInput(
     input,verifiedEngineering?.sessionReceipt,verifiedEngineering?.proof);
   const proof=verified?verifiedEngineering.proof:null;

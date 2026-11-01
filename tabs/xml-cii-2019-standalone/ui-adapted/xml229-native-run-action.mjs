@@ -4,6 +4,7 @@ import {ensureXml229FlowTrace,recordXml229FlowTrace,
  recordXml229CandidateAttempt} from './xml229-flow-trace-registry.mjs';
 
 import {nativeEnrichedFields} from '../../../converters/xml-cii-2019-standalone/native-enriched-artifact.js';
+import {nativeRunPhase} from '../../../converters/xml-cii-2019-standalone/engine-progress.mjs';
 
 const active=new WeakMap();
 const owner=ref=>ref?.modeABaseRef||ref;
@@ -33,6 +34,11 @@ export async function executeXml229NativeRun({
  const token={};active.set(key,token);
  ensureXml229FlowTrace(stateRef);
  const sameSession=()=>session&&!session.closed&&liveWorker()===session;
+ const onProgress=phase=>{
+  if(!nativeRunPhase(phase)||!sameSession()||active.get(key)!==token)return;
+  recordXml229CandidateAttempt(stateRef,session,{status:'IN_PROGRESS',phase});
+  recordXml229FlowTrace(stateRef,{kind:'CANDIDATE_STAGE',actor:'native-gate',code:phase});
+ };
  let context;
  try{
   record(stateRef,session,'IN_PROGRESS');
@@ -41,7 +47,7 @@ export async function executeXml229NativeRun({
   stateRef.current=updateState(stateRef.current,{running:true,result:null});
   render?.();
   const verified=await runCandidate({state:context.state,session,
-    isCurrent:context.isCurrent});
+    isCurrent:context.isCurrent,onProgress});
   if(!context.isCurrent()||verified?.nativeCiiReleaseAuthorized!==true||
      verified?.massConsumptionVerified!==true||
      verified?.strictOneToOneOwnerMatch!==true||!verified?.ciiText?.trim())
@@ -55,6 +61,7 @@ export async function executeXml229NativeRun({
    stateRef.current=updateState(stateRef.current,{result:null});
    throw {code:'NATIVE_RUN_SOURCE_CHANGED'};
   }
+  onProgress('OUTPUT_VERIFIED');
   record(stateRef,session,'SUCCEEDED');
   try{download(result.ciiName,result.ciiText,'text/plain;charset=utf-8');}
   catch{recordXml229FlowTrace(stateRef,{kind:'CANDIDATE_STAGE',
@@ -62,6 +69,7 @@ export async function executeXml229NativeRun({
   return true;
  }catch(error){
   if(sameSession()){
+   onProgress(error?.phase);
    record(stateRef,session,'FAILED',codeOf(error));
    // A safe failure explains the attempt; it grants no source/output authority.
    const failure=context&&!context.isCurrent()

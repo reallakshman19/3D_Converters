@@ -3,7 +3,7 @@ export function renderXml229VerifiedPanelShell(existingWorkflow=false){
  return `<section data-p4-weight-root
   style="border:1px solid #64748b;border-radius:8px;padding:12px;margin:12px 0;">
   <strong>${existingWorkflow?'Weight Match — verified original physical facts':'Original-source Weight review (GC-PW)'}</strong>
-  <p style="font-size:12px;color:#94a3b8;">Independent original XML census + full staged JSON Blob verification in separate Workers.
+  <p style="font-size:12px;color:#94a3b8;">Independent original XML census and current master verification in separate Workers. When JSON is supplied, its complete source bytes are also verified.
   Applied Weight is one editable kg field, automatically filled from the verified source-linked suggestions.
   Click any suggestion or enter kg directly. Native CII output release is independently governed.</p>
   ${existingWorkflow?'':'<button type="button" data-p4-weight-build>Build verified original-source Weight review</button>'}

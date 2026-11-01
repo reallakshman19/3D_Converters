@@ -76,7 +76,7 @@ test('authentic repository Firstpass XML + staged JSON retains all original phys
 });
 
 
-test('optional INST suggestion excludes a pre-rigid first endpoint in actual producer',async()=>{
+test('INST promotion preserves a pre-rigid first endpoint in actual producer',async()=>{
  const pair=XML.replace(
   '<Node><NodeNumber>320</NodeNumber><ComponentType>INST</ComponentType>',
   '<Node><NodeNumber>319</NodeNumber><ComponentType>INST</ComponentType>'+
@@ -100,8 +100,39 @@ test('optional INST suggestion excludes a pre-rigid first endpoint in actual pro
     engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},
    expectedOriginalCount:original.branchCount+original.nodeCount,
   });
-  assert.equal(opened.finalizedGeometry.instrumentModelingSuggestions.length,
-   preRigid?0:1,'Only fully unclassified instrument pairs qualify');
+  assert.equal(opened.finalizedGeometry.instrumentModelingSuggestions.length,0);
+  assert.equal(opened.finalizedGeometry.rigidEdgePromotions.length,
+   preRigid?0:1,'Only fully unclassified instrument pairs are promoted');
+  assert.equal(opened.finalizedGeometry.physicalOwnerCardinality.weightsAccepted,false);
+ }
+});
+
+test('INST rigid classification requires an existing eligible same-ref span',async()=>{
+ const pair=XML.replace('<ComponentType>VALV</ComponentType>',
+  '<ComponentType>INST</ComponentType>')
+  .replace('<ComponentRefNo>1006649732/119367</ComponentRefNo><Endpoint>2</Endpoint>',
+   '<ComponentRefNo>1006649732/119369</ComponentRefNo><Endpoint>1</Endpoint>');
+ const variants=[
+  pair.replace('<Endpoint>1</Endpoint>','<Endpoint>2</Endpoint>'),
+  pair.replace('<Endpoint>1</Endpoint>','<Endpoint>1</Endpoint><Rigid>0</Rigid>'),
+  pair.replace('<Position>650 0 0</Position>','<Position>537 0 0</Position>'),
+  pair.replace('<ComponentRefNo>1006649732/119369</ComponentRefNo>',
+   '<ComponentRefNo>OTHER</ComponentRefNo>'),
+  pair.replace('<Position>650 0 0</Position>',
+   '<Rigid>0</Rigid><Position>650 0 0</Position>'),
+ ];
+ for(const xml of variants){
+  const basis=await createPreviewBasis({domainId:'xml-cii/2019',
+   sources:[{sourceId:SOURCE_ID,mediaType:'application/xml',text:xml}],
+   masters,selection,config,overrides:{},sha256:digestUtf8});
+  const original=projectXmlCiiOccurrences({xmlText:xml,sourceId:SOURCE_ID});
+  const preview=xmlCiiDryRunPreview(xml,config,'');
+  const opened=await openXml229EngineeringFactModel({
+   basis,live:{...live,sources:{[SOURCE_ID]:xml}},xmlText:xml,sourceId:SOURCE_ID,
+   previewResult:{...preview,sourceOccurrences:original,
+    engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},
+   expectedOriginalCount:original.branchCount+original.nodeCount});
+  assert.equal(opened.finalizedGeometry.rigidEdgePromotions.length,0);
   assert.equal(opened.finalizedGeometry.physicalOwnerCardinality.weightsAccepted,false);
  }
 });

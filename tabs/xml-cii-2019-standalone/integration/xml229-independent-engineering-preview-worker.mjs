@@ -17,21 +17,26 @@ self.addEventListener('message',async({data:m})=>{
  const emit=(state,values={})=>postMessage({protocol:P,
    requestId:m.requestId,sourceId:m.sourceId,basisId:m.basisId,
    sourceGenerationId:m.sourceGenerationId,originalJsonSha256:m.originalJsonSha256,
+   reviewSourceKind:m.reviewSourceKind,sourceXmlSha256:m.sourceXmlSha256,
    state,...values});
  try{
+   const xmlOnly=m.reviewSourceKind==='XML_ONLY';
+   const sourceValid=xmlOnly
+     ? m.originalJsonSha256===null&&m.originalStagedBlob==null&&sha(m.sourceXmlSha256)&&
+       m.sourceGenerationId==='xml-only:sha256:'+m.sourceXmlSha256
+     : sha(m.originalJsonSha256)&&m.originalStagedBlob instanceof Blob&&
+       m.originalStagedBlob.size>0&&m.originalStagedBlob.size<=100*1024*1024;
    if(typeof m.requestId!=='string'||!m.requestId||
       typeof m.sourceId!=='string'||!m.sourceId||
       typeof m.sourceGenerationId!=='string'||!m.sourceGenerationId||
-      !sha(m.basisId)||!sha(m.originalJsonSha256)||
-      typeof m.xmlText!=='string'||!m.xmlText.trim()||
-      !(m.originalStagedBlob instanceof Blob)||
-      !m.originalStagedBlob.size||m.originalStagedBlob.size>100*1024*1024)
+      !sha(m.basisId)||!sourceValid||
+      typeof m.xmlText!=='string'||!m.xmlText.trim())
      throw Error('INVALID_PREVIEW_INPUT');
-   emit('progress',{stage:'preview-json-byte-sha256'});
-   const bytes=await m.originalStagedBlob.arrayBuffer();
-   if(await digest(bytes)!==m.originalJsonSha256)
+   emit('progress',{stage:xmlOnly?'preview-xml-byte-sha256':'preview-json-byte-sha256'});
+   const bytes=xmlOnly?new TextEncoder().encode(m.xmlText):await m.originalStagedBlob.arrayBuffer();
+   if(await digest(bytes)!==(xmlOnly?m.sourceXmlSha256:m.originalJsonSha256))
      throw Error('PREVIEW_ORIGINAL_JSON_SHA_DRIFT');
-   const staged=new TextDecoder('utf-8',{fatal:true}).decode(bytes);
+   const staged=xmlOnly?'':new TextDecoder('utf-8',{fatal:true}).decode(bytes);
    emit('progress',{stage:'engineering-preview-using-actual-json'});
    const result=xmlCiiDryRunPreview(m.xmlText,
      isolatedOriginalPreviewWorkConfig(m.config),staged);

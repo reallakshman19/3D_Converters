@@ -1,7 +1,9 @@
 /** Second Run-stage Weight dialog. Zero is a displayed default, never an implicit Final. */
 import {commitXml229SelectedAppliedWeight} from './xml229-p4-applied-weight-owner-selection.mjs';
 import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
-import {hasXml229GovernedNativeHold} from '../integration/xml229-output-participation.mjs';
+import {hasXml229GovernedNativeHold,isXml229XmlOnlyApproved} from '../integration/xml229-output-participation.mjs';
+import {hasXml229PreviewJsonSource} from './xml229-preview-json-source.mjs';
+import {isXml229VerifiedReviewCompletionForInput} from '../integration/xml229-live-preview-restoration.mjs';
 import {xml229WeightSuggestionTooltip} from './xml229-weight-suggestion-basis.mjs';
 
 const deny=code=>{const e=new Error(code);e.code=code;throw e;};
@@ -155,12 +157,15 @@ function populate(tbody,rows){
 /** The dialog does not trigger conversion, download, or engineering acceptance on open. */
 export async function openXml229RunUnresolvedMassPopup({stateRef,render,onNavigate}={}){
  const initial=stateRef?.current,session=getXml229CurrentWorkerHeldReview(stateRef);
- if(!session||!hasXml229GovernedNativeHold(initial)){
+ const reviewEligible=state=>!isXml229XmlOnlyApproved(state)&&(
+   hasXml229GovernedNativeHold(state)||session?.receipt?.reviewSourceKind==='XML_ONLY'&&
+   !hasXml229PreviewJsonSource(state));
+ if(!session||!reviewEligible(initial)){
    onNavigate?.();return null;
  }
  if(document.querySelector('[data-xml229-run-unresolved-dialog]'))return null;
  const isCurrent=()=>getXml229CurrentWorkerHeldReview(stateRef)===session&&
-   !session.closed&&hasXml229GovernedNativeHold(stateRef.current)&&
+   !session.closed&&reviewEligible(stateRef.current)&&
    stateRef.current?.sourceText===initial.sourceText&&
    stateRef.current?.sourceFile===initial.sourceFile&&
    stateRef.current?.stagedJsonText===initial.stagedJsonText&&
@@ -169,7 +174,13 @@ export async function openXml229RunUnresolvedMassPopup({stateRef,render,onNaviga
    stateRef.current?.branchSelection===initial.branchSelection&&
    stateRef.current?.supportConfigJson===initial.supportConfigJson&&
    stateRef.current?.options===initial.options;
+ const proof=await session.readCompletion();
+ if(!isCurrent()||!await isXml229VerifiedReviewCompletionForInput(
+   (stateRef.modeABaseRef||stateRef).current,session.receipt,proof))
+   deny('RUN_MASS_REVIEW_SOURCE_UNVERIFIED');
  const snapshot=await listXml229RunUnresolvedMasses({session,isCurrent});
+ // Automatic offer and explicit click may both await the same census.
+ if(document.querySelector('[data-xml229-run-unresolved-dialog]'))return null;
  if(!snapshot.pending.length){onNavigate?.();return snapshot;}
  if(!isCurrent())deny('RUN_ZERO_SOURCE_STALE');
  const overlay=document.createElement('div');

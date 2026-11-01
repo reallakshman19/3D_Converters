@@ -59,13 +59,15 @@ function promoteWitnessedRigidEdges({branches,prepared,children,field}){
       const type=field(left,'ComponentType').toUpperCase();
       const ref=field(left,'ComponentRefNo').trim().replace(/^=/,'').replace(/\s+/g,'').toUpperCase();
       const otherRef=field(right,'ComponentRefNo').trim().replace(/^=/,'').replace(/\s+/g,'').toUpperCase();
-      if(!['VALV','FLAN'].includes(type)||!ref||
+      // Owner modeling policy includes INST as a rigid component family.
+      // Preserve any explicit first-end instrument classification.
+      if(!['VALV','FLAN','INST'].includes(type)||!ref||
          type!==field(right,'ComponentType').toUpperCase()||ref!==otherRef||
          field(left,'Endpoint')!=='1'||field(right,'Endpoint')!=='2'||
          !isXmlCiiWeightReviewNode(left)||!isXmlCiiWeightReviewNode(right)||
          !isXmlCiiWeightReviewConnectionEligible(left)||
          !isXmlCiiWeightReviewConnectionEligible(right)||
-         field(right,'Rigid'))continue;
+         field(right,'Rigid')||(type==='INST'&&field(left,'Rigid')))continue;
       const a=field(left,'Position').split(/\s+/).map(Number);
       const b=field(right,'Position').split(/\s+/).map(Number);
       if(a.length!==3||b.length!==3||

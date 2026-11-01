@@ -58,7 +58,7 @@ export function projectXml229WeightDecisionProvenance({
  }
  const approved=new Set(Array.isArray(confirmedBulkCommandIds)?confirmedBulkCommandIds:[]);
  const out=[],totals={manual:0,individualProposal:0,bulkConfirmed:0,
-  bulkConfirmationUnknown:0,finalOverride:0,unverified:0,
+  bulkConfirmationUnknown:0,finalOverride:0,confirmedZero:0,unverified:0,
   effectiveMatch1Only:0,acceptedMatch1All:0,acceptedFinal:0};
  const finalSet=new Set();
  for(const stage of ['RigidMatch1','Rigidmatch2']){
@@ -87,6 +87,9 @@ export function projectXml229WeightDecisionProvenance({
    let kind='unverified',bulkConfirmation='not-applicable';
    if(matching){
     if(stage==='Rigidmatch2'&&cmd.action==='final-override')kind='final-override';
+    else if(stage==='Rigidmatch2'&&cmd.action==='set-zero-mass'&&cmd.value===0&&
+      cmd.unit==='kg'&&cmd.zeroMassConfirmed===true&&
+      typeof cmd.reason==='string'&&cmd.reason.startsWith('Owner-confirmed explicit zero kg:'))kind='confirmed-zero';
     else if(cmd.action==='enter-manual')kind='manual';
     else if(cmd.action==='accept-proposal'){
      if(bulkId(cmd,basisId,sourceId)){
@@ -101,7 +104,7 @@ export function projectXml229WeightDecisionProvenance({
     kind==='bulk-confirmation-unknown'?'bulkConfirmationUnknown':
     kind==='individual-proposal'?'individualProposal':
     kind==='final-override'?'finalOverride':
-    kind==='manual'?'manual':'unverified';
+    kind==='confirmed-zero'?'confirmedZero':kind==='manual'?'manual':'unverified';
    totals[field]++;
    if(stage==='Rigidmatch2'){totals.acceptedFinal++;finalSet.add(occurrenceId)}
    else totals.acceptedMatch1All++;

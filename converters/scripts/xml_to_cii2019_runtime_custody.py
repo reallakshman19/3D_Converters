@@ -375,6 +375,8 @@ def _mark_native_failure_stage(stage: str) -> None:
     # Only a transient in-process diagnostic for the Pyodide runner.
     # No source content, exception message or traceback crosses this port.
     sys._xml229_native_failure_stage = stage
+    if getattr(sys, '_xml229_native_progress_enabled', False):
+        print('XML229_NATIVE_STAGE:' + stage, flush=True)
 
 
 def _export_native_enriched_xml(args, input_xml) -> None:
@@ -518,7 +520,8 @@ def main() -> None:
         args.xml229_native_mass_proof.write_text(
             _xml229_json.dumps(mass_diagnostic, sort_keys=True), encoding="utf-8")
     _mark_native_failure_stage('OUTPUT_WRITE')
-    args.output.write_text(cii_text, encoding="utf-8")
+    # Publish the exact bytes hashed and verified above, also on Windows.
+    args.output.write_bytes(cii_text.encode("utf-8"))
     if args.diagnostics_out:
         args.diagnostics_out.write_text(base._build_diagnostics_report(model), encoding="utf-8")
     print(

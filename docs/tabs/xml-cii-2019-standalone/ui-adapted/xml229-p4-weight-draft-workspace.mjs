@@ -15,16 +15,21 @@ const live=new Map();
 const fail=code=>{const error=new Error(code);error.code=code;throw error;};
 const str=(value,max)=>typeof value==='string'&&value.length<=max;
 const sameStable=(a,b)=>a.basisId===b.basisId&&a.sourceId===b.sourceId&&
- a.originalJsonSha256===b.originalJsonSha256;
+ a.originalJsonSha256===b.originalJsonSha256&&
+ a.reviewSourceKind===b.reviewSourceKind&&a.sourceXmlSha256===b.sourceXmlSha256;
 const same=(a,b)=>sameStable(a,b)&&a.sourceGenerationId===b.sourceGenerationId;
 
 function identity(receipt){
  const r={basisId:receipt?.basisId,sourceId:receipt?.sourceId,
   sourceGenerationId:receipt?.sourceGenerationId,
   originalJsonSha256:receipt?.originalJsonSha256};
+ const xmlOnly=receipt?.reviewSourceKind==='XML_ONLY'&&r.originalJsonSha256===null&&
+   /^[a-f0-9]{64}$/.test(receipt?.sourceXmlSha256)&&
+   r.sourceGenerationId==='xml-only:sha256:'+receipt.sourceXmlSha256;
+ if(xmlOnly)Object.assign(r,{reviewSourceKind:'XML_ONLY',sourceXmlSha256:receipt.sourceXmlSha256});
  if(!str(r.basisId,128)||!r.basisId||!str(r.sourceId,256)||!r.sourceId||
     !str(r.sourceGenerationId,256)||!r.sourceGenerationId||
-    !str(r.originalJsonSha256,128)||!r.originalJsonSha256)
+    (!xmlOnly&&(!str(r.originalJsonSha256,128)||!r.originalJsonSha256)))
    fail('WEIGHT_DRAFT_VERIFIED_BASIS_REQUIRED');
  return r;
 }
