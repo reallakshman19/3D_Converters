@@ -3,6 +3,7 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import json
+import subprocess
 import sys
 import unittest
 import xml.etree.ElementTree as ET
@@ -55,6 +56,25 @@ class SourceTransferRegression(unittest.TestCase):
                              field(node_by_number(before, 20), "Weight"))
             self.assertEqual(field(node_by_number(updated, 20), "Position"),
                              field(node_by_number(before, 20), "Position"))
+
+    def test_actual_native_cli_first_element_publishes_exact_master_wall(self):
+        rows = json.loads(MASTER.read_text(encoding='utf-8'))['rows']
+        branch = '/GLRD-1000-6"-P4110001-93833-01/B6'
+        with TemporaryDirectory() as directory:
+            source = Path(directory) / 'first.xml'
+            output = Path(directory) / 'first.cii'
+            branch_sample(source, branch)
+            cmd = [sys.executable, str(SCRIPTS / 'xml_to_cii2019_runtime_custody.py'),
+                   '--input', str(source), '--output', str(output),
+                   '--support-config-json', json.dumps({'pipingClass': {'masterRows': rows}}),
+                   '--weight-scale', '10']
+            subprocess.run(cmd, check=True, capture_output=True, text=True)
+            text = output.read_text(encoding='utf-8')
+            self.assertIn('#$ ELEMENTS', text)
+            block = text.split('#$ ELEMENTS\n', 1)[1].splitlines()
+            self.assertEqual([float(x) for x in block[0].split()[:2]], [10.0, 20.0])
+            self.assertAlmostEqual(float(block[1].split()[0]), 7.112)
+            self.assertNotEqual(float(block[1].split()[0]), 0.01)
 
     def test_conflicting_master_fails_closed(self):
         rows = [r for r in json.loads(MASTER.read_text())["rows"]
