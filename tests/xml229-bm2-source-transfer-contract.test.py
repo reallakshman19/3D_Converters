@@ -80,6 +80,9 @@ class SourceTransferRegression(unittest.TestCase):
         node = node_by_number(root, 3430)
         namespace = node.tag.rsplit("}", 1)[0] + "}" if "}" in node.tag else ""
         ET.SubElement(node, namespace + "DTXR_POS").text = "REST"
+        prior = ET.SubElement(node, namespace + "Restraint")
+        ET.SubElement(prior, namespace + "Type").text = "+Y"
+        ET.SubElement(prior, namespace + "Gap").text = "0"
         with TemporaryDirectory() as directory:
             source = Path(directory) / "prior-rest.xml"
             staged = Path(directory) / "staged.json"
@@ -105,6 +108,14 @@ class SourceTransferRegression(unittest.TestCase):
             self.assertIn("LINE STOP(CMPSUPGAP=15mm)", field(enriched, "DTXR_POS"))
             self.assertTrue(cfg.get("_generatedDtxrEnrichment"))
             self.assertFalse(cfg.get("_inputAlreadyEnriched", False))
+            final = patched._apply_process_data_to_xml(out, cfg)
+            finished = node_by_number(ET.parse(final).getroot(), 3430)
+            restraints = [n for n in finished if n.tag.rsplit("}", 1)[-1] == "Restraint"]
+            codes = {field(r, "Type"): float(field(r, "Gap")) for r in restraints}
+            self.assertEqual(set(codes), {"8", "9"})
+            self.assertAlmostEqual(codes["9"], 15.0)
+            self.assertNotIn("+Y", codes)
+
 
 
 if __name__ == "__main__":
