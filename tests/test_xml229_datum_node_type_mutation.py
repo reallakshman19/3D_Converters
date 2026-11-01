@@ -134,5 +134,20 @@ class TestXml229DatumAndNodeType(unittest.TestCase):
         self.assertEqual(result['REST']['NODETYPE'],'14')
         self.assertEqual(result['REST']['NODEGAP'],'0')
 
+    def test_original_firstpass_directional_anchor_on_shoe_is_a_linemit(self):
+        source=json.loads((ROOT/'Benchmarks/1885Sjson/Sjson.json').read_text())
+        entries=[]
+        for branch in source:
+            for item in branch.get('children',[]):
+                a=item.get('attributes') or {}
+                if 'DIRECTIONAL ANCHOR ON SHOE' in str(a.get('DTXR','')).upper():
+                    entries.append({'attrs':a,'desc':a.get('DTXR',''),'type':'SUPPORT'})
+        self.assertEqual(len(entries),11)
+        def require(ok,code):
+            if not ok:raise ValueError(code)
+        for item in entries:
+            result=kinds([item],require,settings())
+            self.assertEqual(set(result),{'LINESTOP'})
+
 if __name__=='__main__':
     unittest.main()

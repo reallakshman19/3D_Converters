@@ -77,9 +77,17 @@ def kinds(entries, require, config=None):
             k for k, pat in (
                 ('LINESTOP', r'\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b'),
                 ('GUIDE', r'\bGUIDE\b'),
-                ('REST', r'\b(?:PIPE[- ]?REST|REST|SHOE)\b'))
+                ('REST', r'\b(?:PIPE[- ]?REST|REST)\b|\bSHOE\b'))
             if re.search(pat, desc)
         ]
+        if 'REST' in semantic and 'LINESTOP' in semantic and \
+                re.search(r'\bSHOE\b', desc) and \
+                not re.search(r'\b(?:PIPE[- ]?REST|REST)\b', desc):
+            semantic.remove('REST')
+        if 'REST' in semantic and 'GUIDE' in semantic and \
+                re.search(r'\bSHOE\b', desc) and \
+                not re.search(r'\b(?:PIPE[- ]?REST|REST)\b', desc):
+            semantic.remove('REST')
         require(len(set(semantic)) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
         canonical = {
             text(a.get(k)).upper().replace(' ', '') for k in

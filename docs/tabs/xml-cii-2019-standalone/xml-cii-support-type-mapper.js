@@ -198,7 +198,7 @@ export function classifySupportText(value, mapperRows = createDefaultSupportType
   const candidates = mapperRows.flatMap((row) => rowMatches(value, row).map((match) => {
     // A wear pad describes attachment hardware; it is not a second restraint
     // when this occurrence explicitly states a controlling stop/guide function.
-    if (primaryIntent && row.kind === 'REST' && norm(match.alias) === 'WEARPAD') {
+    if (primaryIntent && row.kind === 'REST' && ['WEARPAD','SHOE'].includes(norm(match.alias))) {
       return {row,kind:row.kind,...match,score:0.75,confidence:'MEDIUM',
         matchMode:'accessory-not-controlling-restraint'};
     }

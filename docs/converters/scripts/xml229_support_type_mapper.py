@@ -49,7 +49,7 @@ def mapped_support_kind(attrs, description, config, require):
         for alias in row.get('aliases') or []:
             score = _match_alias(source, alias)
             if score is not None:
-                if primary and kind == 'REST' and _norm(alias) == 'WEARPAD':
+                if primary and kind == 'REST' and _norm(alias) in ('WEARPAD','SHOE'):
                     score = .75
                 matches.append((score, kind))
     if not matches:

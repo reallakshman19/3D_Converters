@@ -244,3 +244,12 @@ test('authentic-style REST primary type14 dominates co-located AT01/AT05 hardwar
     x.getElementsByTagName('Type')[0]?.textContent);
   assert.deepEqual(types,['+Y'],'source hardware is not a competing restraint');
 });
+
+test('directional anchor on shoe is LINESTOP, not REST/LINESTOP ambiguity',async()=>{
+  const {mapper,config}=setup();
+  const text='Directional Anchor On Shoe for Hot Insulated Pipe';
+  const audit=runStandaloneSupportTypeMapper({supportConfigJson:JSON.stringify(config),testInput:text});
+  assert.equal(audit.previewRows[0].supportKind,'LINESTOP');
+  const att={DTXR:text,MDSSUPPTYPE:'ST06',SUPPORT_KIND:'LINESTOP',NODETYPE:'9',NODEGAP:'0'};
+  assert.equal(resolveXmlCiiSupportDescriptor(att,config).primaryKind,'LINESTOP');
+});

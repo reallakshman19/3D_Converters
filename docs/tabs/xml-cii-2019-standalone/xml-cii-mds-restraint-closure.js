@@ -66,7 +66,9 @@ function supportKindFromMember(member,config={}) {
   const semantic = [
     /\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b/.test(desc) && 'LINESTOP',
     /\bGUIDE\b/.test(desc) && 'GUIDE',
-    /\b(?:PIPE[- ]?REST|REST|SHOE)\b/.test(desc) && 'REST',
+    (/(?:\bPIPE[- ]?REST\b|\bREST\b)/.test(desc) ||
+      (!/\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR|GUIDE)\b/.test(desc)
+        && /\bSHOE\b/.test(desc))) && 'REST',
   ].filter(Boolean);
   if (new Set(semantic).size > 1)
     throw Object.assign(new Error('Conflicting source support descriptions'),
