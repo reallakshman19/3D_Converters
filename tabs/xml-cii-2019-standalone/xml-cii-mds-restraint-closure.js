@@ -220,8 +220,12 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
         if (!evidence.has(kind)) continue;
         const expectedType = EXPECTED_XML_TYPE[kind];
         if (present.has(expectedType)) continue;
-        const generated = restraintEntriesFromSupportKind(kind, evidence.get(kind), node, config)
-          .filter((entry) => !present.has(normalizeXmlType(entry?.type || entry)));
+        const attrs=evidence.get(kind);
+        const explicitGap=sourceGapText(attrs);
+        const generated=restraintEntriesFromSupportKind(kind, attrs, node, config)
+          .map(entry=>kind==='REST'&&explicitGap
+            ?{...entry,gap:String(supportGapNumber(attrs))}:entry)
+          .filter(entry=>!present.has(normalizeXmlType(entry?.type || entry)));
         if (!generated.length) continue;
         kinds.push(kind);
         entries.push(...generated);
