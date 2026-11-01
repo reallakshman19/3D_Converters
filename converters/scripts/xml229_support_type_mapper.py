@@ -31,6 +31,111 @@ def _match_alias(source, alias):
     return .98 if key in _HIGH else .9 if len(key) >= 6 else .75
 
 
+
+def configured_support_rule(attrs, description, config, require):
+    """Replay saved Tab 8 custom rule/regex directly from original source fields.
+
+    Built-in and generated Tab 7 prefix rules retain their existing fallback
+    roles; user-authored rules are evaluated by explicit priority, with
+    equal-priority conflicting kinds rejected rather than guessed.
+    """
+    mapping = config.get('supportMapping') or {}
+    rows = mapping.get('rules')
+    if not isinstance(rows, list):
+        return ''
+    values = dict(attrs)
+    values.setdefault('DESCRIPTION', description)
+    matches = []
+    for index, rule in enumerate(rows):
+        if not isinstance(rule, dict) or rule.get('enabled') is False:
+            continue
+        ident = str(rule.get('id') or '')
+        if ident.startswith(('builtin-', 'standalone-mds-')):
+            continue
+        scope = str(rule.get('source') or '').lower().strip()
+        if scope not in ('', 'all', 'staged-json', 'json'):
+            continue
+        kind = str(rule.get('kind') or '').upper().replace(' ', '')
+        if not kind:
+            continue
+        mode = str(rule.get('match') or 'contains')
+        require(mode in ('regex', 'contains', 'equals', 'startsWith'),
+                'NATIVE_PREFINAL_RESTRAINT_CONFIG_INVALID')
+        fields = [re.sub(r'[^A-Z0-9]', '', f.upper()) for f in
+                  re.split(r'[,;\n]', str(rule.get('field') or '')) if f.strip()]
+        candidates = [str(v) for k,v in values.items()
+                      if v is not None and (not fields or '*' in fields or
+                      'ANY' in fields or re.sub(r'[^A-Z0-9]', '', k.upper()) in fields)
+                      and str(v).strip()]
+        pattern = str(rule.get('pattern') or '').strip()
+        if not pattern:
+            continue
+        if mode == 'regex':
+            require(len(pattern) <= 512, 'NATIVE_PREFINAL_RESTRAINT_CONFIG_INVALID')
+            try:
+                expression = re.compile(pattern, re.I)
+            except re.error:
+                require(False, 'NATIVE_PREFINAL_RESTRAINT_CONFIG_INVALID')
+            found = any(expression.search(v) for v in candidates)
+        else:
+            terms = [v.strip().upper() for v in re.split(r'[,;\n]', pattern) if v.strip()]
+            found = any(any(
+                c.upper() == term if mode == 'equals' else
+                c.upper().startswith(term) if mode == 'startsWith' else
+                term in c.upper() for term in terms) for c in candidates)
+        if found:
+            priority = rule.get('priority', (index+1)*10)
+            try:
+                priority = float(priority)
+            except (ValueError, TypeError):
+                priority = (index+1)*10
+            if not __import__('math').isfinite(priority):
+                priority = (index+1)*10
+            matches.append((priority, kind, ident or 'rule-'+str(index)))
+    if not matches:
+        return ''
+    matches.sort(key=lambda item: (item[0], item[2]))
+    best = matches[0][0]
+    first = {kind for priority, kind, _ in matches if priority == best}
+    require(len(first) == 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+    return next(iter(first))
+
+
+_DEFAULT_KIND_ALIASES = {
+    'REST': {'SHOE','PIPEREST','WEARPAD','REST','RES'},
+    'GUIDE': {'GUIDE','PG','LATERALGUIDE','GT'},
+    'LINESTOP': {'LINESTOP','DIRECTIONALANCHOR','LS','AXIALSTOP','ST'},
+    'ANCHOR': {'ANCHOR','FIXED'},
+}
+
+
+def configured_mapper_semantic_conflict(attrs, description, config, semantic, require):
+    """Detect newly configured Tab 7 keywords that contradict source semantics.
+
+    Default cross-kind hardware terms (e.g. SHOE in a DIRECTIONAL ANCHOR)
+    do not become a false contradiction.
+    """
+    rows = (config.get('supportTypeMapper') or {}).get('rows')
+    if not isinstance(rows, list) or not semantic:
+        return
+    source = ' '.join(str(v) for v in
+        [attrs.get('DTXR'),attrs.get('DESC'),attrs.get('DESCRIPTION'),
+         description,attrs.get('CMPSUPTYPE'),attrs.get('MDSSUPPTYPE'),
+         attrs.get('SPRE')] if v).upper()
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        kind = str(row.get('kind') or '').upper()
+        if kind == semantic:
+            continue
+        for alias in row.get('aliases') or []:
+            if _norm(alias) in _DEFAULT_KIND_ALIASES.get(kind, set()):
+                continue
+            score = _match_alias(source, alias)
+            if score is not None and score >= 0.65:
+                require(False, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+
+
 def mapped_support_kind(attrs, description, config, require):
     rows = (config.get('supportTypeMapper') or {}).get('rows')
     if not isinstance(rows, list):
