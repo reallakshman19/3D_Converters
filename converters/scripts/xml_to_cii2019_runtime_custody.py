@@ -415,9 +415,12 @@ def main() -> None:
         staged_original = stage_native_original_lineage(
             args.input, args.xml229_native_final_packet, args.staged_json, support_config)
     _mark_native_failure_stage('STAGED_ENRICHMENT')
+    _mark_native_failure_stage('STAGED_POSITION_TRANSFER')
     input_xml = patched._maybe_enrich_from_staged_json(
         staged_original, args.staged_json, support_config)
+    _mark_native_failure_stage('SOURCE_VALUE_HYDRATION')
     input_xml = patched._apply_process_data_to_xml(input_xml, support_config)
+    _mark_native_failure_stage('BEND_RADIUS_POLICY')
     input_xml, bend_policy = apply_bend_radius_policy(input_xml, support_config)
     # Weights are accepted against the immutable original XML geometry.
     # Geometry transformation must be complete BEFORE those decisions, not
