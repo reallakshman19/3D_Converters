@@ -860,7 +860,21 @@ def _apply_staged_position_restraints(node: ET.Element, namespace: str,
         elif placeholder(rest) or originally_annotated:
             continue
         else:
-            raise ValueError("XML229_XML_RESTRAINT_PROVENANCE_UNRESOLVED")
+            # Untagged XML is not automatically stale. It can be retained
+            # when the independently matched source agrees in BOTH type and
+            # explicit gap; otherwise its authority is unresolved.
+            old_type = present_type(_child_text(rest, namespace, "Type"))
+            old_gap = _child_text(rest, namespace, "Gap")
+            compatible = [row for row in expected
+                if present_type(_child_text(row, namespace, "Type")) == old_type]
+            if (len(compatible) != 1 or
+                    (old_gap and (numeric(old_gap) is None or
+                     numeric(_child_text(compatible[0], namespace, "Gap")) is None or
+                     not math.isclose(numeric(old_gap),
+                         numeric(_child_text(compatible[0], namespace, "Gap")),
+                         abs_tol=1e-6, rel_tol=0)))):
+                raise ValueError("XML229_XML_RESTRAINT_PROVENANCE_UNRESOLVED")
+            authoritative.append(rest)
     for rest in authoritative:
         typ = present_type(_child_text(rest, namespace, "Type"))
         if typ not in valid_types:
