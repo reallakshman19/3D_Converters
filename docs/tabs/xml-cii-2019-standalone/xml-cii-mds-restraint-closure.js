@@ -68,17 +68,17 @@ function supportKindFromMember(member,config={}) {
   // The legacy keyword guesses are ONLY for older configs without a mapper.
   // Otherwise removed/changed keywords could still leak into native CII.
   if (!hasSavedMapper) {
-  const semantic = [
-    /\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b/.test(desc) && 'LINESTOP',
-    /\bGUIDE\b/.test(desc) && 'GUIDE',
-    (/(?:\bPIPE[- ]?REST\b|\bREST\b)/.test(desc) ||
-      (!/\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR|GUIDE)\b/.test(desc)
-        && /\bSHOE\b/.test(desc))) && 'REST',
-  ].filter(Boolean);
-  if (new Set(semantic).size > 1)
-    throw Object.assign(new Error('Conflicting source support descriptions'),
-      {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
-  if (semantic.length) return semantic[0];
+    const semantic = [
+      /\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b/.test(desc) && 'LINESTOP',
+      /\bGUIDE\b/.test(desc) && 'GUIDE',
+      (/(?:\bPIPE[- ]?REST\b|\bREST\b)/.test(desc) ||
+        (!/\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR|GUIDE)\b/.test(desc)
+          && /\bSHOE\b/.test(desc))) && 'REST',
+    ].filter(Boolean);
+    if (new Set(semantic).size > 1)
+      throw Object.assign(new Error('Conflicting source support descriptions'),
+        {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+    if (semantic.length) return semantic[0];
   }
   // Use the user-authored Step 7 mapper rows, not a second hard-coded alias list.
   // HIGH/MEDIUM semantic intent can override a stale generated REST label;
