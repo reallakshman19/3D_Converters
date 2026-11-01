@@ -664,7 +664,9 @@ class NativeSubstageWitnessTests(unittest.TestCase):
                 self.assertEqual(seen,len(nodes))
                 pipe.append(first_copy)
                 ET.ElementTree(projected).write(isolated,encoding='utf-8',xml_declaration=True)
-                run=subprocess.run([sys.executable,str(SCRIPTS/'xml_to_cii2019.py'),
+                # Invoke the production patched elements writer, not the
+                # legacy bare converter which intentionally emits only T1.
+                run=subprocess.run([sys.executable,str(SCRIPTS/'xml_to_cii2019_patched.py'),
                                     '--input',str(isolated),'--output',str(cii)],
                                    capture_output=True,text=True,timeout=60)
                 self.assertEqual(run.returncode,0,run.stderr)
