@@ -390,6 +390,100 @@ def _renumber_length_bearing_negative_nodes(root: ET.Element, namespace: str) ->
     return changed
 
 
+
+def _source_bound_class_row(branch_name: str, support_config: dict[str, Any]) -> tuple[dict[str, Any], float, str] | None:
+    """Resolve only an exact, unique class+NPS master row; never use a fuzzy preview."""
+    section = support_config.get("pipingClass")
+    rows = section.get("masterRows") if isinstance(section, dict) else None
+    if not isinstance(rows, list) or not rows:
+        return None  # No class master supplied: retain legacy writer fallback.
+    primary = branch_name.lstrip("/").split("/")[0]
+    tokens = primary.split("-")
+    size = re.search(r'(\d+(?:\.\d+)?)\s*"', primary)
+    if len(tokens) < 3 or not size:
+        raise ValueError(f"XML229_CLASS_SOURCE_IDENTITY_MISSING branch={branch_name}")
+    class_key = tokens[-2].strip().upper()
+    nps = float(size.group(1))
+    candidates = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        value = _safe_text(row.get("Piping Class") or row.get("pipingClass")).upper()
+        if value != class_key:
+            continue
+        try:
+            row_nps = float(row.get("Size"))
+        except (TypeError, ValueError):
+            continue
+        if abs(row_nps - nps) <= 1e-8:
+            candidates.append(row)
+    if not candidates:
+        raise ValueError(f"XML229_CLASS_SOURCE_UNMATCHED branch={branch_name} class={class_key} nps={nps}")
+    # Identical duplicated master rows are harmless; contradictory rows are not.
+    signatures = {
+        tuple(_safe_text(row.get(key)) for key in
+              ("Wall thickness", "Corrosion", "Material_Name", "Rating"))
+        for row in candidates
+    }
+    if len(signatures) != 1:
+        raise ValueError(f"XML229_CLASS_SOURCE_AMBIGUOUS branch={branch_name} class={class_key} nps={nps}")
+    row = candidates[0]
+    try:
+        thickness = float(row["Wall thickness"])
+    except (TypeError, ValueError, KeyError) as exc:
+        raise ValueError(f"XML229_CLASS_SOURCE_WALL_INVALID branch={branch_name}") from exc
+    if not math.isfinite(thickness) or thickness <= 0:
+        raise ValueError(f"XML229_CLASS_SOURCE_WALL_INVALID branch={branch_name}")
+    return row, thickness, class_key
+
+
+def _apply_source_bound_piping_class(branch: ET.Element, namespace: str,
+                                      support_config: dict[str, Any]) -> bool:
+    """Materialize an exact master wall for matching nominal-bore nodes only.
+
+    Does not change the legacy 0.01-mm writer fallback, accepted mass, or geometry.
+    Rating and material are intentionally NOT guessed into an unresolved CII code.
+    """
+    branch_name = _child_text(branch, namespace, "Branchname")
+    match = _source_bound_class_row(branch_name, support_config)
+    if match is None:
+        return False
+    row, thickness, class_key = match
+    if addon is None:
+        raise ValueError("XML229_CLASS_SOURCE_ADDON_REQUIRED")
+    nps_match = re.search(r'(\d+(?:\.\d+)?)\s*"', branch_name)
+    expected_dn = addon.nps_to_dn(float(nps_match.group(1)))
+    if expected_dn is None:
+        raise ValueError(f"XML229_CLASS_NPS_UNSUPPORTED branch={branch_name}")
+    changed = False
+    transferred = 0
+    conflicts = 0
+    for node in _branch_nodes(branch, namespace):
+        if addon.od_to_dn(_child_text(node, namespace, "OutsideDiameter")) != expected_dn:
+            continue  # A reducer/branch with another bore needs its own source row.
+        existing = _numeric_text(_child_text(node, namespace, "WallThickness"))
+        if existing is not None and existing > 0:
+            if abs(existing - thickness) > 1e-4:
+                conflicts += 1  # Do not overwrite independently supplied wall.
+            continue
+        _set_child(node, namespace, "WallThickness", format(thickness, ".12g"))
+        changed = True
+        transferred += 1
+    if conflicts:
+        raise ValueError(f"XML229_CLASS_EXISTING_WALL_CONFLICT branch={branch_name} count={conflicts}")
+    # The trace identifies what was transferred and what still has no CII authority.
+    print("XML229_SOURCE_TRANSFER " + json.dumps({
+        "family": "pipingClass", "branch": branch_name, "class": class_key,
+        "sizeNps": float(nps_match.group(1)), "wallMm": thickness,
+        "masterSourceRow": row.get("_sourceRowIndex"),
+        "nodeTransfers": transferred,
+        "materialName": row.get("Material_Name"),
+        "rating": row.get("Rating"),
+        "materialCodeStatus": "unresolved-unless-independently-mapped",
+    }, sort_keys=True))
+    return changed
+
+
 def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -> Path:
     _normalize_process_field_map(support_config)
     tree = ET.parse(xml_path)
@@ -403,6 +497,9 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
     for branch in root.iter():
         if _local_name(branch.tag) != "Branch":
             continue
+        # Class enrichment runs on exactly the XML that the native parser sees.
+        # It is independent of staged JSON and of Preview-only presentation.
+        changed = _apply_source_bound_piping_class(branch, namespace, support_config) or changed
         pressure = _ensure_child(branch, namespace, "Pressure")
         line_key = _line_key_from_branch(_child_text(branch, namespace, "Branchname"), support_config)
         hydro = ""
@@ -713,9 +810,9 @@ def _patched_elements_payload_factory(temperature_map: dict[str, tuple[float, ..
 def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, support_config: dict[str, Any]) -> Path:
     if staged_json is None:
         return input_xml
-    if _xml_has_dtxr_annotations(input_xml):
-        support_config["_inputAlreadyEnriched"] = True
-        return input_xml
+    # Existing annotations are per-node evidence, not a whole-document
+    # enrichment-complete bit. Reconcile supplied staged members even when
+    # another node was already annotated; keep unmatched XML values intact.
     if addon is None:
         raise ValueError("--staged-json requires xml_to_cii2019_master_addon.py to be available.")
     result = addon.enrich_xml_addons(input_xml, linelist=None, overrides=None, staged_json=staged_json.read_text(encoding="utf-8-sig"), dtxr_position_offset=support_config.get("dtxrPositionOffset") if isinstance(support_config, dict) else None)
