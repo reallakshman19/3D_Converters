@@ -780,6 +780,74 @@ def _apply_source_material_rating(branch: ET.Element, namespace: str,
     return changed
 
 
+def _assert_verified_master_completeness(root: ET.Element, namespace: str,
+                                          support_config: dict[str, Any],
+                                          class_wall_index: dict[tuple[str, int], float],
+                                          class_meta_index: dict[tuple[str, int], tuple[str, str]],
+                                          material_ids: dict[str, int]) -> None:
+    """Opt-in RELEASE guard, not a license to invent absent Owner master data.
+
+    A diagnostic conversion may remain possible when masters are incomplete.
+    An explicitly requested engineering-verified conversion must not quietly
+    serialize base writer's 0.01 mm wall, empty P/T/density or material 0.
+    """
+    if support_config.get("requireVerifiedMasterCompleteness") is not True:
+        return
+    if addon is None:
+        raise ValueError("XML229_VERIFIED_CLASS_LOOKUP_UNAVAILABLE")
+    for branch in root.iter():
+        if _local_name(branch.tag) != "Branch":
+            continue
+        pipe_nodes = [node for node in _branch_nodes(branch, namespace)
+                      if _child_text(node, namespace, "ComponentType").upper()
+                      in {"PIPE", "PCOM", "BRAN", "TUBE"}]
+        if not pipe_nodes:
+            continue
+        branch_name = _child_text(branch, namespace, "Branchname")
+        class_match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", branch_name, re.I)
+        if class_match is None:
+            raise ValueError("XML229_VERIFIED_PIPING_CLASS_UNRESOLVED")
+        cls = class_match.group(1)
+        line_key = _line_key_from_branch(branch_name, support_config)
+        if not line_key or len(_matching_linelist_rows(line_key, support_config)) != 1:
+            raise ValueError("XML229_VERIFIED_LINE_LIST_UNRESOLVED")
+        pressure = next((x for x in branch if _local_name(x.tag) == "Pressure"), None)
+        temperature = next((x for x in branch if _local_name(x.tag) == "Temperature"), None)
+        for node_parent, field_name, needs_positive, code in (
+            (pressure, "Pressure1", True, "XML229_VERIFIED_PRESSURE_MISSING"),
+            (temperature, "Temperature1", False, "XML229_VERIFIED_T1_MISSING"),
+            (temperature, "Temperature3", False, "XML229_VERIFIED_T3_MISSING"),
+            (branch, "FluidDensity", True, "XML229_VERIFIED_DENSITY_MISSING")):
+            measured = _numeric_text(_child_text(node_parent, namespace, field_name)) if node_parent is not None else None
+            if measured is None or not math.isfinite(measured) or (needs_positive and measured <= 0):
+                raise ValueError(code)
+        for node in pipe_nodes:
+            od = _numeric_text(_child_text(node, namespace, "OutsideDiameter"))
+            dn = addon.od_to_dn(od) if od is not None else None
+            if dn is None or (cls, dn) not in class_wall_index:
+                raise ValueError("XML229_VERIFIED_CLASS_DN_WALL_MISSING")
+            wall = _numeric_text(_child_text(node, namespace, "WallThickness"))
+            expected_wall = class_wall_index[(cls, dn)]
+            if wall is None or wall <= 0 or not math.isclose(
+                    wall, expected_wall, rel_tol=0, abs_tol=1e-6):
+                raise ValueError("XML229_VERIFIED_CLASS_DN_WALL_CONFLICT")
+            material_and_rating = class_meta_index.get((cls, dn))
+            if material_and_rating is None or not material_and_rating[1]:
+                raise ValueError("XML229_VERIFIED_CLASS_RATING_MISSING")
+            actual_rating = _child_text(node, namespace, "PipingClassRating")
+            if actual_rating != material_and_rating[1]:
+                raise ValueError("XML229_VERIFIED_CLASS_RATING_CONFLICT")
+            name = " ".join(_child_text(node, namespace, "MaterialName").upper().split())
+            if not name:
+                raise ValueError("XML229_VERIFIED_MATERIAL_NAME_MISSING")
+            approved_code = material_ids.get(name)
+            measured_code = _numeric_text(_child_text(node, namespace, "MaterialCode"))
+            if approved_code is None or measured_code is None or measured_code <= 0:
+                raise ValueError("XML229_VERIFIED_MATERIAL_CODE_UNAPPROVED")
+            if int(measured_code) != approved_code or measured_code != int(measured_code):
+                raise ValueError("XML229_VERIFIED_MATERIAL_CODE_CONFLICT")
+
+
 def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -> Path:
     _normalize_process_field_map(support_config)
     tree = ET.parse(xml_path)
@@ -854,6 +922,8 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
         changed = True
     if _truthy(support_config.get("splitCondensedValveFlange")) and _renumber_length_bearing_negative_nodes(root, namespace):
         changed = True
+    _assert_verified_master_completeness(
+        root, namespace, support_config, class_wall_index, class_meta_index, material_ids)
     if not changed:
         return xml_path
     temp_path = Path(tempfile.gettempdir()) / f"{xml_path.stem}_final_enriched.xml"
