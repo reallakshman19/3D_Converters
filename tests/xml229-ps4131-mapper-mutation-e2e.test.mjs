@@ -146,7 +146,7 @@ test('edited Step 7 semantic alias changes governed Step 8/native output, not on
     'custom mapper label must govern Final instead of being display only');
 });
 
-test('Step 7 changed/removed GUIDE keyword governs pre-Final, not legacy semantic regex',async()=>{
+test('explicit GUIDE cannot become REST by Step 7 alias or removal',async()=>{
   const {config}=setup();
   const rest=config.supportTypeMapper.rows.find(row=>row.kind==='REST');
   const guide=config.supportTypeMapper.rows.find(row=>row.kind==='GUIDE');
@@ -154,18 +154,17 @@ test('Step 7 changed/removed GUIDE keyword governs pre-Final, not legacy semanti
   rest.aliases.push('GUIDE');
   const source=JSON.parse(original());
   source[0].children[1].attributes.DTXR='GUIDE';
-  source[0].children[1].attributes.NODETYPE='17';
-  const prepared=await prepareXml229PrefinalRestraints({
-    xmlText:xml,stagedJsonText:JSON.stringify(source),config,
-  });
-  assert.deepEqual(nodeRows(prepared.document)[1].rows.map(row=>row.type),['+Y'],
-    'explicit REST assignment must outrank hard-coded old GUIDE semantic');
+  source[0].children[1].attributes.NODETYPE='10';
+  await assert.rejects(
+    prepareXml229PrefinalRestraints({xmlText:xml,stagedJsonText:JSON.stringify(source),config}),
+    {code:'PREFINAL_RESTRAINT_SEMANTIC_CONFLICT'},
+  );
   rest.aliases=rest.aliases.filter(alias=>alias.toUpperCase()!=='GUIDE');
-  const disabled=await prepareXml229PrefinalRestraints({
+  const preserved=await prepareXml229PrefinalRestraints({
     xmlText:xml,stagedJsonText:JSON.stringify(source),config,
   });
-  assert.deepEqual(nodeRows(disabled.document)[1].rows,[],
-    'removed saved GUIDE keyword must not be silently resurrected');
+  assert.deepEqual(nodeRows(preserved.document)[1].rows.map(row=>row.type),['GUI'],
+    'explicit GUIDE source meaning survives deleted UI alias');
   const audit=runStandaloneSupportTypeMapper({supportConfigJson:JSON.stringify(config),
     testInput:'GUIDE'});
   assert.equal(audit.previewRows[0]?.status,'unmatched');
