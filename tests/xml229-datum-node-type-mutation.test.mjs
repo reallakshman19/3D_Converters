@@ -14,7 +14,7 @@ const XML = '<PipeStressExport><Pipe><Branch><Branchname>/TEST/B1</Branchname>'
   + '<OutsideDiameter>88.9</OutsideDiameter><WallThickness>3</WallThickness></Node>'
   + '</Branch></Pipe></PipeStressExport>';
 const staged = JSON.stringify([{type:'BRANCH',name:'/TEST/B1',children:[
-  {type:'SUPPORT',name:'SUPPORT PS140',attributes:{POSI:'0 0 0',DTXR:'REST',NAME:'/PS140',
+  {type:'SUPPORT',name:'SUPPORT PS140',attributes:{POSI:'0 0 0',DTXR:'REST',NAME:'/PS999',
     MDSSUPPTYPE:'GT571',SUPPORT_KIND:'REST',NODETYPE:'17',NODEGAP:'0'}},
 ]}]);
 const config = (offset=true, tolerance=1, mutate=true) => ({
@@ -54,7 +54,7 @@ test('governed source match requires configured Datum and tolerance; NODETYPE mu
   assert.deepEqual(rows(unchanged.document),[{Type:'17',Gap:'0'}]);
 });
 test('source without qualified position remains unmatched even with Datum',async()=>{
-  const other=staged.replace("POSI\\\":\\\"0 0 0", "POSI\\\":\\\"3 0 0");
+  const other=staged.replace('"POSI":"0 0 0"', '"POSI":"3 0 0"');
   const result=await prepareXml229PrefinalRestraints({xmlText:XML,stagedJsonText:other,config:config(true,1)});
   assert.deepEqual(rows(result.document),[]);
 });
