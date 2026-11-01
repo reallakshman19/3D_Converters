@@ -244,7 +244,7 @@ def _normalize_process_field_map(config: dict[str, Any]) -> None:
             if score > best_score:
                 best_score = score
                 best_header = header
-        if best_header and best_score >= 90:
+        if not _safe_text(field_map.get(target)) and best_header and best_score >= 90:
             field_map[target] = best_header
 
 
@@ -390,6 +390,64 @@ def _renumber_length_bearing_negative_nodes(root: ET.Element, namespace: str) ->
     return changed
 
 
+
+def _source_class_wall_index(config: dict[str, Any]) -> dict[tuple[str, int], float]:
+    """Index only explicit class + converted DN master facts; never infer wall."""
+    section = config.get("pipingClass", {})
+    rows = section.get("masterRows", []) if isinstance(section, dict) else []
+    index: dict[tuple[str, int], float] = {}
+    if not isinstance(rows, list):
+        return index
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        class_code = (_row_value(row, "Piping Class") or
+                      _row_value(row, "pipingClass")).strip()
+        dn_text = _row_value(row, "convertedBore")
+        wall_text = (_row_value(row, "Wall thickness") or
+                     _row_value(row, "wallThicknessMm") or
+                     _row_value(row, "WallThickness"))
+        if not class_code or not dn_text or not wall_text:
+            continue
+        try:
+            dn = float(dn_text)
+            wall = float(wall_text)
+        except ValueError:
+            raise ValueError("XML229_PIPING_CLASS_INVALID_MASTER_VALUE") from None
+        if not math.isfinite(dn) or not dn.is_integer() or not math.isfinite(wall) or wall <= 0:
+            raise ValueError("XML229_PIPING_CLASS_INVALID_MASTER_VALUE")
+        key = (class_code, int(dn))
+        if key in index and not math.isclose(index[key], wall, rel_tol=0, abs_tol=1e-6):
+            raise ValueError("XML229_PIPING_CLASS_BORE_AMBIGUOUS")
+        index[key] = wall
+    return index
+
+
+def _apply_source_class_wall(branch: ET.Element, namespace: str,
+                             index: dict[tuple[str, int], float]) -> bool:
+    """A node's real OD, not only the branch header size, controls its wall."""
+    name = _child_text(branch, namespace, "Branchname")
+    match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", name, re.I)
+    if not match or not index or addon is None:
+        return False
+    class_code = match.group(1)
+    changed = False
+    for node in _branch_nodes(branch, namespace):
+        existing = _numeric_text(_child_text(node, namespace, "WallThickness"))
+        if existing is not None and existing > 0:
+            continue  # source wall is explicit; never replace it with derived master.
+        od = _numeric_text(_child_text(node, namespace, "OutsideDiameter"))
+        dn = addon.od_to_dn(od) if od is not None else None
+        wall = index.get((class_code, dn)) if dn is not None else None
+        if wall is None:
+            continue  # no source-approved row; do not manufacture a dimension.
+        if od is None or wall * 2 >= od:
+            raise ValueError("XML229_PIPING_CLASS_WALL_EXCEEDS_OD")
+        _set_child(node, namespace, "WallThickness", format(wall, ".12g"))
+        changed = True
+    return changed
+
+
 def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -> Path:
     _normalize_process_field_map(support_config)
     tree = ET.parse(xml_path)
@@ -400,6 +458,7 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
     changed = False
     skip_dtxr_restraint_fallback = _xml_restraints_are_authoritative(xml_path, support_config)
     insulation_density_default = _to_float(support_config.get("insulationDensityDefault"), 210.0)
+    class_wall_index = _source_class_wall_index(support_config)
     for branch in root.iter():
         if _local_name(branch.tag) != "Branch":
             continue
@@ -427,6 +486,8 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
                 _set_child(branch, namespace, "FluidDensity", density); changed = True
         _set_child(pressure, namespace, "HydroPressure", hydro if hydro else _child_text(pressure, namespace, "HydroPressure") or 0)
         changed = True
+        if _apply_source_class_wall(branch, namespace, class_wall_index):
+            changed = True
         max_insulation = _numeric_text(_child_text(branch, namespace, "InsulationThickness")) or 0.0
         for node in _branch_nodes(branch, namespace):
             max_insulation = max(max_insulation, _numeric_text(_child_text(node, namespace, "InsulationThickness")) or 0.0)
@@ -714,8 +775,9 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
     if staged_json is None:
         return input_xml
     if _xml_has_dtxr_annotations(input_xml):
+        # Reconcile against the *current* immutable O1 staging source. A single
+        # stale REST annotation must not suppress all other source DTXR members.
         support_config["_inputAlreadyEnriched"] = True
-        return input_xml
     if addon is None:
         raise ValueError("--staged-json requires xml_to_cii2019_master_addon.py to be available.")
     result = addon.enrich_xml_addons(input_xml, linelist=None, overrides=None, staged_json=staged_json.read_text(encoding="utf-8-sig"), dtxr_position_offset=support_config.get("dtxrPositionOffset") if isinstance(support_config, dict) else None)
