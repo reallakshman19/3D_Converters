@@ -520,6 +520,25 @@ def _material_ids_from_config(config: dict[str, Any],
     return result
 
 
+def _process_material_for_line(line_key: str, config: dict[str, Any]) -> str:
+    """The selected Line List Material outranks class fallback; never guess."""
+    section = config.get("linelist", {})
+    field_map = section.get("fieldMap", {}) if isinstance(section, dict) else {}
+    keys = [field_map.get("material") if isinstance(field_map, dict) else None,
+            "material", "Material", "MATERIAL", "MOC",
+            "Material Name", "Material_Name", "processMaterial"]
+    unique: dict[str, str] = {}
+    for row in _matching_linelist_rows(line_key, config):
+        for key in keys:
+            value = _row_value(row, str(key)) if key else ""
+            if value:
+                unique.setdefault(" ".join(value.upper().split()), value)
+                break
+    if len(unique) > 1:
+        raise ValueError("XML229_LINE_MATERIAL_AMBIGUOUS")
+    return next(iter(unique.values()), "")
+
+
 def _source_class_meta_index(config: dict[str, Any],
                              requested: set[str] | None = None) -> dict[tuple[str, int], tuple[str, str]]:
     """Require one consistent spec material/rating for each exact class/bore."""
@@ -545,10 +564,11 @@ def _source_class_meta_index(config: dict[str, Any],
 
 def _apply_source_material_rating(branch: ET.Element, namespace: str,
                                   specs: dict[tuple[str, int], tuple[str, str]],
-                                  material_ids: dict[str, int]) -> bool:
+                                  material_ids: dict[str, int],
+                                  process_material: str = "") -> bool:
     name = _child_text(branch, namespace, "Branchname")
     match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", name, re.I)
-    if not match or not specs or addon is None:
+    if not match or addon is None:
         return False
     changed = False
     for node in _branch_nodes(branch, namespace):
@@ -559,11 +579,12 @@ def _apply_source_material_rating(branch: ET.Element, namespace: str,
         od = _numeric_text(_child_text(node, namespace, "OutsideDiameter"))
         dn = addon.od_to_dn(od) if od is not None else None
         metadata = specs.get((match.group(1), dn)) if dn is not None else None
-        if metadata is None:
+        if metadata is None and not process_material:
             continue
-        material, rating = metadata
+        material, rating = metadata if metadata is not None else ("", "")
+        selected_material = process_material or material
         for key, value in (("PipingClass", match.group(1)),
-                           ("MaterialName", material), ("PipingClassRating", rating)):
+                           ("MaterialName", selected_material), ("PipingClassRating", rating)):
             if value and not _child_text(node, namespace, key):
                 _set_child(node, namespace, key, value)
                 changed = True
@@ -571,7 +592,7 @@ def _apply_source_material_rating(branch: ET.Element, namespace: str,
         # numeric ID from DSS, a 900# rating, or the unapproved S32803 alias.
         existing = (_numeric_text(_child_text(node, namespace, "MaterialCode")) or
                     _numeric_text(_child_text(node, namespace, "MaterialNumber")))
-        material_id = material_ids.get(" ".join(material.upper().split()))
+        material_id = material_ids.get(" ".join(selected_material.upper().split()))
         if material_id and not (existing is not None and existing > 0):
             _set_child(node, namespace, "MaterialCode", str(material_id))
             changed = True
@@ -598,12 +619,21 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
     class_wall_index = _source_class_wall_index(support_config, source_classes)
     class_meta_index = _source_class_meta_index(support_config, source_classes)
     material_names = {" ".join(name.upper().split()) for name, _rating in class_meta_index.values() if name}
+    for source_branch in root.iter():
+        if _local_name(source_branch.tag) != "Branch":
+            continue
+        source_line = _line_key_from_branch(
+            _child_text(source_branch, namespace, "Branchname"), support_config)
+        source_material = _process_material_for_line(source_line, support_config)
+        if source_material:
+            material_names.add(" ".join(source_material.upper().split()))
     material_ids = _material_ids_from_config(support_config, material_names)
     for branch in root.iter():
         if _local_name(branch.tag) != "Branch":
             continue
         pressure = _ensure_child(branch, namespace, "Pressure")
         line_key = _line_key_from_branch(_child_text(branch, namespace, "Branchname"), support_config)
+        process_material = _process_material_for_line(line_key, support_config)
         hydro = ""
         if _matching_linelist_rows(line_key, support_config):
             temperature = _ensure_child(branch, namespace, "Temperature")
@@ -628,7 +658,8 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
         changed = True
         if _apply_source_class_wall(branch, namespace, class_wall_index):
             changed = True
-        if _apply_source_material_rating(branch, namespace, class_meta_index, material_ids):
+        if _apply_source_material_rating(
+                branch, namespace, class_meta_index, material_ids, process_material):
             changed = True
         max_insulation = _numeric_text(_child_text(branch, namespace, "InsulationThickness")) or 0.0
         for node in _branch_nodes(branch, namespace):
