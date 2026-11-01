@@ -819,7 +819,10 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
     stats = result.get("stats") or {}
     if stats.get("dtxrPosAmbiguous", 0):
         raise ValueError("XML229_STAGED_POSITION_AMBIGUOUS")
-    if not stats.get("dtxrPos", 0) and not stats.get("dtxrPs", 0):
+    source_json = staged_json.read_text(encoding="utf-8-sig")
+    has_claims = bool(addon.build_dtxr_ps_index(source_json)) or bool(
+        addon.build_dtxr_pos_entries(source_json, support_config.get("dtxrPositionOffset")))
+    if has_claims and not stats.get("dtxrPos", 0) and not stats.get("dtxrPs", 0):
         raise ValueError("XML229_STAGED_TRANSFER_NO_MATCH")
     # A stale REST annotation must never be interpreted as proof the provided
     # staged JSON was consumed; the receipt makes this a distinct run event.
