@@ -268,6 +268,21 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
       if (!record || !String(record.status || '').startsWith('RESOLVED_')) continue;
       const evidence = evidenceByKind(record,config,runtime.requireUnambiguous===true);
       if (!evidence.size) continue;
+      for (const [kind, attrs] of evidence) {
+        const authored = text(attrs.CMPSUPGAP);
+        const legacy = text(attrs.NODEGAP);
+        if (authored && legacy && Number(legacy) === 0 && supportGapNumber(attrs) !== 0) {
+          diagnostics.push({
+            type: 'xml229-gap-authority-receipt',
+            nodeNumber: childText(node, 'NodeNumber'),
+            supportKind: kind,
+            sourceField: 'CMPSUPGAP',
+            sourceValue: authored,
+            ignoredLegacyZero: legacy,
+            reason: 'legacy-NODEGAP-zero-placeholder',
+          });
+        }
+      }
 
       if(runtime.requireUnambiguous){
         for(const restraint of childrenByName(node,'Restraint')){
