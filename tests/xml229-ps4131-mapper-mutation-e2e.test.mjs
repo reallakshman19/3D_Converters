@@ -199,6 +199,28 @@ test('Step 8 contradictory duplicate mutations fail closed instead of first-matc
   );
 });
 
+test('verified GUIDE refuses an unexplained stale REST at the same node',async()=>{
+  const {config}=setup();
+  const doc=new DOMParser().parseFromString(xml,'application/xml');
+  const guideNode=[...doc.getElementsByTagName('Node')].find(node=>
+    node.getElementsByTagName('NodeName')[0]?.textContent==='PS-4131.2');
+  assert.ok(guideNode);
+  const rest=doc.createElement('Restraint');
+  const restType=doc.createElement('Type');
+  restType.textContent='+Y';
+  const restGap=doc.createElement('Gap');
+  restGap.textContent='0';
+  rest.append(restType,restGap);
+  guideNode.appendChild(rest);
+  await assert.rejects(
+    prepareXml229PrefinalRestraints({
+      xmlText:new XMLSerializer().serializeToString(doc),
+      stagedJsonText:original(),config,
+    }),
+    {code:'PREFINAL_RESTRAINT_SOURCE_KIND_CONFLICT'},
+    'a stale REST cannot survive a unique staged GUIDE unless source also proves REST');
+});
+
 test('exact staged support gap cannot be replaced by stale native XML default',async()=>{
   const {config}=setup();
   const doc=new DOMParser().parseFromString(xml,'application/xml');
