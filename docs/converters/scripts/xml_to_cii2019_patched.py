@@ -517,6 +517,11 @@ def _apply_staged_position_restraints(node: ET.Element, namespace: str,
 
     entries = []
     for member in source_members:
+        # Do not derive a new restraint from a PIPE/ELBO/VALV DTXR token.
+        # Only a physical staged support member can carry support intent.
+        component_type = str(member.get("sourceType") or "").upper()
+        if component_type and component_type not in ("SUPPORT", "ATTA", "ANCI"):
+            continue
         attrs = dict(member.get("sourceAttrs") or {})
         if not attrs.get("DTXR"):
             attrs["DTXR"] = member.get("dtxr", "")
