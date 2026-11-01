@@ -399,6 +399,7 @@ def build_dtxr_pos_entries(staged_json: Any, offset_option: dict[str, Any] | Non
         entries.append({"dtxr": _staged_gap_annotation(dtxr, attrs),
                         "point": point, "rawPoint": raw_point,
                         "sourceAttrs": source_fields,
+                        "sourceType": str(component.get("type") or attrs.get("TYPE") or ""),
                         "tags": tags, "branchName": branch_name})
     return entries
 
@@ -778,7 +779,8 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
                 "members": [
                     {"dtxr": e["dtxr"], "rawPosition": e.get("rawPoint"),
                      "convertedPosition": e.get("point"), "branch": e.get("branchName"),
-                     "sourceAttrs": e.get("sourceAttrs", {})}
+                     "sourceAttrs": e.get("sourceAttrs", {}),
+                     "sourceType": e.get("sourceType", "")}
                     for e in positioned
                 ],
             })
