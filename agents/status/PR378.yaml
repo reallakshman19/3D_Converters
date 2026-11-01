@@ -1,0 +1,15 @@
+schema: AgentStatus.v1
+pr_or_wip: PR378
+state: DRAFT_PUBLISHED_VALIDATION_PENDING
+report: agents/PR378_workreport.md
+issue: https://github.com/reallakshman19/3D_Converters/issues/376
+pr_url: https://github.com/reallakshman19/3D_Converters/pull/378
+branch: fix/xml229-preview-substage-timing-20261101
+base: 2477a6fdee1002d5063bc51e94777ba940e6fa82
+report_basis_head: 4b32fcb76b6c9c4bedfe13dcc1739a6763712725
+criticality: ENGINEERING_CRITICAL
+validation: SOURCE_INSPECTION_PASS_ROOT_DOCS_BLOB_PARITY_PASS_NODE_NOT_RUN_CHROME_NOT_RUN_NATIVE_CII_NOT_RUN
+review_mode: AUTHOR_IMPLEMENTATION_ONLY
+merge_authority: OWNER_ONLY_NOT_GRANTED
+coordination: COORDINATION_REQUIRED_PRS_260_253
+next_action: Run focused Node tests and real Chrome original EF05 4 Preview and direct native XML no-master/partial-master, then independent release verification before review readiness
