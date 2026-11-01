@@ -118,7 +118,7 @@ function supportGapNumber(attrs){
   const explicit=text(attrs?.CMPSUPGAP);
   const legacy=text(attrs?.NODEGAP);
   const legacyZeroPlaceholder=!!explicit && !!legacy &&
-    /^0+(?:\\.0+)?(?:\\s*mm)?$/i.test(legacy);
+    /^0+(?:\.0+)?(?:\s*mm)?$/i.test(legacy);
   const raw=['CMPSUPGAP','CMPSUPGAP_POS','CMPSUPGAP_PS',
              ...(legacyZeroPlaceholder?[]:['NODEGAP'])]
     .map(key=>text(attrs?.[key])).filter(Boolean);
