@@ -130,6 +130,16 @@ def kinds(entries, require, config=None):
         require(all(numeric(v) == numeric(raw) for v in alias_values),
                 'NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS')
         previous_attrs = out.get(kind, {})
+        # A REST datum is a different structural source role from its co-located
+        # AT01 shoe / AT05 wear-pad hardware; prioritize the true REST owner
+        # before testing for conflicting authoritative REST gaps.
+        if previous_attrs and kind == 'REST':
+            previous_hardware = is_rest_hardware_member(previous_attrs, kind)
+            current_hardware = is_rest_hardware_member(a, kind)
+            if previous_hardware != current_hardware:
+                if previous_hardware:
+                    out[kind] = a
+                continue
         previous = source_gap(previous_attrs)
         require(not (previous and raw and numeric(previous) != numeric(raw)),
                 'NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS')
