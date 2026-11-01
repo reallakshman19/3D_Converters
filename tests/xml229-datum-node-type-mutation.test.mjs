@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {installWeightBasisXmlDom} from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
 import {prepareXml229PrefinalRestraints} from '../tabs/xml-cii-2019-standalone/integration/xml229-prefinal-restraints.mjs';
@@ -11,6 +15,9 @@ installWeightBasisXmlDom(globalThis);
 const XML = '<PipeStressExport><Pipe><Branch><Branchname>/TEST/B1</Branchname>'
   + '<Node><NodeNumber>140</NodeNumber><NodeName>PS140</NodeName>'
   + '<ComponentType>ANCI</ComponentType><Position>0 0 100000</Position>'
+  + '<OutsideDiameter>88.9</OutsideDiameter><WallThickness>3</WallThickness></Node>'
+  + '<Node><NodeNumber>150</NodeNumber><NodeName>PS150</NodeName>'
+  + '<ComponentType>PIPE</ComponentType><Position>0 0 100100</Position>'
   + '<OutsideDiameter>88.9</OutsideDiameter><WallThickness>3</WallThickness></Node>'
   + '</Branch></Pipe></PipeStressExport>';
 const staged = JSON.stringify([{type:'BRANCH',name:'/TEST/B1',children:[
@@ -73,4 +80,23 @@ test('conflicting co-positioned NODETYPE mutations require review',async()=>{
   await assert.rejects(
     prepareXml229PrefinalRestraints({xmlText:XML,stagedJsonText:JSON.stringify(source),config:config()}),
     {code:'PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'});
+});
+
+test('emitted native CII obeys configured NODETYPE 17 -> 14 and gap zero',async()=>{
+  const prepared=await prepareXml229PrefinalRestraints({xmlText:XML,stagedJsonText:staged,config:config()});
+  const dir=await mkdtemp(join(tmpdir(),'xml229-datum-type-'));
+  try {
+    const input=join(dir,'enriched.xml'),output=join(dir,'result.cii');
+    await writeFile(input,new XMLSerializer().serializeToString(prepared.document));
+    const python=process.env.PYTHON||(process.platform==='win32'?'python':'python3');
+    const script=fileURLToPath(new URL('../converters/scripts/xml_to_cii2019.py',import.meta.url));
+    execFileSync(python,[script,'--input',input,'--output',output],{encoding:'utf8'});
+    const cii=await readFile(output,'utf8');
+    const section=cii.split('#$ RESTRANT\n')[1]?.split('#$')[0];
+    assert.ok(section,'native CII restraint section required');
+    const row=section.split('\n').map(v=>v.trim().split(/\s+/).map(Number))
+      .find(v=>v[0]===140);
+    assert.equal(row?.[1],14);
+    assert.equal(row?.[3],0);
+  }finally{await rm(dir,{recursive:true,force:true});}
 });
