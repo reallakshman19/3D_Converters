@@ -93,6 +93,9 @@ function supportKindFromMember(member,config={}) {
     if(mapper.status==='ambiguous')
       throw Object.assign(new Error('Conflicting Step 7 mapper classification'),
         {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+    if(mapper.status==='matched'&&!GOVERNED_KINDS.includes(mapper.supportKind))
+      throw Object.assign(new Error('Step 7 kind lacks governed native restraint DOF authority'),
+        {code:'PREFINAL_RESTRAINT_KIND_UNSUPPORTED'});
     if(mapper.status==='matched'&&mapper.confidence!=='LOW'&&
        GOVERNED_KINDS.includes(mapper.supportKind))return mapper.supportKind;
   }
