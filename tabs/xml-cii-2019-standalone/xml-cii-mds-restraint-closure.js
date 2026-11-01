@@ -57,6 +57,63 @@ function memberAttributes(member) {
   return safeObject(member?.raw?.attributes || member?.attributes || member?.capturedFields);
 }
 
+function configuredSupportRuleDecision(attrs, member, config) {
+  // Re-evaluate the saved Tab 8 smart-regex rules in this exact Run. Built-in
+  // defaults are already represented by the semantic/canonical fallbacks;
+  // only user-authored rules can change their precedence.
+  const rules = Array.isArray(config?.supportMapping?.rules)
+    ? config.supportMapping.rules : [];
+  const normalized = key => text(key).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const evidence = {...attrs, DESCRIPTION: text(attrs.DESCRIPTION || member?.description)};
+  const matching = [];
+  for (const [index, rule] of rules.entries()) {
+    if (!rule || rule.enabled === false || /^builtin-|^standalone-mds-/.test(text(rule.id))) continue;
+    const source = text(rule.source).toLowerCase();
+    if (source && source !== 'all' && source !== 'staged-json' && source !== 'json') continue;
+    const kind = text(rule.kind).toUpperCase().replace(/\s+/g, '');
+    if (!kind) continue;
+    const mode = text(rule.match) || 'contains';
+    if (!['regex','contains','equals','startsWith'].includes(mode))
+      throw Object.assign(new Error('Invalid Tab 8 smart-regex matching mode'),
+        {code:'PREFINAL_RESTRAINT_CONFIG_INVALID'});
+    const fields = text(rule.field).split(/[,;\n]/).map(normalized).filter(Boolean);
+    const values = Object.entries(evidence)
+      .filter(([field]) => !fields.length || fields.includes('*') || fields.includes('ANY') ||
+        fields.includes(normalized(field)))
+      .map(([,value]) => text(value)).filter(Boolean);
+    const pattern = text(rule.pattern);
+    if (!pattern) continue;
+    let matches = false;
+    if (mode === 'regex') {
+      if (pattern.length > 512)
+        throw Object.assign(new Error('Oversized Tab 8 regex'),
+          {code:'PREFINAL_RESTRAINT_CONFIG_INVALID'});
+      let compiled;
+      try { compiled = new RegExp(pattern, 'i'); }
+      catch { throw Object.assign(new Error('Invalid Tab 8 regex'),
+        {code:'PREFINAL_RESTRAINT_CONFIG_INVALID'}); }
+      matches = values.some(value => compiled.test(value));
+    } else {
+      const terms = pattern.split(/[,;\n]/).map(text).filter(Boolean);
+      matches = values.some(value => terms.some(term => {
+        const v = value.toUpperCase(), t = term.toUpperCase();
+        return mode === 'equals' ? v === t :
+          mode === 'startsWith' ? v.startsWith(t) : v.includes(t);
+      }));
+    }
+    if (!matches) continue;
+    const priority = Number.isFinite(Number(rule.priority)) ? Number(rule.priority) : (index + 1) * 10;
+    matching.push({kind,priority,id:text(rule.id) || 'rule-' + index});
+  }
+  if (!matching.length) return null;
+  matching.sort((a,b) => a.priority - b.priority || a.id.localeCompare(b.id));
+  const first = matching[0], ties = matching.filter(row => row.priority === first.priority);
+  if (new Set(ties.map(row => row.kind)).size > 1)
+    throw Object.assign(new Error('Conflicting equal-priority Tab 8 support rules'),
+      {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+  return first;
+}
+
 function supportKindFromMember(member,config={}) {
   const attrs = memberAttributes(member);
   // An explicit source description wins over abbreviated MDS code aliases.
@@ -73,7 +130,18 @@ function supportKindFromMember(member,config={}) {
   if (new Set(semantic).size > 1)
     throw Object.assign(new Error('Conflicting source support descriptions'),
       {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+  const configured = configuredSupportRuleDecision(attrs,member,config);
+  // A Tab 8 keyword or regex is authoritative only when compatible with
+  // an explicit engineering description. Never silently reclassify a
+  // LINE STOP into REST because an edited catch-all keyword also matches.
+  if (configured && semantic.length && configured.kind !== semantic[0])
+    throw Object.assign(new Error('Tab 8 rule contradicts explicit source kind'),
+      {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+  if (configured && !GOVERNED_KINDS.includes(configured.kind))
+    throw Object.assign(new Error('Tab 8 rule resolves to unsupported governed kind'),
+      {code:'PREFINAL_RESTRAINT_KIND_UNSUPPORTED'});
   if (semantic.length) return semantic[0];
+  if (configured) return configured.kind;
   // Use the user-authored Step 7 mapper rows, not a second hard-coded alias list.
   // HIGH/MEDIUM semantic intent can override a stale generated REST label;
   // LOW GT/ST evidence cannot override a resolved canonical source kind.
