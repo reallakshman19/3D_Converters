@@ -448,6 +448,86 @@ def _apply_source_class_wall(branch: ET.Element, namespace: str,
     return changed
 
 
+
+def _material_ids_from_config(config: dict[str, Any]) -> dict[str, int]:
+    """Only exact selected material-map names with positive numeric CII IDs."""
+    section = config.get("material", {})
+    rows = section.get("mapRows", []) if isinstance(section, dict) else []
+    result: dict[str, int] = {}
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, dict):
+            continue
+        name = (_row_value(row, "material") or _row_value(row, "Material") or
+                _row_value(row, "Material_Name") or _row_value(row, "materialName"))
+        code = (_row_value(row, "code") or _row_value(row, "Code") or
+                _row_value(row, "materialCode"))
+        if not name or not re.fullmatch(r"[1-9]\d*", code):
+            continue  # nonnumeric map code is not a CAESAR material index.
+        key = " ".join(name.upper().split())
+        val = int(code)
+        if key in result and result[key] != val:
+            raise ValueError("XML229_MATERIAL_CODE_AMBIGUOUS")
+        result[key] = val
+    return result
+
+
+def _source_class_meta_index(config: dict[str, Any]) -> dict[tuple[str, int], tuple[str, str]]:
+    """Require one consistent spec material/rating for each exact class/bore."""
+    section = config.get("pipingClass", {})
+    rows = section.get("masterRows", []) if isinstance(section, dict) else []
+    index: dict[tuple[str, int], tuple[str, str]] = {}
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, dict):
+            continue
+        cls = _row_value(row, "Piping Class") or _row_value(row, "pipingClass")
+        dn = _row_value(row, "convertedBore")
+        if not cls or not re.fullmatch(r"\d+", dn):
+            continue
+        material = (_row_value(row, "Material_Name") or
+                    _row_value(row, "materialName"))
+        rating = _row_value(row, "Rating") or _row_value(row, "rating")
+        key = (cls, int(dn))
+        if key in index and index[key] != (material, rating):
+            raise ValueError("XML229_PIPING_CLASS_MATERIAL_RATING_AMBIGUOUS")
+        index[key] = material, rating
+    return index
+
+
+def _apply_source_material_rating(branch: ET.Element, namespace: str,
+                                  specs: dict[tuple[str, int], tuple[str, str]],
+                                  material_ids: dict[str, int]) -> bool:
+    name = _child_text(branch, namespace, "Branchname")
+    match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", name, re.I)
+    if not match or not specs or addon is None:
+        return False
+    changed = False
+    for node in _branch_nodes(branch, namespace):
+        # The class master describes pipe material, not the body of a valve,
+        # support, flange or gasket. Their IDs require separate source facts.
+        if _child_text(node, namespace, "ComponentType").upper() not in {"PIPE", "PCOM", "BRAN", "TUBE"}:
+            continue
+        od = _numeric_text(_child_text(node, namespace, "OutsideDiameter"))
+        dn = addon.od_to_dn(od) if od is not None else None
+        metadata = specs.get((match.group(1), dn)) if dn is not None else None
+        if metadata is None:
+            continue
+        material, rating = metadata
+        for key, value in (("PipingClass", match.group(1)),
+                           ("MaterialName", material), ("PipingClassRating", rating)):
+            if value and not _child_text(node, namespace, key):
+                _set_child(node, namespace, key, value)
+                changed = True
+        # Existing source material IDs take precedence. Never infer a CII
+        # numeric ID from DSS, a 900# rating, or the unapproved S32803 alias.
+        existing = (_numeric_text(_child_text(node, namespace, "MaterialCode")) or
+                    _numeric_text(_child_text(node, namespace, "MaterialNumber")))
+        material_id = material_ids.get(" ".join(material.upper().split()))
+        if material_id and not (existing is not None and existing > 0):
+            _set_child(node, namespace, "MaterialCode", str(material_id))
+            changed = True
+    return changed
+
+
 def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -> Path:
     _normalize_process_field_map(support_config)
     tree = ET.parse(xml_path)
@@ -459,6 +539,8 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
     skip_dtxr_restraint_fallback = _xml_restraints_are_authoritative(xml_path, support_config)
     insulation_density_default = _to_float(support_config.get("insulationDensityDefault"), 210.0)
     class_wall_index = _source_class_wall_index(support_config)
+    class_meta_index = _source_class_meta_index(support_config)
+    material_ids = _material_ids_from_config(support_config)
     for branch in root.iter():
         if _local_name(branch.tag) != "Branch":
             continue
@@ -487,6 +569,8 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
         _set_child(pressure, namespace, "HydroPressure", hydro if hydro else _child_text(pressure, namespace, "HydroPressure") or 0)
         changed = True
         if _apply_source_class_wall(branch, namespace, class_wall_index):
+            changed = True
+        if _apply_source_material_rating(branch, namespace, class_meta_index, material_ids):
             changed = True
         max_insulation = _numeric_text(_child_text(branch, namespace, "InsulationThickness")) or 0.0
         for node in _branch_nodes(branch, namespace):
