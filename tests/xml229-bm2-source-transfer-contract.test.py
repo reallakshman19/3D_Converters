@@ -103,6 +103,26 @@ class SourceTransferRegression(unittest.TestCase):
                 {"pipingClass": {"masterRows": [{
                     **raw, "convertedBore": 100}]}})
 
+    def test_native_pipe_delimited_supports_keep_independent_slots(self):
+        # | separates two source occurrences; a bare ANCHOR|LINESTOP
+        # label represents one axial stop, never an additional fixed anchor.
+        self.assertEqual(
+            patched._kind_from_dtxr("GUIDE|LINESTOP", {}), ["GUIDE", "LINESTOP"])
+        self.assertEqual(
+            patched._kind_from_dtxr("ANCHOR|LINESTOP", {}), ["LINESTOP"])
+        self.assertEqual(
+            patched._kind_from_dtxr("LINESTOP|ANCHOR", {}), ["LINESTOP"])
+        self.assertEqual([
+            (spec.type_code, spec.gap)
+            for spec in patched._specs_from_dtxr_text(
+                "GUIDE(NAME=/PS1,CMPSUPGAP=4.5)|"
+                "LINESTOP(NAME=/PS2,CMPSUPGAP=7.25)", {},
+                {"GUIDE": 4.5, "LINESTOP": 7.25})
+        ], [(8, 4.5), (9, 7.25)])
+        self.assertEqual(
+            [spec.type_code for spec in patched._specs_from_dtxr_text(
+                "ANCHOR|LINESTOP", {})], [9])
+
     def test_legacy_without_master_keeps_zero_wall_for_existing_writer_fallback(self):
         with TemporaryDirectory() as directory:
             source = Path(directory) / "first.xml"
