@@ -60,6 +60,31 @@ function hasPreview(result, status, kind) {
   assert(lineStop.suppressedCandidates.some((value) => value.startsWith('GUIDE:GT:LOW:')), 'GT575 GUIDE fallback must remain auditable but suppressed');
   assert(lineStop.decisionReason.includes('lower-confidence competing mapper matches suppressed'));
 
+  // Multiple pipe-delimited occurrences are valid independent restraints.
+  const twoSlots = helper.runStandaloneSupportTypeMapper({
+    testInput: 'GUIDE(NAME=/PS1,CMPSUPGAP=4.5)|LINESTOP(NAME=/PS2,CMPSUPGAP=7.25)',
+    supportConfigJson: '{}',
+  });
+  assert.deepStrictEqual(twoSlots.previewRows.map(r => [r.supportKind, r.occurrenceName]),
+    [['GUIDE', '/PS1'], ['LINESTOP', '/PS2']]);
+  assert(twoSlots.previewRows.every(r => r.status === 'matched'), 'two valid kinds are not a conflict');
+
+  // Explicit Owner policy: the bare compound label is one LINESTOP/LIM,
+  // not a second ANCHOR restraint. Independent conflict checks remain on.
+  for (const phrase of ['ANCHOR|LINESTOP', 'LINESTOP|ANCHOR']) {
+    const preview = helper.runStandaloneSupportTypeMapper({
+      testInput: phrase, supportConfigJson: '{}',
+    }).previewRows;
+    assert.strictEqual(preview.length, 1, 'compound alias is one restraint occurrence');
+    assert.strictEqual(preview[0].supportKind, 'LINESTOP');
+    assert.strictEqual(preview[0].status, 'matched');
+  }
+  const contradictory = helper.runStandaloneSupportTypeMapper({
+    testInput: 'GUIDE and LINE STOP', supportConfigJson: '{}',
+  }).previewRows;
+  assert.strictEqual(contradictory.length, 1, 'without pipe there is one occurrence');
+  assert.strictEqual(contradictory[0].status, 'ambiguous', 'within-occurrence conflicts must fail closed');
+
   const shortGt = helper.runStandaloneSupportTypeMapper({ testInput: 'MDSSUPPTYPE=GT575', supportConfigJson: '{}' }).previewRows[0];
   assert.strictEqual(shortGt.supportKind, 'GUIDE');
   assert.strictEqual(shortGt.confidence, 'LOW');
@@ -81,9 +106,39 @@ function hasPreview(result, status, kind) {
     elementSideLoadText: 'ELEMENT 30-40\nDTXR_POS=Directional Anchor On Shoe\nDTXR_PS=Fixed Anchor',
     supportConfigJson: '{}',
   });
-  assert(hasPreview(inputXmlResult, 'ambiguous', 'LINESTOP'), 'equal-strength Directional Anchor + Shoe evidence must remain review-required');
+  assert(hasPreview(inputXmlResult, 'matched', 'LINESTOP'), 'specific Directional Anchor is LINESTOP, not an independent ANCHOR restraint');
   assert(hasPreview(inputXmlResult, 'matched', 'ANCHOR'), 'InputXML fixed anchor text should match ANCHOR');
-  assert(inputXmlResult.diagnostics.some((row) => row.type === 'ambiguous-support-kind'), 'ambiguous diagnostics expected');
+  assert(!inputXmlResult.diagnostics.some((row) => row.type === 'ambiguous-support-kind'), 'overlapping Anchor alias must not create false ambiguity');
+
+  // Saving an explicitly cleared Step 7 alias list must not restore defaults.
+  const emptied = helper.createDefaultSupportTypeMapperConfig();
+  emptied.find(r => r.kind === 'GUIDE').aliases = [];
+  const preserved = {
+    supportTypeMapper: {rows: emptied},
+    inputXmlRestraintTypeMutation: {enabled:true,rows:[{from:'21',to:'8'}]},
+    supportMapping: {version:2,rules:[{id:'owner-regex',kind:'LINESTOP',
+                                      match:'regex',pattern:'QZ-443'}]},
+    regexTester: {formats:[{enabled:true,lineKey:{extractMode:'TOKEN',tokenPosition:4}}]},
+    linelist: {fieldMap:{t1:'OwnerAcceptedT1'}},
+  };
+  const clearResult = helper.runStandaloneSupportTypeMapper({
+    supportConfigJson:JSON.stringify(preserved),testInput:'Guide',
+  });
+  assert.deepStrictEqual(clearResult.mapperRows.find(r=>r.kind==='GUIDE').aliases,[]);
+  const savedClear=JSON.parse(clearResult.supportConfigJson);
+  assert.deepStrictEqual(savedClear.supportTypeMapper.rows.find(r=>r.kind==='GUIDE').aliases,[]);
+  assert.deepStrictEqual(savedClear.inputXmlRestraintTypeMutation,preserved.inputXmlRestraintTypeMutation);
+  assert.deepStrictEqual(savedClear.regexTester,preserved.regexTester);
+  assert.deepStrictEqual(savedClear.linelist,preserved.linelist);
+  assert(savedClear.supportMapping.rules.some(r=>r.id==='owner-regex'));
+  assert(!helper.runStandaloneSupportTypeMapper({
+    supportConfigJson:JSON.stringify(savedClear),testInput:'Guide',
+  }).previewRows.some(r=>r.status==='matched'&&r.supportKind==='GUIDE'));
+  const unspecified=helper.parseSupportTypeMapperConfig({
+    supportConfig:{supportTypeMapper:{rows:[{kind:'GUIDE'}]}},
+  }).mapperRows;
+  assert(unspecified[0].aliases.includes('Guide'),
+    'legacy aliases are restored only when the field is absent');
 
   const rows = helper.createDefaultSupportTypeMapperConfig();
   rows.find((row) => row.kind === 'REST').aliases.push('Saddle');

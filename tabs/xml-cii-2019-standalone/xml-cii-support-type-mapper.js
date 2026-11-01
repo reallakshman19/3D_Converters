@@ -41,7 +41,11 @@ function normalizeMapperRow(row = {}, index = 0) {
   return {
     rowId: text(row.rowId || row.id) || `${kind.toLowerCase()}-${index + 1}`,
     kind,
-    aliases: splitAliases(row.aliases || row.patterns || row.detectionText).length ? splitAliases(row.aliases || row.patterns || row.detectionText) : [...base.aliases],
+    // An explicitly cleared Step 7 keyword list is authoritative.
+    // Restore defaults only when the field was truly absent.
+    aliases: row.aliases !== undefined || row.patterns !== undefined || row.detectionText !== undefined
+      ? splitAliases(row.aliases ?? row.patterns ?? row.detectionText)
+      : [...base.aliases],
     ciiKind: text(row.ciiKind || row.ciiOutputKind) || base.ciiKind,
     ciiPreview: text(row.ciiPreview || row.preview) || base.ciiPreview,
     source: text(row.source) || 'support-type-mapper',
@@ -91,11 +95,19 @@ function evidenceLine(line, index) {
 }
 
 function splitOccurrenceSegments(row) {
+  // Only "|" delimits separately authored source occurrences.
   const parts = text(row.text).split('|').map(text).filter(Boolean);
+  // This exact compound label means one axial stop, not an added anchor.
+  if (parts.length === 2 &&
+      parts.every(part => /^(?:ANCHOR|LINE\s*STOP|LINESTOP)$/i.test(part)) &&
+      parts.some(part => /^ANCHOR$/i.test(part)) &&
+      parts.some(part => /^(?:LINE\s*STOP|LINESTOP)$/i.test(part))) {
+    parts.splice(0, parts.length, 'LINE STOP');
+  }
   return (parts.length ? parts : [text(row.text)]).map((segment, index) => {
     const nameMatch = segment.match(/\bNAME\s*=\s*([^),|\s]+)/i);
     return {
-      source: parts.length > 1 ? `${row.source}:segment-${index + 1}` : row.source,
+      source: parts.length > 1 ? row.source + ':segment-' + (index + 1) : row.source,
       text: segment,
       occurrenceName: text(nameMatch?.[1]),
       segmentIndex: index + 1,
@@ -195,7 +207,14 @@ function rowMatches(evidence, row) {
 
 export function classifySupportText(value, mapperRows = createDefaultSupportTypeMapperConfig()) {
   const primaryIntent = /\b(?:LINE\s*STOP|LINESTOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR|LATERAL\s+GUIDE|GUIDE)\b/i.test(text(value));
-  const candidates = mapperRows.flatMap((row) => rowMatches(value, row).map((match) => {
+  const directionalAnchor = /\bDIRECTIONAL\s+ANCHOR\b/i.test(text(value));
+  const candidates = mapperRows.flatMap((row) => rowMatches(value, row)
+    // A specific "Directional Anchor" source phrase denotes a LINESTOP.
+    // The shorter default ANCHOR keyword is an overlapping substring,
+    // not an independently sourced anchor restraint.
+    .filter(match => !(directionalAnchor && row.kind === 'ANCHOR' &&
+      norm(match.alias) === 'ANCHOR'))
+    .map((match) => {
     // A wear pad describes attachment hardware; it is not a second restraint
     // when this occurrence explicitly states a controlling stop/guide function.
     if (primaryIntent && row.kind === 'REST' && ['WEARPAD','SHOE'].includes(norm(match.alias))) {

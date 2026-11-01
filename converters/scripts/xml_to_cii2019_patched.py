@@ -244,12 +244,131 @@ def _normalize_process_field_map(config: dict[str, Any]) -> None:
             if score > best_score:
                 best_score = score
                 best_header = header
-        if best_header and best_score >= 90:
+        if not _safe_text(field_map.get(target)) and best_header and best_score >= 90:
             field_map[target] = best_header
 
 
+def _regex_tester_field(branch: str, rule: dict[str, Any], delimiter: str, joiner: str = "") -> str:
+    """Match saved Smart Regex FORMAT extraction: explicit TOKEN / REGEX authority."""
+    mode = _safe_text(rule.get("extractMode")).upper()
+    if mode not in ("", "TOKEN", "REGEX"):
+        return ""
+    pattern = _safe_text(rule.get("regex"))
+    if mode != "TOKEN":
+        if mode == "REGEX" and not pattern:
+            return ""
+        if pattern:
+            try:
+                match = re.search(pattern, branch)
+                group = int(rule.get("group") if rule.get("group") is not None else 1)
+                if match is not None and 0 <= group <= match.re.groups:
+                    value = _safe_text(match.group(group))
+                    if value:
+                        return value
+            except (ValueError, TypeError, re.error, IndexError):
+                return ""
+            if rule.get("fallbackOnRegexMiss") is not True:
+                return ""
+    pos_text = _safe_text(rule.get("tokenPosition"))
+    if not pos_text:
+        return ""
+    try:
+        positions = [int(p.strip()) for p in re.split(r"[,+]", pos_text)]
+    except ValueError:
+        return ""
+    if not positions or any(p < 1 for p in positions):
+        return ""
+    cleaned = re.sub(r"/B\d+$", "", branch.lstrip("/"), flags=re.I)
+    parts = [part.strip() for part in cleaned.split(delimiter)]
+    selected = [parts[i - 1] if i <= len(parts) else "" for i in positions]
+    return joiner.join(selected) if all(selected) else ""
+
+
+def _regex_tester_format_disabled(fmt: dict[str, Any], index: int) -> bool:
+    if fmt.get("enabled") is False:
+        return True
+    if index == 0 or fmt.get("enabled") is True:
+        return False
+    # The unused alternate template is not an authored Format 2. Match JS
+    # isBranchFormatEnabled so it cannot create a false multi-format conflict.
+    hints = {"lineKey": 3, "pipingClass": 4, "rating": 4, "bore": 2}
+    return (all(isinstance(fmt.get(key), dict)
+                and not _safe_text(fmt[key].get("regex"))
+                and not _safe_text(fmt[key].get("extractMode"))
+                and _safe_text(fmt[key].get("group") or 1) == "1"
+                and _safe_text(fmt[key].get("tokenPosition")) == str(pos)
+                and fmt[key].get("fallbackOnRegexMiss") is not True
+                for key, pos in hints.items())
+            and (_safe_text(fmt.get("tokenDelimiter")) or "-") == "-"
+            and not _safe_text(fmt.get("lineKeyJoiner")))
+
+
+def _regex_tester_branch_line_key(branch: str, config: dict[str, Any]) -> str | None:
+    """Saved Smart Regex formats govern source Line List identity in native CII.
+
+    None means no explicit formats were saved; an explicit formats=[] means
+    UNMATCHED, never an invitation to use stale legacy token positions.
+    """
+    regex_cfg = config.get("regexTester")
+    if not isinstance(regex_cfg, dict) or not isinstance(regex_cfg.get("formats"), list):
+        return None
+    candidates = []
+    sequence = regex_cfg.get("ratingSequence")
+    if not isinstance(sequence, list):
+        rating_cfg = config.get("rating")
+        sequence = (rating_cfg.get("ratingSequence", []) if isinstance(rating_cfg, dict) else [])
+    for index, fmt in enumerate(regex_cfg["formats"]):
+        if not isinstance(fmt, dict):
+            raise ValueError("XML229_BRANCH_FORMAT_INVALID")
+        if _regex_tester_format_disabled(fmt, index):
+            continue
+        delimiter = _safe_text(fmt.get("tokenDelimiter")) or "-"
+        joiner = _safe_text(fmt.get("lineKeyJoiner"))
+        fields = {}
+        for key in ("lineKey", "pipingClass", "rating", "bore"):
+            rule = fmt.get(key) if isinstance(fmt.get(key), dict) else {}
+            fields[key] = _regex_tester_field(
+                branch, rule, delimiter, joiner if key == "lineKey" else "")
+        if not fields["lineKey"] or not fields["pipingClass"]:
+            continue
+        rating = ""
+        for pair in sequence:
+            if isinstance(pair, list) and len(pair) >= 2 and _safe_text(pair[0]) and (
+                fields["pipingClass"].upper().startswith(_safe_text(pair[0]).upper())):
+                rating = _safe_text(pair[1])
+                break
+        if not rating:
+            matched = re.search(r"\d+", fields["rating"])
+            rating = matched.group() if matched else ""
+        candidates.append((
+            re.sub(r"\s+", "", fields["lineKey"].upper()),
+            fields["pipingClass"], rating, re.sub(r"[^0-9.]", "", fields["bore"])
+        ))
+    if not candidates:
+        raise ValueError("XML229_BRANCH_FORMAT_UNMATCHED")
+    if len(set(candidates)) != 1:
+        raise ValueError("XML229_BRANCH_FORMAT_AMBIGUOUS")
+    return candidates[0][0]
+
+
 def _line_key_from_branch(branch_name: str, config: dict[str, Any]) -> str:
+    line_from_saved_formats = _regex_tester_branch_line_key(branch_name, config)
+    if line_from_saved_formats is not None:
+        return line_from_saved_formats
     linelist = config.get("linelist", {}) if isinstance(config.get("linelist"), dict) else {}
+    # Older stand-alone configs may provide the line regex directly. Apply
+    # the authored capture before token fallback, never ignore this setting.
+    pattern = _safe_text(linelist.get("branchNameRegex"))
+    if pattern:
+        try:
+            matched = re.search(pattern, branch_name)
+            group = int(linelist.get("lineNoGroup") or 1)
+            if matched is not None and 0 <= group <= matched.re.groups:
+                value = _safe_text(matched.group(group))
+                if value:
+                    return re.sub(r"\s+", "", value.upper())
+        except (ValueError, TypeError, re.error, IndexError):
+            raise ValueError("XML229_BRANCH_FORMAT_INVALID")
     cleaned = branch_name.strip().lstrip("/").split("/")[0]
     parts = [p.strip() for p in cleaned.split(_safe_text(linelist.get("tokenDelimiter")) or "-") if p.strip()]
     selected: list[str] = []
@@ -390,6 +509,583 @@ def _renumber_length_bearing_negative_nodes(root: ET.Element, namespace: str) ->
     return changed
 
 
+
+def _source_class_dn(row: dict[str, Any]) -> int | None:
+    """Selected master rows may be raw NPS/Size or normalized convertedBore.
+
+    Never confuse an NPS=6 source row with DN=6: normalize to DN150.
+    Reject inconsistent supplied bore keys rather than silently choosing one.
+    """
+    dn_text = (_row_value(row, "convertedBore") or
+               _row_value(row, "converted_bore"))
+    nps_text = (_row_value(row, "Size") or _row_value(row, "size") or
+                _row_value(row, "NPS"))
+    try:
+        if dn_text:
+            raw = float(dn_text)
+            if not math.isfinite(raw) or not raw.is_integer() or raw <= 0:
+                raise ValueError("invalid converted bore")
+            dn = int(raw)
+        else:
+            dn = None
+        if nps_text:
+            nps = float(nps_text.replace('"', '').strip())
+            from_nps = addon.nps_to_dn(nps) if addon is not None else None
+            if from_nps is None:
+                raise ValueError("unsupported NPS")
+            if dn is not None and dn != from_nps:
+                raise ValueError("inconsistent DN and NPS")
+            dn = from_nps
+    except (ValueError, TypeError, OverflowError) as exc:
+        raise ValueError("XML229_PIPING_CLASS_BORE_INVALID") from exc
+    return dn
+
+
+def _source_class_wall_index(config: dict[str, Any], requested: set[str] | None = None) -> dict[tuple[str, int], float]:
+    """Index only explicit class + converted DN master facts; never infer wall."""
+    section = config.get("pipingClass", {})
+    rows = section.get("masterRows", []) if isinstance(section, dict) else []
+    index: dict[tuple[str, int], float] = {}
+    if not isinstance(rows, list):
+        return index
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        class_code = (_row_value(row, "Piping Class") or
+                      _row_value(row, "pipingClass")).strip()
+        if requested is not None and class_code not in requested:
+            continue
+        dn = _source_class_dn(row)
+        wall_text = (_row_value(row, "Wall thickness") or
+                     _row_value(row, "wallThicknessMm") or
+                     _row_value(row, "WallThickness"))
+        if not class_code or dn is None or not wall_text:
+            continue
+        try:
+            wall = float(wall_text)
+        except ValueError:
+            raise ValueError("XML229_PIPING_CLASS_INVALID_MASTER_VALUE") from None
+        if not math.isfinite(wall) or wall <= 0:
+            raise ValueError("XML229_PIPING_CLASS_INVALID_MASTER_VALUE")
+        key = (class_code, dn)
+        if key in index and not math.isclose(index[key], wall, rel_tol=0, abs_tol=1e-6):
+            raise ValueError("XML229_PIPING_CLASS_BORE_AMBIGUOUS")
+        index[key] = wall
+    return index
+
+
+def _apply_source_class_wall(branch: ET.Element, namespace: str,
+                             index: dict[tuple[str, int], float]) -> bool:
+    """A node's real OD, not only the branch header size, controls its wall."""
+    name = _child_text(branch, namespace, "Branchname")
+    match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", name, re.I)
+    if not match or not index or addon is None:
+        return False
+    class_code = match.group(1)
+    changed = False
+    for node in _branch_nodes(branch, namespace):
+        existing = _numeric_text(_child_text(node, namespace, "WallThickness"))
+        if existing is not None and existing > 0:
+            continue  # source wall is explicit; never replace it with derived master.
+        od = _numeric_text(_child_text(node, namespace, "OutsideDiameter"))
+        dn = addon.od_to_dn(od) if od is not None else None
+        wall = index.get((class_code, dn)) if dn is not None else None
+        if wall is None:
+            continue  # no source-approved row; do not manufacture a dimension.
+        if od is None or wall * 2 >= od:
+            raise ValueError("XML229_PIPING_CLASS_WALL_EXCEEDS_OD")
+        _set_child(node, namespace, "WallThickness", format(wall, ".12g"))
+        changed = True
+    return changed
+
+
+
+def _material_scoped_pin_ids(config: dict[str, Any],
+                             requested: set[str] | None) -> dict[str, int]:
+    """Honor only explicit Material-identity pins, never branch/class guesses."""
+    if not requested:
+        return {}
+    overrides = config.get("overrides", {})
+    pins = overrides.get("materialCode", {}) if isinstance(overrides, dict) else {}
+    if not isinstance(pins, dict):
+        return {}
+    permitted: dict[str, set[str]] = {}
+    for material in requested:
+        tokens = {" ".join(material.upper().split())}
+        tokens.add(re.sub(r"[^A-Z0-9]", "", material.upper()))
+        spec = re.search(r"\b([AB]\d{3})\b", material.upper())
+        grade = re.search(r"\b([SN]\d{5})\b", material.upper())
+        if spec and grade:
+            tokens.add(spec.group(1) + "-" + grade.group(1))
+        permitted[material] = tokens
+    result: dict[str, int] = {}
+    for raw_key, raw_code in pins.items():
+        key = " ".join(str(raw_key).upper().strip().split())
+        if key.startswith("MAT:"):
+            key = key[4:].strip()
+        candidates = [name for name, keys in permitted.items() if key in keys]
+        if not candidates:
+            continue  # class, branch, and line scoped overrides are not material pins.
+        if len(candidates) != 1:
+            raise ValueError("XML229_MATERIAL_PIN_OWNER_AMBIGUOUS")
+        code = str(raw_code).strip() if type(raw_code) is not bool else ""
+        if not re.fullmatch(r"[1-9]\d*", code):
+            raise ValueError("XML229_MATERIAL_PIN_INVALID")
+        name = candidates[0]
+        if name in result and result[name] != int(code):
+            raise ValueError("XML229_MATERIAL_PIN_CONFLICT")
+        result[name] = int(code)
+    return result
+
+
+def _material_ids_from_config(config: dict[str, Any],
+                              requested: set[str] | None = None) -> dict[str, int]:
+    """Only exact selected material-map names with positive numeric CII IDs."""
+    section = config.get("material", {})
+    rows = section.get("mapRows", []) if isinstance(section, dict) else []
+    result: dict[str, int] = {}
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, dict):
+            continue
+        name = (_row_value(row, "material") or _row_value(row, "Material") or
+                _row_value(row, "Material_Name") or _row_value(row, "Material Name") or
+                 _row_value(row, "materialName"))
+        code = (_row_value(row, "code") or _row_value(row, "Code") or
+                _row_value(row, "materialCode") or _row_value(row, "MaterialCode") or
+                _row_value(row, "Material Code"))
+        if not name or not re.fullmatch(r"[1-9]\d*", code):
+            continue  # nonnumeric map code is not a CAESAR material index.
+        key = " ".join(name.upper().split())
+        if requested is not None and key not in requested:
+            continue
+        val = int(code)
+        if key in result and result[key] != val:
+            raise ValueError("XML229_MATERIAL_CODE_AMBIGUOUS")
+        result[key] = val
+    for name, pinned_id in _material_scoped_pin_ids(config, requested).items():
+        if name in result and result[name] != pinned_id:
+            raise ValueError("XML229_MATERIAL_PIN_MAP_CONFLICT")
+        result[name] = pinned_id
+    return result
+
+
+def _process_material_for_line(line_key: str, config: dict[str, Any]) -> str:
+    """The selected Line List Material outranks class fallback; never guess."""
+    section = config.get("linelist", {})
+    field_map = section.get("fieldMap", {}) if isinstance(section, dict) else {}
+    # A duplicated numeric fallback is not an absent Process Material;
+    # fail closed before the lower-authority class can supply its material.
+    wanted = re.sub(r"\s+", "", line_key.upper())
+    if re.fullmatch(r"P[0-9]{7}", wanted):
+        rows = section.get("masterRows", []) if isinstance(section, dict) else []
+        exact = [row for row in rows if isinstance(row, dict) and
+                 _line_key_from_row(row, config) == wanted]
+        if not exact:
+            alias = [row for row in rows if isinstance(row, dict) and
+                     _line_key_from_row(row, config) == wanted[1:]]
+            if len(alias) > 1:
+                raise ValueError("XML229_LINE_MATERIAL_AMBIGUOUS")
+    keys = [field_map.get("material") if isinstance(field_map, dict) else None,
+            "material", "Material", "MATERIAL", "MOC",
+            "Material Name", "Material_Name", "processMaterial"]
+    unique: dict[str, str] = {}
+    for row in _matching_linelist_rows(line_key, config):
+        for key in keys:
+            value = _row_value(row, str(key)) if key else ""
+            if value:
+                unique.setdefault(" ".join(value.upper().split()), value)
+                break
+    if len(unique) > 1:
+        raise ValueError("XML229_LINE_MATERIAL_AMBIGUOUS")
+    return next(iter(unique.values()), "")
+
+
+def _source_class_meta_index(config: dict[str, Any],
+                             requested: set[str] | None = None) -> dict[tuple[str, int], tuple[str, str]]:
+    """Require one consistent spec material/rating for each exact class/bore."""
+    section = config.get("pipingClass", {})
+    rows = section.get("masterRows", []) if isinstance(section, dict) else []
+    index: dict[tuple[str, int], tuple[str, str]] = {}
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, dict):
+            continue
+        cls = _row_value(row, "Piping Class") or _row_value(row, "pipingClass")
+        dn = _source_class_dn(row)
+        if not cls or (requested is not None and cls not in requested) or dn is None:
+            continue
+        material = (_row_value(row, "Material_Name") or
+                    _row_value(row, "materialName"))
+        rating = _row_value(row, "Rating") or _row_value(row, "rating")
+        key = (cls, dn)
+        if key in index and index[key] != (material, rating):
+            raise ValueError("XML229_PIPING_CLASS_MATERIAL_RATING_AMBIGUOUS")
+        index[key] = material, rating
+    return index
+
+
+def _apply_source_material_rating(branch: ET.Element, namespace: str,
+                                  specs: dict[tuple[str, int], tuple[str, str]],
+                                  material_ids: dict[str, int],
+                                  process_material: str = "") -> bool:
+    name = _child_text(branch, namespace, "Branchname")
+    match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", name, re.I)
+    if not match or addon is None:
+        return False
+    changed = False
+    for node in _branch_nodes(branch, namespace):
+        # The class master describes pipe material, not the body of a valve,
+        # support, flange or gasket. Their IDs require separate source facts.
+        if _child_text(node, namespace, "ComponentType").upper() not in {"PIPE", "PCOM", "BRAN", "TUBE"}:
+            continue
+        od = _numeric_text(_child_text(node, namespace, "OutsideDiameter"))
+        dn = addon.od_to_dn(od) if od is not None else None
+        metadata = specs.get((match.group(1), dn)) if dn is not None else None
+        if metadata is None and not process_material:
+            continue
+        material, rating = metadata if metadata is not None else ("", "")
+        selected_material = process_material or material
+        # A process Material claim has higher authority than class fallback,
+        # but a contradictory pre-existing XML grade is not ours to erase.
+        existing_name = _child_text(node, namespace, "MaterialName")
+        if (process_material and existing_name and
+                " ".join(existing_name.upper().split()) !=
+                " ".join(process_material.upper().split())):
+            raise ValueError("XML229_PROCESS_MATERIAL_NAME_CONFLICT")
+        for key, value in (("PipingClass", match.group(1)),
+                           ("MaterialName", selected_material), ("PipingClassRating", rating)):
+            if value and not _child_text(node, namespace, key):
+                _set_child(node, namespace, key, value)
+                changed = True
+        # Existing source material IDs take precedence. Never infer a CII
+        # numeric ID from DSS, a 900# rating, or the unapproved S32803 alias.
+        existing = (_numeric_text(_child_text(node, namespace, "MaterialCode")) or
+                    _numeric_text(_child_text(node, namespace, "MaterialNumber")))
+        material_id = material_ids.get(" ".join(selected_material.upper().split()))
+        if (process_material and material_id and existing is not None and
+                existing > 0 and existing != material_id):
+            raise ValueError("XML229_PROCESS_MATERIAL_CODE_CONFLICT")
+        if material_id and not (existing is not None and existing > 0):
+            _set_child(node, namespace, "MaterialCode", str(material_id))
+            changed = True
+    return changed
+
+
+def _apply_staged_position_restraints(node: ET.Element, namespace: str,
+                                       support_config: dict[str, Any],
+                                       branch_name: str) -> bool:
+    """Replay original position-matched staged members under current Step 7/8.
+
+    The source ownership match has already been qualified by XYZ, branch and
+    PS tag in master_addon. Never turn a preview text/keyword-only match into
+    new CII engineering authority; interpret the same original member attrs
+    with the same config as governed pre-Final Python replay.
+    """
+    node_no = _child_text(node, namespace, "NodeNumber")
+    source_members = support_config.get("_stagedPositionMemberRows", {}).get(
+        (branch_name, node_no), [])
+    if (support_config.get("supportMapping") or {}).get("useJsonForRestraints") is False:
+        return False
+    pos_text = _child_text(node, namespace, "DTXR_POS")
+    if not pos_text:
+        raise ValueError(f"XML229_STAGED_POS_OWNER_MISSING branch={branch_name} node={node_no}")
+    if not source_members:
+        # Older enrichment clients did not transfer source member attributes.
+        # No naked DTXR keyword may impersonate a selected original source.
+        raise ValueError(f"XML229_STAGED_POSITION_SOURCE_MEMBERS_REQUIRED branch={branch_name} node={node_no}")
+
+    from xml229_prefinal_restraints import (kinds as classify_source_kinds,
+                                            source_gap, append_profile, numeric,
+                                            present_type, placeholder)
+
+    def require(condition, code):
+        if not condition:
+            raise ValueError(code)
+
+    entries = []
+    for member in source_members:
+        # Do not derive a new restraint from a PIPE/ELBO/VALV DTXR token.
+        # Only a physical staged support member can carry support intent.
+        component_type = str(member.get("sourceType") or "").upper()
+        if component_type and component_type not in ("SUPPORT", "ATTA", "ANCI"):
+            continue
+        attrs = dict(member.get("sourceAttrs") or {})
+        if not attrs.get("DTXR"):
+            attrs["DTXR"] = member.get("dtxr", "")
+        if not any(attrs.get(key) is not None for key in
+                   ("CMPSUPGAP", "CMPSUPGAP_POS", "CMPSUPGAP_PS", "NODEGAP")):
+            gap = _parse_cmpsupgap_from_dtxr_entry(member.get("dtxr", ""))
+            if gap is not None:
+                attrs["CMPSUPGAP"] = str(gap)
+        entries.append({"attrs": attrs, "desc": attrs.get("DTXR", ""),
+                        "type": member.get("sourceType") or "SUPPORT"})
+
+    matched = classify_source_kinds(entries, require, support_config)
+    if not matched:
+        # DTXR from ordinary fittings does not constitute a support restraint.
+        print("XML229_STAGED_NO_SUPPORT_INTENT " + json.dumps(
+            {"branch": branch_name, "node": node_no,
+             "sourceMembers": len(source_members)}, sort_keys=True))
+        return False
+
+    for kind, attrs in matched.items():
+        gap = source_gap(attrs)
+        if kind == "LINESTOP" and (not gap or numeric(gap) is None):
+            raise ValueError(f"XML229_STAGED_LINESTOP_GAP_MISSING branch={branch_name} node={node_no}")
+
+    prior = [child for child in list(node) if _local_name(child.tag) == "Restraint"]
+    original = [{
+        "type": _child_text(rest, namespace, "Type"),
+        "gap": _child_text(rest, namespace, "Gap"),
+        "source": rest.get("source") or rest.get("basis") or "",
+    } for rest in prior]
+    expected_node = ET.Element(_q(namespace, "Node"))
+    for kind in ("REST", "GUIDE", "LINESTOP"):
+        if kind in matched:
+            append_profile(expected_node, kind, matched[kind], support_config)
+    expected = [r for r in expected_node if _local_name(r.tag) == "Restraint"]
+    valid_types = {present_type(_child_text(rest, namespace, "Type")) for rest in expected}
+    # A generated DTXR annotation is replaceable; an independently authored
+    # XML restraint is not. Unmarked non-placeholder XML without a prior DTXR
+    # stamp has unknown provenance and cannot silently be rewritten.
+    originally_annotated = (branch_name, node_no) in support_config.get(
+        "_originalDtxrStampedOwners", ())
+    authoritative = []
+    for rest in prior:
+        label = str(rest.get("source") or rest.get("basis") or "").lower()
+        if label in ("original", "inputxml", "input-xml", "owner", "manual",
+                     "authoritative", "source-original"):
+            authoritative.append(rest)
+        elif label in ("generated", "preview", "staged", "derived", "dtxr"):
+            continue
+        elif placeholder(rest) or originally_annotated:
+            continue
+        else:
+            # Untagged XML is not automatically stale. It can be retained
+            # when the independently matched source agrees in BOTH type and
+            # explicit gap; otherwise its authority is unresolved.
+            old_type = present_type(_child_text(rest, namespace, "Type"))
+            old_gap = _child_text(rest, namespace, "Gap")
+            compatible = [row for row in expected
+                if present_type(_child_text(row, namespace, "Type")) == old_type]
+            if (len(compatible) != 1 or
+                    (old_gap and (numeric(old_gap) is None or
+                     numeric(_child_text(compatible[0], namespace, "Gap")) is None or
+                     not math.isclose(numeric(old_gap),
+                         numeric(_child_text(compatible[0], namespace, "Gap")),
+                         abs_tol=1e-6, rel_tol=0)))):
+                raise ValueError("XML229_XML_RESTRAINT_PROVENANCE_UNRESOLVED")
+            authoritative.append(rest)
+    for rest in authoritative:
+        typ = present_type(_child_text(rest, namespace, "Type"))
+        if typ not in valid_types:
+            raise ValueError("XML229_SOURCE_XML_RESTRAINT_TYPE_CONFLICT")
+        source_rows = [r for r in expected
+                       if present_type(_child_text(r, namespace, "Type")) == typ]
+        if len(source_rows) != 1:
+            raise ValueError("XML229_SOURCE_XML_RESTRAINT_TYPE_AMBIGUOUS")
+        prior_gap = _child_text(rest, namespace, "Gap")
+        source_gap_text = _child_text(source_rows[0], namespace, "Gap")
+        if prior_gap and (numeric(prior_gap) is None or
+                numeric(source_gap_text) is None or
+                not math.isclose(numeric(prior_gap), numeric(source_gap_text),
+                                 abs_tol=1e-6, rel_tol=0)):
+            raise ValueError("XML229_SOURCE_XML_RESTRAINT_GAP_CONFLICT")
+    for rest in prior:
+        if rest not in authoritative:
+            node.remove(rest)
+    retained = {present_type(_child_text(rest, namespace, "Type"))
+                for rest in authoritative}
+    for r in expected:
+        if present_type(_child_text(r, namespace, "Type")) not in retained:
+            node.append(r)
+
+    added = [r for r in node if _local_name(r.tag) == "Restraint"]
+    if not added:
+        raise ValueError(f"XML229_STAGED_POS_UNRESOLVED branch={branch_name} node={node_no}")
+    print("XML229_STAGED_RESTRAINT_BIND " + json.dumps({
+        "branch": branch_name, "node": node_no,
+        "posAnnotation": pos_text,
+        "supersededXml": original,
+        "sourceMemberNames": [str(m.get("sourceAttrs", {}).get("NAME", "")) for m in source_members],
+        "nativeRestraints": [{
+            "type": _child_text(rest, namespace, "Type"),
+            "gapMm": numeric(_child_text(rest, namespace, "Gap")),
+        } for rest in added],
+        "configSource": "saved-Step7-Step8-original-staged-member",
+    }, sort_keys=True))
+    return True
+
+
+def _source_class_corrosion_index(
+        config: dict[str, Any], requested: set[str] | None = None
+        ) -> dict[tuple[str, int], float]:
+    """Optional *explicit* class-bore corrosion source, including 0."""
+    section = config.get("pipingClass", {})
+    rows = section.get("masterRows", []) if isinstance(section, dict) else []
+    index: dict[tuple[str, int], float] = {}
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, dict):
+            continue
+        cls = _row_value(row, "Piping Class") or _row_value(row, "pipingClass")
+        if not cls or (requested is not None and cls not in requested):
+            continue
+        dn = _source_class_dn(row)
+        raw = (_row_value(row, "Corrosion") or
+               _row_value(row, "CorrosionAllowance") or
+               _row_value(row, "corrosionAllowance"))
+        if dn is None or not raw:
+            continue
+        try:
+            value = float(raw)
+        except (ValueError, TypeError):
+            raise ValueError("XML229_PIPING_CLASS_CORROSION_INVALID") from None
+        if not math.isfinite(value) or value < 0:
+            raise ValueError("XML229_PIPING_CLASS_CORROSION_INVALID")
+        key = (cls, dn)
+        if key in index and not math.isclose(index[key], value, abs_tol=1e-6):
+            raise ValueError("XML229_PIPING_CLASS_CORROSION_AMBIGUOUS")
+        index[key] = value
+    return index
+
+
+def _apply_source_class_corrosion(
+        branch: ET.Element, namespace: str,
+        index: dict[tuple[str, int], float]) -> bool:
+    """Fill only absent pipe corrosion claims; preserve original explicit 0."""
+    name = _child_text(branch, namespace, "Branchname")
+    match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", name, re.I)
+    if not match or addon is None:
+        return False
+    changed = False
+    for node in _branch_nodes(branch, namespace):
+        if _child_text(node, namespace, "ComponentType").upper() not in {
+                "PIPE", "PCOM", "BRAN", "TUBE"}:
+            continue
+        if _child_text(node, namespace, "CorrosionAllowance"):
+            continue
+        od = _numeric_text(_child_text(node, namespace, "OutsideDiameter"))
+        dn = addon.od_to_dn(od) if od is not None else None
+        key = (match.group(1), dn)
+        if key not in index:
+            continue
+        _set_child(node, namespace, "CorrosionAllowance",
+                   format(index[key], ".12g"))
+        changed = True
+    return changed
+
+
+def _assert_verified_master_completeness(
+        root: ET.Element, namespace: str, support_config: dict[str, Any],
+        class_wall_index: dict[tuple[str, int], float],
+        class_meta_index: dict[tuple[str, int], tuple[str, str]],
+        material_ids: dict[str, int],
+        class_corrosion_index: dict[tuple[str, int], float] | None = None) -> None:
+    """Fail closed for governed candidates; diagnostics retain legacy behavior.
+
+    A selected source fact must agree with native XML; simply seeing a
+    plausible value (or the writer's 0.01-mm fallback) is not verification.
+    Final emitted CII fields are independently checked downstream.
+    """
+    if support_config.get("requireVerifiedMasterCompleteness") is not True:
+        return
+    if addon is None:
+        raise ValueError("XML229_VERIFIED_CLASS_LOOKUP_UNAVAILABLE")
+    checked_branches = 0
+    checked_nodes = 0
+    for branch in root.iter():
+        if _local_name(branch.tag) != "Branch":
+            continue
+        nodes = [node for node in _branch_nodes(branch, namespace)
+                 if _child_text(node, namespace, "ComponentType").upper()
+                 in {"PIPE", "PCOM", "BRAN", "TUBE"}]
+        if not nodes:
+            continue
+        name = _child_text(branch, namespace, "Branchname")
+        class_match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", name, re.I)
+        if class_match is None:
+            raise ValueError("XML229_VERIFIED_PIPING_CLASS_UNRESOLVED")
+        cls = class_match.group(1)
+        line = _line_key_from_branch(name, support_config)
+        if not line or len(_matching_linelist_rows(line, support_config)) != 1:
+            raise ValueError("XML229_VERIFIED_LINE_LIST_UNRESOLVED")
+        pressure = next((e for e in branch if _local_name(e.tag) == "Pressure"), None)
+        temperature = next((e for e in branch if _local_name(e.tag) == "Temperature"), None)
+        for key, parent, xml_key, aliases, mandatory, code in (
+                ("p1", pressure, "Pressure1", ["P1", "Design Pressure", "Operating Pressure"],
+                 True, "XML229_VERIFIED_PRESSURE_MISSING"),
+                ("t1", temperature, "Temperature1", ["T1", "Temp Max", "Temperature Max"],
+                 True, "XML229_VERIFIED_T1_MISSING"),
+                ("t2", temperature, "Temperature2", ["T2", "Temp", "Temperature"],
+                 False, "XML229_VERIFIED_T2_MISSING"),
+                ("t3", temperature, "Temperature3", ["T3", "Temp Min", "Temperature Min"],
+                 True, "XML229_VERIFIED_T3_MISSING")):
+            selected = _mapped_process_value(line, support_config, key, aliases)
+            declared = bool(_safe_text((support_config.get("linelist") or {})
+                        .get("fieldMap", {}).get(key)))
+            if not selected and not mandatory and not declared:
+                continue  # T2 may be genuinely not applicable.
+            source = _numeric_text(selected)
+            xml = _numeric_text(_child_text(parent, namespace, xml_key)) if parent is not None else None
+            if source is None or xml is None:
+                raise ValueError(code)
+            if key.startswith("t") and (source == -100000 or xml == -100000):
+                raise ValueError(code)
+            if not math.isclose(source, xml, rel_tol=0, abs_tol=1e-6):
+                raise ValueError("XML229_VERIFIED_PROCESS_FIELD_CONFLICT")
+        density = (_mapped_process_value(line, support_config, "densityMixed",
+                       ["Mixed kg/m3", "Mixed kg/m³", "Density Mixed"])
+                   or _mapped_process_value(line, support_config, "densityGas",
+                       ["Gas kg/m3", "Gas kg/m³", "Density Gas"])
+                   or _mapped_process_value(line, support_config, "densityLiquid",
+                       ["Liquid kg/m3", "Liquid kg/m³", "Density Liquid"]))
+        src_density = _numeric_text(density)
+        xml_density = _numeric_text(_child_text(branch, namespace, "FluidDensity"))
+        if src_density is None or xml_density is None:
+            raise ValueError("XML229_VERIFIED_DENSITY_MISSING")
+        if not math.isclose(src_density, xml_density, rel_tol=0, abs_tol=1e-6):
+            raise ValueError("XML229_VERIFIED_DENSITY_CONFLICT")
+        for node in nodes:
+            od = _numeric_text(_child_text(node, namespace, "OutsideDiameter"))
+            dn = addon.od_to_dn(od) if od is not None else None
+            if dn is None or (cls, dn) not in class_wall_index:
+                raise ValueError("XML229_VERIFIED_CLASS_DN_WALL_MISSING")
+            wall = _numeric_text(_child_text(node, namespace, "WallThickness"))
+            expected = class_wall_index[(cls, dn)]
+            if wall is None or wall <= 0 or not math.isclose(
+                    wall, expected, rel_tol=0, abs_tol=1e-6):
+                raise ValueError("XML229_VERIFIED_CLASS_DN_WALL_CONFLICT")
+            if class_corrosion_index and (cls, dn) in class_corrosion_index:
+                source_corrosion = class_corrosion_index[(cls, dn)]
+                measured_corrosion = _numeric_text(_child_text(
+                    node, namespace, "CorrosionAllowance"))
+                if measured_corrosion is None or not math.isclose(
+                        source_corrosion, measured_corrosion, abs_tol=1e-6, rel_tol=0):
+                    raise ValueError("XML229_VERIFIED_CLASS_CORROSION_CONFLICT")
+            meta = class_meta_index.get((cls, dn))
+            if meta is None or not meta[1]:
+                raise ValueError("XML229_VERIFIED_CLASS_RATING_MISSING")
+            if _child_text(node, namespace, "PipingClassRating") != meta[1]:
+                raise ValueError("XML229_VERIFIED_CLASS_RATING_CONFLICT")
+            chosen_material = _process_material_for_line(line, support_config) or meta[0]
+            actual_material = " ".join(_child_text(node, namespace, "MaterialName").upper().split())
+            if not chosen_material or actual_material != " ".join(chosen_material.upper().split()):
+                raise ValueError("XML229_VERIFIED_MATERIAL_NAME_CONFLICT")
+            approved_code = material_ids.get(actual_material)
+            code = _numeric_text(_child_text(node, namespace, "MaterialCode"))
+            if approved_code is None or code is None or code <= 0:
+                raise ValueError("XML229_VERIFIED_MATERIAL_CODE_UNAPPROVED")
+            if code != approved_code or int(code) != code:
+                raise ValueError("XML229_VERIFIED_MATERIAL_CODE_CONFLICT")
+            checked_nodes += 1
+        checked_branches += 1
+    if not checked_nodes:
+        raise ValueError("XML229_VERIFIED_PIPE_CENSUS_EMPTY")
+    print("XML229_VERIFIED_MASTER_COMPLETENESS " + json.dumps({
+        "status": "VERIFIED_SOURCE_TO_XML", "branches": checked_branches,
+        "pipeNodes": checked_nodes, "actualCiiVerification": "PENDING_INDEPENDENT",
+    }, sort_keys=True))
+
+
 def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -> Path:
     _normalize_process_field_map(support_config)
     tree = ET.parse(xml_path)
@@ -400,13 +1096,44 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
     changed = False
     skip_dtxr_restraint_fallback = _xml_restraints_are_authoritative(xml_path, support_config)
     insulation_density_default = _to_float(support_config.get("insulationDensityDefault"), 210.0)
+    # Source-authority hydration: index only class/material identities present
+    # in this physical XML, never mix a class grade into a valve or support.
+    source_classes = {match.group(1) for branch in root.iter()
+                      if _local_name(branch.tag) == "Branch"
+                      for match in [re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$",
+                                              _child_text(branch, namespace, "Branchname"), re.I)]
+                      if match}
+    class_wall_index = _source_class_wall_index(support_config, source_classes)
+    class_meta_index = _source_class_meta_index(support_config, source_classes)
+    class_corrosion_index = _source_class_corrosion_index(support_config, source_classes)
+    material_names = {" ".join(name.upper().split()) for name, _rating in class_meta_index.values() if name}
+    for source_branch in root.iter():
+        if _local_name(source_branch.tag) != "Branch":
+            continue
+        source_line = _line_key_from_branch(
+            _child_text(source_branch, namespace, "Branchname"), support_config)
+        source_material = _process_material_for_line(source_line, support_config)
+        if source_material:
+            material_names.add(" ".join(source_material.upper().split()))
+    material_ids = _material_ids_from_config(support_config, material_names)
+    staged_pos_owners = set(tuple(row) for row in support_config.get("_stagedPositionOwners", ()))
     for branch in root.iter():
         if _local_name(branch.tag) != "Branch":
             continue
+        # Class enrichment runs on exactly the XML that the native parser sees.
+        # It is independent of staged JSON and of Preview-only presentation.
+        changed = _apply_source_class_wall(branch, namespace, class_wall_index) or changed
+        changed = _apply_source_class_corrosion(
+            branch, namespace, class_corrosion_index) or changed
         pressure = _ensure_child(branch, namespace, "Pressure")
         line_key = _line_key_from_branch(_child_text(branch, namespace, "Branchname"), support_config)
+        process_material = _process_material_for_line(line_key, support_config)
+        changed = _apply_source_material_rating(
+            branch, namespace, class_meta_index, material_ids, process_material) or changed
         hydro = ""
-        if _matching_linelist_rows(line_key, support_config):
+        linelist_rows = _matching_linelist_rows(line_key, support_config)
+        line_sources: dict[str, str] = {}
+        if linelist_rows:
             temperature = _ensure_child(branch, namespace, "Temperature")
             values = {
                 "Pressure1": _mapped_process_value(line_key, support_config, "p1", ["P1", "Design Pressure", "Operating Pressure"]),
@@ -415,6 +1142,9 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
                 "Temperature3": _mapped_process_value(line_key, support_config, "t3", ["T3", "Temp Min", "Temperature Min"]),
             }
             hydro = _mapped_process_value(line_key, support_config, "hydroPressure", ["HydroPressure", "Hydro Pressure", "Hydro Test Pressure", "Test Pressure"])
+            line_sources.update({"p1": values["Pressure1"], "t1": values["Temperature1"],
+                                 "t2": values["Temperature2"], "t3": values["Temperature3"],
+                                 "hydroPressure": hydro})
             density = (_mapped_process_value(line_key, support_config, "densityMixed", ["Mixed kg/m3", "Mixed kg/m³", "Density Mixed"])
                        or _mapped_process_value(line_key, support_config, "densityGas", ["Gas kg/m3", "Gas kg/m³", "Density Gas"])
                        or _mapped_process_value(line_key, support_config, "densityLiquid", ["Liquid kg/m3", "Liquid kg/m³", "Density Liquid"]))
@@ -425,20 +1155,38 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
                     _set_child(temperature, namespace, tag, values[tag]); changed = True
             if density:
                 _set_child(branch, namespace, "FluidDensity", density); changed = True
+            line_sources["density"] = density
+        print("XML229_LINE_SOURCE_TRANSFER " + json.dumps({
+            "branch": _child_text(branch, namespace, "Branchname"),
+            "lineKey": line_key,
+            "matchedSourceRows": len(linelist_rows),
+            "sourceFields": line_sources,
+            "sourceStatus": ("matched" if linelist_rows else
+                             "unmatched" if support_config.get("linelist", {}).get("masterRows") else
+                             "no-line-list-supplied"),
+        }, sort_keys=True))
         _set_child(pressure, namespace, "HydroPressure", hydro if hydro else _child_text(pressure, namespace, "HydroPressure") or 0)
         changed = True
+        branch_name = _child_text(branch, namespace, "Branchname")
         max_insulation = _numeric_text(_child_text(branch, namespace, "InsulationThickness")) or 0.0
         for node in _branch_nodes(branch, namespace):
             max_insulation = max(max_insulation, _numeric_text(_child_text(node, namespace, "InsulationThickness")) or 0.0)
             if _child_text(node, namespace, "ComponentType").upper() in NO_AUTO_WEIGHT_COMPONENT_TYPES and (_numeric_text(_child_text(node, namespace, "Weight")) or 0.0) != 0.0:
                 _set_child(node, namespace, "Weight", "0"); changed = True
-            has_explicit_restraints = any(_local_name(child.tag) == "Restraint" for child in list(node))
-            if not skip_dtxr_restraint_fallback and not has_explicit_restraints and _apply_dtxr_restraints_to_node(node, namespace, support_config, use_dtxr_only=True):
-                changed = True
+            claimed_pos = (branch_name, _child_text(node, namespace, "NodeNumber")) in staged_pos_owners
+            if claimed_pos:
+                changed = _apply_staged_position_restraints(node, namespace, support_config, branch_name) or changed
+            else:
+                has_explicit_restraints = any(_local_name(child.tag) == "Restraint" for child in list(node))
+                if not skip_dtxr_restraint_fallback and not has_explicit_restraints and _apply_dtxr_restraints_to_node(node, namespace, support_config, use_dtxr_only=True):
+                    changed = True
         _set_child(branch, namespace, "InsulationDensity", insulation_density_default if max_insulation >= 50.0 else 0)
         changed = True
     if _truthy(support_config.get("splitCondensedValveFlange")) and _renumber_length_bearing_negative_nodes(root, namespace):
         changed = True
+    _assert_verified_master_completeness(
+        root, namespace, support_config, class_wall_index, class_meta_index,
+        material_ids, class_corrosion_index)
     if not changed:
         return xml_path
     temp_path = Path(tempfile.gettempdir()) / f"{xml_path.stem}_final_enriched.xml"
@@ -713,14 +1461,78 @@ def _patched_elements_payload_factory(temperature_map: dict[str, tuple[float, ..
 def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, support_config: dict[str, Any]) -> Path:
     if staged_json is None:
         return input_xml
-    if _xml_has_dtxr_annotations(input_xml):
-        support_config["_inputAlreadyEnriched"] = True
-        return input_xml
+    # Track what was annotated BEFORE staged-source replay. Only these
+    # unmarked restraints are eligible as stale derived DTXR output.
+    original_root = ET.parse(input_xml).getroot()
+    stamped = []
+    for old_branch in original_root.iter():
+        if _local_name(old_branch.tag) != "Branch":
+            continue
+        old_name = next(((c.text or "").strip() for c in old_branch
+                         if _local_name(c.tag) == "Branchname"), "")
+        for old_node in _branch_nodes(old_branch, _namespace(original_root.tag)):
+            if any(_local_name(c.tag) in ("DTXR_POS", "DTXR_PS") and
+                   _safe_text(c.text) for c in old_node):
+                stamped.append((old_name, _child_text(old_node,
+                                _namespace(original_root.tag), "NodeNumber")))
+    support_config["_originalDtxrStampedOwners"] = stamped
+    # Existing annotations are per-node evidence, not a whole-document
+    # enrichment-complete bit. Reconcile supplied staged members even when
+    # another node was already annotated; keep unmatched XML values intact.
     if addon is None:
         raise ValueError("--staged-json requires xml_to_cii2019_master_addon.py to be available.")
     result = addon.enrich_xml_addons(input_xml, linelist=None, overrides=None, staged_json=staged_json.read_text(encoding="utf-8-sig"), dtxr_position_offset=support_config.get("dtxrPositionOffset") if isinstance(support_config, dict) else None)
-    temp_path = Path(tempfile.gettempdir()) / f"{input_xml.stem}_dtxr_enriched.xml"
-    temp_path.write_text(result["xmlText"], encoding="utf-8")
+    stats = result.get("stats") or {}
+    if stats.get("dtxrPosAmbiguous", 0):
+        raise ValueError("XML229_STAGED_POSITION_AMBIGUOUS")
+    if stats.get("dtxrPosMandatoryUnmatched", 0):
+        rejected = [d for d in result.get("diagnostics", [])
+                    if d.get("type") == "dtxr-position-unmatched"
+                    and d.get("scope") == "MANDATORY"]
+        print("XML229_STAGED_MANDATORY_UNMATCHED " + json.dumps(rejected, sort_keys=True))
+        raise ValueError("XML229_STAGED_POSITION_PARTIAL_TRANSFER")
+    source_json = staged_json.read_text(encoding="utf-8-sig")
+    has_claims = bool(addon.build_dtxr_ps_index(source_json)) or bool(
+        addon.build_dtxr_pos_entries(source_json, support_config.get("dtxrPositionOffset")))
+    if has_claims and not stats.get("dtxrPos", 0) and not stats.get("dtxrPs", 0):
+        raise ValueError("XML229_STAGED_TRANSFER_NO_MATCH")
+    # A stale REST annotation must never be interpreted as proof the provided
+    # staged JSON was consumed; the receipt makes this a distinct run event.
+    excluded = [d for d in result.get("diagnostics", [])
+                if d.get("type") == "dtxr-position-unmatched"
+                and d.get("scope") == "NOT_APPLICABLE"]
+    if excluded:
+        print("XML229_STAGED_SCOPE_EXCLUSIONS " + json.dumps({
+            "count": len(excluded),
+            "reasons": {reason: sum(d.get("reason") == reason for d in excluded)
+                        for reason in sorted({d.get("reason", "") for d in excluded})},
+            "sample": excluded[:20], "sampleTruncated": len(excluded) > 20
+        }, sort_keys=True))
+    print("XML229_SOURCE_TRANSFER " + json.dumps({
+        "family": "stagedJson",
+        "inputHadDtxr": _xml_has_dtxr_annotations(input_xml),
+        "dtxrPosOwners": stats.get("dtxrPos", 0),
+        "dtxrPsOwners": stats.get("dtxrPs", 0),
+        "ambiguous": stats.get("dtxrPosAmbiguous", 0),
+        "unmatchedPositionClaims": stats.get("dtxrPosUnmatched", 0),
+        "mandatoryPositionClaimsUnmatched": stats.get("dtxrPosMandatoryUnmatched", 0),
+        "positionClaimsExcluded": stats.get("dtxrPosExcluded", 0),
+    }, sort_keys=True))
+    pos_owners = []
+    source_members = {}
+    for diagnostic in result.get("diagnostics", ()):
+        if diagnostic.get("type") == "dtxr-pos":
+            owner = (diagnostic["branchName"], str(diagnostic["nodeNumber"]))
+            pos_owners.append(owner)
+            source_members[owner] = diagnostic.get("members", [])
+            print("XML229_DTXR_SOURCE_TO_NODE " + json.dumps(diagnostic, sort_keys=True))
+    support_config["_stagedPositionOwners"] = pos_owners
+    support_config["_stagedPositionMemberRows"] = source_members
+    with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", prefix=f"{input_xml.stem}_dtxr_",
+            suffix=".xml", delete=False) as target:
+        target.write(result["xmlText"])
+        temp_path = Path(target.name)
     support_config["_generatedDtxrEnrichment"] = True
     return temp_path
 

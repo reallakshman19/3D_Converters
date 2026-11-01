@@ -170,3 +170,43 @@ test('line-list Apply bumps lineListAppliedRevision while unrelated master revis
   assert.equal(after.materialAppliedRevision, before.materialAppliedRevision);
   assert.equal(after.weightAppliedRevision, before.weightAppliedRevision);
 });
+
+
+test('Tab 7 aliases, Tab 8 smart regex and TYPE mutation each bump the native config basis', () => {
+  const parsed = {linelist: {branchLineKeyMap: {}},
+    supportTypeMapper: {rows: [{kind: 'REST', aliases: ['Pipe Rest']}]},
+    supportMapping: {version: 2, rules: []},
+    inputXmlRestraintTypeMutation: {enabled: true, rows: [{from: '21', to: '21'}]}};
+  let prev = state({
+    sourceText: '<PipeStressExport/>',
+    masterContext: context({config: parsed}),
+    supportConfigJson: JSON.stringify(parsed),
+  });
+  const variations = [
+    current => {current.supportTypeMapper.rows[0].aliases.push('CRADLE RETAINER');},
+    current => {current.supportMapping.rules.push({
+      id:'user-orbital-guide',enabled:true,source:'staged-json',priority:1,
+      field:'DTXR',pattern:'ORBITAL\\s+GUARDRAIL',match:'regex',kind:'GUIDE',
+    });},
+    current => {current.inputXmlRestraintTypeMutation.rows[0].to = '8';},
+  ];
+  for (const [index, edit] of variations.entries()) {
+    const nextConfig=structuredClone(JSON.parse(prev.supportConfigJson));
+    edit(nextConfig);
+    const next={...prev,supportConfigJson:JSON.stringify(nextConfig),
+      masterContext:{...prev.masterContext,config:nextConfig}};
+    Object.assign(next,advanceDependencyRevisionState(prev,next,nextConfig));
+    const previous=dependencyRevisionSnapshot(prev),updated=dependencyRevisionSnapshot(next);
+    assert.equal(updated.supportConfigRevision,previous.supportConfigRevision+1,
+      'editing Tab 7/8 must invalidate previously verified config basis: variation '+index);
+    assert.equal(updated.sourceModelRevision,previous.sourceModelRevision,
+      'the underlying XML source must remain identical');
+    assert.equal(updated.branchLineMapRevision,previous.branchLineMapRevision);
+    assert.notEqual(supportConfigSignature(JSON.parse(prev.supportConfigJson)),
+      supportConfigSignature(nextConfig));
+    prev=next;
+  }
+  console.log('XML229_CONFIG_BASIS_MUTATION ' + JSON.stringify({
+    sourceUnchanged:true,changedConfigRevisions:variations.length,status:'PASS',
+  }));
+});

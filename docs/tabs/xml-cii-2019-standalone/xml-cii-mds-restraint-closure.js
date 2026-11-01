@@ -4,7 +4,7 @@ import {
 } from '../../converters/xml-cii2019-core/support-mapping.js';
 import { migrateSupportMappingConfig } from '../../converters/xml-cii2019-core/support-mapping-config.js';
 import {mutateRestraintType} from '../../converters/xml-cii2019-core/restraint-type-mutation.js';
-import {classifySupportText,parseSupportTypeMapperConfig}
+import {classifySupportText,parseSupportTypeMapperConfig,createDefaultSupportTypeMapperConfig}
   from './xml-cii-support-type-mapper.js';
 import { buildStandaloneDtxrResolutionLedger } from './xml-cii-trace-resolution-ledger.js';
 import { decorateJsonTraceLedger } from './xml-cii-json-trace-fields.js';
@@ -57,6 +57,64 @@ function memberAttributes(member) {
   return safeObject(member?.raw?.attributes || member?.attributes || member?.capturedFields);
 }
 
+function configuredSupportRuleDecision(attrs, member, config) {
+  // Re-evaluate the saved Tab 8 smart-regex rules in this exact Run. Built-in
+  // defaults are already represented by the semantic/canonical fallbacks;
+  // only user-authored rules can change their precedence.
+  const rules = Array.isArray(config?.supportMapping?.rules)
+    ? config.supportMapping.rules : [];
+  const normalized = key => text(key) === '*' ? '*' :
+    text(key).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const evidence = {...attrs, DESCRIPTION: text(attrs.DESCRIPTION || member?.description)};
+  const matching = [];
+  for (const [index, rule] of rules.entries()) {
+    if (!rule || rule.enabled === false || /^builtin-|^standalone-mds-/.test(text(rule.id))) continue;
+    const source = text(rule.source).toLowerCase();
+    if (source && source !== 'all' && source !== 'staged-json' && source !== 'json') continue;
+    const kind = text(rule.kind).toUpperCase().replace(/\s+/g, '');
+    if (!kind) continue;
+    const mode = text(rule.match) || 'contains';
+    if (!['regex','contains','equals','startsWith'].includes(mode))
+      throw Object.assign(new Error('Invalid Tab 8 smart-regex matching mode'),
+        {code:'PREFINAL_RESTRAINT_CONFIG_INVALID'});
+    const fields = text(rule.field).split(/[,;\n]/).map(normalized).filter(Boolean);
+    const values = Object.entries(evidence)
+      .filter(([field]) => !fields.length || fields.includes('*') || fields.includes('ANY') ||
+        fields.includes(normalized(field)))
+      .map(([,value]) => text(value)).filter(Boolean);
+    const pattern = text(rule.pattern);
+    if (!pattern) continue;
+    let matches = false;
+    if (mode === 'regex') {
+      if (pattern.length > 512)
+        throw Object.assign(new Error('Oversized Tab 8 regex'),
+          {code:'PREFINAL_RESTRAINT_CONFIG_INVALID'});
+      let compiled;
+      try { compiled = new RegExp(pattern, 'i'); }
+      catch { throw Object.assign(new Error('Invalid Tab 8 regex'),
+        {code:'PREFINAL_RESTRAINT_CONFIG_INVALID'}); }
+      matches = values.some(value => compiled.test(value));
+    } else {
+      const terms = pattern.split(/[,;\n]/).map(text).filter(Boolean);
+      matches = values.some(value => terms.some(term => {
+        const v = value.toUpperCase(), t = term.toUpperCase();
+        return mode === 'equals' ? v === t :
+          mode === 'startsWith' ? v.startsWith(t) : v.includes(t);
+      }));
+    }
+    if (!matches) continue;
+    const priority = Number.isFinite(Number(rule.priority)) ? Number(rule.priority) : (index + 1) * 10;
+    matching.push({kind,priority,id:text(rule.id) || 'rule-' + index});
+  }
+  if (!matching.length) return null;
+  matching.sort((a,b) => a.priority - b.priority || a.id.localeCompare(b.id));
+  const first = matching[0], ties = matching.filter(row => row.priority === first.priority);
+  if (new Set(ties.map(row => row.kind)).size > 1)
+    throw Object.assign(new Error('Conflicting equal-priority Tab 8 support rules'),
+      {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+  return first;
+}
+
 function supportKindFromMember(member,config={}) {
   const attrs = memberAttributes(member);
   // An explicit source description wins over abbreviated MDS code aliases.
@@ -73,7 +131,46 @@ function supportKindFromMember(member,config={}) {
   if (new Set(semantic).size > 1)
     throw Object.assign(new Error('Conflicting source support descriptions'),
       {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+  const configured = configuredSupportRuleDecision(attrs,member,config);
+  // A Tab 8 keyword or regex is authoritative only when compatible with
+  // an explicit engineering description. Never silently reclassify a
+  // LINE STOP into REST because an edited catch-all keyword also matches.
+  if (configured && semantic.length && configured.kind !== semantic[0])
+    throw Object.assign(new Error('Tab 8 rule contradicts explicit source kind'),
+      {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+  if (configured && !GOVERNED_KINDS.includes(configured.kind))
+    throw Object.assign(new Error('Tab 8 rule resolves to unsupported governed kind'),
+      {code:'PREFINAL_RESTRAINT_KIND_UNSUPPORTED'});
+  const pinnedKind = semantic[0] || configured?.kind || '';
+  if (pinnedKind) {
+    // Compare *added* Tab 7 aliases against explicit semantic intent OR an
+    // authored Tab 8 rule. Two independently edited high-confidence kinds
+    // must not silently override each other.
+    if (Array.isArray(config?.supportTypeMapper?.rows)) {
+      const rows = parseSupportTypeMapperConfig({supportConfig:config}).mapperRows;
+      const defaults = createDefaultSupportTypeMapperConfig();
+      const custom = rows.map(row => {
+        const original = defaults.find(base => base.kind === row.kind);
+        const baseline = new Set((original?.aliases || [])
+          .map(alias => text(alias).toUpperCase().replace(/[^A-Z0-9]/g,'')));
+        return {...row, aliases:row.aliases.filter(alias =>
+          !baseline.has(text(alias).toUpperCase().replace(/[^A-Z0-9]/g,'')))};
+      }).filter(row => row.aliases.length);
+      if (custom.length) {
+        const descText = [attrs.DTXR,attrs.DESC,attrs.DESCRIPTION,
+          member?.description,attrs.CMPSUPTYPE,attrs.MDSSUPPTYPE,attrs.SPRE]
+          .map(text).filter(Boolean).join(' ');
+        const newly = classifySupportText(descText,custom);
+        if (newly.status==='ambiguous' ||
+            (newly.status==='matched'&&newly.confidence!=='LOW'&&
+             newly.supportKind!==pinnedKind))
+          throw Object.assign(new Error('Edited Tab 7 keyword conflicts with source/Tab 8 kind'),
+            {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+      }
+    }
+  }
   if (semantic.length) return semantic[0];
+  if (configured) return configured.kind;
   // Use the user-authored Step 7 mapper rows, not a second hard-coded alias list.
   // HIGH/MEDIUM semantic intent can override a stale generated REST label;
   // LOW GT/ST evidence cannot override a resolved canonical source kind.
@@ -112,7 +209,15 @@ function sourceGapText(attrs){
 }
 
 function supportGapNumber(attrs){
-  const raw=['CMPSUPGAP','CMPSUPGAP_POS','CMPSUPGAP_PS','NODEGAP']
+  // A legacy NODEGAP=0 is a placeholder only when an explicit
+  // CMPSUPGAP is supplied on the SAME source member. Do not treat
+  // two distinct nonzero source claims as equivalent or silently choose one.
+  const explicit=text(attrs?.CMPSUPGAP);
+  const legacy=text(attrs?.NODEGAP);
+  const legacyZeroPlaceholder=!!explicit && !!legacy &&
+    /^0+(?:\.0+)?(?:\s*mm)?$/i.test(legacy);
+  const raw=['CMPSUPGAP','CMPSUPGAP_POS','CMPSUPGAP_PS',
+             ...(legacyZeroPlaceholder?[]:['NODEGAP'])]
     .map(key=>text(attrs?.[key])).filter(Boolean);
   const values=raw.map(value=>Number(value.match(/[-+]?(?:\d+\.?\d*|\.\d+)(?:[Ee][+-]?\d+)?/)?.[0]));
   if(values.some(v=>!Number.isFinite(v)))throw Object.assign(
@@ -155,6 +260,19 @@ function evidenceByKind(record, config = {}, requireUnambiguous = false) {
     const attrs=raw&&!text(original.CMPSUPGAP)&&!text(original.CMPSUPGAP_POS)
       &&!text(original.CMPSUPGAP_PS)?{...original,CMPSUPGAP:raw}:original;
     const previous=result.get(kind);
+    // A PIPE-REST datum and its AT01/AT05 hardware can share exact XYZ.
+    // The shoe/plate is not an independent REST gap owner: first select the
+    // structural restraint member, THEN compare gaps among equivalent owners.
+    // Otherwise an actual 0mm REST and a shoe with 10mm clearance falsely
+    // become a conflicting REST source for the same restraint.
+    if (requireUnambiguous && previous && kind === 'REST') {
+      const previousHardware = isRestHardwareMember(previous,kind);
+      const currentHardware = isRestHardwareMember(attrs,kind);
+      if (previousHardware !== currentHardware) {
+        if (previousHardware) result.set(kind,attrs);
+        continue;
+      }
+    }
     if(requireUnambiguous&&previous&&sourceGapText(previous)&&raw&&
        supportGapNumber(previous)!==numeric)
       throw Object.assign(new Error('Conflicting JSON gaps for the same support kind'),
@@ -260,6 +378,21 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
       if (!record || !String(record.status || '').startsWith('RESOLVED_')) continue;
       const evidence = evidenceByKind(record,config,runtime.requireUnambiguous===true);
       if (!evidence.size) continue;
+      for (const [kind, attrs] of evidence) {
+        const authored = text(attrs.CMPSUPGAP);
+        const legacy = text(attrs.NODEGAP);
+        if (authored && legacy && Number(legacy) === 0 && supportGapNumber(attrs) !== 0) {
+          diagnostics.push({
+            type: 'xml229-gap-authority-receipt',
+            nodeNumber: childText(node, 'NodeNumber'),
+            supportKind: kind,
+            sourceField: 'CMPSUPGAP',
+            sourceValue: authored,
+            ignoredLegacyZero: legacy,
+            reason: 'legacy-NODEGAP-zero-placeholder',
+          });
+        }
+      }
 
       if(runtime.requireUnambiguous){
         for(const restraint of childrenByName(node,'Restraint')){

@@ -76,7 +76,8 @@ test('Run uses existing Worker O1 automatically and keeps default JSON-restraint
  assert.match(candidate,/session\.readNativeOriginalJsonForEngine\(\{packet\}\)/);
  assert.match(candidate,/reconcileXml229ActualCiiAgainstFinal/);
  assert.match(candidate,/independent\.strictOneToOneOwnerMatch!==true/);
- assert.doesNotMatch(candidate,/useRestraintTypeBasedOnJson:false/);
+ assert.match(candidate,/packet\.reviewSourceKind==='XML_ONLY'\?\{useRestraintTypeBasedOnJson:false\}:\{\}/);
+ assert.match(candidate,/\.\.\.workflowOptionsFromState\(state\)/);
  assert.doesNotMatch(run,/createXml229NativeJsonReattachControl/);
  for(const path of ['integration/xml229-native-indexed-json-handoff.mjs',
   'integration/xml229-original-blob-gcpw-client.mjs',

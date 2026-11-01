@@ -3,7 +3,8 @@
 This deliberately does not copy restraint values out of the Worker snapshot.
 The caller retains the whole-XML comparison after replaying this bounded stage.
 """
-from xml229_support_type_mapper import mapped_support_kind
+from xml229_support_type_mapper import (mapped_support_kind, configured_support_rule,
+                                         configured_mapper_semantic_conflict)
 from decimal import Decimal, InvalidOperation
 import hashlib
 import json
@@ -95,9 +96,21 @@ def kinds(entries, require, config=None):
             if text(a.get(k)).upper().replace(' ', '') in ('REST', 'GUIDE', 'LINESTOP')
         }
         require(len(canonical) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
-        mapped_kind, score = mapped_support_kind(a, e['desc'], config, require)
+        custom_kind = configured_support_rule(a, e['desc'], config, require)
+        if custom_kind and semantic:
+            require(custom_kind == semantic[0],
+                    'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+        if custom_kind:
+            require(custom_kind in ('REST','GUIDE','LINESTOP'),
+                    'NATIVE_PREFINAL_RESTRAINT_KIND_UNSUPPORTED')
+        if semantic or custom_kind:
+            configured_mapper_semantic_conflict(a, e['desc'], config,
+                                                 semantic[0] if semantic else custom_kind, require)
+        mapped_kind, score = ('', 0) if semantic or custom_kind else mapped_support_kind(
+            a, e['desc'], config, require)
         code = text(a.get('MDSSUPPTYPE')).upper()
         kind = (semantic[0] if semantic
+                else custom_kind if custom_kind
                 else mapped_kind if score >= .65 and mapped_kind in ('REST','GUIDE','LINESTOP')
                 else next(iter(canonical)) if canonical
                 else mapped_kind if mapped_kind in ('REST','GUIDE','LINESTOP')
@@ -108,14 +121,38 @@ def kinds(entries, require, config=None):
         if not kind:
             continue
         raw = source_gap(a)
+        # CMPSUPGAP is a source member's explicit gap. Historical NODEGAP=0
+        # is a placeholder when this SAME member supplies CMPSUPGAP.
+        # Two nonzero/different explicit values must still fail closed.
+        legacy_zero_placeholder = bool(text(a.get('CMPSUPGAP'))) and (
+            text(a.get('NODEGAP')) != '' and numeric(a.get('NODEGAP')) == 0
+        )
         alias_values = [text(a.get(k)) for k in
                         ('CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS', 'NODEGAP')
-                        if text(a.get(k))]
+                        if text(a.get(k)) and (k != 'NODEGAP' or not legacy_zero_placeholder)]
+        if legacy_zero_placeholder and numeric(a.get('CMPSUPGAP')) != 0:
+            print('XML229_GAP_ALIAS_AUTHORITY ' + json.dumps({
+                'memberName': text(a.get('NAME')),
+                'kind': kind, 'sourceField': 'CMPSUPGAP',
+                'sourceValue': text(a.get('CMPSUPGAP')),
+                'ignoredLegacyZero': text(a.get('NODEGAP')),
+                'reason': 'legacy-NODEGAP-zero-placeholder',
+            }, sort_keys=True))
         require(all(numeric(v) is not None for v in alias_values),
                 'NATIVE_PREFINAL_RESTRAINT_GAP_INVALID')
         require(all(numeric(v) == numeric(raw) for v in alias_values),
                 'NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS')
         previous_attrs = out.get(kind, {})
+        # A REST datum is a different structural source role from its co-located
+        # AT01 shoe / AT05 wear-pad hardware; prioritize the true REST owner
+        # before testing for conflicting authoritative REST gaps.
+        if previous_attrs and kind == 'REST':
+            previous_hardware = is_rest_hardware_member(previous_attrs, kind)
+            current_hardware = is_rest_hardware_member(a, kind)
+            if previous_hardware != current_hardware:
+                if previous_hardware:
+                    out[kind] = a
+                continue
         previous = source_gap(previous_attrs)
         require(not (previous and raw and numeric(previous) != numeric(raw)),
                 'NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS')

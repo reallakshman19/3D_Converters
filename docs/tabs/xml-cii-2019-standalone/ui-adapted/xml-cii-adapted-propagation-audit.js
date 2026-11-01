@@ -1,3 +1,4 @@
+import {engineeringNumber, parseCiiEngineeringFields, ciiBranchFieldMatches, ciiNodeWeightMatches, ciiElementFieldMatches} from './xml-cii-adapted-propagation-proof.mjs';
 import { createElement } from './xml-cii-adapted-dom.js';
 import { renderStandaloneMatchedAuditPanel } from './xml-cii-adapted-preview-diagnostics-audit.js?v=20261001-weight-output-2';
 
@@ -11,7 +12,7 @@ import { renderStandaloneMatchedAuditPanel } from './xml-cii-adapted-preview-dia
 // into the CII output.
 
 function t(value) { return String(value ?? '').trim(); }
-function num(value) { const n = Number(String(value ?? '').replace(/[^0-9.+-eE]/g, '')); return Number.isFinite(n) ? n : null; }
+function num(value) { return engineeringNumber(value); }
 
 function readCache(key) {
   if (typeof localStorage === 'undefined') return null;
@@ -73,8 +74,10 @@ function parseEnrichedXml(enrichedText) {
   for (const branch of [...doc.getElementsByTagName('*')].filter((el) => localName(el) === 'Branch')) {
     const branchName = childText(branch, 'Branchname');
     const temperature = childrenByName(branch, 'Temperature')[0] || null;
+    const pressure = childrenByName(branch, 'Pressure')[0] || null;
     branches.set(branchName, {
       branchName,
+      p1: pressure ? childText(pressure, 'Pressure1') : childText(branch, 'Pressure1'),
       t1: temperature ? childText(temperature, 'Temperature1') : childText(branch, 'Temperature1'),
       t2: temperature ? childText(temperature, 'Temperature2') : childText(branch, 'Temperature2'),
       t3: temperature ? childText(temperature, 'Temperature3') : childText(branch, 'Temperature3'),
@@ -88,80 +91,85 @@ function parseEnrichedXml(enrichedText) {
         nodeNumber,
         componentType: childText(node, 'ComponentType'),
         weight: childText(node, 'Weight'),
+        wallThickness: childText(node, 'WallThickness'),
+        corrosion: childText(node, 'CorrosionAllowance'),
       });
     }
   }
   return { branches, nodes, available: true };
 }
 
-function ciiNodeNumbers(ciiText) {
-  const set = new Set();
-  if (!t(ciiText)) return set;
-  // FROM/TO node references at the start of CAESAR-II neutral file element
-  // lines are whole numbers rendered as floats (e.g. "90.00000  100.00000 ...").
-  for (const match of ciiText.matchAll(/^\s*(\d{1,6})\.0+(?:E\+0*1?)?\s+(\d{1,6})\.0+\b/gm)) {
-    set.add(match[1]);
-    set.add(match[2]);
-  }
-  return set;
-}
-
-// Unit conversions the converter applies before writing the CII: densities
-// kg/m³ → kg/cm³ (×1e-6, convertDensityKgM3ToKgCm3) and component weights
-// kg → N (×~10, kgToNewton / weight scale).
-const CII_FIELD_SCALES = { density: [1, 1e-6], weight: [1, 10, 9.80665] };
-
-function ciiHasValue(ciiText, value, fieldId = '') {
-  const base = num(value);
-  if (base === null || !t(ciiText)) return false;
-  for (const scale of CII_FIELD_SCALES[fieldId] || [1]) {
-    const n = base * scale;
-    const exp = n.toExponential(6).toUpperCase().replace(/E([+-])(\d)$/, 'E$10$2');
-    const patterns = [String(n), n.toFixed(1), n.toFixed(2), n.toFixed(3), n.toFixed(5), exp];
-    if (patterns.some((p) => p && ciiText.includes(p))) return true;
-  }
-  return false;
-}
-
 const SENTINEL_TEMPERATURE = -100000;
 
-function statusFor(tabValue, enrichedValue, inCii, enrichedAvailable, ciiAvailable) {
-  const tabN = num(tabValue);
-  let enrN = num(enrichedValue);
+function statusFor(tabValue, enrichedValue, inCii, enrichedAvailable, ciiAvailable, fieldId = '') {
+  const isTemperature = /^t[1-9]$/.test(fieldId);
+  const tabN = engineeringNumber(tabValue, isTemperature);
+  let enrN = engineeringNumber(enrichedValue, isTemperature);
   // -100000 is the converter's "no value" temperature sentinel — treat it as
   // a missing value, not a real number.
   if (enrN !== null && Math.abs(enrN - SENTINEL_TEMPERATURE) < 1e-6) enrN = null;
-  if (tabN === null) return 'no-tab-value';
+  if (tabN === null) return 'source-unverified';
   if (enrichedAvailable) {
     if (enrN === null) return 'missing-in-enriched';
     if (Math.abs(enrN - tabN) > Math.max(0.01, Math.abs(tabN) * 0.001)) return 'mismatch-enriched';
   }
+  if (ciiAvailable && inCii === null) return 'unverified-cii';
   if (ciiAvailable && !inCii) return 'missing-in-cii';
-  if (!enrichedAvailable && !ciiAvailable) return 'pending-run';
+  if (!ciiAvailable) return 'pending-run';
+  if (!enrichedAvailable) return 'unverified-enriched';
   return 'propagated';
 }
 
 export async function buildXmlCiiPropagationAudit(state) {
   const fresh = await freshDryRun(state);
   const branchRows = previewBranchRows(state, fresh);
+  const freshPreviewAvailable = !!(fresh && Array.isArray(fresh.branchRows) && fresh.branchRows.length);
   const wmRows = weightMatchRows(state);
   const enriched = parseEnrichedXml(state.result?.enrichedText || '');
   const ciiText = state.result?.ciiText || '';
   const ciiAvailable = !!t(ciiText);
-  const ciiNodes = ciiAvailable ? ciiNodeNumbers(ciiText) : new Set();
+  let ciiParsed = null;
+  let ciiParseFailure = '';
+  if (ciiAvailable) {
+    try { ciiParsed = parseCiiEngineeringFields(ciiText); }
+    catch (error) { ciiParseFailure = String(error?.message || error); }
+  }
+  const massProof = state.result?.xml229NativeMassDiagnostic || null;
+  const finalAuthority = massProof?.massesConsumedInNativeRigid === true;
 
   const rows = [];
+  if (!freshPreviewAvailable) rows.push({
+    scope: 'run', key: '4 Preview (live source)', node: '', field: 'Source-revision custody',
+    fieldId: 'preview', stageTab: 'fresh Preview unavailable',
+    stageEnriched: 'no source-attested Preview value', stageCii: 'unverified',
+    status: 'preview-unverified',
+  });
+  if (ciiParseFailure) rows.push({
+    scope: 'run', key: 'Native CII', node: '', field: 'CII structural parse',
+    fieldId: 'cii', stageTab: 'n/a', stageEnriched: 'n/a',
+    stageCii: ciiParseFailure, status: 'unverified-cii',
+  });
+  if (ciiAvailable && !finalAuthority) rows.push({
+    scope: 'run', key: 'Accepted Final packet', node: '',
+    field: 'Weight-source authority', fieldId: 'final-mass',
+    stageTab: 'unavailable or not attested',
+    stageEnriched: 'cannot infer accepted mass from XML zero',
+    stageCii: 'unverified', status: 'final-unverified',
+  });
 
   for (const row of branchRows) {
     const enrichedBranch = enriched.branches.get(row.branchName) || null;
     const fields = [
+      ['p1', 'Pressure P1', row.p1 ?? row.pressure, enrichedBranch?.p1],
       ['t1', 'Temperature T1', row.t1, enrichedBranch?.t1],
       ['t2', 'Temperature T2', row.t2, enrichedBranch?.t2],
       ['t3', 'Temperature T3', row.t3, enrichedBranch?.t3],
       ['density', 'Fluid Density', row.density, enrichedBranch?.density],
     ];
     for (const [fieldId, fieldLabel, tabValue, enrichedValue] of fields) {
-      const inCii = ciiAvailable && ciiHasValue(ciiText, enrichedValue ?? tabValue, fieldId);
+      const inCii = ciiAvailable
+        ? ciiBranchFieldMatches(ciiParsed, row.branchName, fieldId, enrichedValue ?? tabValue)
+        : false;
       rows.push({
         scope: 'branch',
         key: row.branchName,
@@ -170,9 +178,58 @@ export async function buildXmlCiiPropagationAudit(state) {
         fieldId,
         stageTab: t(tabValue) || '—',
         stageEnriched: enriched.available ? (t(enrichedValue) || '—') : 'n/a',
-        stageCii: ciiAvailable ? (inCii ? 'found' : 'not found') : 'n/a',
-        status: statusFor(tabValue, enrichedValue, inCii, enriched.available && !!enrichedBranch, ciiAvailable),
+        stageCii: ciiAvailable ? (inCii === null ? 'unverified' : inCii ? 'field matched' : 'field mismatch') : 'n/a',
+        status: freshPreviewAvailable ? statusFor(tabValue, enrichedValue, inCii, enriched.available && !!enrichedBranch, ciiAvailable, fieldId) : 'preview-unverified',
       });
+    }
+  }
+
+  // Audit EVERY emitted element, not merely the first element in a branch.
+  // Native XML is the serialization witness; Preview is a separate source
+  // witness and is not silently invented for later elements in a branch.
+  for (const row of branchRows) {
+    const elements=ciiParsed?.elements.filter(e=>e.branch===row.branchName) || [];
+    if (!elements.length) {
+      rows.push({scope:'element', key:row.branchName, node:'',field:'Element census',
+        fieldId:'element',stageTab:'n/a',stageEnriched:'n/a',
+        stageCii:'no emitted elements',status:'missing-in-cii',
+        sourceState:'MISSING',verificationState:'UNRESOLVED'});
+    }
+    for (const element of elements) {
+      const xmlNode=enriched.nodes.get(row.branchName+'|'+element.from);
+      for(const [fieldId,label,tabValue,xmlValue] of [
+        ['wallThickness','Wall thickness',row.wallThickness,xmlNode?.wallThickness],
+        ['corrosion','Corrosion allowance',row.corrosion,xmlNode?.corrosion],
+      ]) {
+        const numeric=engineeringNumber(xmlValue);
+        const applicable=fieldId==='wallThickness'
+          ? ['PIPE','PCOM','BRAN','TUBE'].includes(t(xmlNode?.componentType).toUpperCase())
+          : numeric!==null;
+        const observed=applicable
+          ? ciiElementFieldMatches(ciiParsed,element.branch,element.from,
+                                   element.to,fieldId,xmlValue)
+          : null;
+        const sourceState=!xmlNode?'MISSING':!applicable?'NOT_APPLICABLE'
+          :numeric===null?'MISSING':numeric===0?'EXPLICIT_ZERO':'PRESENT';
+        const verificationState=!applicable?'NOT_APPLICABLE'
+          :observed===true?'VERIFIED':observed===false?'CONFLICT':'UNRESOLVED';
+        const first=element===elements[0];
+        const status=!xmlNode?'missing-in-enriched'
+          :!applicable?'source-unverified'
+          :observed===false?'missing-in-cii'
+          :observed===null?'unverified-cii'
+          :first && freshPreviewAvailable
+            ? statusFor(tabValue,xmlValue,observed,true,true,fieldId)
+            : 'source-unverified'; // no fabricated later-element Preview authority
+        rows.push({
+          scope:'element',key:row.branchName,node:element.from+'→'+element.to,
+          field:label,fieldId,stageTab:first?t(tabValue)||'—':'no per-element Preview',
+          stageEnriched:xmlNode?t(xmlValue)||'—':'node not found',
+          stageCii:observed===true?'field matched':observed===false?'field mismatch'
+            :applicable?'unverified':'not applicable',
+          sourceState,verificationState,status,
+        });
+      }
     }
   }
 
@@ -183,8 +240,11 @@ export async function buildXmlCiiPropagationAudit(state) {
     // -1 nodes are unnumbered inline components: their weight rides on the
     // surrounding element in the CII, so node presence cannot be checked.
     const inlineNode = String(row.nodeNumber ?? '') === '-1' || row.nodeNumber == null;
-    const nodeInCii = ciiAvailable && !inlineNode && ciiNodes.has(String(row.nodeNumber));
-    const inCii = ciiAvailable && ciiHasValue(ciiText, enrichedNode?.weight ?? weight, 'weight');
+    const nodeInCii = !!ciiParsed && !inlineNode && ciiParsed.elements.some(
+      e => e.branch === row.branchName && (e.from === String(row.nodeNumber) || e.to === String(row.nodeNumber)));
+    const inCii = ciiAvailable && finalAuthority
+      ? ciiNodeWeightMatches(ciiParsed, row.branchName, row.nodeNumber, enrichedNode?.weight ?? weight)
+      : null;
     rows.push({
       scope: 'node',
       key: row.branchName,
@@ -193,8 +253,8 @@ export async function buildXmlCiiPropagationAudit(state) {
       fieldId: 'weight',
       stageTab: t(weight) || '—',
       stageEnriched: enriched.available ? (t(enrichedNode?.weight) || (enrichedNode ? '—' : (inlineNode ? 'inline (-1)' : 'node missing'))) : 'n/a',
-      stageCii: ciiAvailable ? `${inlineNode ? 'inline (-1)' : (nodeInCii ? 'node found' : 'node missing')} / weight ${inCii ? 'found' : 'not found'}` : 'n/a',
-      status: statusFor(weight, enrichedNode?.weight, inCii && (inlineNode || nodeInCii), enriched.available && !!enrichedNode, ciiAvailable),
+      stageCii: ciiAvailable ? `${inlineNode ? 'inline (-1)' : (nodeInCii ? 'node found' : 'node missing')} / weight ${inCii === null ? 'unverified' : inCii ? 'RIGID matched' : 'RIGID mismatch'}` : 'n/a',
+      status: !finalAuthority && ciiAvailable ? 'final-unverified' : statusFor(weight, enrichedNode?.weight, inCii && (inlineNode || nodeInCii), enriched.available && !!enrichedNode, ciiAvailable),
     });
   }
 
@@ -225,6 +285,11 @@ const STATUS_STYLES = {
   'missing-in-enriched': { label: '✗ lost tab→XML', color: '#f87171', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.25)' },
   'mismatch-enriched': { label: '≠ mismatch tab→XML', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.25)' },
   'missing-in-cii': { label: '✗ lost XML→CII', color: '#f87171', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.25)' },
+  'source-unverified': { label: '⚠ Source value absent', color: '#fbbf24', bg: 'transparent', border: '#fbbf24' },
+  'preview-unverified': { label: '⚠ Preview stale/absent', color: '#fbbf24', bg: 'transparent', border: '#fbbf24' },
+  'unverified-cii': { label: '⚠ CII unverified', color: '#fbbf24', bg: 'transparent', border: '#fbbf24' },
+  'final-unverified': { label: '⚠ Final authority missing', color: '#fbbf24', bg: 'transparent', border: '#fbbf24' },
+  'unverified-enriched': { label: '⚠ XML unverified', color: '#fbbf24', bg: 'transparent', border: '#fbbf24' },
   'pending-run': { label: '… run pending', color: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)' },
   'no-tab-value': { label: '– no tab value', color: '#64748b', bg: 'transparent', border: 'rgba(100,116,139,0.2)' },
 };
@@ -306,7 +371,7 @@ export async function renderStandalonePropagationAuditPanel(card, state, render)
   const renderRows = () => {
     const query = t(search.value).toLowerCase();
     let filtered = audit.rows;
-    if (issuesCheck.checked) filtered = filtered.filter((row) => !['propagated', 'no-tab-value', 'pending-run'].includes(row.status));
+    if (issuesCheck.checked) filtered = filtered.filter((row) => row.status !== 'propagated' && row.status !== 'pending-run');
     if (query) filtered = filtered.filter((row) => [row.key, row.node, row.field, row.status, row.stageTab, row.stageEnriched, row.stageCii].some((v) => String(v || '').toLowerCase().includes(query)));
     const visible = filtered.slice(0, 400);
     if (!visible.length) {

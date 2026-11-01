@@ -15,6 +15,8 @@ import {requireXml229NativeOwnerPreflight} from './xml229-native-owner-preflight
 import {diagnoseXml229NativeConverterFailure} from './xml229-native-converter-failure-diagnostic.mjs';
 
 import {nativeEnrichedFields} from '../../../converters/xml-cii-2019-standalone/native-enriched-artifact.js';
+import {verifyCiiEngineeringAgainstNativeXml}
+ from './xml-cii-adapted-propagation-proof.mjs';
 import {reportNativeRunPhase} from '../../../converters/xml-cii-2019-standalone/engine-progress.mjs';
 
 async function currentEnrichedArtifact(native,packet,session,isCurrent){
@@ -68,10 +70,18 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   topologyActionIds:[],
  };
  progress('BUILDING_CONFIGURATION');
+ // Only this governed candidate can return nativeCiiReleaseAuthorized=true.
+ // Its masters must be complete; diagnostic-only converters remain separate.
+ let verifiedConfig;
+ try { verifiedConfig=JSON.parse(await enrichSupportConfigJson(state,state.branchScope||null)); }
+ catch { fail('NATIVE_VERIFIED_MASTER_CONFIG_INVALID'); }
+ if(!verifiedConfig||typeof verifiedConfig!=='object'||Array.isArray(verifiedConfig))
+  fail('NATIVE_VERIFIED_MASTER_CONFIG_INVALID');
+ verifiedConfig.requireVerifiedMasterCompleteness=true;
  const job={
   sourceKind:'xml',sourceName:sourceNameFromState(state),
   sourceText,stagedJsonText,
-  supportConfigJson:await enrichSupportConfigJson(state,state.branchScope||null),
+  supportConfigJson:JSON.stringify(verifiedConfig),
   options,xml229NativeFinalPacket:packet,
  };
  if(!isCurrent())fail('NATIVE_CANDIDATE_BASIS_STALE');
@@ -90,6 +100,18 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   });
  }
  progress('VERIFYING_CII');
+ if(typeof native.enrichedText!=='string'||!native.enrichedText.trim())
+  fail('NATIVE_VERIFIED_ENRICHED_XML_REQUIRED');
+ // Inspect native CII bytes, independently of source-XML completeness and
+ // the existing exact Final→RIGID mass reconciliation.
+ let engineering;
+ try { engineering=verifyCiiEngineeringAgainstNativeXml(native.enrichedText,native.ciiText); }
+ catch(error) {
+  const result=Object.assign(new Error('NATIVE_CII_ENGINEERING_UNVERIFIED'),{
+   code:'NATIVE_CII_ENGINEERING_UNVERIFIED',causeCode:String(error?.message||error)});
+  result.xml229EnrichedArtifact=await currentEnrichedArtifact(native,packet,session,isCurrent);
+  throw result;
+ }
  let independent;
  try { independent=await reconcileXml229ActualCiiAgainstFinal({
   originalXmlText:sourceText,packet,ciiText:native.ciiText,
@@ -109,6 +131,7 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
     finished?.counts?.unresolved!==0||finished?.counts?.match1!==0||
     independent.massConsumptionVerified!==true||
     independent.strictOneToOneOwnerMatch!==true||
+    engineering.status!=='VERIFIED'||
     independent.nativeCiiReleaseAuthorized!==true)
   fail('NATIVE_CANDIDATE_FINAL_CHANGED_OR_OUTPUT_UNVERIFIED');
  return Object.freeze({
@@ -127,6 +150,9 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   actualCiiSha256:independent.actualCiiSha256,
   massConsumptionVerified:true,
   strictOneToOneOwnerMatch:true,
+  engineeringCiiVerified:true,
+  engineeringElementsVerified:engineering.elements,
+  engineeringRestraintsVerified:engineering.restraints,
   nativeCiiReleaseAuthorized:true,
   // Keep bytes in memory; caller may publish only within the same current lease.
   ciiText:native.ciiText,
