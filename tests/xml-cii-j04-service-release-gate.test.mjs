@@ -189,3 +189,13 @@ test('U5: 28 selected branch occurrences require full per-occurrence Preview ide
   assert.equal(dropped.blocked, true);
   assert.ok(dropped.failures.some(f => f.reason === 'POPULATION_COUNT_MISMATCH'));
 });
+
+test('issue 376 EF05 real Python 7-case optional enrichment conversion matrix',async()=>{
+  const {proveNativeOptionalMatrix}=await import('./xml229-issue376-source-native-matrix.mjs');
+  const proof=await proveNativeOptionalMatrix();
+  assert.equal(proof.scenarios,7);
+});
+test('issue 376 two Preview passes do not select Rating or conflict authority',async()=>{
+  const {proveDualFormatPreview}=await import('./xml229-issue376-source-native-matrix.mjs');
+  assert.equal(proveDualFormatPreview(),true);
+});

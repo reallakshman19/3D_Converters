@@ -157,11 +157,14 @@ export async function runXmlCii2019WorkflowService(job, runtime = {}) {
   const audit = auditConfiguredBranchFormats(occurrences, auditConfig);
   if (audit.blocked) return runBaseXmlWithoutEnrichment(factedJob,runtime,
     'CONFLICTING_OR_UNMATCHED_FORMAT_ENRICHMENT',audit);
-  if(noImportedEnrichment(auditConfig)&&
-     !Array.isArray(auditConfig.regexTester?.formats)&&
-     !Array.isArray(auditConfig.formats))
+  // Uploaded masters without an authorized format are still optional:
+  // try no guessed join, run original XML via the unchanged native converter.
+  if(noImportedEnrichment(auditConfig)||
+     (!Array.isArray(auditConfig.regexTester?.formats)&&
+      !Array.isArray(auditConfig.formats)))
     return runBaseXmlWithoutEnrichment(factedJob,runtime,
-      'NO_IMPORTED_MASTER_ENRICHMENT',audit);
+      noImportedEnrichment(auditConfig)
+        ?'NO_IMPORTED_MASTER_ENRICHMENT':'NO_CONFIGURED_FORMAT_ENRICHMENT',audit);
 
   const parityRunner = typeof runtime.runParityEnricher === 'function'
     ? runtime.runParityEnricher
