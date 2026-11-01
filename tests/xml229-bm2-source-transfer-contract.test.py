@@ -161,6 +161,12 @@ class SourceTransferRegression(unittest.TestCase):
             self.assertEqual(field(n,"PipingClassRating"),"900")
             self.assertEqual(field(next(tree.iter("Pressure")),"Pressure1"),"11000")
             self.assertEqual(field(next(tree.iter("Temperature")),"Temperature2"),"40")
+            optional_rating=config()
+            optional_rating["pipingClass"]["masterRows"][0].pop("Rating",None)
+            optional_rating["pipingClass"]["masterRows"][0].pop("rating",None)
+            result_without_rating=patched._apply_process_data_to_xml(path,optional_rating)
+            self.assertEqual(field(node_by_number(ET.parse(result_without_rating).getroot(),10),
+                                   "PipingClassRating"),"")
             # Exact real-mapped fields must be complete and consistent; no
             # fallback 0.01 or unapproved code may be promoted as VERIFIED.
             failures=[
