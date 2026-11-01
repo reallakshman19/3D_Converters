@@ -132,9 +132,14 @@ async function start(req){
  const previewResult={...computed,sourceOccurrences:original,
    engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false};
  const live={sources:{[sourceId]:xmlText},masters,selection,stagedSource,config,overrides};
+ const engineeringPhaseTimingsMs=Object.create(null);
  const produced=await openXml229EngineeringFactModel({
   basis,live,xmlText,sourceId,previewResult,expectedOriginalCount,
   maxPhysical:Math.min(req.maxPhysical??MAX_PHYSICAL,MAX_PHYSICAL),
+  onPhase:({phase,elapsedMs})=>{
+    engineeringPhaseTimingsMs[phase]=elapsedMs;
+    progress(req.requestId,`physical-${phase}-${elapsedMs}ms`);
+  },
  });
  exactCensus(produced,req,original);
  if(cancelled)return;
@@ -189,7 +194,8 @@ async function start(req){
    originalJsonSha256:r.sha256,sourceGenerationId:r.generationId,
    sourceId,originalCount:produced.workerOriginalCount,
    physicalCount:produced.physicalOccurrences.length,
-   physicalFactCount:session.openedFacts,engineeringFactsVerified:true,
+   physicalFactCount:session.openedFacts,
+   engineeringPhaseTimingsMs,engineeringFactsVerified:true,
    weightEngineeringAccepted:false,finalEngineeringAccepted:false,
    stageRevisions:{
      match1:session.review.getDecisionState({basisId:basis.basisId,scopeId:sourceId,
