@@ -151,14 +151,16 @@ function evaluate(source, formatInput, index, sequence, legacy) {
     bore: bore.value.replace(/[^0-9.]/g, ''),
     fieldMethods: { lineKey: line.method, pipingClass: piping.method, rating: rating.method, bore: bore.method },
     reasons: Object.fromEntries(
-      [['lineKey', line], ['pipingClass', piping], ['rating', rating], ['bore', bore]]
+      [['lineKey', line], ['pipingClass', piping]]
         .filter(([, field]) => field.reason)
         .map(([key, field]) => [key, field.reason]),
     ),
   };
 }
 
-const FIELDS = ['lineKey', 'pipingClass', 'rating', 'bore'];
+// Only source identity can create a two-format conflict. Rating and bore
+// are optional enrichment outputs and must never reject a valid identity.
+const FIELDS = ['lineKey', 'pipingClass'];
 function unresolved(status, candidates, origin) {
   return {
     status,
@@ -193,8 +195,10 @@ export function extractBranchFieldsWithFormats(branchName, config = {}) {
     status: 'MATCHED',
     lineKey: chosen.lineKey,
     pipingClass: chosen.pipingClass,
-    rating: chosen.rating,
-    bore: chosen.bore,
+    // Optional enrichment disagreement is not an identity conflict; leave
+    // that field unset rather than choosing arbitrary Format 1/2 authority.
+    rating: matched.every(candidate => candidate.rating === chosen.rating) ? chosen.rating : '',
+    bore: matched.every(candidate => candidate.bore === chosen.bore) ? chosen.bore : '',
     matchedFormatIndex: chosen.formatIndex,
     agreeingFormatIndices: matched.map((candidate) => candidate.formatIndex),
     candidates,
