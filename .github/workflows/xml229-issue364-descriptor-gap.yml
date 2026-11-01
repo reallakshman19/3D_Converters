@@ -23,6 +23,8 @@ jobs:
         run: node --test tests/xml229-description-only-restraint-gap-native.test.mjs
       - name: Datum offset, coordinate tolerance and staged NODETYPE mutation
         run: node --test tests/xml229-datum-node-type-mutation.test.mjs
+      - name: PS-4131 controlled Support Mapper to native CII end-to-end
+        run: node --test tests/xml229-ps4131-mapper-mutation-e2e.test.mjs
       - name: Native independent Datum and configured NODETYPE replay
         run: python -m unittest discover -s tests -p test_xml229_datum_node_type_mutation.py -v
       - name: Existing original JSON transfer and native tamper negatives
