@@ -136,7 +136,11 @@ async function start(req){
  const produced=await openXml229EngineeringFactModel({
   basis,live,xmlText,sourceId,previewResult,expectedOriginalCount,
   maxPhysical:Math.min(req.maxPhysical??MAX_PHYSICAL,MAX_PHYSICAL),
-  onPhase:({phase,elapsedMs})=>{
+  onPhase:({phase,state,elapsedMs})=>{
+    if(state==='started'){
+      progress(req.requestId,`physical-${phase}-started`);
+      return;
+    }
     engineeringPhaseTimingsMs[phase]=elapsedMs;
     progress(req.requestId,`physical-${phase}-${elapsedMs}ms`);
   },
