@@ -10,8 +10,9 @@ import unittest
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'converters/scripts'))
-from xml229_prefinal_restraint_source import source_entries
-from xml229_prefinal_restraints import kinds, source_gap
+from xml229_prefinal_restraint_source import source_entries, calibrated_groups, resolve, tolerance
+from xml229_prefinal_restraints import kinds, source_gap, local, children, field
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 STAGED = ROOT / "Benchmarks/STF_2026Sep16-0859_managed_stage.zip"
@@ -89,6 +90,48 @@ class Bm2SupportSourceWitness(unittest.TestCase):
         entry["attrs"]["CMPSUPGAP"] = "5"
         with self.assertRaisesRegex(ValueError, "NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS"):
             kinds([entry], require)
+
+
+    def test_original_bm2_source_gtst_owner_matching_receipt(self):
+        """Read-only native resolver receipt; absence/ambiguity is not invented PASS."""
+        xml = ROOT / "Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml"
+        with ZipFile(STAGED) as archive:
+            staged = json.loads(archive.read(MEMBER))
+        root = ET.parse(xml).getroot()
+        source_nodes = [(field(b, "Branchname"), n) for b in root.iter()
+                        if local(b) == "Branch" for n in children(b, "Node")]
+        config = {}
+        groups = calibrated_groups(source_nodes, source_entries(staged, config), config, field)
+        hits = {"GT571": [], "ST572": []}
+        errors = []
+        def require(ok, code):
+            if not ok:
+                raise ValueError(code)
+        for branch, node in source_nodes:
+            if field(node, "ComponentType").upper() not in ("ATTA", "ANCI"):
+                continue
+            try:
+                resolved = resolve(node, branch, groups, tolerance(config), field, require)
+            except ValueError as error:
+                errors.append({"branch": branch, "number": field(node, "NodeNumber"),
+                               "code": str(error)})
+                continue
+            for entry in resolved:
+                code = entry["attrs"].get("MDSSUPPTYPE")
+                if code in hits:
+                    hits[code].append({
+                        "xmlBranch": branch, "node": field(node, "NodeNumber"),
+                        "nodeName": field(node, "NodeName"),
+                        "type": field(node, "ComponentType"),
+                        "position": field(node, "Position"),
+                    })
+        print("BM2_GTST_NATIVE_OWNER_RECON " + json.dumps({
+            "nodes": len(source_nodes), "groups": len(groups),
+            "matchCounts": {k: len(v) for k, v in hits.items()},
+            "matches": hits,
+            "matchErrors": errors[:12], "matchErrorCount": len(errors),
+        }, sort_keys=True))
+        self.assertEqual(len(source_nodes), 1196)
 
 
 if __name__ == "__main__":
