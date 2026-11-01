@@ -83,10 +83,25 @@ class SourceTransferRegression(unittest.TestCase):
         rows = [r for r in json.loads(MASTER.read_text())["rows"]
                 if str(r.get("Size")) == "6"]
         conflicting = {**rows[0], "Wall thickness": "8.0"}
-        with self.assertRaisesRegex(ValueError, "XML229_CLASS_SOURCE_AMBIGUOUS"):
-            patched._source_bound_class_row(
-                '/GLRD-1000-6"-P4110001-93833-01/B6',
-                {"pipingClass": {"masterRows": rows + [conflicting]}})
+        with self.assertRaisesRegex(ValueError, "XML229_PIPING_CLASS_BORE_AMBIGUOUS"):
+            patched._source_class_wall_index(
+                {"pipingClass": {"masterRows": rows + [conflicting]}}, {"93833"})
+
+    def test_source_class_bore_handles_raw_nps_and_normalized_dn(self):
+        raw = {"Piping Class": "93833", "Size": "6", "Wall thickness": "7.112"}
+        normalized = {"pipingClass": "93833", "convertedBore": 150,
+                      "wallThicknessMm": "7.112"}
+        self.assertEqual(patched._source_class_wall_index(
+            {"pipingClass": {"masterRows": [raw]}}), {("93833", 150): 7.112})
+        self.assertEqual(patched._source_class_wall_index(
+            {"pipingClass": {"masterRows": [normalized]}}), {("93833", 150): 7.112})
+        self.assertEqual(patched._source_class_wall_index(
+            {"pipingClass": {"masterRows": [raw, normalized]}}),
+            {("93833", 150): 7.112})
+        with self.assertRaisesRegex(ValueError, "XML229_PIPING_CLASS_BORE_INVALID"):
+            patched._source_class_wall_index(
+                {"pipingClass": {"masterRows": [{
+                    **raw, "convertedBore": 100}]}})
 
     def test_legacy_without_master_keeps_zero_wall_for_existing_writer_fallback(self):
         with TemporaryDirectory() as directory:
