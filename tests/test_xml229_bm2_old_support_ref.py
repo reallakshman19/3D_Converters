@@ -12,7 +12,7 @@ import math
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'converters/scripts'))
 from xml229_prefinal_restraint_source import source_entries, calibrated_groups, resolve, tolerance, point
-from xml229_prefinal_restraints import kinds, source_gap, local, children, field
+from xml229_prefinal_restraints import kinds, source_gap, local, children, field, node_type_mutation, append_profile
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -119,6 +119,67 @@ class Bm2SupportSourceWitness(unittest.TestCase):
                                          "NODEGAP": "7"}}]
         with self.assertRaisesRegex(ValueError, "NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS"):
             kinds([datum] + distinct, require)
+
+    def test_tab7_added_alias_is_replayed_by_native_source_owner(self):
+        def require(ok, code):
+            if not ok:
+                raise ValueError(code)
+        datum = {"type": "SUPPORT", "desc": "Cradle Retainer Style-314",
+                 "attrs": {"DTXR": "Cradle Retainer Style-314",
+                           "NODETYPE": "17", "NAME": "/PS-EDITED"}}
+        self.assertNotIn("REST", kinds([datum], require, {}))
+        cfg = {"supportTypeMapper": {"rows": [
+            {"kind": "REST", "aliases": ["Cradle Retainer"]},
+            {"kind": "GUIDE", "aliases": ["Guide"]}]}}
+        self.assertIn("REST", kinds([datum], require, cfg))
+
+    def test_tab8_custom_regex_and_mutation_replay_from_current_config(self):
+        def require(ok, code):
+            if not ok:
+                raise ValueError(code)
+        datum = {"type": "SUPPORT", "desc": "ORBITAL GUARDRAIL QZ-443",
+                 "attrs": {"DTXR": "ORBITAL GUARDRAIL QZ-443",
+                           "CMPSUPGAP": "5.5", "NODETYPE": "21",
+                           "NAME": "/PS-EDITED"}}
+        rules = [{"id": "user-orbital-guide", "enabled": True,
+                  "priority": 2, "source": "staged-json", "field": "DTXR",
+                  "pattern": r"ORBITAL\\s+GUARDRAIL\\s+QZ-443",
+                  "match": "regex", "kind": "GUIDE"}]
+        cfg = {"supportMapping": {"version": 2, "rules": rules},
+               "inputXmlRestraintTypeMutation": {"enabled": True,
+                   "rows": [{"label": "GUI custom", "from": "21", "to": "8"}]}}
+        self.assertEqual(set(kinds([datum], require, cfg)), {"GUIDE"})
+        self.assertEqual(node_type_mutation(datum["attrs"], cfg), "GUI")
+        node = ET.Element("Node")
+        ET.SubElement(node, "NodeNumber").text = "40"
+        append_profile(node, "GUIDE", datum["attrs"], cfg)
+        self.assertEqual(node.findtext("Restraint/Type"), "GUI")
+        self.assertEqual(float(node.findtext("Restraint/Gap")), 5.5)
+        bad = dict(cfg, inputXmlRestraintTypeMutation={"enabled": True,
+                   "rows": [{"from": "21", "to": "9"}]})
+        with self.assertRaisesRegex(ValueError, "NATIVE_PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT"):
+            append_profile(ET.Element("Node"), "GUIDE", datum["attrs"], bad)
+
+    def test_configured_rule_conflicts_and_invalid_regex_reject(self):
+        def require(ok, code):
+            if not ok:
+                raise ValueError(code)
+        datum = {"type": "SUPPORT", "desc": "GUIDE",
+                 "attrs": {"DTXR": "GUIDE", "NAME": "/PS-EDITED"}}
+        rule = {"id": "user-conflicting-rest", "enabled": True,
+                "priority": 1, "field": "DTXR", "pattern": "GUIDE",
+                "match": "equals", "kind": "REST"}
+        cfg = {"supportMapping": {"version": 2, "rules": [rule]}}
+        with self.assertRaisesRegex(ValueError, "NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS"):
+            kinds([datum], require, cfg)
+        conflict = {"id": "user-guide", "enabled": True, "priority": 1,
+                    "field": "DTXR", "pattern": "GUIDE", "match": "equals",
+                    "kind": "GUIDE"}
+        with self.assertRaisesRegex(ValueError, "NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS"):
+            kinds([datum], require, {"supportMapping": {"rules": [rule, conflict]}})
+        rule["match"], rule["pattern"] = "regex", "["
+        with self.assertRaisesRegex(ValueError, "NATIVE_PREFINAL_RESTRAINT_CONFIG_INVALID"):
+            kinds([datum], require, cfg)
 
     def test_original_bm2_source_gtst_owner_matching_receipt(self):
         """Read-only native resolver receipt; absence/ambiguity is not invented PASS."""
