@@ -414,7 +414,9 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
     let lineKeyMethod = lineListRawMatch ? 'exact' : 'none';
     let lineKeyConfidence = lineListRawMatch ? 1 : 0;
     let lineKeyProposed = '';
-    if (!lineListRawMatch) {
+    if (!lineListRawMatch && (!extracted || extracted.status === 'MATCHED')) {
+      // When configured identities disagree, do not resurrect an arbitrary
+      // Line List row through fuzzy/approximate enrichment.
       const similar = _xmlCiiFindSimilarLineListRow(branchName, lineKey, config);
       if (similar) {
         lineListRawMatch = { row: similar.row, index: similar.index };
