@@ -19,6 +19,13 @@ on:
       - 'tests/xml229-native-source-custody.test.mjs'
       - 'tests/xml229-native-indexed-json-handoff.test.mjs'
       - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js'
+      - 'tests/xml229-ps4131-mapper-mutation-e2e.test.mjs'
+      - 'tests/xml-cii-standalone-support-type-mapper.test.js'
+      - 'tests/xml-cii-issue-776-regex-index-cache.test.mjs'
+      - 'converters/scripts/xml229_prefinal_restraints.py'
+      - 'converters/xml-cii2019-core/restraint-type-mutation.js'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js'
       - 'docs/converters/**'
       - 'docs/tabs/xml-cii-2019-standalone/**'
       - 'tests/xml229-native-final-mass-consumption.test.py'
@@ -34,6 +41,29 @@ on:
 permissions:
   contents: read
 jobs:
+  mapper-mutation-regex-config-authority:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Step 7 saved aliases and Step 8 mutation config to native CII
+        run: |
+          node --test tests/xml229-ps4131-mapper-mutation-e2e.test.mjs
+          node tests/xml-cii-standalone-support-type-mapper.test.js
+      - name: Smart regex source/master evidence remains separately validated
+        run: |
+          node --test tests/xml-cii-issue-776-regex-index-cache.test.mjs
+      - name: Root and served resolver parity
+        run: |
+          for file in tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js converters/xml-cii2019-core/restraint-type-mutation.js converters/scripts/xml229_prefinal_restraints.py; do
+            diff -u "$file" "docs/$file"
+          done
+
   native-python-source-transfer:
     runs-on: ubuntu-latest
     timeout-minutes: 9
