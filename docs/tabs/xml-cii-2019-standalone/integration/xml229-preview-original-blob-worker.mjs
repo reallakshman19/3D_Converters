@@ -72,6 +72,10 @@ globalThis.addEventListener('message',async({data:req})=>{
     progress(stage,3);
     post(req,{state:'completed',stage:'local-engineering',completed:3,total:3,
       result:{branchRows:result.branchRows,nodeRows:result.nodeRows,
+        // Preserve both nonauthorizing Format 1/2 Preview passes from the
+        // native original-source Worker; UI must never silently pick one.
+        formatPreviewPasses:Array.isArray(result.formatPreviewPasses)
+          ?result.formatPreviewPasses:[],
         sourceOccurrences:original,
         coverage:{sourceBranchCount:original.branchCount,
           originalNodeCount:original.nodeCount,
