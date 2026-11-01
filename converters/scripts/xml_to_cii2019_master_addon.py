@@ -724,6 +724,13 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
             for dtxr in dtxr_index.get(tag, []):
                 if dtxr and dtxr not in dtxr_values:
                     dtxr_values.append(dtxr)
+        if positioned and not dtxr_values and _get_child(node, "DTXR_PS") is not None:
+            # Current source JSON supplies a unique XYZ owner, but no PS-only
+            # claim. Evict the old derived PS annotation (often stale REST)
+            # rather than leave contradictory support facts on this node.
+            _set_child_text(node, "DTXR_PS", "")
+            diagnostics.append({"type": "dtxr-stale-ps-evicted",
+                                "nodeNumber": mrow({_local(c.tag): c.text for c in node}, "NodeNumber") or ""})
         if not dtxr_values:
             pass
         else:
