@@ -17,7 +17,7 @@ import {buildStandaloneDtxrResolutionLedger}
   from '../tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js';
 import {decorateJsonTraceLedger}
   from '../tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js';
-import {DEFAULT_RESTRAINT_TYPE_MUTATION_ROWS}
+import {DEFAULT_RESTRAINT_TYPE_MUTATION_ROWS,mutateRestraintType}
   from '../converters/xml-cii2019-core/restraint-type-mutation.js';
 
 installWeightBasisXmlDom(globalThis);
@@ -176,6 +176,15 @@ test('Step 7 unsupported ANCHOR is explicit hold, not invented REST/GUI/LIM',asy
     prepareXml229PrefinalRestraints({xmlText:xml,stagedJsonText:JSON.stringify(source),config}),
     {code:'PREFINAL_RESTRAINT_KIND_UNSUPPORTED'},
   );
+});
+
+test('Step 8 label-based TYPE rules normalize exactly like native CAESAR code table',()=>{
+  assert.equal(mutateRestraintType('7',{enabled:true,rows:[{from:'07',to:'GUI'}]}),'8');
+  assert.equal(mutateRestraintType('7',{enabled:true,rows:[{from:'7',to:'+Y'}]}),'14');
+  assert.throws(()=>mutateRestraintType('7',{enabled:true,rows:[
+    {from:'07',to:'GUI'},{from:'7',to:'LIM'}]}),{code:'PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'});
+  assert.throws(()=>mutateRestraintType('7',{enabled:true,rows:[
+    {from:'7',to:'UNKNOWN'}]}),{code:'PREFINAL_RESTRAINT_TYPE_INVALID'});
 });
 
 test('Step 8 contradictory duplicate mutations fail closed instead of first-match',async()=>{
