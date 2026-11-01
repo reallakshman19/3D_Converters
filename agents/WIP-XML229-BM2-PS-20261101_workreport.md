@@ -90,3 +90,48 @@ EXACT_NEXT_ACTION: open draft PR, run CI native Python substage test; inspect
 its result. If PASS, ask Owner to provide source-bound JSON/Final/produced CII
 for remaining gap, wall/process and weight mismatches; do not release unverified
 engineering values or change source/Final to make tests green.
+
+## A6 08:26 Owner correction — position-first scope extension (PR370)
+User correction: raw XML node3430 position (123504.12 114999.98 101330.73)
+and nodes20/30 must bind DTXR by actual JSON POSI coordinates, not only PS labels.
+Old reference inspected: refs/heads/REF-STATE-agent/xml-cii-node140-gap-benchmark-rca,
+commit 57710dd744669a9dc1d4dbdd103d78f9f2928bce. Its JS resolver
+calibrated source offsets from multiple PS-indexed position pairs and annotated
+each DTXR description with its independently read CMPSUPGAP. We adopted the
+design principle only; current Python implementation is independently written.
+
+Core positional fix: new _position_bound_dtxr() walks exact source branch/node
+positions into spatial cells; attempts matching raw position and explicitly
+configured position and, when justified by 2 distinct unique PS anchors,
+a dominant multi-anchor inferred translation. Candidate owner must be
+unique within a compatible branch. Collocated nodes20/30 require PS tie-break;
+an unowned coordinate-only record is suppressed, not duplicated.
+A staged source record carrying a position must not fall back to PS-name
+joining when its position cannot be validated. PS-only fallback is now for
+records without usable coordinates, with a unique PS node owner.
+Standalone CMPSUPGAP is appended to that source member's DTXR annotation;
+no gap is made up or transferred from a different member.
+Dynamic offset inference is not used for output authorization; the existing
+native pre-Final source replay and geometry/mass proof remain unchanged.
+
+New regression in existing CI-invoked substage test:
+- real BM2 node3430 and two SYNTHETIC DTXR JSON support members with absolute
+  POSI (without PS names) emit GUIDE+LINE STOP, per-member synthetic gap 15mm;
+  third record has conflicting PS match but wrong XYZ and must NOT transfer
+- real source colocation nodes20/30: correctly named support binds 30 only,
+  unlabelled second member is ambiguous and not duplicated on either
+- 2 independent PS anchors at 3420 and 3430 permit calibrated translation
+- legacy PS-only fallback test and native guards stay unchanged.
+
+Native mass witness, real Owner Original JSON, actual 17/24 Final kg and
+actual CII pointer still unavailable. Owner supplied generated XML:
+Node5940 -> source FLAN ordinal17/20; Node5960 -> VALV ordinal17/24.
+Original public BM2 source confirms both at branch17. If the XML snippet is
+the exact current native post-Final artifact (as opposed to pre-Final preview),
+Weight=0 at 5960 implies its Final applied kg was zero or an input-basis
+mismatch; emitted validator compares actual RIGID force to packet kg*10.
+Cannot prove claimed weight loss without matching packet and emitted CII
+pointer, and the alleged segment is not source NodeNumber 5950→5960.
+Native independent proof MUST remain fail-closed.
+
+CI at corrected head: PENDING GitHub Actions.
