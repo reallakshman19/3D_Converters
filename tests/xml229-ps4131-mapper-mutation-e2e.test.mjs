@@ -167,6 +167,17 @@ test('Step 7 changed/removed GUIDE keyword governs pre-Final, not legacy semanti
   assert.equal(audit.previewRows[0]?.status,'unmatched');
 });
 
+test('Step 7 unsupported ANCHOR is explicit hold, not invented REST/GUI/LIM',async()=>{
+  const {config}=setup();
+  const source=JSON.parse(original());
+  source[0].children[1].attributes.DTXR='FIXED';
+  source[0].children[1].attributes.NODETYPE='1';
+  await assert.rejects(
+    prepareXml229PrefinalRestraints({xmlText:xml,stagedJsonText:JSON.stringify(source),config}),
+    {code:'PREFINAL_RESTRAINT_KIND_UNSUPPORTED'},
+  );
+});
+
 test('Step 8 contradictory duplicate mutations fail closed instead of first-match',async()=>{
   const {config}=setup();
   config.inputXmlRestraintTypeMutation.rows.push({label:'bad duplicate',from:'10',to:'9'});
