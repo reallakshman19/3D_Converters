@@ -310,7 +310,14 @@ def _regex_tester_branch_line_key(branch: str, config: dict[str, Any]) -> str | 
     UNMATCHED, never an invitation to use stale legacy token positions.
     """
     regex_cfg = config.get("regexTester")
-    if not isinstance(regex_cfg, dict) or not isinstance(regex_cfg.get("formats"), list):
+    if isinstance(regex_cfg, dict) and isinstance(regex_cfg.get("formats"), list):
+        pass
+    elif isinstance(config.get("formats"), list):
+        # Mirror JS branch-format-extraction: a direct formats array remains
+        # authoritative for older saves without regexTester.formats.
+        regex_cfg = {"formats": config["formats"],
+                     "ratingSequence": config.get("ratingSequence")}
+    else:
         return None
     candidates = []
     sequence = regex_cfg.get("ratingSequence")
