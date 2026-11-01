@@ -112,7 +112,7 @@ function sourceNodeType(attrs,config){
   return normalizeXmlType(String(number));
 }
 
-function evidenceByKind(record, requireUnambiguous = false) {
+function evidenceByKind(record, config = {}, requireUnambiguous = false) {
   const result=new Map();
   for(const member of Array.isArray(record?.positionMembers)?record.positionMembers:[]){
     const kind=supportKindFromMember(member);
@@ -125,6 +125,10 @@ function evidenceByKind(record, requireUnambiguous = false) {
     const attrs=raw&&!text(original.CMPSUPGAP)&&!text(original.CMPSUPGAP_POS)
       &&!text(original.CMPSUPGAP_PS)?{...original,CMPSUPGAP:raw}:original;
     const previous=result.get(kind);
+    if(requireUnambiguous&&previous&&text(previous.NODETYPE)&&text(attrs.NODETYPE)&&
+       sourceNodeType(previous,config)!==sourceNodeType(attrs,config))
+      throw Object.assign(new Error('Conflicting staged NODETYPE mutations for the same support kind'),
+        {code:'PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'});
     if(requireUnambiguous&&previous&&sourceGapText(previous)&&raw&&
        supportGapNumber(previous)!==numeric)
       throw Object.assign(new Error('Conflicting JSON gaps for the same support kind'),
@@ -217,7 +221,7 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
         throw Object.assign(new Error('Ambiguous source support match'),
           {code:'PREFINAL_RESTRAINT_MATCH_AMBIGUOUS'});
       if (!record || !String(record.status || '').startsWith('RESOLVED_')) continue;
-      const evidence = evidenceByKind(record,runtime.requireUnambiguous===true);
+      const evidence = evidenceByKind(record,config,runtime.requireUnambiguous===true);
       if (!evidence.size) continue;
 
       if(runtime.requireUnambiguous){
