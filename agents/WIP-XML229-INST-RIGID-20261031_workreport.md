@@ -27,3 +27,5 @@ PASS / INDEPENDENT_BYTE_ORACLE: supplied source revision contains exactly fourte
 PASS: `git diff --check` and production root/docs byte parity. Mandatory backups #1278-1287 and their registry are retained in `.backups`. Final working changes are uncommitted; no push, PR, merge, deployment, timer, external message or independent review performed. No real Owner Final weights are available in the blocker export. Browser/native-CAESAR acceptance on Owner's new Final is NOT_RUN. Synthetic native test masses are not Owner engineering acceptance.
 
 EXACT_NEXT_ACTION: Owner opens `local-output/xml229-inst-rigid/EF-05-PRO.TEST.INST-RIGID.xml` in the updated app, completes a NEW Preview/Final weight review, and runs native conversion. Publication/deployment remains separately authorized. Any follow-on work retains the selected Coder role and needs a valid resource allowance once the first bounded pass expires.
+
+Published as part of draft PR362. Current recovery/CI/continuation authority is agents/PR362_workreport.md; this document preserves historical INST scope/evidence only.

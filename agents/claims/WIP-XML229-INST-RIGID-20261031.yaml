@@ -18,3 +18,7 @@ files:
 authority_domains: [Owner-selected INST rigid family before Final, exact CII proof bytes]
 protected: [source coordinates, source weights, mass-owner cardinality, native release guards, workflows]
 merge_authority: OWNER_ONLY_NOT_GRANTED
+
+publication_pr: 362
+archive_state: HISTORICAL_SCOPE_CONSOLIDATED_IN_PR362
+active_report: agents/PR362_workreport.md
