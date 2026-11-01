@@ -131,7 +131,7 @@ class SourceTransferRegression(unittest.TestCase):
                 "supportMapping": {"version": 2, "rules": [
                     {"id": "user-orbital-guide", "enabled": True,
                      "priority": 1, "source": "staged-json",
-                     "field": "DTXR", "pattern": r"ORBITAL\\s+GUARDRAIL",
+                     "field": "DTXR", "pattern": r"ORBITAL\s+GUARDRAIL",
                      "match": "regex", "kind": "GUIDE"}]},
                 "inputXmlRestraintTypeMutation": {"enabled": True,
                     "rows": [{"from": "21", "to": "8"}]},
