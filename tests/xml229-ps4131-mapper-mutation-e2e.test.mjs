@@ -203,15 +203,15 @@ test('Step 8 contradictory duplicate mutations fail closed instead of first-matc
 test('CONFIG-ONLY Step 7 alias change reaches same-source native CII restraint TYPE',async()=>{
   const source=JSON.parse(original());
   const attrs=source[0].children[1].attributes;
-  attrs.DTXR='CUSTOM-FREE-SHOE-LOCK';
+  attrs.DTXR='CUSTOM-CLAMP-ALPHA';
   delete attrs.NODETYPE; // TYPE is selected by the edited mapper, not a source override.
   const stage=JSON.stringify(source);
   const baseline=setup().config;
-  baseline.supportTypeMapper.rows.find(r=>r.kind==='GUIDE').aliases.push('CUSTOM-FREE-SHOE-LOCK');
+  baseline.supportTypeMapper.rows.find(r=>r.kind==='GUIDE').aliases.push('CUSTOM-CLAMP-ALPHA');
   const changed=structuredClone(baseline);
   changed.supportTypeMapper.rows.find(r=>r.kind==='GUIDE').aliases=
-    changed.supportTypeMapper.rows.find(r=>r.kind==='GUIDE').aliases.filter(a=>a!=='CUSTOM-FREE-SHOE-LOCK');
-  changed.supportTypeMapper.rows.find(r=>r.kind==='REST').aliases.push('CUSTOM-FREE-SHOE-LOCK');
+    changed.supportTypeMapper.rows.find(r=>r.kind==='GUIDE').aliases.filter(a=>a!=='CUSTOM-CLAMP-ALPHA');
+  changed.supportTypeMapper.rows.find(r=>r.kind==='REST').aliases.push('CUSTOM-CLAMP-ALPHA');
   const before=await prepareXml229PrefinalRestraints({xmlText:xml,stagedJsonText:stage,config:baseline});
   const after=await prepareXml229PrefinalRestraints({xmlText:xml,stagedJsonText:stage,config:changed});
   assert.deepEqual(nodeRows(before.document)[1].rows.map(r=>r.type),['GUI']);
