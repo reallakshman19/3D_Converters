@@ -617,12 +617,19 @@ class NativeSubstageWitnessTests(unittest.TestCase):
             {'kind':'REST','aliases':['GUIDE']},
             {'kind':'GUIDE','aliases':['PG','GT']},
             {'kind':'LINESTOP','aliases':['ST']}]}}
+        with self.assertRaisesRegex(ValueError,'NATIVE_PREFINAL_RESTRAINT_SEMANTIC_CONFLICT'):
+            kinds(entries,require,custom)
+        # Uncertain custom text can still be reclassified by the saved mapper.
+        entries[0]['attrs']['DTXR']='CUSTOM CLAMP'
+        entries[0]['desc']='CUSTOM CLAMP'
+        custom['supportTypeMapper']['rows'][0]['aliases']=['CUSTOM CLAMP']
         result=kinds(entries,require,custom)
         self.assertEqual(set(result),{'REST'})
         self.assertEqual(result['REST']['NODETYPE'],'17')
-        # Removing a keyword must stop its old built-in fallback.
         custom['supportTypeMapper']['rows'][0]['aliases']=[]
         self.assertEqual(kinds(entries,require,custom),{})
+        entries[0]['attrs']['DTXR']='GUIDE'
+        entries[0]['desc']='GUIDE'
         self.assertEqual(set(kinds(entries,require,{})),{'GUIDE'},
             'unconfigured legacy inputs keep their original semantics')
 
