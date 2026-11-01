@@ -117,6 +117,14 @@ def kinds(entries, require, config=None):
         alias_values = [text(a.get(k)) for k in
                         ('CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS', 'NODEGAP')
                         if text(a.get(k)) and (k != 'NODEGAP' or not legacy_zero_placeholder)]
+        if legacy_zero_placeholder and numeric(a.get('CMPSUPGAP')) != 0:
+            print('XML229_GAP_ALIAS_AUTHORITY ' + json.dumps({
+                'memberName': text(a.get('NAME')),
+                'kind': kind, 'sourceField': 'CMPSUPGAP',
+                'sourceValue': text(a.get('CMPSUPGAP')),
+                'ignoredLegacyZero': text(a.get('NODEGAP')),
+                'reason': 'legacy-NODEGAP-zero-placeholder',
+            }, sort_keys=True))
         require(all(numeric(v) is not None for v in alias_values),
                 'NATIVE_PREFINAL_RESTRAINT_GAP_INVALID')
         require(all(numeric(v) == numeric(raw) for v in alias_values),
