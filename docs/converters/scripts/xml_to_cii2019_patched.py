@@ -859,6 +859,110 @@ def _apply_staged_position_restraints(node: ET.Element, namespace: str,
     return True
 
 
+def _assert_verified_master_completeness(
+        root: ET.Element, namespace: str, support_config: dict[str, Any],
+        class_wall_index: dict[tuple[str, int], float],
+        class_meta_index: dict[tuple[str, int], tuple[str, str]],
+        material_ids: dict[str, int]) -> None:
+    """Fail closed for governed candidates; diagnostics retain legacy behavior.
+
+    A selected source fact must agree with native XML; simply seeing a
+    plausible value (or the writer's 0.01-mm fallback) is not verification.
+    Final emitted CII fields are independently checked downstream.
+    """
+    if support_config.get("requireVerifiedMasterCompleteness") is not True:
+        return
+    if addon is None:
+        raise ValueError("XML229_VERIFIED_CLASS_LOOKUP_UNAVAILABLE")
+    checked_branches = 0
+    checked_nodes = 0
+    for branch in root.iter():
+        if _local_name(branch.tag) != "Branch":
+            continue
+        nodes = [node for node in _branch_nodes(branch, namespace)
+                 if _child_text(node, namespace, "ComponentType").upper()
+                 in {"PIPE", "PCOM", "BRAN", "TUBE"}]
+        if not nodes:
+            continue
+        name = _child_text(branch, namespace, "Branchname")
+        class_match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", name, re.I)
+        if class_match is None:
+            raise ValueError("XML229_VERIFIED_PIPING_CLASS_UNRESOLVED")
+        cls = class_match.group(1)
+        line = _line_key_from_branch(name, support_config)
+        if not line or len(_matching_linelist_rows(line, support_config)) != 1:
+            raise ValueError("XML229_VERIFIED_LINE_LIST_UNRESOLVED")
+        pressure = next((e for e in branch if _local_name(e.tag) == "Pressure"), None)
+        temperature = next((e for e in branch if _local_name(e.tag) == "Temperature"), None)
+        for key, parent, xml_key, aliases, mandatory, code in (
+                ("p1", pressure, "Pressure1", ["P1", "Design Pressure", "Operating Pressure"],
+                 True, "XML229_VERIFIED_PRESSURE_MISSING"),
+                ("t1", temperature, "Temperature1", ["T1", "Temp Max", "Temperature Max"],
+                 True, "XML229_VERIFIED_T1_MISSING"),
+                ("t2", temperature, "Temperature2", ["T2", "Temp", "Temperature"],
+                 False, "XML229_VERIFIED_T2_MISSING"),
+                ("t3", temperature, "Temperature3", ["T3", "Temp Min", "Temperature Min"],
+                 True, "XML229_VERIFIED_T3_MISSING")):
+            selected = _mapped_process_value(line, support_config, key, aliases)
+            declared = bool(_safe_text((support_config.get("linelist") or {})
+                        .get("fieldMap", {}).get(key)))
+            if not selected and not mandatory and not declared:
+                continue  # T2 may be genuinely not applicable.
+            source = _numeric_text(selected)
+            xml = _numeric_text(_child_text(parent, namespace, xml_key)) if parent is not None else None
+            if source is None or xml is None:
+                raise ValueError(code)
+            if key.startswith("t") and (source == -100000 or xml == -100000):
+                raise ValueError(code)
+            if not math.isclose(source, xml, rel_tol=0, abs_tol=1e-6):
+                raise ValueError("XML229_VERIFIED_PROCESS_FIELD_CONFLICT")
+        density = (_mapped_process_value(line, support_config, "densityMixed",
+                       ["Mixed kg/m3", "Mixed kg/m³", "Density Mixed"])
+                   or _mapped_process_value(line, support_config, "densityGas",
+                       ["Gas kg/m3", "Gas kg/m³", "Density Gas"])
+                   or _mapped_process_value(line, support_config, "densityLiquid",
+                       ["Liquid kg/m3", "Liquid kg/m³", "Density Liquid"]))
+        src_density = _numeric_text(density)
+        xml_density = _numeric_text(_child_text(branch, namespace, "FluidDensity"))
+        if src_density is None or xml_density is None:
+            raise ValueError("XML229_VERIFIED_DENSITY_MISSING")
+        if not math.isclose(src_density, xml_density, rel_tol=0, abs_tol=1e-6):
+            raise ValueError("XML229_VERIFIED_DENSITY_CONFLICT")
+        for node in nodes:
+            od = _numeric_text(_child_text(node, namespace, "OutsideDiameter"))
+            dn = addon.od_to_dn(od) if od is not None else None
+            if dn is None or (cls, dn) not in class_wall_index:
+                raise ValueError("XML229_VERIFIED_CLASS_DN_WALL_MISSING")
+            wall = _numeric_text(_child_text(node, namespace, "WallThickness"))
+            expected = class_wall_index[(cls, dn)]
+            if wall is None or wall <= 0 or not math.isclose(
+                    wall, expected, rel_tol=0, abs_tol=1e-6):
+                raise ValueError("XML229_VERIFIED_CLASS_DN_WALL_CONFLICT")
+            meta = class_meta_index.get((cls, dn))
+            if meta is None or not meta[1]:
+                raise ValueError("XML229_VERIFIED_CLASS_RATING_MISSING")
+            if _child_text(node, namespace, "PipingClassRating") != meta[1]:
+                raise ValueError("XML229_VERIFIED_CLASS_RATING_CONFLICT")
+            chosen_material = _process_material_for_line(line, support_config) or meta[0]
+            actual_material = " ".join(_child_text(node, namespace, "MaterialName").upper().split())
+            if not chosen_material or actual_material != " ".join(chosen_material.upper().split()):
+                raise ValueError("XML229_VERIFIED_MATERIAL_NAME_CONFLICT")
+            approved_code = material_ids.get(actual_material)
+            code = _numeric_text(_child_text(node, namespace, "MaterialCode"))
+            if approved_code is None or code is None or code <= 0:
+                raise ValueError("XML229_VERIFIED_MATERIAL_CODE_UNAPPROVED")
+            if code != approved_code or int(code) != code:
+                raise ValueError("XML229_VERIFIED_MATERIAL_CODE_CONFLICT")
+            checked_nodes += 1
+        checked_branches += 1
+    if not checked_nodes:
+        raise ValueError("XML229_VERIFIED_PIPE_CENSUS_EMPTY")
+    print("XML229_VERIFIED_MASTER_COMPLETENESS " + json.dumps({
+        "status": "VERIFIED_SOURCE_TO_XML", "branches": checked_branches,
+        "pipeNodes": checked_nodes, "actualCiiVerification": "PENDING_INDEPENDENT",
+    }, sort_keys=True))
+
+
 def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -> Path:
     _normalize_process_field_map(support_config)
     tree = ET.parse(xml_path)
@@ -954,6 +1058,8 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
         changed = True
     if _truthy(support_config.get("splitCondensedValveFlange")) and _renumber_length_bearing_negative_nodes(root, namespace):
         changed = True
+    _assert_verified_master_completeness(
+        root, namespace, support_config, class_wall_index, class_meta_index, material_ids)
     if not changed:
         return xml_path
     temp_path = Path(tempfile.gettempdir()) / f"{xml_path.stem}_final_enriched.xml"
