@@ -1162,7 +1162,6 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
         changed = _apply_source_class_wall(branch, namespace, class_wall_index) or changed
         changed = _apply_source_class_corrosion(
             branch, namespace, class_corrosion_index) or changed
-        pressure = _ensure_child(branch, namespace, "Pressure")
         line_key = _line_key_from_branch(_child_text(branch, namespace, "Branchname"), support_config)
         try:
             process_material = _process_material_for_line(line_key, support_config)
@@ -1189,6 +1188,9 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
         if updated_material:
             branch[:] = list(material_branch)
             changed = True
+        # Capture the live branch child only AFTER optional material staging
+        # commits. Earlier references may point to detached ET nodes.
+        pressure = _ensure_child(branch, namespace, "Pressure")
         hydro = ""
         linelist_rows = _matching_linelist_rows(line_key, support_config)
         line_sources: dict[str, str] = {}
