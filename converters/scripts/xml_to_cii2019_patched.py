@@ -794,7 +794,8 @@ def _apply_staged_position_restraints(node: ET.Element, namespace: str,
         raise ValueError(f"XML229_STAGED_POSITION_SOURCE_MEMBERS_REQUIRED branch={branch_name} node={node_no}")
 
     from xml229_prefinal_restraints import (kinds as classify_source_kinds,
-                                            source_gap, append_profile, numeric)
+                                            source_gap, append_profile, numeric,
+                                            present_type, placeholder)
 
     def require(condition, code):
         if not condition:
@@ -835,12 +836,54 @@ def _apply_staged_position_restraints(node: ET.Element, namespace: str,
     original = [{
         "type": _child_text(rest, namespace, "Type"),
         "gap": _child_text(rest, namespace, "Gap"),
+        "source": rest.get("source") or rest.get("basis") or "",
     } for rest in prior]
-    for rest in prior:
-        node.remove(rest)
+    expected_node = ET.Element(_q(namespace, "Node"))
     for kind in ("REST", "GUIDE", "LINESTOP"):
         if kind in matched:
-            append_profile(node, kind, matched[kind], support_config)
+            append_profile(expected_node, kind, matched[kind], support_config)
+    expected = [r for r in expected_node if _local_name(r.tag) == "Restraint"]
+    valid_types = {present_type(_child_text(rest, namespace, "Type")) for rest in expected}
+    # A generated DTXR annotation is replaceable; an independently authored
+    # XML restraint is not. Unmarked non-placeholder XML without a prior DTXR
+    # stamp has unknown provenance and cannot silently be rewritten.
+    originally_annotated = (branch_name, node_no) in support_config.get(
+        "_originalDtxrStampedOwners", ())
+    authoritative = []
+    for rest in prior:
+        label = str(rest.get("source") or rest.get("basis") or "").lower()
+        if label in ("original", "inputxml", "input-xml", "owner", "manual",
+                     "authoritative", "source-original"):
+            authoritative.append(rest)
+        elif label in ("generated", "preview", "staged", "derived", "dtxr"):
+            continue
+        elif placeholder(rest) or originally_annotated:
+            continue
+        else:
+            raise ValueError("XML229_XML_RESTRAINT_PROVENANCE_UNRESOLVED")
+    for rest in authoritative:
+        typ = present_type(_child_text(rest, namespace, "Type"))
+        if typ not in valid_types:
+            raise ValueError("XML229_SOURCE_XML_RESTRAINT_TYPE_CONFLICT")
+        source_rows = [r for r in expected
+                       if present_type(_child_text(r, namespace, "Type")) == typ]
+        if len(source_rows) != 1:
+            raise ValueError("XML229_SOURCE_XML_RESTRAINT_TYPE_AMBIGUOUS")
+        prior_gap = _child_text(rest, namespace, "Gap")
+        source_gap_text = _child_text(source_rows[0], namespace, "Gap")
+        if prior_gap and (numeric(prior_gap) is None or
+                numeric(source_gap_text) is None or
+                not math.isclose(numeric(prior_gap), numeric(source_gap_text),
+                                 abs_tol=1e-6, rel_tol=0)):
+            raise ValueError("XML229_SOURCE_XML_RESTRAINT_GAP_CONFLICT")
+    for rest in prior:
+        if rest not in authoritative:
+            node.remove(rest)
+    retained = {present_type(_child_text(rest, namespace, "Type"))
+                for rest in authoritative}
+    for r in expected:
+        if present_type(_child_text(r, namespace, "Type")) not in retained:
+            node.append(r)
 
     added = [r for r in node if _local_name(r.tag) == "Restraint"]
     if not added:
@@ -1334,6 +1377,21 @@ def _patched_elements_payload_factory(temperature_map: dict[str, tuple[float, ..
 def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, support_config: dict[str, Any]) -> Path:
     if staged_json is None:
         return input_xml
+    # Track what was annotated BEFORE staged-source replay. Only these
+    # unmarked restraints are eligible as stale derived DTXR output.
+    original_root = ET.parse(input_xml).getroot()
+    stamped = []
+    for old_branch in original_root.iter():
+        if _local_name(old_branch.tag) != "Branch":
+            continue
+        old_name = next(((c.text or "").strip() for c in old_branch
+                         if _local_name(c.tag) == "Branchname"), "")
+        for old_node in _branch_nodes(old_branch, _namespace(original_root.tag)):
+            if any(_local_name(c.tag) in ("DTXR_POS", "DTXR_PS") and
+                   _safe_text(c.text) for c in old_node):
+                stamped.append((old_name, _child_text(old_node,
+                                _namespace(original_root.tag), "NodeNumber")))
+    support_config["_originalDtxrStampedOwners"] = stamped
     # Existing annotations are per-node evidence, not a whole-document
     # enrichment-complete bit. Reconcile supplied staged members even when
     # another node was already annotated; keep unmatched XML values intact.
