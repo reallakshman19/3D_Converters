@@ -59,7 +59,8 @@ class Ps4131SourceAudit(unittest.TestCase):
     def test_original_bm2_xml_target_presence(self):
         xml=ROOT/'Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml'
         root=ET.parse(xml).getroot()
-        names=[b.findtext('Branchname') or '' for b in root.iter('Branch')]
+        names=[next((str(n.text or '') for n in b if n.tag.rsplit('}',1)[-1]=='Branchname'), '')
+               for b in root.iter() if b.tag.rsplit('}',1)[-1]=='Branch']
         hits=[n for n in names if TARGET in n.upper()]
         print('PS4131_XML_AUDIT '+json.dumps({
             'branchCount':len(names),'exactLineHits':hits,
