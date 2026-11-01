@@ -59,6 +59,7 @@ function writeSupportConfig(supportConfigJson, jsonConfig) {
   const config = parseSupportConfig(supportConfigJson);
   const { sourceSchema, coordinateAlignment, ...traceConfig } = jsonConfig;
   config.jsonTrace = { ...config.jsonTrace, ...traceConfig };
+  config.resolverJsonTrace = { ...config.resolverJsonTrace, ...traceConfig };
   config.dtxrPositionOffset = { ...traceConfig.dtxrPositionOffset };
   if (Object.keys(safeObject(sourceSchema)).length) config.sourceSchema = sourceSchema;
   if (Object.keys(safeObject(coordinateAlignment)).length) config.coordinateAlignment = coordinateAlignment;
