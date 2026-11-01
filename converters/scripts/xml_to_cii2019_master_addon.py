@@ -686,9 +686,36 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
     dtxr_pos_entries = build_dtxr_pos_entries(staged_json, dtxr_position_offset)
     pos_owners, pos_ambiguous = _position_bound_dtxr(root, dtxr_pos_entries, dtxr_position_offset)
     assigned_entries = {id(entry) for owner_entries in pos_owners.values() for entry in owner_entries}
+    # A support POSI claim is mandatory only within the XML's represented
+    # branch scope. Non-support geometry and unrelated source branches remain
+    # explicit, auditable exclusions; they are never quietly counted as matches.
+    xml_branches = {next(((c.text or "").strip().upper() for c in branch
+                    if _local(c.tag) == "Branchname"), "")
+                    for branch in root.iter() if _local(branch.tag) == "Branch"}
+    def claim_scope(entry):
+        kind = str(entry.get("sourceType") or "").upper()
+        if kind not in ("SUPPORT", "ATTA", "ANCI"):
+            return "NOT_APPLICABLE", "non-restraint-source-component"
+        branch = str(entry.get("branchName") or "").strip().upper()
+        if branch and branch not in xml_branches and (
+                re.search(r"/B\\d+$", branch) or
+                not any(x.startswith(branch.rstrip("/") + "/B") for x in xml_branches)):
+            return "NOT_APPLICABLE", "source-branch-out-of-selected-xml-scope"
+        return "MANDATORY", "source-support-positional-owner"
+    unresolved_claims = [
+        {"sourceClaimIndex": i, "sourceType": e.get("sourceType", ""),
+         "sourceName": e.get("sourceAttrs", {}).get("NAME", ""),
+         "sourceBranch": e.get("branchName", ""),
+         "rawPosition": e.get("rawPoint"),
+         "convertedPosition": e.get("point"),
+         "scope": claim_scope(e)[0], "reason": claim_scope(e)[1]}
+        for i, e in enumerate(dtxr_pos_entries) if id(e) not in assigned_entries
+    ]
     stats = {"temperature2": 0, "temperature3": 0, "dtxrPs": 0,
              "dtxrPos": 0, "dtxrPosAmbiguous": pos_ambiguous,
-             "dtxrPosUnmatched": sum(id(e) not in assigned_entries for e in dtxr_pos_entries)}
+             "dtxrPosUnmatched": len(unresolved_claims),
+             "dtxrPosMandatoryUnmatched": sum(x["scope"] == "MANDATORY" for x in unresolved_claims),
+             "dtxrPosExcluded": sum(x["scope"] == "NOT_APPLICABLE" for x in unresolved_claims)}
     # PS-only fallback is also unique within this exact XML source basis.
     ps_nodes: dict[str, set[int]] = {}
     for source_node in root.iter():
@@ -696,6 +723,8 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
             for key in _node_ps_tags(source_node):
                 ps_nodes.setdefault(key, set()).add(id(source_node))
     diagnostics: list[dict[str, Any]] = []
+    diagnostics.extend({"type": "dtxr-position-unmatched", **claim}
+                       for claim in unresolved_claims)
 
     for branch in root.iter():
         if _local(branch.tag) != "Branch":
