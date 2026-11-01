@@ -699,8 +699,8 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
                                ("MDSSUPPTYPE", "SUPPORT_KIND", "SUPPORT_TYPE",
                                 "SUPPORT_MAPPER_KIND"))
         # Missing type is not an excuse to discard a clearly declared support.
-        if kind not in ("SUPPORT", "ATTA", "ANCI") and not (
-                not kind and support_identity):
+        if kind not in ("SUPPORT", "ATTA", "ANCI", "REST",
+                        "GUIDE", "LINESTOP") and not support_identity:
             return "NOT_APPLICABLE", "non-restraint-source-component"
         branch = str(entry.get("branchName") or "").strip().upper()
         if branch and branch not in xml_branches and (
