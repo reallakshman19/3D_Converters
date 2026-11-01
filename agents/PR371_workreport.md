@@ -61,3 +61,13 @@ Appendix A qualification remains within same native-source handoff/Final mass-ow
 CURRENT ACTUAL END-TO-END STATUS: NOT PROVEN. Weight accepted Final/active original O1 missing. No real verified CII from current browser and no numeric ID for 93833 without a direct exact approved map row. UI master custody for live Master→native execution unverified; line-list positive workbook test is conditional on actual selected config.
 AUTHORITY: draft PR371, no merge/deployment/release permission. Directly review the exact Owner Final packet and live supportConfigJson/masters before completing the other two handoffs.
 EXACT_NEXT_ACTION: Recheck latest GitHub Actions for code b7d9f5; if native tests pass, retain draft; compare actual active Worker master mapping, original Final occurrence17/24 effectiveKg, selected material-map source row against rendered CII. Never synthesize accepted kg or alias-grade material ID.
+
+## 2026-11-01 10:24 — latest scoped source/master CI completed
+TESTED_CODE_HEAD: b7d9f512196eb316387786141cc38006c8b9ecbd
+CI: https://github.com/reallakshman19/3D_Converters/actions/runs/41297114117
+PASS: native-python-source-transfer job 124820155015; 15/15 new/old substage tests, 3/3 owner tests, 24/24 native Final mass-consumption tests, 9/9 instrument tests. Full source-and-docs `patched.py` byte parity inspected PASS.
+PASS: XML229 BM2 Unique Line List Native on equivalent code head https://github.com/reallakshman19/3D_Converters/actions/runs/41297114091 (the selected source row case). SOURCE-BOUND, NOT A LIVE WORKER RECEIPT.
+FAIL: JavaScript independent CII checks Node22/Node24 still fail three existing source-string shape assertions, unrelated to native Python source tests. Overall status NON-GREEN.
+SAFETY: real `MISCEL_1` from Owner uploaded CII contains 785 occurrences of ID 1, the writer's default; this is NOT accepted ASTM A790 S31803 identity. Strict exact configured mapping is required, otherwise material ID remains unresolved. The selected spec's class900 is provenance in enriched XML; native CII has no generic rating field per writer inspection.
+NEW_FINAL_STATUS: draft unmerged. Implemented code tests PASS; actual Owner source/O1/approved numeric material-map/Final kg not supplied for production acceptance.
+EXACT_NEXT_ACTION: obtain source-approved numeric material row (exact S31803 match, not alias), current active Worker Master state and immutable Final packet; run fresh XML→CII and independently reconcile all 785 material codes, P/T/density, valve 5950→5960 and node3430.
