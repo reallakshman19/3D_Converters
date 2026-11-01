@@ -41,7 +41,11 @@ function normalizeMapperRow(row = {}, index = 0) {
   return {
     rowId: text(row.rowId || row.id) || `${kind.toLowerCase()}-${index + 1}`,
     kind,
-    aliases: splitAliases(row.aliases || row.patterns || row.detectionText).length ? splitAliases(row.aliases || row.patterns || row.detectionText) : [...base.aliases],
+    // An explicitly cleared Step 7 keyword list is authoritative.
+    // Restore defaults only when the field was truly absent.
+    aliases: row.aliases !== undefined || row.patterns !== undefined || row.detectionText !== undefined
+      ? splitAliases(row.aliases ?? row.patterns ?? row.detectionText)
+      : [...base.aliases],
     ciiKind: text(row.ciiKind || row.ciiOutputKind) || base.ciiKind,
     ciiPreview: text(row.ciiPreview || row.preview) || base.ciiPreview,
     source: text(row.source) || 'support-type-mapper',
