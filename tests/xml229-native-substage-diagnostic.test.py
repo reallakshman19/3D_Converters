@@ -752,6 +752,17 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'XML229_BRANCH_FORMAT_UNMATCHED'):
             native._line_key_from_branch(branch,cfg)
 
+    def test_verified_worker_candidate_cannot_skip_engineering_master_gate(self):
+        candidate=ROOT/'tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs'
+        served=ROOT/'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs'
+        content=candidate.read_text(encoding='utf-8')
+        self.assertEqual(content,served.read_text(encoding='utf-8'))
+        self.assertIn('verifiedConfig.requireVerifiedMasterCompleteness=true',content)
+        self.assertIn('supportConfigJson:JSON.stringify(verifiedConfig)',content)
+        native=(SCRIPTS/'xml_to_cii2019_patched.py').read_text(encoding='utf-8')
+        self.assertIn('_assert_verified_master_completeness(',native)
+        self.assertIn('XML229_VERIFIED_MATERIAL_CODE_UNAPPROVED',native)
+
     def test_engineering_verified_master_gate_rejects_missing_real_fields(self):
         import xml_to_cii2019_patched as native
         root=ET.Element('PipeStressExport')
