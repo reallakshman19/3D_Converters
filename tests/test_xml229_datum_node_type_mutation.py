@@ -168,9 +168,7 @@ class TestXml229DatumAndNodeType(unittest.TestCase):
                     ref = attr(e['attrs'],'ComponentRefNo','COMPONENTREFNO',
                                'COMPRE','ATTACHED_COMPONENT_REF','REF','RefNo')
                     if tag and tag in e['tags'] and re.search(
-                            r'/B\d+
-    unittest.main()
-,branch_name(ref)):
+                            r'/B\d+$',branch_name(ref)):
                         authoritative.append(e)
                         if relationship(branch,ref):
                             explicit.append((g,e))
