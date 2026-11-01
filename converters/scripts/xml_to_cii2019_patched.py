@@ -832,7 +832,11 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
         "dtxrPosOwners": stats.get("dtxrPos", 0),
         "dtxrPsOwners": stats.get("dtxrPs", 0),
         "ambiguous": stats.get("dtxrPosAmbiguous", 0),
+        "unmatchedPositionClaims": stats.get("dtxrPosUnmatched", 0),
     }, sort_keys=True))
+    for diagnostic in result.get("diagnostics", ()):
+        if diagnostic.get("type") == "dtxr-pos":
+            print("XML229_DTXR_SOURCE_TO_NODE " + json.dumps(diagnostic, sort_keys=True))
     with tempfile.NamedTemporaryFile(
             mode="w", encoding="utf-8", prefix=f"{input_xml.stem}_dtxr_",
             suffix=".xml", delete=False) as target:
