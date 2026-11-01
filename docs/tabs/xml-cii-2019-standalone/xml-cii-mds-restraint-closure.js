@@ -183,7 +183,9 @@ function evidenceByKind(record, config = {}, requireUnambiguous = false) {
   }
   // Aggregated trace kinds can contain a lower-confidence GT/ST alias that
   // the resolved source member explicitly contradicted. Never re-add it.
-  if(!result.size){
+  // Legacy trace-derived kinds are guesses, not independent permission to
+  // bypass an operator's saved Step 7 alias removal.
+  if(!result.size&&!Array.isArray(config?.supportTypeMapper?.rows)){
     for(const kind of Array.isArray(record?.derivedSupportTypes)?record.derivedSupportTypes:[]){
       const normalized=text(kind).toUpperCase().replace(/\s+/g,'');
       if(GOVERNED_KINDS.includes(normalized))result.set(normalized,{});
