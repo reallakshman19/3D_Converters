@@ -55,7 +55,7 @@ except Exception as exc:
         cls = type(exc)
         if cls.__name__ == 'NativeMassError' and cls.__module__ == 'xml229_native_final_mass_binding':
             candidate = getattr(exc, 'code', None)
-        elif cls is ValueError:
+        elif isinstance(exc, ValueError):
             # Some writer custody guards use 'CODE: sensitive details'. Never
             # transfer those details, only the exact first token.
             candidate = str(exc).split(':', 1)[0]
@@ -67,6 +67,7 @@ except Exception as exc:
                 KeyError: 'NATIVE_PYTHON_KEY_ERROR',
                 AttributeError: 'NATIVE_PYTHON_ATTRIBUTE_ERROR',
                 ImportError: 'NATIVE_PYTHON_IMPORT_ERROR',
+                ModuleNotFoundError: 'NATIVE_PYTHON_IMPORT_ERROR',
                 NameError: 'NATIVE_PYTHON_NAME_ERROR',
                 RecursionError: 'NATIVE_PYTHON_RECURSION_ERROR',
                 MemoryError: 'NATIVE_PYTHON_MEMORY_ERROR',
