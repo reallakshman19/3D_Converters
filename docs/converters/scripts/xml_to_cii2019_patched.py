@@ -1159,9 +1159,22 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
             continue
         # Class enrichment runs on exactly the XML that the native parser sees.
         # It is independent of staged JSON and of Preview-only presentation.
-        changed = _apply_source_class_wall(branch, namespace, class_wall_index) or changed
-        changed = _apply_source_class_corrosion(
-            branch, namespace, class_corrosion_index) or changed
+        class_branch = ET.fromstring(ET.tostring(branch))
+        try:
+            class_changed = _apply_source_class_wall(
+                class_branch, namespace, class_wall_index)
+            class_changed = _apply_source_class_corrosion(
+                class_branch, namespace, class_corrosion_index) or class_changed
+        except (ValueError, TypeError):
+            if strict:
+                raise
+            class_changed = False
+            print("XML229_ENRICHMENT_SKIPPED " + json.dumps({
+                "source": "PIPING_CLASS_DIMENSION", "reason": "CONFLICT_OR_INVALID",
+            }, sort_keys=True))
+        if class_changed:
+            branch[:] = list(class_branch)
+            changed = True
         line_key = _line_key_from_branch(_child_text(branch, namespace, "Branchname"), support_config)
         try:
             process_material = _process_material_for_line(line_key, support_config)
@@ -1193,6 +1206,13 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
         pressure = _ensure_child(branch, namespace, "Pressure")
         hydro = ""
         linelist_rows = _matching_linelist_rows(line_key, support_config)
+        if len(linelist_rows) > 1 and not strict:
+            # A duplicated or conflicting line key may not choose arbitrary
+            # process fields; retain the original XML and continue to CII.
+            print("XML229_ENRICHMENT_SKIPPED " + json.dumps({
+                "source": "LINE_LIST", "reason": "AMBIGUOUS_SOURCE_ROWS",
+            }, sort_keys=True))
+            linelist_rows = []
         line_sources: dict[str, str] = {}
         if linelist_rows:
             temperature = _ensure_child(branch, namespace, "Temperature")
