@@ -135,3 +135,20 @@ pointer, and the alleged segment is not source NodeNumber 5950→5960.
 Native independent proof MUST remain fail-closed.
 
 CI at corrected head: PENDING GitHub Actions.
+
+## A7 Revised PR370 GitHub CI — post-correction
+PR: https://github.com/reallakshman19/3D_Converters/pull/370
+LAST_CHECKED_HEAD: d6f161a5f10e7d338a5797919830505103a33a2a
+CI_WORKFLOW: https://github.com/reallakshman19/3D_Converters/actions/runs/41289381011
+PASS: native-python-source-transfer GitHub Actions job 124797246372.
+tests/xml229-native-substage-diagnostic.test.py ran 8 tests in 0.676s:
+PASS including real BM2 node3430 XYZ-only matched synthetic GUIDE/LINESTOP;
+different-position same-PS negative; 20/30 coincident support disambiguation;
+2 independent positional calibration anchors; prior source/Worker guards.
+PASS: native mass-consumption suite 24 tests; Python compile/served mirrors.
+FAIL: JS CII mass checks (22/24) were still non-green, separate source-string
+assertion failures. Do NOT claim all CI green.
+PASS_STATIC: patched root/docs addon byte identical.
+STATUS: DRAFT_PR_OPEN / PYTHON_NATIVE_CI_PASS / JS_CII_CI_NON_GREEN.
+AUTHORITY: Not merged, no actual Owner Final packet, actual CII or real JSON
+support member available for full source->output reconciliation.
