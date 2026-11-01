@@ -258,6 +258,9 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
         const attrs=evidence.get(kind);
         const explicitGap=sourceGapText(attrs);
         const selectedType=sourceNodeType(attrs,config)||EXPECTED_XML_TYPE[kind];
+        if (['+Y','GUI','LIM'].includes(selectedType)&&selectedType!==EXPECTED_XML_TYPE[kind])
+          throw Object.assign(new Error('Configured NODETYPE mutation contradicts Step 7 support kind'),
+            {code:'PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT'});
         const generated=restraintEntriesFromSupportKind(kind, attrs, node, config)
           .map(entry=>({
             ...entry,type:selectedType,
