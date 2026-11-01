@@ -140,6 +140,110 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         # Real gaps and permission to publish CII require the Owner JSON,
         # finalized XML, and independent emitted-CII verification.
 
+
+    def test_bm2_node3430_pos_without_ps_name_and_member_gap(self):
+        """DTXR POS can establish the owner without a JSON PS-name hit."""
+        from xml_to_cii2019_master_addon import enrich_xml_addons
+        from xml_to_cii2019_patched import _build_keyword_restraint_specs
+        source = ROOT / 'Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml'
+        where = '123504.12 114999.98 101330.73'
+        staged = [{'type': 'BRANCH',
+                   'name': '/GLRD-1000-8"-B4110003-13451-01/B1',
+                   'children': [
+                       {'type': 'SUPPORT', 'name': 'NO-PS GUIDE',
+                        'attributes': {'POSI': where, 'DTXR': 'GUIDE',
+                                       'CMPSUPGAP': '0mm'}},
+                       {'type': 'SUPPORT', 'name': 'NO-PS LINE STOP',
+                        'attributes': {'POSI': where, 'DTXR': 'LINE STOP',
+                                       'CMPSUPGAP': '15mm'}},
+                       # Same PS as 3430, but at a contradicting XYZ:
+                       # NAME alone must not place this third member.
+                       {'type': 'SUPPORT', 'name': '/PS-00574.1',
+                        'attributes': {'NAME': '/PS-00574.1',
+                                       'POSI': '1 2 3', 'DTXR': 'GUIDE'}}]}]
+        data = enrich_xml_addons(source, None, None, json.dumps(staged),
+                                 {'enabled': False})
+        root = ET.fromstring(data['xmlText'])
+        def text(node, name):
+            return next((c.text or '' for c in node
+                         if c.tag.rsplit('}', 1)[-1] == name), '')
+        nodes = {text(n, 'NodeNumber'): n for n in root.iter()
+                 if n.tag.rsplit('}', 1)[-1] == 'Node'}
+        self.assertEqual(text(nodes['3420'], 'DTXR_POS'), '')
+        self.assertEqual(text(nodes['3430'], 'DTXR_PS'), '')
+        self.assertEqual(text(nodes['3430'], 'NodeName'), 'PS00574.1')
+        annotated = text(nodes['3430'], 'DTXR_POS')
+        self.assertIn('GUIDE(CMPSUPGAP=0mm)', annotated)
+        self.assertIn('LINE STOP(CMPSUPGAP=15mm)', annotated)
+        self.assertEqual(data['stats']['dtxrPosAmbiguous'], 0)
+        with TemporaryDirectory() as d:
+            output = Path(d) / 'bm2-pos-annotated.xml'
+            output.write_text(data['xmlText'], encoding='utf-8')
+            specs, _ = _build_keyword_restraint_specs(output, {})
+        self.assertEqual({int(spec.type_code) for spec in specs[3430]}, {8, 9})
+        self.assertEqual(next(spec.gap for spec in specs[3430]
+                              if int(spec.type_code) == 9), 15.0)
+
+    def test_bm2_coincident_20_30_requires_second_identity(self):
+        """Zero-distance adjacent nodes must not both inherit one JSON member."""
+        from xml_to_cii2019_master_addon import enrich_xml_addons
+        source = ROOT / 'Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml'
+        pos = '111348.12 107524.90 100916.75'
+        source_json = [{'type': 'BRANCH',
+                        'name': '/GLRD-1000-6"-P4110001-93833-01/B6',
+                        'children': [
+                            {'type': 'SUPPORT', 'name': '/PS-00327.1',
+                             'attributes': {'NAME': '/PS-00327.1',
+                                            'POSI': pos, 'DTXR': 'LINE STOP',
+                                            'CMPSUPGAP': '8mm'}},
+                            {'type': 'SUPPORT', 'name': 'unowned coincident',
+                             'attributes': {'POSI': pos, 'DTXR': 'GUIDE'}}]}]
+        data = enrich_xml_addons(source, None, None, json.dumps(source_json),
+                                 {'enabled': False})
+        root = ET.fromstring(data['xmlText'])
+        def at(number):
+            return next(n for n in root.iter()
+                        if n.tag.rsplit('}', 1)[-1] == 'Node'
+                        and next((c.text for c in n
+                                  if c.tag.rsplit('}', 1)[-1] == 'NodeNumber'), '') == str(number))
+        def dtxr(n):
+            return [c.text or '' for c in n if c.tag.rsplit('}', 1)[-1] in ('DTXR_PS', 'DTXR_POS')]
+        self.assertEqual(dtxr(at(20)), [])
+        self.assertIn('LINE STOP(CMPSUPGAP=8mm)', '|'.join(dtxr(at(30))))
+        self.assertNotIn('GUIDE', '|'.join(dtxr(at(30))))
+        self.assertEqual(data['stats']['dtxrPosAmbiguous'], 1)
+
+    def test_bm2_calibration_needs_two_independent_position_anchors(self):
+        """Source-attested multi-node offsets, never guessed from one tag."""
+        from xml_to_cii2019_master_addon import enrich_xml_addons
+        source = ROOT / 'Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml'
+        shift = (40000.0, 50000.0, 100000.0)
+        source_positions = {
+            'PS-00573.1': (117503.96, 114999.98, 101360.73),
+            'PS-00574.1': (123504.12, 114999.98, 101330.73),
+        }
+        children = []
+        for name, pos in source_positions.items():
+            raw = ' '.join(str(v - off) for v, off in zip(pos, shift))
+            children.append({'type': 'SUPPORT', 'name': '/' + name,
+                             'attributes': {'NAME': '/' + name, 'POSI': raw,
+                                            'DTXR': 'GUIDE'}})
+        json_rows = [{'type': 'BRANCH',
+                      'name': '/GLRD-1000-8"-B4110003-13451-01/B1',
+                      'children': children}]
+        data = enrich_xml_addons(source, None, None, json.dumps(json_rows),
+                                 {'enabled': True, 'xOffset': 0, 'yOffset': 0,
+                                  'zOffset': 0, 'autoCalibrateMinSamples': 2})
+        root = ET.fromstring(data['xmlText'])
+        def node_field(n, key):
+            return next((c.text or '' for c in n
+                         if c.tag.rsplit('}', 1)[-1] == key), '')
+        matched = {node_field(n, 'NodeNumber'): node_field(n, 'DTXR_POS')
+                   for n in root.iter() if n.tag.rsplit('}', 1)[-1] == 'Node'}
+        self.assertIn('GUIDE', matched['3420'])
+        self.assertIn('GUIDE', matched['3430'])
+
+
     def test_stage_resets_for_each_new_invocation(self):
         sys._xml229_native_failure_stage="EMITTED_MASS_VERIFY"
         with patch.object(runtime.patched,"_parse_args",side_effect=ValueError("BAD_ARGUMENT")):
