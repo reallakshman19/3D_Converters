@@ -169,6 +169,31 @@ const STAGES=new Set([
  'OUTPUT_WRITE',
 ]);
 export const XML229_NATIVE_FAILURE_SCHEMA='XML229.NativeConverterFailure.v1';
+const AMBIGUITY_MARKER='XML229_STAGED_POSITION_AMBIGUITY ';
+/** Parse only the allowlisted, bounded source-index receipt; never forward native logs. */
+export function readXml229BoundedStagedPositionEvidence(logs){
+ if(!Array.isArray(logs))return null;
+ const line=logs.find(x=>typeof x==='string'&&x.startsWith(AMBIGUITY_MARKER)&&x.length<8192);
+ if(!line)return null;
+ let parsed;
+ try{parsed=JSON.parse(line.slice(AMBIGUITY_MARKER.length));}catch{return null;}
+ const index=x=>Number.isSafeInteger(x)&&x>=0&&x<=10000000;
+ if(!index(parsed?.count)||parsed.count<1||!Array.isArray(parsed?.sample)||parsed.sample.length>20)return null;
+ const reasons=new Set(['NON_UNIQUE_POSITION_OWNER','COMPETING_POSITION_TRANSFORMS']);
+ const sample=[];
+ for(const x of parsed.sample){
+   if(!index(x?.sourceClaimIndex)||!index(x?.candidateCount)||
+      !reasons.has(x.reason)||!Array.isArray(x.candidatePositionRowIndices)||
+      x.candidatePositionRowIndices.length>12||
+      !x.candidatePositionRowIndices.every(index))return null;
+   sample.push({sourceClaimIndex:x.sourceClaimIndex,reason:x.reason,
+     candidateCount:x.candidateCount,
+     candidatePositionRowIndices:[...x.candidatePositionRowIndices]});
+ }
+ return Object.freeze({schema:'XML229.NativeStagedPositionAmbiguity.v1',
+   ambiguousCount:parsed.count,sample,
+   sampleTruncated:parsed.sampleTruncated===true});
+}
 export function diagnoseXml229NativeConverterFailure(native){
  const category=native?.ok!==true?'ENGINE_FAILED':
    !native?.ciiText?'CII_OUTPUT_MISSING':'NATIVE_MASS_PROOF_MISSING';
@@ -192,9 +217,12 @@ export function diagnoseXml229NativeConverterFailure(native){
    'NATIVE_CANDIDATE_CONVERTER_FAILED';
  const ownerMatchCardinality=code==='CII_NATIVE_PHYSICAL_OWNER_MISSING'?'ZERO':
    code==='CII_NATIVE_PHYSICAL_OWNER_MULTIPLE'?'MULTIPLE':null;
+ const stagedPositionAmbiguity=code==='XML229_STAGED_POSITION_AMBIGUOUS'
+   ?readXml229BoundedStagedPositionEvidence(native?.logs):null;
  return Object.freeze({
    schema:XML229_NATIVE_FAILURE_SCHEMA,code,category,phase,
    ...(ownerMatchCardinality?{ownerMatchCardinality}:{}),
+   ...(stagedPositionAmbiguity?{stagedPositionAmbiguity}:{}),
    candidatePublished:false,nativeCiiReleaseAuthorized:false,
  });
 }
