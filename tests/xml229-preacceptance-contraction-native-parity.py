@@ -22,6 +22,7 @@ def main():
         doc.get('branchConnectionAliases') or [],
         doc['sourceXmlSha256'],
         doc['canonicalVertexContractionAudit'],require,
+        require_contracted=bool(doc.get('requireContracted')),
     )
     print(json.dumps({'verified':True,'zeroLengthEdges':
         expected['summary']['retainedZeroLengthSourceEdges'],
