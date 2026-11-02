@@ -63,6 +63,28 @@ class ScopedAmbiguityTests(unittest.TestCase):
                 error = str(exc)
             return model, log.getvalue(), output, error
 
+    def test_authentic_bm2_coincident_source_nodes_require_exact_reference(self):
+        # Public BM2 first branch has two coincident, distinct source nodes:
+        # 10 (BRAN) and 40 (ATTA). JSON member is synthetic and deliberately
+        # PS-untagged; no claim of Owner staged source or Final approval.
+        from xml_to_cii2019_master_addon import enrich_xml_addons
+        source = ROOT / "Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml"
+        payload = json.dumps([{"type": "BRANCH",
+            "name": '/GLRD-1000-6"-P4110001-93833-01/B6',
+            "children": [{"type": "SUPPORT", "name": "untagged",
+                "attributes": {"POSI": "111348.12 107974.90 100916.75",
+                               "DTXR": "GUIDE", "COMPONENTREFNO": "=134234934/30502"}}]}])
+        model = enrich_xml_addons(source, None, None, payload, {"enabled": False})
+        self.assertEqual(model["stats"]["dtxrPosMandatoryAmbiguous"], 0)
+        root = ET.fromstring(model["xmlText"])
+        branch = next(b for b in root.iter() if b.tag.endswith("Branch"))
+        nodes = {next((c.text for c in n if c.tag.endswith("NodeNumber")), ""): n
+                 for n in branch if n.tag.endswith("Node")}
+        def positioned(node):
+            return [c.text for c in node if c.tag.endswith("DTXR_POS")]
+        self.assertEqual(positioned(nodes["10"]), [])
+        self.assertEqual(positioned(nodes["40"]), ["GUIDE"])
+
     def test_exact_xml_component_ref_resolves_coincident_untagged_support(self):
         from xml_to_cii2019_master_addon import enrich_xml_addons
         xml = (XML.replace("<NodeNumber>10</NodeNumber>",
