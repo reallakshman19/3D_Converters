@@ -636,8 +636,12 @@ function renderRunControls(parent, stateRef, state, report, render) {
       ?failure.code:'NATIVE_CANDIDATE_CONVERTER_FAILED';
     const ownerMatchCardinality=code==='CII_NATIVE_PHYSICAL_OWNER_MISSING'?'ZERO':
       code==='CII_NATIVE_PHYSICAL_OWNER_MULTIPLE'?'MULTIPLE':null;
+    const stagedPositionAmbiguity=code==='XML229_STAGED_POSITION_AMBIGUOUS'&&
+      failure.stagedPositionAmbiguity?.schema==='XML229.NativeStagedPositionAmbiguity.v1'
+        ?failure.stagedPositionAmbiguity:null;
     const safe={schema:'XML229.NativeConverterFailure.v1',code,category,phase,
       ...(ownerMatchCardinality?{ownerMatchCardinality}:{}),
+      ...(stagedPositionAmbiguity?{stagedPositionAmbiguity}:{}),
       candidatePublished:false,nativeCiiReleaseAuthorized:false};
     const panel=section(ctrlCard,'Native converter failure — diagnostic only');
     panel.appendChild(createElement('div',
