@@ -1,0 +1,51 @@
+name: XML229 IR F18 F19 Original Source Port Witness
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-source-port-connection-evidence.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-source-port-connection-evidence.mjs'
+      - 'tests/xml229-ir-f18-f19-original-source-port-evidence.test.mjs'
+      - 'tests/test_xml229_ir_f18_f19_bm2_source_census.py'
+      - '.github/workflows/xml229-ir-f18-f19-source-port-witness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-source-witness-qualification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+        python: ['3.11', '3.12']
+        exclude:
+          - node: '22'
+            python: '3.12'
+          - node: '24'
+            python: '3.11'
+    name: Original XML independent JS and Python source census / Node ${{ matrix.node }} Python ${{ matrix.python }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Source port qualifier and synthetic source tamper/forged alias controls
+        run: |
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-source-port-connection-evidence.mjs
+          node --test tests/xml229-ir-f18-f19-original-source-port-evidence.test.mjs
+      - name: Native-stdlib independent public BM2 source census and byte digest
+        run: python -m unittest discover -s tests -p 'test_xml229_ir_f18_f19_bm2_source_census.py' -v
+      - name: Existing original physical and TEE source controls
+        run: node --test tests/xml229-original-physical-vertices.test.mjs tests/xml229-tee-port-route.test.mjs tests/xml229-json-physical-vertex-binding.test.mjs
+      - name: Mirror the non-authorizing source qualifier
+        run: cmp tabs/xml-cii-2019-standalone/integration/xml229-source-port-connection-evidence.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-source-port-connection-evidence.mjs
+      - name: Strict release boundary
+        run: |
+          echo "PUBLIC BM2 source candidate and zero-span audit, not Owner V6."
+          echo "No graph union, source welding, native Final, mass or CII release is authorized."
