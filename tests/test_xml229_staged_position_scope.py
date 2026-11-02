@@ -575,7 +575,7 @@ class ScopedAmbiguityTests(unittest.TestCase):
         line = next(line for line in log.getvalue().splitlines()
                     if line.startswith("XML229_STAGED_POSITION_AMBIGUITY "))
         card = json.loads(line.split(" ", 1)[1])
-        self.assertEqual(card["matcherRevision"], "XML229_POSITION_CARRIER_EDGE_V5")
+        self.assertEqual(card["matcherRevision"], "XML229_POSITION_CARRIER_PROVENANCE_V6")
         self.assertEqual(card["matchToleranceMm"], 3.0)
         self.assertEqual(card["count"], 1)
         witness = card["sample"][0]
@@ -591,6 +591,7 @@ class ScopedAmbiguityTests(unittest.TestCase):
         self.assertEqual(witness["originalMatchingRestraintCandidates"], 0)
         self.assertFalse(witness["carrierRefDeclared"])
         self.assertFalse(witness["carrierRouteVerified"])
+        self.assertEqual(witness["carrierRouteStatus"], "NOT_DECLARED")
         self.assertEqual(witness["carrierCandidateCount"], 0)
         self.assertNotIn("rawPosition", witness)
         self.assertNotIn("sourceBranch", witness)
@@ -675,6 +676,115 @@ class ScopedAmbiguityTests(unittest.TestCase):
         self.assertIsNone(output)
         self.assertEqual(error, "XML229_STAGED_POSITION_PARTIAL_TRANSFER")
         self.assertEqual(model["stats"]["dtxrPosMandatoryUnmatched"], 1)
+
+
+    def test_nested_nonbranch_route_owner_keeps_actual_branch_scope(self):
+        # Regression: a named grouping component with children is not BRANCH.
+        # Before V6, both nested route and support inherited an invented
+        # grouping branch and could not prove their XML /TEST/B1 custody.
+        from xml_to_cii2019_master_addon import build_dtxr_pos_entries
+        xml = XML.replace(
+            "<NodeNumber>20</NodeNumber>",
+            "<NodeNumber>20</NodeNumber><ComponentRefNo>=42/200</ComponentRefNo>")
+        nested = {"type": "ASSEMBLY", "name": "not a branch",
+                  "children": [
+                      {"type": "ELBO", "name": "producer route",
+                       "attributes": {"REF": "=42/200"}},
+                      {"type": "SUPPORT", "name": "unlabelled support",
+                       "attributes": {"POSI": "1 2 3",
+                                      "DTXR": "GUIDE", "CMPSUPGAP": "5mm",
+                                      "COMPRE": "=42/200"}}
+                  ]}
+        payload = json.dumps([{"type": "BRANCH", "name": "/TEST/B1",
+                               "children": [nested]}])
+        entries = build_dtxr_pos_entries(payload, {"enabled": False})
+        owner = next(e for e in entries if e["sourceType"] == "SUPPORT")
+        self.assertEqual(owner["branchName"], "/TEST/B1")
+        self.assertEqual(owner["sourceCarrierRouteStatus"], "VERIFIED")
+        self.assertTrue(owner["sourceCarrierRouteUnique"])
+        model, logs, output, error = self.execute(payload, xml)
+        self.assertIsNone(error)
+        self.assertEqual(model["stats"]["dtxrPosMandatoryAmbiguous"], 0)
+        nodes = [n for n in ET.fromstring(output).iter()
+                 if n.tag.endswith("Node")]
+        values = [[c.text for c in n if c.tag.endswith("DTXR_POS")]
+                  for n in nodes]
+        self.assertEqual(values, [[], ["GUIDE(CMPSUPGAP=5mm)"]])
+
+    def test_carrier_route_statuses_refuse_unverified_declarations(self):
+        # V6 diagnostics differentiate evidence defects without making any
+        # of them positive owner authority. Even unique PS does not override
+        # an explicit invalid source carrier.
+        from xml_to_cii2019_master_addon import build_dtxr_pos_entries
+        route = {"type": "ELBO", "name": "route",
+                 "attributes": {"REF": "=42/900"}}
+        support_attrs = {"POSI": "1 2 3", "DTXR": "GUIDE",
+                         "CMPSUPGAP": "5mm", "COMPRE": "=42/900"}
+        def stage(attrs, b1_routes=(), b2_routes=()):
+            return json.dumps([
+                {"type": "BRANCH", "name": "/TEST/B1",
+                 "children": [*b1_routes, {"type": "SUPPORT",
+                                           "name": "/PS00002",
+                                           "attributes": attrs}]},
+                {"type": "BRANCH", "name": "/TEST/B2",
+                 "children": list(b2_routes)}])
+        cases = (
+            ("VERIFIED", stage(support_attrs, [route]), False),
+            ("ROUTE_REF_NOT_FOUND", stage(support_attrs), True),
+            ("ROUTE_REF_DUPLICATED", stage(support_attrs, [route, route]), True),
+            ("ROUTE_REF_OTHER_BRANCH", stage(support_attrs, (), [route]), True),
+            ("MALFORMED_REFERENCE", stage({**support_attrs,
+                                          "COMPRE": "BROKEN"}, [route]), True),
+            ("CONFLICTING_DECLARATIONS", stage({
+                **support_attrs, "ATTACHED_COMPONENT_REF": "=42/901"},
+                [route]), True),
+            ("NOT_DECLARED", stage({k: v for k, v in support_attrs.items()
+                                    if k != "COMPRE"}, [route]), False),
+        )
+        for status, payload, blocked in cases:
+            with self.subTest(status=status):
+                entries = build_dtxr_pos_entries(payload, {"enabled": False})
+                support = next(e for e in entries if e["sourceType"] == "SUPPORT")
+                self.assertEqual(support["sourceCarrierRouteStatus"], status)
+                self.assertEqual(support["sourceCarrierRouteUnique"],
+                                 status == "VERIFIED")
+                model, logs, output, error = self.execute(payload)
+                if blocked:
+                    self.assertEqual(error, "XML229_STAGED_POSITION_AMBIGUOUS")
+                    self.assertIsNone(output)
+                    line = next(l for l in logs.splitlines() if l.startswith(
+                        "XML229_STAGED_POSITION_AMBIGUITY "))
+                    receipt = json.loads(line.split(" ", 1)[1])
+                    self.assertEqual(receipt["matcherRevision"],
+                                     "XML229_POSITION_CARRIER_PROVENANCE_V6")
+                    self.assertEqual(receipt["sample"][0]["carrierRouteStatus"],
+                                     status)
+                else:
+                    self.assertIsNone(error)
+                    self.assertEqual(model["stats"]["dtxrPosMandatoryAmbiguous"], 0)
+
+    def test_typed_nested_branch_resets_carrier_route_scope(self):
+        # Actual nested BRANCH changes source custody; the same route REF
+        # in a child branch may not qualify a parent branch's support.
+        from xml_to_cii2019_master_addon import build_dtxr_pos_entries
+        payload = json.dumps([{"type": "BRANCH", "name": "/TEST/B1",
+            "children": [
+                {"type": "BRANCH", "name": "/TEST/B2",
+                 "children": [{"type": "ELBO", "name": "other branch route",
+                               "attributes": {"REF": "=42/900"}}]},
+                {"type": "SUPPORT", "name": "/PS00002",
+                 "attributes": {"POSI": "1 2 3", "DTXR": "GUIDE",
+                                "CMPSUPGAP": "5mm", "COMPRE": "=42/900"}}
+            ]}])
+        source = next(e for e in build_dtxr_pos_entries(
+            payload, {"enabled": False}) if e["sourceType"] == "SUPPORT")
+        self.assertEqual(source["branchName"], "/TEST/B1")
+        self.assertEqual(source["sourceCarrierRouteStatus"],
+                         "ROUTE_REF_OTHER_BRANCH")
+        model, logs, output, error = self.execute(payload)
+        self.assertIsNone(output)
+        self.assertEqual(error, "XML229_STAGED_POSITION_AMBIGUOUS")
+
 
 
 if __name__ == "__main__":
