@@ -300,15 +300,15 @@ def replay_prefinal_restraints(expected, packet, staged_json_path, config, requi
             ('XML229.PrefinalRestraints.v1','XML229.PrefinalRestraints.v2'),
             'NATIVE_PREFINAL_RESTRAINT_STAGE_INVALID')
     v2 = stage['schema'] == 'XML229.PrefinalRestraints.v2'
-    require(v2 == (config.get('xml229PhysicalVertexPrefinal') is True and
-                   (config.get('supportMapping') or {}).get('useJsonForRestraints') is not False and
-                   staged_json_path is not None and bool(staged_json_path.read_bytes().strip())),
-            'NATIVE_PREFINAL_RESTRAINT_STAGE_INVALID')
     raw = staged_json_path.read_bytes() if staged_json_path is not None else b''
     sha = hashlib.sha256(raw).hexdigest()
     require(stage.get('originalJsonSha256') == sha and
             (not packet.get('originalJsonSha256') or packet['originalJsonSha256'] == sha),
             'NATIVE_PREFINAL_RESTRAINT_SOURCE_SHA_DRIFT')
+    require(v2 == (config.get('xml229PhysicalVertexPrefinal') is True and
+                   (config.get('supportMapping') or {}).get('useJsonForRestraints') is not False and
+                   staged_json_path is not None and bool(staged_json_path.read_bytes().strip())),
+            'NATIVE_PREFINAL_RESTRAINT_STAGE_INVALID')
     require(isinstance(config, dict), 'NATIVE_PREFINAL_RESTRAINT_CONFIG_REQUIRED')
     if (config.get('supportMapping') or {}).get('useJsonForRestraints') is False:
         return True
