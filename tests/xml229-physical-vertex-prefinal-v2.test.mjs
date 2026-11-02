@@ -69,6 +69,15 @@ test('two same physical-node -1 aliases receive REST/GUI/LIM once on one carrier
   assert.equal(native.status,0,native.stderr);
 });
 
+test('E/N/EL directional source position has exact native/JS physical-vertex parity',async()=>{
+  const src=source(),staged=json('/LINE','E=100 N=0 EL=0',[
+    sup('GT500','GUIDE',5,'10')]);
+  const r=await stage(src,staged);
+  assert.deepEqual(nodeRestraints(r.document)[1].map(x=>x.type),['GUI']);
+  const py=nativeReplay(src,r,staged);
+  assert.equal(py.status,0,py.stderr);
+});
+
 test('two distinct GUIDE members, gaps 5 and 8, remain two native-authorized slots',async()=>{
   const src=source(),staged=json('/LINE','100 0 0',[
     sup('GT500','GUIDE',5,'10'),sup('GT501','GUIDE',8,'10')]);
