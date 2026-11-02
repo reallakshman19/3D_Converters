@@ -79,6 +79,9 @@ export function indexXml229OriginalPhysicalVertices({xmlText,sourceXmlSha256='',
         branchOccurrenceIndex:bi,sourceNodeOrdinal:ni,
         sourceBranchName:field(branch,'Branchname'),
         sourceNodeNumber:field(node,'NodeNumber'),
+        sourceComponentType:field(node,'ComponentType').toUpperCase(),
+        sourceComponentRefNo:field(node,'ComponentRefNo'),
+        sourceEndpoint:field(node,'Endpoint'),
         coordinateKey,positionRaw:pos,
       });
       const index=rows.length;
