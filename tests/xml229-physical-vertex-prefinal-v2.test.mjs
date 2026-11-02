@@ -80,6 +80,23 @@ test('two distinct GUIDE members, gaps 5 and 8, remain two native-authorized slo
   assert.equal(native.status,0,native.stderr);
 });
 
+test('per-member stiffness friction and orientation are materialized and native-replayed',async()=>{
+  const src=source(),staged=json('/LINE','100 0 0',[
+    sup('GT500','GUIDE',5,'10',{
+      STIFFNESS:'1000000',FRICTION:'0.2',
+      DirectionCosineX:'1',DirectionCosineY:'0',DirectionCosineZ:'0',
+    }),
+  ]);
+  const r=await stage(src,staged);
+  const node=[...r.document.getElementsByTagName('Node')][1];
+  const restraint=node.getElementsByTagName('Restraint')[0];
+  assert.equal(field(restraint,'Stiffness'),'1000000');
+  assert.equal(field(restraint,'Friction'),'0.2');
+  assert.equal(field(restraint,'DirectionCosineX'),'1.000000000');
+  const py=nativeReplay(src,r,staged);
+  assert.equal(py.status,0,py.stderr);
+});
+
 test('six different original source members retain all six slots',async()=>{
   const src=source(),staged=json('/LINE','100 0 0',
     Array.from({length:6},(_,i)=>sup('GT500','GUIDE',i,'10')));
