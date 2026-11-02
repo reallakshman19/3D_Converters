@@ -15,6 +15,7 @@ on:
       - 'converters/xml-cii-2019-standalone/engine.js'
       - 'docs/converters/xml-cii-2019-standalone/engine.js'
       - 'tests/xml229-prefinal-canonical-node-parity.test.mjs'
+      - 'tests/xml229-json-restraint-body-transfer.test.mjs'
       - 'tests/xml229-canonical-node-native-parity-bridge.py'
       - '.github/workflows/xml229-prefinal-canonical-number-parity.yml'
   workflow_dispatch:
@@ -48,6 +49,7 @@ jobs:
       - name: Real original XML and independent Python Final receipt verifier
         run: |
           node --test tests/xml229-prefinal-canonical-node-parity.test.mjs tests/xml229-reviewed-vertex-slot-plan.test.mjs
+          node --test tests/xml229-json-restraint-body-transfer.test.mjs
   python-native-capacity-regression:
     runs-on: ubuntu-latest
     timeout-minutes: 10
