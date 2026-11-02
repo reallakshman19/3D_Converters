@@ -132,19 +132,19 @@ test('actual native CLI retains many-to-one REST | GUIDE | LINE STOP and indepen
     assert.equal(engineering.evidence.filter(e => e.field === 'restraint').length, 3,
       'the production independent engineering verifier must challenge each CII slot');
      // Challenge one real emitted gap while preserving all other CII bytes.
-    const changedRows = cii.split('\\n');
+    const changedRows = cii.split('\n');
     const restrantHeader = changedRows.findIndex(line => line.trim() === '#$ RESTRANT');
     assert.ok(restrantHeader >= 0);
     const guideIndex = changedRows.findIndex((line, i) =>
       i > restrantHeader && i < restrantHeader + 40 &&
-      Number(line.trim().split(/\\s+/)[0]) === 20 &&
-      Number(line.trim().split(/\\s+/)[1]) === 8);
+      Number(line.trim().split(/\s+/)[0]) === 20 &&
+      Number(line.trim().split(/\s+/)[1]) === 8);
     assert.ok(guideIndex > restrantHeader, 'GUIDE CII slot must exist');
-    const guideFields = changedRows[guideIndex].trim().split(/\\s+/);
+    const guideFields = changedRows[guideIndex].trim().split(/\s+/);
     guideFields[3] = '7.000000';
     changedRows[guideIndex] = guideFields.join(' ');
     assert.throws(
-      () => verifyCiiEngineeringAgainstNativeXml(consumed, changedRows.join('\\n')),
+      () => verifyCiiEngineeringAgainstNativeXml(consumed, changedRows.join('\n')),
       /CII_VERIFIED_RESTRAINT_TYPE_OR_GAP_CONFLICT/,
       'independent checker must refuse tampered GUIDE gap');
     const writerDiagnostic = JSON.parse(readFileSync(run.proofPath, 'utf8'));
