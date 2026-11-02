@@ -388,7 +388,7 @@ class ScopedAmbiguityTests(unittest.TestCase):
         line = next(line for line in log.getvalue().splitlines()
                     if line.startswith("XML229_STAGED_POSITION_AMBIGUITY "))
         card = json.loads(line.split(" ", 1)[1])
-        self.assertEqual(card["matcherRevision"], "XML229_POSITION_PRECISION_V2")
+        self.assertEqual(card["matcherRevision"], "XML229_POSITION_ORIGINAL_AUTHOR_V3")
         self.assertEqual(card["matchToleranceMm"], 3.0)
         self.assertEqual(card["count"], 1)
         witness = card["sample"][0]
@@ -399,6 +399,9 @@ class ScopedAmbiguityTests(unittest.TestCase):
         self.assertEqual(witness["matchedTransformCount"], 2)
         self.assertEqual(witness["psCorroboratedCandidateCount"], 0)
         self.assertEqual(witness["explicitXmlRefPresent"], False)
+        self.assertEqual(witness["originalSourceProofPresent"], False)
+        self.assertEqual(witness["originalSourceRestraintCandidates"], 0)
+        self.assertEqual(witness["originalMatchingRestraintCandidates"], 0)
         self.assertNotIn("rawPosition", witness)
         self.assertNotIn("sourceBranch", witness)
 
