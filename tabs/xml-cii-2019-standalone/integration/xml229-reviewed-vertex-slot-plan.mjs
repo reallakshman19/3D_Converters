@@ -122,7 +122,7 @@ export function planXml229ReviewedNodalPlacements({sourceBinding,finalizedGeomet
       finalAliasNodeNumbers:Object.freeze([...numbers]),
       slotCount:set.slotCount,slots:set.slots,
       requiresCanonicalRenumber,requiresRestraintReconciliation,
-      readyForNativeTransfer:reasonsFor.length===0,
+      localAliasChecksPassed:reasonsFor.length===0,
       reasons:Object.freeze(reasonsFor),
     }));
   }
