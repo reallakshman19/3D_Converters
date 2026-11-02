@@ -162,6 +162,39 @@ test('actual native CLI retains many-to-one REST | GUIDE | LINE STOP and indepen
   }
 });
 
+test('native original-authored restraint breaks 0.2 mm position tie with exact source custody', async () => {
+  const original = baseXml
+    .replace('<Position>0 0 0</Position>', '<Position>4.8 0 0</Position>')
+    .replace('<Weight>0</Weight></Node></Branch>',
+      '<Weight>0</Weight><Restraint><Type>GUI</Type>'
+      + '<Gap>5</Gap><Stiffness>123456</Stiffness>'
+      + '<Friction>-1.010100</Friction></Restraint>'
+      + '</Node></Branch>');
+  const run = nativeRun(original, staged([sourceMember('GUIDE', '5mm')]));
+  try {
+    assert.equal(run.run.status, 0,
+      `original-authority native failure: ${(run.run.stderr || '').slice(-1600)} ${(run.run.stdout || '').slice(-1600)}`);
+    const xml = readFileSync(run.enrichedPath, 'utf8');
+    const cii = readFileSync(run.output, 'utf8');
+    assert.equal((xml.match(/<DTXR_POS>/g) || []).length, 1);
+    assert.match(xml, /<NodeNumber>20<\/NodeNumber>[\s\S]*?<DTXR_POS>GUIDE\(CMPSUPGAP=5mm\)<\/DTXR_POS>/);
+    assert.equal(nativeRestraints(cii).some(x => x.node === 10), false);
+    assert.deepEqual(nativeRestraints(cii).filter(x => x.node === 20),
+      [{node:20, kind:8, gap:5}]);
+    const engineering = verifyCiiEngineeringAgainstNativeXml(xml, cii);
+    assert.equal(engineering.status, 'VERIFIED');
+    assert.equal(engineering.restraints, 1);
+    const independent = await reconcileXml229ActualCiiAgainstFinal({
+      originalXmlText: original, packet: run.packet, ciiText: cii,
+      writerDiagnostic: JSON.parse(readFileSync(run.proofPath, 'utf8')),
+    });
+    assert.equal(independent.massConsumptionVerified, true);
+    assert.equal(independent.nativeCiiReleaseAuthorized, true);
+  } finally {
+    run.dispose();
+  }
+});
+
 test('actual native CLI refuses same-position ambiguity and writes no CII', () => {
   const collocated = baseXml.replace('<Position>0 0 0</Position>',
     '<Position>5 0 0</Position>');
