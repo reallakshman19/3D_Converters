@@ -854,7 +854,10 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
         source_ref = entry.get("sourceComponentRefNo") or ""
         carrier_declared = entry.get("sourceCarrierRefDeclared") is True
         carrier_ref = entry.get("sourceCarrierRefNo") or ""
-        if carrier_declared:
+        if carrier_declared and len(hits) > 1:
+            # A source carrier can denote a finite edge away from a support's
+            # unique XML node. This authority is only used to break otherwise
+            # ambiguous positional ties; never veto an already unique owner.
             # Topology contract: COMPRE/ATTACHED_COMPONENT_REF is a producer
             # supplied carrier edge, not the support's own REF. The referenced
             # route item must occur exactly once in the same original branch;
