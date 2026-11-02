@@ -367,6 +367,24 @@ def _positions_match(left: dict[str, float] | None, right: dict[str, float] | No
     )
 
 
+def _explicit_xml_component_ref(attrs: dict[str, Any]) -> str:
+    """Only an explicit XML component reference can corroborate a POS owner.
+
+    Generic REF and object names are not XML node identity. An invalid or
+    conflicting declaration provides no positive match; positional/PS
+    matching therefore remains subject to its existing uniqueness rules.
+    """
+    values = {str(value).strip().upper()
+              for key, value in attrs.items()
+              if re.sub(r"[^A-Z0-9]", "", str(key).upper()) in
+              ("COMPONENTREFNO", "XMLCOMPONENTREFNO")
+              and value is not None and str(value).strip()}
+    if len(values) != 1:
+        return ""
+    value = next(iter(values))
+    return value if re.fullmatch(r"=\d+/\d+", value) else ""
+
+
 def build_dtxr_pos_entries(staged_json: Any, offset_option: dict[str, Any] | None) -> list[dict[str, Any]]:
     """Return staged DTXR entries whose POSI was converted into XML coordinates."""
     try:
@@ -400,6 +418,7 @@ def build_dtxr_pos_entries(staged_json: Any, offset_option: dict[str, Any] | Non
                         "point": point, "rawPoint": raw_point,
                         "sourceAttrs": source_fields,
                         "sourceType": str(component.get("type") or attrs.get("TYPE") or ""),
+                        "sourceComponentRefNo": _explicit_xml_component_ref(attrs),
                         "tags": tags, "branchName": branch_name})
     return entries
 
@@ -570,7 +589,7 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
     offset = _dtxr_position_offset(option)
     tol = offset["tolerance"]
     cell_size = tol if tol > 0 else 0.000001
-    rows: list[tuple[ET.Element, str, dict[str, float], set[str]]] = []
+    rows: list[tuple[ET.Element, str, dict[str, float], set[str], str]] = []
     by_cell: dict[tuple[int, int, int], list[int]] = {}
     by_tag: dict[str, list[int]] = {}
 
@@ -589,8 +608,10 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
             if point is None:
                 continue
             tags = set(_node_ps_tags(node))
+            component_ref = next(((c.text or "").strip().upper() for c in node
+                                  if _local(c.tag) == "ComponentRefNo"), "")
             index = len(rows)
-            rows.append((node, name.upper(), point, tags))
+            rows.append((node, name.upper(), point, tags, component_ref))
             by_cell.setdefault(cell(point), []).append(index)
             for tag in tags:
                 by_tag.setdefault(tag, []).append(index)
@@ -683,8 +704,19 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
             record_conflict(claim_index, "COMPETING_POSITION_TRANSFORMS", matches)
             continue
         hits = matches[0]
+        # An exact XML ComponentRefNo can distinguish truly coincident nodes.
+        # It is a source identity, never a nearest-coordinate preference.
+        # Require independent positional agreement first, and refuse a
+        # contradiction with an otherwise unique PS-tag owner.
+        tags = entry.get("tags") or set()
+        uniquely_tagged = [i for i in hits if rows[i][3] & tags]
+        source_ref = entry.get("sourceComponentRefNo") or ""
+        if source_ref:
+            hits = [i for i in hits if rows[i][4] == source_ref]
+            if len(hits) == 1 and len(uniquely_tagged) == 1 and hits[0] != uniquely_tagged[0]:
+                hits = []
         if len(hits) > 1:
-            corroborated = [i for i in hits if rows[i][3] & (entry.get("tags") or set())]
+            corroborated = [i for i in hits if rows[i][3] & tags]
             hits = corroborated if len(corroborated) == 1 else []
         if len(hits) != 1:
             ambiguous += 1

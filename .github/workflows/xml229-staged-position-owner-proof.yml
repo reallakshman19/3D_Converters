@@ -1,0 +1,29 @@
+name: XML229 Native Staged Position Owner Proof
+
+on:
+  pull_request:
+    paths:
+      - 'converters/scripts/xml_to_cii2019_master_addon.py'
+      - 'docs/converters/scripts/xml_to_cii2019_master_addon.py'
+      - 'tests/test_xml229_staged_position_scope.py'
+      - '.github/workflows/xml229-staged-position-owner-proof.yml'
+  workflow_dispatch:
+
+jobs:
+  exact-source-owner-regressions:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Compile native module and verify served mirror
+        run: |
+          python -m py_compile converters/scripts/xml_to_cii2019_master_addon.py
+          cmp converters/scripts/xml_to_cii2019_master_addon.py docs/converters/scripts/xml_to_cii2019_master_addon.py
+      - name: Staged-position unique-owner positive and fail-closed negative cases
+        run: python -m unittest discover -s tests -p 'test_xml229_staged_position_scope.py' -v
