@@ -350,6 +350,25 @@ class ScopedAmbiguityTests(unittest.TestCase):
                     refused = evaluate(variant)
                     self.assertEqual(refused["stats"]["dtxrPosMandatoryAmbiguous"], 1)
 
+    def test_authentic_managed_stage_compre_points_to_independent_route_ref(self):
+        # Real saved managed-stage hierarchy: PS00369.1's COMPRE points
+        # to a producer-owned ELBO component, not to the support's REF.
+        from xml_to_cii2019_master_addon import build_dtxr_pos_entries
+        source = (ROOT / "Benchmarks/Managejson to Input XML/B7410250/"
+                  "Auto_supportsplit_managed_stage.json")
+        entries = build_dtxr_pos_entries(source.read_text(encoding="utf-8"),
+                                         {"enabled": False})
+        owners = [e for e in entries
+                  if e.get("sourceCarrierRefNo") == "=67133182/8396"
+                  and e.get("sourceAttrs", {}).get("NAME") == "/PS00369.1"]
+        self.assertEqual(len(owners), 1)
+        owner = owners[0]
+        self.assertTrue(owner["sourceCarrierRefDeclared"])
+        self.assertTrue(owner["sourceCarrierRouteUnique"])
+        self.assertEqual(owner["branchName"],
+            '/ZGPS-1A1AA-30"-B7410250-11445-01/B2')
+        self.assertEqual(owner["sourceComponentRefNo"], "")
+
     def test_unique_route_ref_but_duplicate_xml_component_nodes_is_hold(self):
         xml = (XML.replace("<NodeNumber>10</NodeNumber>",
                            "<NodeNumber>10</NodeNumber><ComponentRefNo>=42/200</ComponentRefNo>")
