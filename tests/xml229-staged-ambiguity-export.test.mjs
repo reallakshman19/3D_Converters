@@ -91,6 +91,24 @@ test('V4 source carrier proof is bounded, typed and does not leak carrier refere
  ])assert.equal(readXml229BoundedStagedPositionEvidence([
    'XML229_STAGED_POSITION_AMBIGUITY '+JSON.stringify(bad)]),null);
 });
+test('V5 carrier-edge matcher attests the corrected source-safe runtime',()=>{
+ const v5={...sample,matcherRevision:'XML229_POSITION_CARRIER_EDGE_V5',
+  sample:sample.sample.map((e,i)=>({...e,
+   originalSourceProofPresent:true,
+   originalSourceRestraintCandidates:0,
+   originalMatchingRestraintCandidates:0,
+   carrierRefDeclared:true,carrierRouteVerified:true,
+   carrierCandidateCount:0,
+   originalRef:'DO_NOT_EXPOSE_PRIVATE_REF',
+  }))};
+ const result=readXml229BoundedStagedPositionEvidence([
+   'XML229_STAGED_POSITION_AMBIGUITY '+JSON.stringify(v5)]);
+ assert.equal(result.matcherRevision,'XML229_POSITION_CARRIER_EDGE_V5');
+ assert.equal(result.sample[0].carrierRouteVerified,true);
+ assert.equal(result.sample[0].carrierCandidateCount,0);
+ assert(!JSON.stringify(result).includes('DO_NOT_EXPOSE_PRIVATE_REF'));
+});
+
 test('legacy pre-version receipt remains bounded and scope optional',()=>{
  const older={count:1,sampleTruncated:false,sample:[{
   sourceClaimIndex:3,reason:'NON_UNIQUE_POSITION_OWNER',

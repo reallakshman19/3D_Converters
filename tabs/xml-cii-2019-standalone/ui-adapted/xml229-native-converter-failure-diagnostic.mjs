@@ -183,7 +183,8 @@ export function readXml229BoundedStagedPositionEvidence(logs){
  const reasons=new Set(['NON_UNIQUE_POSITION_OWNER','COMPETING_POSITION_TRANSFORMS']);
  const scopes=new Set(['MANDATORY','NOT_APPLICABLE']);
  const geometry=new Set(['COINCIDENT','DISTINCT']);
- const hasCarrier=parsed.matcherRevision==='XML229_POSITION_CARRIER_AUTHORITY_V4';
+ const hasCarrier=parsed.matcherRevision==='XML229_POSITION_CARRIER_AUTHORITY_V4'||
+  parsed.matcherRevision==='XML229_POSITION_CARRIER_EDGE_V5';
  const hasOriginalProof=hasCarrier||
   parsed.matcherRevision==='XML229_POSITION_ORIGINAL_AUTHOR_V3';
  const hasVersion=hasOriginalProof||

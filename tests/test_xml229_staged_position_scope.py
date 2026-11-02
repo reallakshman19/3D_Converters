@@ -369,6 +369,77 @@ class ScopedAmbiguityTests(unittest.TestCase):
             '/ZGPS-1A1AA-30"-B7410250-11445-01/B2')
         self.assertEqual(owner["sourceComponentRefNo"], "")
 
+    def test_carrier_route_edge_without_xml_node_ref_keeps_unique_ps_owner(self):
+        # Reproduces V4 audit: carrierRefDeclared/RouteVerified true,
+        # carrierCandidateCount 0, PS corroboration exactly one, two
+        # coincident XML position candidates. V4 incorrectly vetoed PS.
+        xml = (XML.replace("<NodeNumber>10</NodeNumber>",
+                           "<NodeNumber>10</NodeNumber><ComponentRefNo>=42/100</ComponentRefNo>")
+                  .replace("<NodeNumber>20</NodeNumber>",
+                           "<NodeNumber>20</NodeNumber><ComponentRefNo>=42/200</ComponentRefNo>"))
+        route = {"type":"PIPE","name":"remote producer carrier",
+                 "attributes":{"REF":"=42/900"}}
+        def support(name="/PS00002", **extras):
+            return {"type":"SUPPORT","name":name,
+                    "attributes":{"POSI":"1 2 3","NAME":name,"DTXR":"GUIDE",
+                                  "CMPSUPGAP":"5mm","COMPRE":"=42/900",**extras}}
+        def payload(*members):
+            return json.dumps([{"type":"BRANCH","name":"/TEST/B1",
+                                "children":list(members)}])
+        with tempfile.TemporaryDirectory() as tmp:
+            file = Path(tmp) / "source.xml"
+            file.write_text(xml,encoding="utf-8")
+            def model(*members, original_proof=None):
+                return enrich_xml_addons(
+                    file,None,None,payload(*members),{"enabled":False},
+                    original_authored_restraints=original_proof)
+            result = model(route,support())
+            self.assertEqual(result["stats"]["dtxrPosMandatoryAmbiguous"],0)
+            nodes = [x for x in ET.fromstring(result["xmlText"]).iter()
+                     if x.tag.endswith("Node")]
+            texts = [[c.text for c in n if c.tag.endswith("DTXR_POS")] for n in nodes]
+            self.assertEqual(texts,[[],["GUIDE(CMPSUPGAP=5mm)"]])
+            # Independently attested ORIGINAL source type+gap can select
+            # a node even when carrier ref names only a remote route edge.
+            no_ps = model(route,support(name="no-PS"),
+                          original_proof={(0,0):(),(0,1):(("GUI","5"),)})
+            self.assertEqual(no_ps["stats"]["dtxrPosMandatoryAmbiguous"],0)
+            # Contradictory independent unique PS and original XML author
+            # must not select either XML owner.
+            conflict = model(route,support(),
+                             original_proof={(0,0):(("GUI","5"),),(0,1):()})
+            self.assertEqual(conflict["stats"]["dtxrPosMandatoryAmbiguous"],1)
+            # No PS / original source corroboration: still HELD.
+            unknown = model(route,support(name="no-PS"))
+            self.assertEqual(unknown["stats"]["dtxrPosMandatoryAmbiguous"],1)
+            # An explicit carrier declaration with NO route identity stays
+            # untrusted even if one XML PS tag matches.
+            missing_route = model(support())
+            self.assertEqual(missing_route["stats"]["dtxrPosMandatoryAmbiguous"],1)
+            # A duplicate producer route REF likewise remains a HOLD.
+            duplicate_route = model(route,route,support())
+            self.assertEqual(duplicate_route["stats"]["dtxrPosMandatoryAmbiguous"],1)
+
+    def test_carrier_route_edge_preserves_two_members_on_one_verified_ps_node(self):
+        carrier = {"type":"ELBO","name":"route","attributes":{"REF":"=42/900"}}
+        supports = [
+            {"type":"SUPPORT","name":"/PS00002","attributes":{
+                "POSI":"1 2 3","NAME":"/PS00002","COMPRE":"=42/900",
+                "DTXR":kind,"CMPSUPGAP":gap}}
+            for kind,gap in (("REST","0mm"),("GUIDE","5mm"))]
+        payload = json.dumps([{"type":"BRANCH","name":"/TEST/B1",
+                               "children":[carrier,*supports]}])
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/"original.xml"
+            path.write_text(XML,encoding="utf-8")
+            result=enrich_xml_addons(path,None,None,payload,{"enabled":False})
+        self.assertEqual(result["stats"]["dtxrPosMandatoryAmbiguous"],0)
+        nodes=[n for n in ET.fromstring(result["xmlText"]).iter()
+               if n.tag.endswith("Node")]
+        self.assertEqual([c.text for c in nodes[1]
+                          if c.tag.endswith("DTXR_POS")],
+                         ["REST(CMPSUPGAP=0mm)|GUIDE(CMPSUPGAP=5mm)"])
+
     def test_unique_route_ref_but_duplicate_xml_component_nodes_is_hold(self):
         xml = (XML.replace("<NodeNumber>10</NodeNumber>",
                            "<NodeNumber>10</NodeNumber><ComponentRefNo>=42/200</ComponentRefNo>")
@@ -504,7 +575,7 @@ class ScopedAmbiguityTests(unittest.TestCase):
         line = next(line for line in log.getvalue().splitlines()
                     if line.startswith("XML229_STAGED_POSITION_AMBIGUITY "))
         card = json.loads(line.split(" ", 1)[1])
-        self.assertEqual(card["matcherRevision"], "XML229_POSITION_CARRIER_AUTHORITY_V4")
+        self.assertEqual(card["matcherRevision"], "XML229_POSITION_CARRIER_EDGE_V5")
         self.assertEqual(card["matchToleranceMm"], 3.0)
         self.assertEqual(card["count"], 1)
         witness = card["sample"][0]
