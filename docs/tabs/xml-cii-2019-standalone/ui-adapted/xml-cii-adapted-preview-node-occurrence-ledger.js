@@ -75,7 +75,18 @@ export function preparePreviewNodeOccurrenceDocument({
       });
       originalCount++;
       all.push(row);
-      if(reason){node.parentNode?.removeChild(node);droppedCount++;}
+      if(reason){
+        // F16: V2 pre-Final source-authorized nodal members must not disappear
+        // when Preview removes their selected original XML occurrence. There
+        // is no approved surviving-member allocation/rebinding contract yet.
+        // Do not infer a replacement from equal XYZ or a shared NodeNumber.
+        if(config.xml229PhysicalVertexPrefinal===true&&
+           children(node,'Restraint').length)
+          throw Object.assign(new Error(
+            'Original restraint carrier would be removed before Weight Final'),
+          {code:'XML229_V2_RESTRAINT_CARRIER_REMOVED_BY_CLEANUP'});
+        node.parentNode?.removeChild(node);droppedCount++;
+      }
       else{retained.push(row);retainedCount++;}
     }
     retainedByBranch.push(Object.freeze(retained));
@@ -83,8 +94,14 @@ export function preparePreviewNodeOccurrenceDocument({
   }
   // Keep prior cleanup semantics for any unusual Node outside a Branch.
   for(const node of [...document.getElementsByTagName('Node')]){
-    if(!visited.has(node)&&dropReason(node,config,thresholdMm))
+    if(!visited.has(node)&&dropReason(node,config,thresholdMm)){
+      if(config.xml229PhysicalVertexPrefinal===true&&
+         children(node,'Restraint').length)
+        throw Object.assign(new Error(
+          'Unscoped original restraint carrier would be removed before Weight Final'),
+        {code:'XML229_V2_RESTRAINT_CARRIER_REMOVED_BY_CLEANUP'});
       node.parentNode?.removeChild(node);
+    }
   }
   const ledger=Object.freeze({
     schema:'XML229.PreviewNodeOccurrenceLedger.v1',

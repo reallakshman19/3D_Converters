@@ -6,6 +6,7 @@ import {canonicalStandaloneDtxrBranch} from '../xml-cii-trace-resolution-ledger.
 import {canonicalXml229Decimal,exactXml229Position,indexXml229OriginalPhysicalVertices}
   from './xml229-original-physical-vertices.mjs';
 import {projectXml229NodalRestraintSlots} from './xml229-nodal-restraint-slots.mjs';
+import {supportKindFromMember} from '../xml-cii-mds-restraint-closure.js';
 
 export const XML229_JSON_VERTEX_BINDING_SCHEMA='XML229.JsonPhysicalVertexBinding.v1';
 const POSITION_KEYS=['SUPPORTCOORD','SUPPORT_COORD','POS','POSI','BPOS','APOS',
@@ -98,7 +99,30 @@ function sourceMembers(staged,config){
       :parent.branch;
     const found=directPoint(value,attrs,config);
     const point=found.declared?found.key:parent.point;
-    if(isSupport(type,attrs))all.push({
+    const recognized=isSupport(type,attrs);
+    if(!recognized){
+      // F17: the old denominator only counted recognized source *types*.
+      // An unfamiliar source type can nevertheless be declared a restraint
+      // by canonical source fields or the SAVED Step 7/8 mapper. It cannot
+      // silently vanish before member classification. No guessed ownership.
+      const explicit=attribute(attrs,['SUPPORT_KIND','SUPPORT_TYPE',
+        'SUPPORT_MAPPER_KIND']);
+      const structural=['BRANCH','DTXR_POS'].includes(type);
+      const piping=['PIPE','ELBO','TEE','OLET','VALV','FLAN','GASK'].includes(type);
+      const evidence=attribute(attrs,['DTXR','DESC','DESCRIPTION','SPRE',
+        'CMPSUPTYPE','MDSSUPPTYPE','NODETYPE','CMPSUPGAP']);
+      let configuredKind='';
+      if(!structural&&!piping&&evidence!==null){
+        configuredKind=supportKindFromMember({
+          sourceType:type,raw:{attributes:attrs},
+          description:str(attribute(attrs,['DTXR','DESC','DESCRIPTION','SPRE'])||value.name),
+        },config);
+      }
+      if(!structural&&(explicit!==null||configuredKind)){
+        fail('XML229_BIND_SOURCE_SUPPORT_CANDIDATE_UNCLASSIFIED');
+      }
+    }
+    if(recognized)all.push({
       sourceOccurrenceId:path,sourceType:type,branch,coordinateKey:point,
       raw:value,description:str(attribute(attrs,['DTXR','DESC','DESCRIPTION','SPRE'])||value.name),
     });

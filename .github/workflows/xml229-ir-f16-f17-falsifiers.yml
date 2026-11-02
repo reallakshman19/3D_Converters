@@ -1,15 +1,20 @@
-name: XML229 IR F16 F17 Falsification Reproductions
+name: XML229 IR F16 F17 Conservation Holds
 on:
   pull_request:
     paths:
       - 'tests/xml229-ir-f16-f17-falsifiers.test.mjs'
+      - 'tests/test_xml229_ir_f16_native_carrier_survival.py'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-json-physical-vertex-binding.mjs'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-node-occurrence-ledger.js'
+      - 'converters/scripts/xml229_physical_vertex_prefinal.py'
+      - 'converters/scripts/xml229_native_final_mass_binding.py'
       - '.github/workflows/xml229-ir-f16-f17-falsifiers.yml'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  reproduce-known-unsafe-behavior:
-    name: Diagnostic reproduction only / Node ${{ matrix.node }}
+  verify-source-member-conservation-holds:
+    name: F16/F17 fail-closed regression / Node ${{ matrix.node }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     strategy:
@@ -23,12 +28,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: Independently replay F16/F17 original source into actual V2 and cleanup functions
+      - name: Check JS and native Python syntax
         run: |
           node --check tests/xml229-ir-f16-f17-falsifiers.test.mjs
-          node --test tests/xml229-ir-f16-f17-falsifiers.test.mjs
-      - name: Scope warning
+          python3 -m py_compile converters/scripts/xml229_native_final_mass_binding.py converters/scripts/xml229_physical_vertex_prefinal.py
+      - name: F16/F17 source-to-Preview and native original-replay refusal
+        run: node --test tests/xml229-ir-f16-f17-falsifiers.test.mjs
+      - name: Native Final carrier-survival refusal plus positive controls
+        run: python3 -m unittest discover -s tests -p 'test_xml229_ir_f16_native_carrier_survival.py' -v
+      - name: Strict scope
         run: |
-          echo "PASS means vulnerable behavior was reproduced (or a control worked)."
-          echo "It is NOT evidence of production safety. No Owner V6 source or release proof."
-          echo "This branch contains only test evidence; candidate code is frozen at PR #399."
+          echo "PASS means narrowly demonstrated F16/F17 HOLD and controls."
+          echo "Real Owner V6 and emitted native CII NOT_RUN. No merge/release authority."

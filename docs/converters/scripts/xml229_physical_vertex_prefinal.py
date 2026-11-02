@@ -95,6 +95,11 @@ def point(value, attrs, config):
     return False,None
 
 
+def require_source_candidate(ok, code):
+    if not ok:
+        fail('SOURCE_SUPPORT_CANDIDATE_AMBIGUOUS')
+
+
 def members(parsed, config):
     found=[]
     def visit(value, branch, inherited, depth):
@@ -119,6 +124,26 @@ def members(parsed, config):
         if not support and typ not in ('BRANCH','DTXR_POS','PIPE','ELBO','TEE',
                                          'OLET','VALV','FLAN','GASK'):
             support=code in SUPPORT_TYPES or bool(re.match(r'^(GT|ST|AT)\d+',code))
+        if not support:
+            # F17 native source-preselection must not share the blind spot
+            # of the old recognized-type-only JS denominator. Unknown types
+            # with an explicit support kind or a saved configured mapper
+            # result are unresolved candidates, never audited exclusions.
+            structural=typ in ('BRANCH','DTXR_POS')
+            piping=typ in ('PIPE','ELBO','TEE','OLET','VALV','FLAN','GASK')
+            explicit=abc(attrs,'SUPPORT_KIND','SUPPORT_TYPE','SUPPORT_MAPPER_KIND')
+            evidence=abc(attrs,'DTXR','DESC','DESCRIPTION','SPRE',
+                         'CMPSUPTYPE','MDSSUPPTYPE','NODETYPE','CMPSUPGAP')
+            classified=False
+            if not structural and not piping and evidence is not None:
+                candidate={'attrs':attrs,
+                           'desc':str(abc(attrs,'DTXR','DESC','DESCRIPTION',
+                                          'SPRE') or value.get('name') or '')}
+                classified=bool(kinds([candidate],
+                                      lambda ok, code: require_source_candidate(ok,code),
+                                      config))
+            if not structural and (explicit is not None or classified):
+                fail('SOURCE_SUPPORT_CANDIDATE_UNCLASSIFIED')
         if support:
             desc=str(abc(attrs,'DTXR','DESC','DESCRIPTION','SPRE') or
                      value.get('name') or '')
