@@ -1578,7 +1578,17 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
         conflicts = [d for d in result.get("diagnostics", [])
                      if d.get("type") == "dtxr-position-ambiguous"
                      and d.get("scope", "MANDATORY") == "MANDATORY"][:20]
+        # Native-version proof and the applied search tolerance must travel in
+        # this allowlisted diagnostic receipt. A cached older browser Worker
+        # will omit the version, so a repeated nine-pair signature is no longer
+        # mistaken for proof that a newly merged matcher was executed.
+        position_option = (support_config.get("dtxrPositionOffset")
+                           if isinstance(support_config, dict) else None)
+        applied_tolerance = addon._dtxr_position_offset(position_option)["tolerance"]
         print("XML229_STAGED_POSITION_AMBIGUITY " + json.dumps({
+            "matcherRevision": "XML229_POSITION_PRECISION_V2",
+            "matchToleranceMm": (round(applied_tolerance, 6)
+                                 if math.isfinite(applied_tolerance) else None),
             "count": mandatory_ambiguous, "sample": conflicts,
             "sampleTruncated": mandatory_ambiguous > len(conflicts),
         }, sort_keys=True))
