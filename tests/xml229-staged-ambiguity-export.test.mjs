@@ -21,7 +21,8 @@ test('only bounded source-free staged-position indices enter downloadable native
  assert(!JSON.stringify(safe).includes('PRIVATE_PLANT'));
  assert(!JSON.stringify(safe).includes('SECRET_COORDINATES'));
  const failure=diagnoseXml229NativeConverterFailure({
-  ok:false,error:'XML229_STAGED_POSITION_AMBIGUOUS',nativeFailurePhase:'CII_CONVERSION',logs,
+  ok:false,error:'XML229_STAGED_POSITION_AMBIGUOUS',nativeFailurePhase:'CII_CONVERSION',
+  nativePythonFailure:{code:'XML229_STAGED_POSITION_AMBIGUOUS',stage:'STAGED_POSITION_TRANSFER'},logs,
  });
  assert.equal(failure.code,'XML229_STAGED_POSITION_AMBIGUOUS');
  assert.deepEqual(failure.stagedPositionAmbiguity,safe);
