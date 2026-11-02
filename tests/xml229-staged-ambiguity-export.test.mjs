@@ -5,9 +5,9 @@ import {readXml229BoundedStagedPositionEvidence,diagnoseXml229NativeConverterFai
 
 const sample={count:2,sampleTruncated:false,sample:[
  {type:'dtxr-position-ambiguous',sourceClaimIndex:17,reason:'NON_UNIQUE_POSITION_OWNER',
-  candidateCount:2,candidatePositionRowIndices:[22,23],sourceBranch:'PRIVATE_PLANT'},
+  candidateCount:2,candidatePositionRowIndices:[22,23],scope:'MANDATORY',sourceBranch:'PRIVATE_PLANT'},
  {type:'dtxr-position-ambiguous',sourceClaimIndex:18,reason:'COMPETING_POSITION_TRANSFORMS',
-  candidateCount:3,candidatePositionRowIndices:[24,25,26],rawPosition:'SECRET_COORDINATES'},
+  candidateCount:3,candidatePositionRowIndices:[24,25,26],scope:'NOT_APPLICABLE',rawPosition:'SECRET_COORDINATES'},
 ]};
 const logs=['arbitrary raw source path PRIVATE_PLANT',
   'XML229_STAGED_POSITION_AMBIGUITY '+JSON.stringify(sample)];
@@ -18,6 +18,8 @@ test('only bounded source-free staged-position indices enter downloadable native
  assert.equal(safe.ambiguousCount,2);
  assert.equal(safe.sample.length,2);
  assert.deepEqual(safe.sample[0].candidatePositionRowIndices,[22,23]);
+ assert.equal(safe.sample[0].scope,'MANDATORY');
+ assert.equal(safe.sample[1].scope,'NOT_APPLICABLE');
  assert(!JSON.stringify(safe).includes('PRIVATE_PLANT'));
  assert(!JSON.stringify(safe).includes('SECRET_COORDINATES'));
  const failure=diagnoseXml229NativeConverterFailure({
@@ -29,8 +31,20 @@ test('only bounded source-free staged-position indices enter downloadable native
  assert.equal(failure.nativeCiiReleaseAuthorized,false);
  assert.equal(failure.candidatePublished,false);
 });
+test('legacy unscoped receipt remains unknown, never assumed mandatory or excluded',()=>{
+ const legacy={...sample,sample:sample.sample.map(({scope,...entry})=>entry)};
+ const parsed=readXml229BoundedStagedPositionEvidence([
+   'XML229_STAGED_POSITION_AMBIGUITY '+JSON.stringify(legacy)]);
+ assert.equal(parsed.ambiguousCount,2);
+ assert.equal('scope' in parsed.sample[0],false);
+ assert.equal('scope' in parsed.sample[1],false);
+});
+
 test('untrusted or oversized native logs cannot introduce arbitrary provenance',()=>{
  assert.equal(readXml229BoundedStagedPositionEvidence(['SECRET']),null);
+ assert.equal(readXml229BoundedStagedPositionEvidence([
+  'XML229_STAGED_POSITION_AMBIGUITY '+JSON.stringify({
+   count:1,sample:[{...sample.sample[0],scope:'SECRET_OWNER'}]})]),null);
  assert.equal(readXml229BoundedStagedPositionEvidence([
   'XML229_STAGED_POSITION_AMBIGUITY '+JSON.stringify({
    count:1,sample:[{sourceClaimIndex:0,reason:'FORGED',candidateCount:1,candidatePositionRowIndices:[0]}]})]),null);
