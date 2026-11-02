@@ -300,6 +300,14 @@ class ScopedAmbiguityTests(unittest.TestCase):
                 return [c.text for c in n if c.tag.endswith("DTXR_POS")]
             self.assertEqual([annotations(n) for n in nodes],
                              [[], ["GUIDE(CMPSUPGAP=5mm)"]])
+            # An independently SHA-custodied original-authored restraint on
+            # a different node contradicts the carrier evidence: HOLD.
+            contrary = enrich_xml_addons(path, None, None,
+                staged(carrier, support), {"enabled": False},
+                original_authored_restraints={
+                    (0, 0): (("GUI", "5"),), (0, 1): ()})
+            self.assertEqual(
+                contrary["stats"]["dtxrPosMandatoryAmbiguous"], 1)
             # The same explicit carrier reference works for two different
             # independently authored restraint members: many-to-one, pipe
             # delimiter retained and zero never replaced by a default.
