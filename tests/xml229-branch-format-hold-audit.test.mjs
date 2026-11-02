@@ -21,6 +21,14 @@ test('branch-format execution refusal is diagnosed before native intent/release,
  assert.equal(audit.branchFormat.unmatchedInSample,1);assert.equal(audit.branchFormat.ambiguousInSample,1);
  assert.equal(audit.evidence.find(s=>s.name==='weight-final-readiness').status,'VERIFIED');
  assert.equal(audit.nativeCiiReleaseAuthorized,false);assert.equal(audit.ciiDownloadAuthorized,false);
+ const attempted=buildXml229RunHoldAudit({input,sessionReceipt,completion,sessionState:'LIVE',
+   report:{checklistRows:rows},candidate:{status:'FAILED',code:'XML229_STAGED_POSITION_AMBIGUOUS',
+     phase:'STAGED_POSITION_TRANSFER',elapsedMs:27015}});
+ assert.equal(attempted.diagnosisCode,'NATIVE_CANDIDATE_FAILED');
+ assert.equal(attempted.firstUnverifiedBoundary,'worker-r2-and-native-candidate');
+ assert.equal(attempted.nativeCandidate.failureCode,'XML229_STAGED_POSITION_AMBIGUOUS');
+ assert.equal(attempted.branchFormat.blocked,true);
+ assert.equal(attempted.ciiDownloadAuthorized,false);
  assert(!JSON.stringify(audit).includes('PRIVATE_'));
  rows[1].detail='invalid private detail';
  assert.doesNotThrow(()=>buildXml229RunHoldAudit({input,report:{checklistRows:rows}}));
