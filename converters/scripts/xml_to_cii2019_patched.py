@@ -1577,7 +1577,7 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
         # exclusions, never a basis for CII engineering annotation or release.
         conflicts = [d for d in result.get("diagnostics", [])
                      if d.get("type") == "dtxr-position-ambiguous"
-                     and d.get("scope", "MANDATORY") == "MANDATORY"][:20]
+                     and d.get("scope", "MANDATORY") == "MANDATORY"][:10]
         # Native-version proof and the applied search tolerance must travel in
         # this allowlisted diagnostic receipt. A cached older browser Worker
         # will omit the version, so a repeated nine-pair signature is no longer
