@@ -160,6 +160,7 @@ class LedgerArchitectureContract(unittest.TestCase):
 
     def test_conflicting_carrier_port_and_ps_holds(self):
         data = example()
+        choose_one(data, which=1)
         data[1]["routePortIncidence"][0]["node"] = [0, 699]
         data[3]["xmlSha256"] = data[6]["xmlSha256"] = digest(data[1])
         self.assertHeld(data, "OWNER_PROOFS_CONTRADICT")
