@@ -388,10 +388,19 @@ def _validate_finalized_geometry(packet, source, staged_json_path=None, support_
     _native_lineage_probe('LINEAGE_PREFINAL_RESTRAINT_REPLAY')
     supports_verified = replay_prefinal_restraints(
         expected, packet, staged_json_path, support_config, require)
+    v2_supports = ((final.get('prefinalRestraints') or {}).get('schema') ==
+                   'XML229.PrefinalRestraints.v2')
     for bi, (branch, ordinals) in enumerate(zip(branches(expected), retained)):
         keep = set(ordinals)
         for original_index, node in enumerate(nodes(branch)):
             if original_index not in keep:
+                # F16: independently replay the original source members,
+                # then forbid a claimed Final that discarded their XML
+                # carrier without a reviewed source-member rebind witness.
+                # This closes a Worker packet forgery / stale cleanup gap.
+                if v2_supports:
+                    require(not any(tag(r) == 'Restraint' for r in node),
+                            'NATIVE_V2_RESTRAINT_CARRIER_REMOVED_BY_CLEANUP')
                 branch.remove(node)
             else:
                 if (bi, original_index) in normalized:
