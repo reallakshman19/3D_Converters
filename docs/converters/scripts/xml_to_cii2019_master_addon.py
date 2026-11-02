@@ -855,29 +855,50 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
         carrier_declared = entry.get("sourceCarrierRefDeclared") is True
         carrier_ref = entry.get("sourceCarrierRefNo") or ""
         if carrier_declared and len(hits) > 1:
-            # A source carrier can denote a finite edge away from a support's
-            # unique XML node. This authority is only used to break otherwise
-            # ambiguous positional ties; never veto an already unique owner.
-            # Topology contract: COMPRE/ATTACHED_COMPONENT_REF is a producer
-            # supplied carrier edge, not the support's own REF. The referenced
-            # route item must occur exactly once in the same original branch;
-            # its exact REF must identify exactly one *positional* XML node.
-            # Missing/invalid/duplicated route carrier or contradictory PS/XML
-            # identity is a HOLD, never a fallback to the nearest XML node.
+            # A producer-owned COMPRE/ATTACHED_COMPONENT_REF identifies a
+            # route CARRIER, often an edge, not necessarily the XML support
+            # node at this position. It may resolve an existing two-node tie
+            # ONLY when its verified route REF equals one candidate XML ref.
+            # Zero matches means the carrier is a separate edge: keep the
+            # independently corroborated PS / original-authored node route.
+            # An invalid producer declaration or duplicated XML carrier ref
+            # cannot manufacture an owner and must fail closed.
             carrier_hits = ([i for i in hits if rows[i][4] == carrier_ref]
                             if entry.get("sourceCarrierRouteUnique") else [])
             authored_hits = original_source_restraint_owner(entry, hits)
-            if (len(carrier_hits) != 1 or
-                (source_ref and carrier_ref != source_ref) or
-                (len(uniquely_tagged) == 1 and
-                 carrier_hits[0] != uniquely_tagged[0]) or
-                (len(authored_hits) == 1 and
-                 carrier_hits[0] != authored_hits[0])):
-                # Contradictory independently authored source restraint is
-                # never silently overridden by a route-carrier relationship.
+            if not entry.get("sourceCarrierRouteUnique") or len(carrier_hits) > 1:
                 hits = []
+            elif len(carrier_hits) == 1:
+                if ((source_ref and carrier_ref != source_ref) or
+                    (len(uniquely_tagged) == 1 and
+                     carrier_hits[0] != uniquely_tagged[0]) or
+                    (len(authored_hits) == 1 and
+                     carrier_hits[0] != authored_hits[0])):
+                    hits = []
+                else:
+                    hits = carrier_hits
             else:
-                hits = carrier_hits
+                # Valid route-carrier edge, but it does not identify either
+                # coincident XML node. Do NOT treat this as negative PS
+                # evidence, and never choose a node by carrier proximity.
+                # Two independently unique but contradictory owners HOLD.
+                if (len(uniquely_tagged) == 1 and len(authored_hits) == 1 and
+                    uniquely_tagged[0] != authored_hits[0]):
+                    hits = []
+                elif source_ref:
+                    # Independently declared exact XML support-node identity
+                    # may still resolve a remote carrier's attachment.
+                    xml_ref_hits = [i for i in hits if rows[i][4] == source_ref]
+                    if (len(xml_ref_hits) != 1 or
+                        (len(uniquely_tagged) == 1 and
+                         xml_ref_hits[0] != uniquely_tagged[0]) or
+                        (len(authored_hits) == 1 and
+                         xml_ref_hits[0] != authored_hits[0])):
+                        hits = []
+                    else:
+                        hits = xml_ref_hits
+                # Otherwise retain all positional candidates for the
+                # established PS/original/precision fail-closed resolver.
         elif source_ref:
             hits = [i for i in hits if rows[i][4] == source_ref]
             if len(hits) == 1 and len(uniquely_tagged) == 1 and hits[0] != uniquely_tagged[0]:
