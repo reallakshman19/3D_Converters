@@ -575,7 +575,7 @@ class ScopedAmbiguityTests(unittest.TestCase):
         line = next(line for line in log.getvalue().splitlines()
                     if line.startswith("XML229_STAGED_POSITION_AMBIGUITY "))
         card = json.loads(line.split(" ", 1)[1])
-        self.assertEqual(card["matcherRevision"], "XML229_POSITION_CARRIER_AUTHORITY_V4")
+        self.assertEqual(card["matcherRevision"], "XML229_POSITION_CARRIER_EDGE_V5")
         self.assertEqual(card["matchToleranceMm"], 3.0)
         self.assertEqual(card["count"], 1)
         witness = card["sample"][0]
