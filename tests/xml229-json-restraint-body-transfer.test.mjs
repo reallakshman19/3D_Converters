@@ -104,3 +104,41 @@ test('real Preview → Worker Final geometry → actual native enriched XML/CII 
   assert.match(result,/SOURCE_JSON_NATIVE_TRANSFER_PASS/);
  }finally{await rm(folder,{recursive:true,force:true});}
 });
+
+test('V2 physical-vertex pre-Final → actual governed native CII + negative challenges',async()=>{
+ const sourceId='JSON-VERTEX-V2',masters={},overrides={},selection=[{sourceId,selectionRef:'all'}];
+ const stagedSource=JSON.stringify(staged());
+ const v2Config={...config,xml229CanonicalNumberProposal:true,xml229PhysicalVertexPrefinal:true};
+ const basis=await createPreviewBasis({domainId:'xml-cii/2019',
+  sources:[{sourceId,mediaType:'application/xml',text:XML}],
+  masters,selection,stagedSource,config:v2Config,overrides,sha256:digestUtf8});
+ const original=projectXmlCiiOccurrences({xmlText:XML,sourceId});
+ const preview=xmlCiiDryRunPreview(XML,structuredClone(v2Config),stagedSource);
+ const opened=await openXml229EngineeringFactModel({basis,
+  live:{sources:{[sourceId]:XML},masters,selection,stagedSource,config:v2Config,overrides},
+  xmlText:XML,sourceId,previewResult:{...preview,sourceOccurrences:original,
+   engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},
+  expectedOriginalCount:7});
+ assert.equal(opened.finalizedGeometry.prefinalRestraints.schema,'XML229.PrefinalRestraints.v2');
+ assert.equal(opened.finalizedGeometry.prefinalRestraints.physicalVertexMemberCensus.projectedSlotCount,3);
+ assert.equal(opened.finalizedGeometry.prefinalRestraints.physicalVertexMemberCensus.originalPositionsModified,0);
+ assert.equal(opened.finalizedGeometry.canonicalNodeNumberProposal.summary.finalGeometryModified,false);
+ const packet={schema:'XML229.NativeFinalPhysicalPacket.v1',
+  sourceId,basisId:basis.basisId,sourceXmlSha256:await digestUtf8(XML),
+  originalJsonSha256:await digestUtf8(stagedSource),
+  finalIntentSha256:'b'.repeat(64),physicalCount:1,nativeCiiReleaseAuthorized:false,
+  finalizedGeometry:opened.finalizedGeometry,
+  components:opened.physicalOccurrences.map(o=>({occurrenceId:o.occurrenceId,effectiveKg:12.5}))};
+ const folder=await mkdtemp(join(tmpdir(),'xml229-physical-v2-native-'));
+ try{
+  await Promise.all([
+   ['source.xml',XML],['staged.json',stagedSource],
+   ['config.json',JSON.stringify(v2Config)],['packet.json',JSON.stringify(packet)],
+  ].map(([name,data])=>writeFile(join(folder,name),data)));
+  const python=process.env.PYTHON||(process.platform==='win32'?'python':'python3');
+  const result=execFileSync(python,[
+   fileURLToPath(new URL('./xml229-json-restraint-native-check.py',import.meta.url)),
+   folder],{encoding:'utf8'});
+  assert.match(result,/SOURCE_JSON_NATIVE_TRANSFER_PASS/);
+ }finally{await rm(folder,{recursive:true,force:true});}
+});
