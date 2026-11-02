@@ -44,7 +44,7 @@ def triple(value):
                  abc(value, 'z', 'Z', 'U', 'EL', 'elev', 'elevation')]
     elif isinstance(value, str):
         numeric=re.split(r'[\s,;]+',value.strip())
-        if len(numeric)==3:
+        if len(numeric)==3 and all(NUMERIC.fullmatch(part) for part in numeric):
             value=numeric
         else:
             directional=re.findall(
