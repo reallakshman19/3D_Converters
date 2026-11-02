@@ -1,4 +1,8 @@
-# XML229 — canonical support ownership: replace dual position matchers
+# XML229 — historical, superseded row-owner architecture (DO NOT IMPLEMENT AS-WRITTEN)
+
+> **SUPERSEDED by [coordinate-preserving physical-node / nodal-restraint / rigid-split two-pass design](xml229-coordinate-vertex-nodal-two-pass-rfc.md) (Owner correction 2026-11-02).**
+>
+> The earlier assumption that every staged support must choose **one original XML row** was incorrect for multiple connected source occurrences at one physical node, including repeated `-1` placeholders. The earlier "unresolved coincident rows ⇒ HOLD" reasoning and the synthetic 27-case test harness **do not qualify the corrected design**. Read the successor RFC as the authoritative scope: (1) physical-node equivalence with source XYZ preserved, (2) 1..6 nodal support slots and Step 7→8, (3) rigid splitting followed by a node/weight second pass. Historical regression gates below still apply where compatible.
 
 Status: **ARCHITECTURE RFC — not a production fix, not native release authority**  
 Owner evidence: 2026-11-02 V6 governed browser Run, `XML229_STAGED_POSITION_AMBIGUOUS`, 21 mandatory claims at 0.5 mm; V6 reference categories in the bounded receipt.  
