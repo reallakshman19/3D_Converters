@@ -1590,7 +1590,7 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None,
                            if isinstance(support_config, dict) else None)
         applied_tolerance = addon._dtxr_position_offset(position_option)["tolerance"]
         print("XML229_STAGED_POSITION_AMBIGUITY " + json.dumps({
-            "matcherRevision": "XML229_POSITION_PRECISION_V2",
+            "matcherRevision": "XML229_POSITION_ORIGINAL_AUTHOR_V3",
             "matchToleranceMm": (round(applied_tolerance, 6)
                                  if math.isfinite(applied_tolerance) else None),
             "count": mandatory_ambiguous, "sample": conflicts,
