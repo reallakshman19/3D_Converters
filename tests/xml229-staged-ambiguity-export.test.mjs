@@ -65,6 +65,32 @@ test('V3 native original-source proof remains bounded, typed and independently i
  ])assert.equal(readXml229BoundedStagedPositionEvidence([
   'XML229_STAGED_POSITION_AMBIGUITY '+JSON.stringify(bad)]),null);
 });
+test('V4 source carrier proof is bounded, typed and does not leak carrier reference',()=>{
+ const original={...sample,matcherRevision:'XML229_POSITION_CARRIER_AUTHORITY_V4',
+  sample:sample.sample.map((e,i)=>({...e,
+   originalSourceProofPresent:true,originalSourceRestraintCandidates:0,
+   originalMatchingRestraintCandidates:0,
+   carrierRefDeclared:true,
+   carrierRouteVerified:i===0,
+   carrierCandidateCount:i===0?2:0,
+   COMPRE:'PRIVATE_REFERENCE',
+  }))};
+ const resolved=readXml229BoundedStagedPositionEvidence([
+   'XML229_STAGED_POSITION_AMBIGUITY '+JSON.stringify(original)]);
+ assert.equal(resolved.matcherRevision,'XML229_POSITION_CARRIER_AUTHORITY_V4');
+ assert.equal(resolved.sample[0].carrierRefDeclared,true);
+ assert.equal(resolved.sample[0].carrierRouteVerified,true);
+ assert.equal(resolved.sample[0].carrierCandidateCount,2);
+ assert.equal(resolved.sample[1].carrierRouteVerified,false);
+ assert.equal(JSON.stringify(resolved).includes('PRIVATE_REFERENCE'),false);
+ for(const bad of [
+  {...original,sample:[{...original.sample[0],carrierRefDeclared:'true'}]},
+  {...original,sample:[{...original.sample[0],carrierCandidateCount:3}]},
+  {...original,sample:[{...original.sample[1],carrierCandidateCount:1}]},
+  {...original,sample:[{...original.sample[1],carrierRefDeclared:false,carrierRouteVerified:true}]},
+ ])assert.equal(readXml229BoundedStagedPositionEvidence([
+   'XML229_STAGED_POSITION_AMBIGUITY '+JSON.stringify(bad)]),null);
+});
 test('legacy pre-version receipt remains bounded and scope optional',()=>{
  const older={count:1,sampleTruncated:false,sample:[{
   sourceClaimIndex:3,reason:'NON_UNIQUE_POSITION_OWNER',
