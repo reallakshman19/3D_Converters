@@ -19,41 +19,100 @@ const job = (names, config = configured) => ({
   options: { outputMode: 'both' },
 });
 
-test('a direct API conversion cannot bypass selected-population ambiguous-format custody', async () => {
-  const config = structuredClone(configured);
-  config.regexTester.formats.push({
-    lineKey: { regex: '(S8822000)' }, pipingClass: { regex: '(S8822000)' },
+test('conflicting formats withhold enrichment but permit base XML→CII',async()=>{
+  const cfg=structuredClone(configured);
+  cfg.regexTester.formats.push({
+    lineKey:{regex:'(S8822000)'},pipingClass:{regex:'(S8822000)'},
   });
-  let invoked = false;
-  const result = await runXmlCii2019WorkflowService(job([b1, b2], config), {
-    runParityEnricher: async () => { invoked = true; return null; },
-  });
-  assert.equal(result.ok, false);
-  assert.equal(invoked, false, 'engine preflight must stop before parity/converter invocation');
-  assert.match(result.error, /Configured branch identity blocked/);
-  assert.equal(result.enrichedText, '');
-  assert.equal(result.ciiText, null);
-  assert.equal(result.diagnostics?.converterInputReleased, false);
-});
-
-test('a valid source extraction still blocks converter release when exact Line List conflicts', async () => {
-  let parityCalls = 0;
-  const result = await runXmlCii2019WorkflowService(job([b2]), {
-    runParityEnricher: async () => {
-      parityCalls += 1;
-      return {
-        applied: true, error: null, evidence: { ok: true, engineInputDigest: 'source-digest' },
-        logs: [], stats: {}, xmlText: xml([b2]),
-        branchRows: [{ branchName: b2, extractionStatus: 'AMBIGUOUS',
-          lineKey: 'S8822000', pipingClass: '', branchIdentityConflict: 'EXACT_LINE_LIST_CLASS_CONFLICT' }],
-      };
+  const source=job([b1,b2],cfg);
+  let forwarded=null;
+  const result=await runXmlCii2019WorkflowService(source,{
+    runParityEnricher:async()=>{throw Error('Unresolved enrichment cannot run');},
+    engineRunner:async j=>{
+      forwarded=j;
+      return {ok:true,ciiText:'SYNTHETIC',diagnostics:{}};
     },
   });
-  assert.equal(parityCalls, 1);
-  assert.equal(result.ok, false);
-  assert.match(result.error, /Preview branch identity is not qualified/);
-  assert.equal(result.diagnostics?.converterInputReleased, false);
-  assert.equal(result.ciiText, null);
+  assert.equal(result.ok,true);
+  assert.equal(forwarded.sourceText,source.sourceText);
+  assert.equal(forwarded.supportConfigJson,'{}');
+  assert.equal(result.diagnostics.optionalEnrichment.status,'WITHHELD');
+  assert.equal(result.diagnostics.optionalEnrichment.nativeReleaseNotImplied,true);
+});
+
+test('all enrichment masters absent still starts raw conversion',async()=>{
+  let forwarded;
+  const result=await runXmlCii2019WorkflowService(job([b1],{}),{
+    engineRunner:async j=>{
+      forwarded=j;return {ok:true,ciiText:'SYNTHETIC',diagnostics:{}};
+    },
+    runParityEnricher:async()=>{throw Error('No master needed');},
+  });
+  assert.equal(result.ok,true);
+  assert.equal(forwarded.supportConfigJson,'{}');
+  assert.equal(result.diagnostics.optionalEnrichment.reason,'NO_IMPORTED_MASTER_ENRICHMENT');
+});
+
+test('raw conversion never drops governed Final packet',async()=>{
+  let ran=false;
+  const source={...job([b1],{}),xml229NativeFinalPacket:{basisId:'source-bound'}};
+  const result=await runXmlCii2019WorkflowService(source,{
+    engineRunner:async()=>{ran=true;return {ok:true};},
+  });
+  assert.equal(ran,false);
+  assert.equal(result.ok,false);
+  assert.match(result.error,/BASE_XML_REQUIRES_SEPARATE_GOVERNED_FINAL_REVIEW/);
+});
+
+test('manual Preview facts cannot be silently stripped by raw fallback',async()=>{
+  const source={...job([b1],{}),manualFacts:[{key:'explicit',value:1}]};
+  let invoked=false;
+  const result=await runXmlCii2019WorkflowService(source,{
+    engineRunner:async()=>{invoked=true;return {ok:true};},
+  });
+  assert.equal(invoked,false);
+  assert.equal(result.ok,false);
+  assert.match(result.error,/BASE_XML_REQUIRES_SEPARATE_GOVERNED_FINAL_REVIEW/);
+});
+
+test('raw fallback preserves non-master JSON coordinate calibration settings',async()=>{
+  const config={dtxrPositionOffset:{enabled:true,zOffset:100000}};
+  let called;
+  await runXmlCii2019WorkflowService(job([b1],config),{
+    engineRunner:async j=>{called=j;return {ok:true,ciiText:'SYNTHETIC',diagnostics:{}};},
+  });
+  assert.deepEqual(JSON.parse(called.supportConfigJson),config);
+});
+
+test('raw conversion keeps staged JSON subject to its own native guard',async()=>{
+  const source={...job([b1],{}),stagedJsonText:'{"source":"selected"}'};
+  let forwarded;
+  const result=await runXmlCii2019WorkflowService(source,{
+    engineRunner:async j=>{
+      forwarded=j;
+      return {ok:false,error:'XML229_STAGED_POSITION_AMBIGUOUS',diagnostics:{}};
+    },
+  });
+  assert.equal(forwarded.stagedJsonText,source.stagedJsonText);
+  assert.equal(result.ok,false);
+});
+
+test('Preview conflict cannot inject its enriched XML into base output',async()=>{
+  let forwarded;
+  const result=await runXmlCii2019WorkflowService(job([b2]),{
+    runParityEnricher:async()=>({
+      applied:true,error:null,evidence:{ok:true,engineInputDigest:'digest'},
+      logs:[],stats:{},xmlText:'<UNVERIFIED_MUTATION/>',
+      branchRows:[{branchName:b2,extractionStatus:'AMBIGUOUS',
+        lineKey:'S8822000',pipingClass:'',branchIdentityConflict:'EXACT_LINE_LIST_CLASS_CONFLICT'}],
+    }),
+    engineRunner:async j=>{
+      forwarded=j;return {ok:true,ciiText:'SYNTHETIC',diagnostics:{}};
+    },
+  });
+  assert.equal(result.ok,true);
+  assert.equal(forwarded.sourceText,xml([b2]));
+  assert.equal(forwarded.supportConfigJson,'{}');
 });
 
 test('population counts include duplicate occurrences and cannot reuse one preview result', () => {
@@ -129,4 +188,14 @@ test('U5: 28 selected branch occurrences require full per-occurrence Preview ide
   const dropped = auditConfiguredBranchFormats(occurrences, configured, reviewed.slice(0, 27));
   assert.equal(dropped.blocked, true);
   assert.ok(dropped.failures.some(f => f.reason === 'POPULATION_COUNT_MISMATCH'));
+});
+
+test('issue 376 EF05 real Python 7-case optional enrichment conversion matrix',async()=>{
+  const {proveNativeOptionalMatrix}=await import('./xml229-issue376-source-native-matrix.mjs');
+  const proof=await proveNativeOptionalMatrix();
+  assert.equal(proof.scenarios,7);
+});
+test('issue 376 two Preview passes do not select Rating or conflict authority',async()=>{
+  const {proveDualFormatPreview}=await import('./xml229-issue376-source-native-matrix.mjs');
+  assert.equal(proveDualFormatPreview(),true);
 });
