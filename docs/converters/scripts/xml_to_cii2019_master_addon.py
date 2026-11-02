@@ -661,7 +661,8 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
     assignments: dict[int, list[dict[str, Any]]] = {}
     ambiguous = 0
 
-    def record_conflict(claim_index: int, reason: str, groups: list[list[int]]) -> None:
+    def record_conflict(claim_index: int, reason: str, groups: list[list[int]],
+                        witness_points: list[dict[str, float]] | None = None) -> None:
         scope = conflict_scope(entries[claim_index])[0] if conflict_scope else "MANDATORY"
         if conflict_counts is not None:
             conflict_counts[scope] = conflict_counts.get(scope, 0) + 1
@@ -678,6 +679,19 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
                 return
             conflict_samples.pop(excluded)
         owner_rows = sorted({index for group in groups for index in group})
+        points = witness_points or []
+        # Source-safe evidence: emit counts and categorical geometry ONLY.
+        # Never include private coordinates, paths, source names, or offsets.
+        precision = min(tol, DEFAULT_DTXR_POSITION_OFFSET["tolerance"])
+        precise = [i for i in owner_rows if points and all(
+            _positions_match(rows[i][2], point, precision) for point in points)]
+        guarded = [i for i in owner_rows if points and any(
+            _positions_match(rows[i][2], point, 2 * precision) for point in points)]
+        coincident = all(all(
+            abs(rows[a][2][axis] - rows[b][2][axis]) <= 1e-6
+            for axis in ("x", "y", "z"))
+            for a, b in itertools.combinations(owner_rows, 2))
+        tags = entries[claim_index].get("tags") or set()
         conflict_samples.append({
             "scope": scope,
             "type": "dtxr-position-ambiguous",
@@ -685,6 +699,14 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
             "reason": reason,
             "candidateCount": len(owner_rows),
             "candidatePositionRowIndices": owner_rows[:12],
+            "candidateGeometry": "COINCIDENT" if coincident else "DISTINCT",
+            "preciseCandidateCount": len(precise),
+            "guardBandCandidateCount": len(guarded),
+            "matchedTransformCount": len(points),
+            "psCorroboratedCandidateCount": sum(bool(rows[i][3] & tags)
+                                               for i in owner_rows),
+            "explicitXmlRefPresent": bool(entries[claim_index].get(
+                "sourceComponentRefNo")),
         })
 
     for claim_index, entry in enumerate(entries):
@@ -703,7 +725,8 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
         # Competing transforms must not silently claim different source nodes.
         if any(set(hit) != set(matches[0]) for hit in matches[1:]):
             ambiguous += 1
-            record_conflict(claim_index, "COMPETING_POSITION_TRANSFORMS", matches)
+            record_conflict(claim_index, "COMPETING_POSITION_TRANSFORMS",
+                            matches, matched_positions)
             continue
         hits = matches[0]
         # An exact XML ComponentRefNo can distinguish truly coincident nodes.
@@ -741,7 +764,8 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
                 hits = exact if separated else []
         if len(hits) != 1:
             ambiguous += 1
-            record_conflict(claim_index, "NON_UNIQUE_POSITION_OWNER", matches[:1])
+            record_conflict(claim_index, "NON_UNIQUE_POSITION_OWNER",
+                            matches[:1], matched_positions)
             continue
         node = rows[hits[0]][0]
         assignments.setdefault(id(node), []).append(entry)
