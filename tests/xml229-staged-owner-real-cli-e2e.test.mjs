@@ -8,6 +8,12 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { reconcileXml229ActualCiiAgainstFinal }
   from '../converters/xml-cii2019-core/xml229-native-cii-independent-reconciliation.mjs';
+import { verifyCiiEngineeringAgainstNativeXml }
+  from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-propagation-proof.mjs';
+import { installWeightBasisXmlDom }
+  from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
+
+installWeightBasisXmlDom(globalThis);
 
 // Full real Python native-CLI run. This fixture is synthetic engineering
 // evidence and is NOT the Owner's private accepted Final/JSON packet.
@@ -114,6 +120,27 @@ test('actual native CLI retains many-to-one REST | GUIDE | LINE STOP and indepen
     ], 'actual emitted native CII must preserve all three DOF slots and explicit gaps');
     assert.equal(nativeRestraints(cii).some(row => row.node === 10), false,
       'nearby ordinary component must not inherit restraints');
+    const engineering = verifyCiiEngineeringAgainstNativeXml(consumed, cii);
+    assert.equal(engineering.status, 'VERIFIED');
+    assert.equal(engineering.restraints, 3);
+    assert.equal(engineering.evidence.filter(e => e.field === 'restraint').length, 3,
+      'the production independent engineering verifier must challenge each CII slot');
+     // Challenge one real emitted gap while preserving all other CII bytes.
+    const changedRows = cii.split('\\n');
+    const restrantHeader = changedRows.indexOf('#$ RESTRANT');
+    assert.ok(restrantHeader >= 0);
+    const guideIndex = changedRows.findIndex((line, i) =>
+      i > restrantHeader && i < restrantHeader + 40 &&
+      Number(line.trim().split(/\\s+/)[0]) === 20 &&
+      Number(line.trim().split(/\\s+/)[1]) === 8);
+    assert.ok(guideIndex > restrantHeader, 'GUIDE CII slot must exist');
+    const guideFields = changedRows[guideIndex].trim().split(/\\s+/);
+    guideFields[3] = '7.000000';
+    changedRows[guideIndex] = guideFields.join(' ');
+    assert.throws(
+      () => verifyCiiEngineeringAgainstNativeXml(consumed, changedRows.join('\\n')),
+      /CII_VERIFIED_RESTRAINT_TYPE_OR_GAP_CONFLICT/,
+      'independent checker must refuse tampered GUIDE gap');
     const writerDiagnostic = JSON.parse(readFileSync(run.proofPath, 'utf8'));
     const independent = await reconcileXml229ActualCiiAgainstFinal({
       originalXmlText: baseXml, packet: run.packet, ciiText: cii,
