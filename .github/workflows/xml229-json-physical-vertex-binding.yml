@@ -1,0 +1,44 @@
+name: XML229 JSON Physical Vertex Bind (Nonreleasing)
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-json-physical-vertex-binding.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-json-physical-vertex-binding.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-original-physical-vertices.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-original-physical-vertices.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
+      - 'tests/xml229-json-physical-vertex-binding.test.mjs'
+      - '.github/workflows/xml229-json-physical-vertex-binding.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-source-member-vertex-binding:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Actual served roots and module syntax
+        run: |
+          for file in xml229-json-physical-vertex-binding.mjs xml229-original-physical-vertices.mjs xml229-preview-engineering-fact-producer.mjs; do
+            cmp "tabs/xml-cii-2019-standalone/integration/$file" "docs/tabs/xml-cii-2019-standalone/integration/$file"
+            node --check "tabs/xml-cii-2019-standalone/integration/$file"
+          done
+      - name: Source JSON to connected physical vertex and existing contracts
+        run: |
+          node --test tests/xml229-json-physical-vertex-binding.test.mjs tests/xml229-original-physical-vertices.test.mjs tests/xml229-physical-lineage-contract.test.mjs tests/xml229-nodal-restraint-six-slot.test.mjs
+      - name: Conformance disclaimer
+        run: |
+          echo "READ ONLY: source JSON physical-vertex binding shadow"
+          echo "Final/native CII still uses old matcher: no release authority"
+          echo "Owner private 21-claim replay NOT_RUN"

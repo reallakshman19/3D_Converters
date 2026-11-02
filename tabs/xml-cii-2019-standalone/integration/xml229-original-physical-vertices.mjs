@@ -77,6 +77,7 @@ export function indexXml229OriginalPhysicalVertices({xmlText,sourceXmlSha256='',
       if(coordinateKey===null)invalidPositionCount++;
       const row=Object.freeze({
         branchOccurrenceIndex:bi,sourceNodeOrdinal:ni,
+        sourceBranchName:field(branch,'Branchname'),
         sourceNodeNumber:field(node,'NodeNumber'),
         coordinateKey,positionRaw:pos,
       });

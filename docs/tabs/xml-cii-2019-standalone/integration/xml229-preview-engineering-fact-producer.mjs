@@ -17,8 +17,8 @@ import {assertBasisDigest,canonicalJson,digestCanonical,digestUtf8,validateFactR
 import {isolatedOriginalPreviewWorkConfig} from './xml229-original-preview-work-config.mjs';
 import {finalizeXml229WeightGeometry} from './xml229-finalized-weight-geometry.mjs';
 import {prepareXml229PrefinalRestraints} from './xml229-prefinal-restraints.mjs';
-import {indexXml229OriginalPhysicalVertices}
-  from './xml229-original-physical-vertices.mjs';
+import {bindXml229JsonToPhysicalVertices}
+  from './xml229-json-physical-vertex-binding.mjs';
 import {indexXml229ComponentBodyBores} from './xml229-component-body-bore.mjs';
 import {projectXmlCiiOccurrences}
   from '../ui-adapted/xml-cii-adapted-preview-facts-xml-source.js';
@@ -302,11 +302,20 @@ export async function openXml229EngineeringFactModel({
   // Keep disabled in production until the exact large-source Worker budget and
   // source graph identity tests are qualified.
   const physicalVertexShadow=live.config?.xml229PhysicalVertexShadow===true
-    ?indexXml229OriginalPhysicalVertices({
-      xmlText,sourceXmlSha256:basis.sourceRefs[0].sha256,
-      branchConnectionAliases:
-        finalizedGeometry.physicalLineage.branchConnectionAliases,
-    }).summary
+    ?(()=>{
+      const verified=bindXml229JsonToPhysicalVertices({
+        originalXmlText:xmlText,
+        stagedJsonText:live.stagedSource||'',
+        config:workConfig,
+        sourceXmlSha256:basis.sourceRefs[0].sha256,
+        branchConnectionAliases:
+          finalizedGeometry.physicalLineage.branchConnectionAliases,
+      });
+      // Only bounded counts. No source positions, support tags, or raw JSON
+      // leave the Worker through this diagnostic shadow path.
+      return Object.freeze({...verified.vertexIndex.summary,...verified.summary,
+        nodalSlotCount:verified.nodalSlots?.verifiedSourceMemberSegments||0});
+    })()
     :null;
   if(physicalVertexShadow&&
     (physicalVertexShadow.originalNodeOccurrences!==projection.nodeCount||
