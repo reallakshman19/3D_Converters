@@ -1612,6 +1612,8 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
         "dtxrPosOwners": stats.get("dtxrPos", 0),
         "dtxrPsOwners": stats.get("dtxrPs", 0),
         "ambiguous": stats.get("dtxrPosAmbiguous", 0),
+        "mandatoryPositionClaimsAmbiguous": stats.get("dtxrPosMandatoryAmbiguous", 0),
+        "excludedPositionClaimsAmbiguous": stats.get("dtxrPosExcludedAmbiguous", 0),
         "unmatchedPositionClaims": stats.get("dtxrPosUnmatched", 0),
         "mandatoryPositionClaimsUnmatched": stats.get("dtxrPosMandatoryUnmatched", 0),
         "positionClaimsExcluded": stats.get("dtxrPosExcluded", 0),
