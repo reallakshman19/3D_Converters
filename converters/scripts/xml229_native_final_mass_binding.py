@@ -423,7 +423,8 @@ def _validate_finalized_geometry(packet, source, staged_json_path=None, support_
         verify_audit(source,snapshot,retained,
                      lineage.get("branchConnectionAliases") or [],
                      packet["sourceXmlSha256"],
-                     final["canonicalVertexContractionAudit"],require)
+                     final["canonicalVertexContractionAudit"],require,
+                     require_contracted=True)
     require(child(snapshot, LINEAGE_STAGE) is None and
             not any(child(n, LINEAGE_TAG) is not None
                     for branch in selected for n in nodes(branch)),
