@@ -1,0 +1,36 @@
+name: XML229 IR F18 F19 Topology Falsification
+on:
+  pull_request:
+    paths:
+      - 'tests/xml229-ir-f18-f19-topology-falsifiers.test.mjs'
+      - '.github/workflows/xml229-ir-f18-f19-falsifiers.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reproduce-graph-premise-and-tee-junction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: F18/F19 source port and TEE synthetic adversarial tests
+        run: |
+          node --check tests/xml229-ir-f18-f19-topology-falsifiers.test.mjs
+          node --test tests/xml229-ir-f18-f19-topology-falsifiers.test.mjs
+      - name: Existing port and physical-vertex positive controls
+        run: |
+          node --test tests/xml229-original-physical-vertices.test.mjs tests/xml229-tee-port-route.test.mjs tests/xml229-json-physical-vertex-binding.test.mjs
+      - name: Explicit diagnostic-only scope
+        run: |
+          echo "PASS on a known unsafe behavior is a successful defect reproduction, not product safety."
+          echo "Exact production V6 source still unavailable; native output for F18/F19 not proved."
+          echo "No converter implementation changes, release or merge authorization."
