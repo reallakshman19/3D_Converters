@@ -34,3 +34,9 @@ DEBT-1: New focused test is not explicitly in current CI workflow; execute on ex
 
 ## EXACT_NEXT_ACTION
 Use the bounded ambiguity diagnostic from a real governed Final execution to identify failing claim indices and candidate source position rows, recover exact finalized source geometry and staged JSON offsets, resolve ownership with independent evidence (not heuristics), rerun native CII, verify all Final masses and physical owners independently, and only then authorize .cii download. Meanwhile run new focused JS and Python test on exact PR head and real Chromium. No merge/deployment authority.
+
+
+## Addendum — Safe native failure evidence is now downloadable
+Production now exposes only validated, allowlisted `XML229.NativeStagedPositionAmbiguity.v1` samples from native stdout. These appear in the existing `Download execution debug JSON` and `Download safe native failure diagnostic JSON` artifacts on failed native runs; original raw logs, JSON, coordinates and model names remain withheld. Production adds `xml229-native-converter-failure-diagnostic.mjs`, `xml229-native-run-debug.mjs` and their mirrors; current production-file parity covers eight root/docs pairs.
+New test: `tests/xml229-staged-ambiguity-export.test.mjs`, validates typed Python failure receipt, bounded sample, privacy and no release authority. Local test of equivalent implementation PASS; exact PR-head test not yet observed in CI.
+Public original EF05 + public original JSON is not the accepted Final basis; actual ambiguous claim indices remain unknown. Governed CII remains HELD. Continue with exact finalized source geometry and confirmed bounded sample.
