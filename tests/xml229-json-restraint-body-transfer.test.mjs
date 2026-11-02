@@ -76,14 +76,20 @@ test('component body bore follows source FROM OD while endpoint2 port stays inta
 test('real Preview → Worker Final geometry → actual native enriched XML/CII with independent negative challenges',async()=>{
  const sourceId='JSON-TRANSFER',masters={},overrides={},selection=[{sourceId,selectionRef:'all'}];
  const stagedSource=JSON.stringify(staged());
+ const optInConfig={...config,xml229CanonicalNumberProposal:true};
  const basis=await createPreviewBasis({domainId:'xml-cii/2019',sources:[{sourceId,mediaType:'application/xml',text:XML}],
-  masters,selection,stagedSource,config,overrides,sha256:digestUtf8});
+  masters,selection,stagedSource,config:optInConfig,overrides,sha256:digestUtf8});
  const original=projectXmlCiiOccurrences({xmlText:XML,sourceId});
- const preview=xmlCiiDryRunPreview(XML,structuredClone(config),stagedSource);
+ const preview=xmlCiiDryRunPreview(XML,structuredClone(optInConfig),stagedSource);
  const opened=await openXml229EngineeringFactModel({basis,
-  live:{sources:{[sourceId]:XML},masters,selection,stagedSource,config,overrides},
+  live:{sources:{[sourceId]:XML},masters,selection,stagedSource,config:optInConfig,overrides},
   xmlText:XML,sourceId,previewResult:{...preview,sourceOccurrences:original,
    engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},expectedOriginalCount:7});
+ const proposal=opened.finalizedGeometry.canonicalNodeNumberProposal;
+ assert.equal(proposal.schema,'XML229.PreFinalCanonicalNodeNumberProposal.v1');
+ assert.equal(proposal.originalNodeCount,6);
+ assert.equal(proposal.summary.finalGeometryModified,false);
+ assert.equal(proposal.summary.nativeReleaseAuthorized,false);
  const packet={schema:'XML229.NativeFinalPhysicalPacket.v1',sourceId,basisId:basis.basisId,
   sourceXmlSha256:await digestUtf8(XML),originalJsonSha256:await digestUtf8(stagedSource),
   finalIntentSha256:'b'.repeat(64),physicalCount:1,nativeCiiReleaseAuthorized:false,
@@ -91,7 +97,7 @@ test('real Preview → Worker Final geometry → actual native enriched XML/CII 
   components:opened.physicalOccurrences.map(o=>({occurrenceId:o.occurrenceId,effectiveKg:12.5}))};
  const folder=await mkdtemp(join(tmpdir(),'json-restraint-native-'));
  try{
-  await Promise.all([['source.xml',XML],['staged.json',stagedSource],['config.json',JSON.stringify(config)],
+  await Promise.all([['source.xml',XML],['staged.json',stagedSource],['config.json',JSON.stringify(optInConfig)],
    ['packet.json',JSON.stringify(packet)]].map(([name,data])=>writeFile(join(folder,name),data)));
   const python=process.env.PYTHON||(process.platform==='win32'?'python':'python3');
   const result=execFileSync(python,[fileURLToPath(new URL('./xml229-json-restraint-native-check.py',import.meta.url)),folder],{encoding:'utf8'});
