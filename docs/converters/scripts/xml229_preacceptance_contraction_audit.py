@@ -199,8 +199,8 @@ def root(parent,index):
 
 
 def verify_audit(original,final,retained,aliases,source_sha,claimed,fail):
-    require(isinstance(claimed,dict) and claimed.get('schema')==SCHEMA,
-            'NATIVE_CONTRACTION_SCHEMA_INVALID')
+    fail(isinstance(claimed,dict) and claimed.get('schema')==SCHEMA,
+         'NATIVE_CONTRACTION_SCHEMA_INVALID')
     derived=expected_audit(original,final,retained,aliases,source_sha)
     fail(claimed==derived,'NATIVE_CONTRACTION_AUDIT_DRIFT')
     return derived
