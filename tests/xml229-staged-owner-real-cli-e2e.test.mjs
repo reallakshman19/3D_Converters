@@ -244,6 +244,49 @@ test('real native CII CLI binds multiple support members through verified COMPRE
   } finally { run.dispose(); }
 });
 
+test('real native CLI preserves PS-owned REST | GUIDE | LINE STOP when COMPRE names remote edge',async()=>{
+  // Regression for actual V4 receipt: carrierRouteVerified=true and
+  // carrierCandidateCount=0, but precisely ONE candidate XML node has PS.
+  const original=baseXml
+    .replace('<Position>0 0 0</Position>','<Position>4.8 0 0</Position>')
+    .replace('<NodeName>WGT</NodeName>',
+             '<NodeName>WGT</NodeName><SupportTag>PS00002</SupportTag>');
+  const member=(kind,gap)=>({
+    ...sourceMember(kind,gap),
+    attributes:{...sourceMember(kind,gap).attributes,
+      NAME:'/PS00002',COMPRE:'=42/900',REF:'=99/999'},
+  });
+  const source=staged([
+    {type:'PIPE',name:'verified upstream pipe edge',
+     attributes:{REF:'=42/900'}},
+    member('REST','0mm'),member('GUIDE','5mm'),member('LINE STOP','8mm'),
+  ]);
+  const run=nativeRun(original,source);
+  try{
+    assert.equal(run.run.status,0,
+      `PS + remote carrier conversion failed: ${(run.run.stderr||'').slice(-1500)} ${(run.run.stdout||'').slice(-1500)}`);
+    const consumed=readFileSync(run.enrichedPath,'utf8');
+    assert.match(consumed,
+      /<DTXR_POS>REST\(CMPSUPGAP=0mm\)\|GUIDE\(CMPSUPGAP=5mm\)\|LINE STOP\(CMPSUPGAP=8mm\)<\/DTXR_POS>/);
+    const cii=readFileSync(run.output,'utf8');
+    assert.deepEqual(nativeRestraints(cii).filter(row=>row.node===20),[
+      {node:20,kind:14,gap:0},
+      {node:20,kind:8,gap:5},
+      {node:20,kind:9,gap:8},
+    ]);
+    assert.equal(nativeRestraints(cii).some(row=>row.node===10),false);
+    const check=verifyCiiEngineeringAgainstNativeXml(consumed,cii);
+    assert.equal(check.status,'VERIFIED');
+    assert.equal(check.restraints,3);
+    const mass=await reconcileXml229ActualCiiAgainstFinal({
+      originalXmlText:original,packet:run.packet,ciiText:cii,
+      writerDiagnostic:JSON.parse(readFileSync(run.proofPath,'utf8')),
+    });
+    assert.equal(mass.massConsumptionVerified,true);
+    assert.equal(mass.nativeCiiReleaseAuthorized,true);
+  }finally{run.dispose();}
+});
+
 test('real native CLI rejects unverified carrier even when XML ref exists',()=>{
   const original = baseXml
     .replace('<Position>0 0 0</Position>', '<Position>4.8 0 0</Position>')
