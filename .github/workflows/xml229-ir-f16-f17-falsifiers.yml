@@ -1,0 +1,34 @@
+name: XML229 IR F16 F17 Falsification Reproductions
+on:
+  pull_request:
+    paths:
+      - 'tests/xml229-ir-f16-f17-falsifiers.test.mjs'
+      - '.github/workflows/xml229-ir-f16-f17-falsifiers.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reproduce-known-unsafe-behavior:
+    name: Diagnostic reproduction only / Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Independently replay F16/F17 original source into actual V2 and cleanup functions
+        run: |
+          node --check tests/xml229-ir-f16-f17-falsifiers.test.mjs
+          node --test tests/xml229-ir-f16-f17-falsifiers.test.mjs
+      - name: Scope warning
+        run: |
+          echo "PASS means vulnerable behavior was reproduced (or a control worked)."
+          echo "It is NOT evidence of production safety. No Owner V6 source or release proof."
+          echo "This branch contains only test evidence; candidate code is frozen at PR #399."
