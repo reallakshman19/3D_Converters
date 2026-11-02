@@ -1,0 +1,71 @@
+name: XML229 Source-Final Native Canonical Proposal Parity
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-prefinal-canonical-numbering-proposal.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-prefinal-canonical-numbering-proposal.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
+      - 'converters/scripts/xml229_canonical_node_proposal.py'
+      - 'docs/converters/scripts/xml229_canonical_node_proposal.py'
+      - 'converters/scripts/xml229_native_final_mass_binding.py'
+      - 'docs/converters/scripts/xml229_native_final_mass_binding.py'
+      - 'converters/xml-cii-2019-standalone/engine.js'
+      - 'docs/converters/xml-cii-2019-standalone/engine.js'
+      - 'tests/xml229-prefinal-canonical-node-parity.test.mjs'
+      - 'tests/xml229-canonical-node-native-parity-bridge.py'
+      - '.github/workflows/xml229-prefinal-canonical-number-parity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  js-python-source-final-parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Verify root-docs parity and worker module import closure
+        run: |
+          for name in xml229-prefinal-canonical-numbering-proposal.mjs xml229-finalized-weight-geometry.mjs xml229-preview-engineering-fact-producer.mjs; do
+            cmp "tabs/xml-cii-2019-standalone/integration/$name" "docs/tabs/xml-cii-2019-standalone/integration/$name"
+            node --check "tabs/xml-cii-2019-standalone/integration/$name"
+          done
+          cmp converters/scripts/xml229_canonical_node_proposal.py docs/converters/scripts/xml229_canonical_node_proposal.py
+          cmp converters/scripts/xml229_native_final_mass_binding.py docs/converters/scripts/xml229_native_final_mass_binding.py
+          cmp converters/xml-cii-2019-standalone/engine.js docs/converters/xml-cii-2019-standalone/engine.js
+          grep -Fq "'xml229_canonical_node_proposal.py'," converters/xml-cii-2019-standalone/engine.js
+      - name: Real original XML and independent Python Final receipt verifier
+        run: |
+          node --test tests/xml229-prefinal-canonical-node-parity.test.mjs tests/xml229-reviewed-vertex-slot-plan.test.mjs
+  python-native-capacity-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11','3.12']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: |
+          python -m py_compile converters/scripts/xml229_canonical_node_proposal.py converters/scripts/xml229_native_final_mass_binding.py
+          python -m unittest discover -s tests -p 'test_xml229_native_six_slot_actual_cii.py' -v
+      - name: No premature CII release
+        run: |
+          echo "Pre-Final numbering PROPOSAL only, native parity is custody not mutation"
+          echo "No production topology rewrite, Owner private 21 claims not run"
