@@ -1,0 +1,102 @@
+{
+  "schema": "XML229.PR380.ScopeQualification.v1",
+  "checkedAt": "2026-11-02",
+  "repo": "reallakshman19/3D_Converters",
+  "pr": 380,
+  "head": "90e40e514a5e76a0d34013f01cf9afe8a3e9c081",
+  "stackedOn": {
+    "pr": 379,
+    "head": "191347659b81e5d67edd2f93ec6c3eb15ccec819"
+  },
+  "sourceFixture": {
+    "path": "Benchmarks/EF-05-PRO.TEST.xml",
+    "sha256": "2573883480af904096dea2663c9cf585be2db28dd047785397b4d61edee0a030"
+  },
+  "status": "PARTIAL_REPAIR_PROVED_ON_SYNTHETIC_SOURCE_GOVERNED_FINAL_UNVERIFIED",
+  "observations": [
+    {
+      "name": "scope-aware coincident position native stage",
+      "status": "PASS",
+      "observation": "LOCAL_EXECUTION",
+      "oracle": "DIRECT_NATIVE_PYTHON_STAGE",
+      "checks": 5,
+      "failures": 0,
+      "details": "1 nonrestraint ambiguous + 1 uniquely matched PS support transfers; mandatory ambiguous refuses; 21 excluded before mandatory still surfaces mandatory; mixed counts; mandatory unmatched refuses"
+    },
+    {
+      "name": "Python syntax",
+      "status": "PASS",
+      "observation": "LOCAL_EXECUTION",
+      "oracle": "PYTHON_COMPILE",
+      "files": [
+        "converters/scripts/xml_to_cii2019_master_addon.py",
+        "converters/scripts/xml_to_cii2019_patched.py"
+      ]
+    },
+    {
+      "name": "public original EF05 + original staged JSON",
+      "status": "PASS",
+      "observation": "LOCAL_EXECUTION",
+      "oracle": "PUBLIC_FIXTURE",
+      "durationSeconds": 1.18,
+      "observed": {
+        "dtxrPos": 0,
+        "dtxrPosAmbiguous": 0,
+        "dtxrPosMandatoryAmbiguous": 0,
+        "dtxrPosExcludedAmbiguous": 0,
+        "dtxrPosMandatoryUnmatched": 320,
+        "dtxrPosExcluded": 6840
+      },
+      "warning": "Expected mandatory-unmatched hold; public original XML is NOT the Owner accepted 249-Final mass geometry"
+    },
+    {
+      "name": "root/docs Python source mirrors",
+      "status": "PASS",
+      "observation": "GITHUB_BLOB_BYTES",
+      "oracle": "EXACT_EQUALITY",
+      "count": 2
+    },
+    {
+      "name": "native CII mass-consumption CI",
+      "status": "PASS",
+      "observation": "GITHUB_WORKFLOW",
+      "oracle": "EXISTING_REPO_NONRELEASING_TESTS",
+      "url": "https://github.com/reallakshman19/3D_Converters/actions/runs/41380115136",
+      "warning": "Does not execute new exact-head scoped ambiguity test"
+    },
+    {
+      "name": "full workflow suite",
+      "status": "FAIL",
+      "observation": "GITHUB_WORKFLOW",
+      "oracle": "REPO_CI",
+      "warning": "At least two unrelated workflows marked failure at inspection; do not claim globally green"
+    },
+    {
+      "name": "private accepted Final 249-mass staged JSON execution",
+      "status": "NOT_RUN",
+      "observation": "NO_FINALIZED_SOURCE_BASIS",
+      "oracle": "OWNER_SOURCE_AND_ENGINEERING_FINAL"
+    },
+    {
+      "name": "independent emitted native CII / actual governed download",
+      "status": "NOT_RUN",
+      "observation": "NO_COMPLETE_GOVERNED_NATIVE_OUTPUT",
+      "oracle": "RELEASE_VERIFIER"
+    },
+    {
+      "name": "new scoped regression on GitHub exact head",
+      "status": "NOT_RUN",
+      "observation": "CI_WORKFLOW_NOT_DEMONSTRATED",
+      "oracle": "NONE"
+    }
+  ],
+  "invariants": {
+    "mandatorySupportAmbiguityStillFatal": true,
+    "mandatoryUnmatchedStillFatal": true,
+    "independentReleaseUnchanged": true,
+    "massAuthorityChanged": false,
+    "sourceOnlyFallbackAdded": false,
+    "ciiDownloadAuthorized": false
+  },
+  "exactNextAction": "Run same scoped native stage against user's accepted Final source geometry, staged JSON and offset basis. If any mandatory owner remains ambiguous, use bounded claim indices from PR379 to adjudicate source ownership; rerun and independently reconcile all native output masses before download."
+}

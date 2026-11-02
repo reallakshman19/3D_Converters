@@ -1,0 +1,16 @@
+schema: AgentStatus.v1
+pr: 380
+branch: fix/xml229-mandatory-staged-position-scope-20261102
+base_pr: 379
+base_pr_head: 191347659b81e5d67edd2f93ec6c3eb15ccec819
+head_tested_local_equivalent: 90e40e514a5e76a0d34013f01cf9afe8a3e9c081
+state: DRAFT_PARTIAL_NATIVE_SCOPE_FIX_GOVERNED_CII_HELD
+merge_authority: OWNER_ONLY_NOT_GRANTED
+validation_record: ValidationRecords/xml229-pr380-scope-qualification.json
+local_synthetic_position_tests: PASS_5_OF_5
+public_original_ef05_native_gate: MANDATORY_UNMATCHED_320_EXPECTED_REFUSAL
+private_accepted_final_reproduction: NOT_RUN
+independent_native_output: NOT_RUN
+release_authority: HELD
+coordination: STACKED_ON_PR379
+exact_next_action: Obtain the exact finalized source basis and PR379 bounded claim-index export; resolve any remaining mandatory positional ownership, independently reconcile CII native Final masses.
