@@ -9,7 +9,7 @@ const xml=readFileSync(new URL('../Benchmarks/EF-05-PRO.TEST.xml',import.meta.ur
 const names=[...xml.matchAll(/<Branchname>([^<]+)<\/Branchname>/g)].map(m=>m[1]);
 const format=(lineKey,pipingClass)=>({tokenDelimiter:'-',lineKey:{tokenPosition:lineKey},
   pipingClass:{tokenPosition:pipingClass},rating:{tokenPosition:''},bore:{tokenPosition:3}});
-const formats=[format(4,5),format(5,6)];
+const formats=[format(4,5),format('4,5',6)];
 const candidateRows=(active)=>names.map(branchName=>{
   const x=extractBranchFieldsWithFormats(branchName,{formats:[formats[active]]});
   return {branchName,lineKey:x.lineKey,extractionStatus:x.status};
