@@ -1,0 +1,44 @@
+name: XML229 Physical Vertex Pass 1 (Nonreleasing)
+
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-original-physical-vertices.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-original-physical-vertices.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
+      - 'tests/xml229-original-physical-vertices.test.mjs'
+      - '.github/workflows/xml229-physical-vertex-pass1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-vertex-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Validate read-only module / root-served identity
+        run: |
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-original-physical-vertices.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs
+          cmp tabs/xml-cii-2019-standalone/integration/xml229-original-physical-vertices.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-original-physical-vertices.mjs
+          cmp tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs
+      - name: Exact-position and topology negatives plus real BM2 source
+        run: node --test tests/xml229-original-physical-vertices.test.mjs tests/xml229-physical-lineage-contract.test.mjs
+      - name: Not a native CII release
+        run: |
+          echo "WBS 1.1/1.2 SOURCE-INDEX SHADOW ONLY"
+          echo "No native support owner was rematched; no Final weight or geometry changed"
+          echo "Owner actual 21 claims and actual CII verification not run"
