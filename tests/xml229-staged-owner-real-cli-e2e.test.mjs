@@ -133,7 +133,7 @@ test('actual native CLI retains many-to-one REST | GUIDE | LINE STOP and indepen
       'the production independent engineering verifier must challenge each CII slot');
      // Challenge one real emitted gap while preserving all other CII bytes.
     const changedRows = cii.split('\\n');
-    const restrantHeader = changedRows.indexOf('#$ RESTRANT');
+    const restrantHeader = changedRows.findIndex(line => line.trim() === '#$ RESTRANT');
     assert.ok(restrantHeader >= 0);
     const guideIndex = changedRows.findIndex((line, i) =>
       i > restrantHeader && i < restrantHeader + 40 &&
