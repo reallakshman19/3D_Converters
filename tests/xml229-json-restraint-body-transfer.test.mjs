@@ -108,7 +108,8 @@ test('real Preview → Worker Final geometry → actual native enriched XML/CII 
 test('V2 physical-vertex pre-Final → actual governed native CII + negative challenges',async()=>{
  const sourceId='JSON-VERTEX-V2',masters={},overrides={},selection=[{sourceId,selectionRef:'all'}];
  const stagedSource=JSON.stringify(staged());
- const v2Config={...config,xml229CanonicalNumberProposal:true,xml229PhysicalVertexPrefinal:true};
+ const v2Config={...config,xml229CanonicalNumberProposal:true,xml229PhysicalVertexPrefinal:true,
+  xml229CanonicalContractionAudit:true};
  const basis=await createPreviewBasis({domainId:'xml-cii/2019',
   sources:[{sourceId,mediaType:'application/xml',text:XML}],
   masters,selection,stagedSource,config:v2Config,overrides,sha256:digestUtf8});
@@ -123,6 +124,9 @@ test('V2 physical-vertex pre-Final → actual governed native CII + negative cha
  assert.equal(opened.finalizedGeometry.prefinalRestraints.physicalVertexMemberCensus.projectedSlotCount,3);
  assert.equal(opened.finalizedGeometry.prefinalRestraints.physicalVertexMemberCensus.originalPositionsModified,0);
  assert.equal(opened.finalizedGeometry.canonicalNodeNumberProposal.summary.finalGeometryModified,false);
+ assert.equal(opened.finalizedGeometry.canonicalVertexContractionAudit.schema,
+  'XML229.PreAcceptanceVertexContractionAudit.v1');
+ assert.equal(opened.finalizedGeometry.canonicalVertexContractionAudit.summary.topologyContracted,false);
  const packet={schema:'XML229.NativeFinalPhysicalPacket.v1',
   sourceId,basisId:basis.basisId,sourceXmlSha256:await digestUtf8(XML),
   originalJsonSha256:await digestUtf8(stagedSource),
@@ -151,7 +155,8 @@ test('V2 one physical CII node emits two same-kind GUIDE slots with independent 
  stagedData[0].children[1].children.push({
   type:'GT501',attributes:{MDSSUPPTYPE:'GT501',NAME:'/PS40/DATUM',CMPSUPGAP:8}});
  const stagedSource=JSON.stringify(stagedData);
- const cfg={...config,xml229PhysicalVertexPrefinal:true,xml229CanonicalNumberProposal:true};
+ const cfg={...config,xml229PhysicalVertexPrefinal:true,xml229CanonicalNumberProposal:true,
+  xml229CanonicalContractionAudit:true};
  const basis=await createPreviewBasis({domainId:'xml-cii/2019',
   sources:[{sourceId,mediaType:'application/xml',text:XML}],
   masters,selection,stagedSource,config:cfg,overrides,sha256:digestUtf8});

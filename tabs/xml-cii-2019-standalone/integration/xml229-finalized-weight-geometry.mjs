@@ -10,6 +10,8 @@ import {buildXml229PhysicalLineage}
   from './xml229-physical-component-lineage.mjs';
 import {proposeXml229PreFinalCanonicalNodeNumbers}
   from './xml229-prefinal-canonical-numbering-proposal.mjs';
+import {auditXml229PreacceptanceVertexContractions}
+  from './xml229-preacceptance-vertex-contraction-audit.mjs';
 
 function assignSourceNodeNumbers({projection,branches,prepared,children,field,fail}){
   // Pre-acceptance topology normalization: a nonpositive NodeNumber is an
@@ -179,6 +181,7 @@ export async function finalizeXml229WeightGeometry({
   basis,projection,branches,prepared,physical,sourceNodeByOrdinal,
   nonOwnerEndpointStarts,componentSuppressionPairs=[],sourceId,prefinalRestraints,
   originalXmlText=null,canonicalNodeProposalEnabled=false,
+  contractionAuditEnabled=false,
 },{children,field,fail,canonicalJson}){
   const assignedNodeNumbers=assignSourceNodeNumbers({
     projection,branches,prepared,children,field,fail,
@@ -218,12 +221,25 @@ export async function finalizeXml229WeightGeometry({
       sourceXmlSha256:basis.sourceRefs[0].sha256,
     })
     :null;
+  // This is a source-graph custody gate, NOT permission to unify adjacent
+  // same-XYZ rows as one CII number. Those rows still form a zero-span edge.
+  // Any needed contraction and nodal rebind must occur before mass acceptance.
+  const canonicalVertexContractionAudit=contractionAuditEnabled===true
+    ?auditXml229PreacceptanceVertexContractions({
+      originalXmlText,finalizedXmlText:finalXmlText,
+      retainedSourceOrdinalsByBranch:prepared.ledger.retainedByBranch.map(
+        rows=>rows.map(row=>row.sourceNodeOrdinal)),
+      branchConnectionAliases:physicalLineage.branchConnectionAliases,
+      sourceXmlSha256:basis.sourceRefs[0].sha256,
+    })
+    :null;
   const finalizedGeometry=Object.freeze({
     schema:'XML229.FinalizedWeightGeometry.v1',
     ...(prefinalRestraints?{prefinalRestraints}:{}),
     physicalOwnerCardinality,
     physicalLineage,
     ...(canonicalNodeNumberProposal?{canonicalNodeNumberProposal}:{}),
+    ...(canonicalVertexContractionAudit?{canonicalVertexContractionAudit}:{}),
     basisId:basis.basisId,sourceXmlSha256:basis.sourceRefs[0].sha256,
     xmlText:finalXmlText,sha256:await digestUtf8(finalXmlText),
     originalNodeCount:prepared.ledger.originalCount,
