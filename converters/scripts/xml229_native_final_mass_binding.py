@@ -231,6 +231,27 @@ def _native_lineage_probe(stage):
         print('XML229_NATIVE_STAGE:' + stage, flush=True)
 
 
+def assert_v2_retained_source_restraint_carriers(source, retained):
+    """F16 independent native fail-closed check before deleting original nodes.
+
+    Source is the native-replayed pre-Final original, including JSON members
+    and fallback restraints. A dropped restraint-bearing source occurrence
+    requires an explicitly approved transfer, not a bare ordinal deletion.
+    """
+    source_branches = branches(source)
+    require(isinstance(retained, list) and
+            len(retained) == len(source_branches),
+            "NATIVE_V2_RETAINED_CARRIER_CENSUS")
+    for original_branch, ordinals in zip(source_branches, retained):
+        require(isinstance(ordinals, list),
+                "NATIVE_V2_RETAINED_CARRIER_CENSUS")
+        keep = set(ordinals)
+        for original_index, row in enumerate(nodes(original_branch)):
+            if original_index not in keep:
+                require(not any(tag(r) == "Restraint" for r in row),
+                        "NATIVE_V2_RESTRAINT_CARRIER_REMOVED_BY_CLEANUP")
+
+
 def _validate_finalized_geometry(packet, source, staged_json_path=None, support_config=None):
     """Challenge the exact pre-acceptance Worker XML and original ordinal map.
 
@@ -390,17 +411,12 @@ def _validate_finalized_geometry(packet, source, staged_json_path=None, support_
         expected, packet, staged_json_path, support_config, require)
     v2_supports = ((final.get('prefinalRestraints') or {}).get('schema') ==
                    'XML229.PrefinalRestraints.v2')
+    if v2_supports:
+        assert_v2_retained_source_restraint_carriers(expected, retained)
     for bi, (branch, ordinals) in enumerate(zip(branches(expected), retained)):
         keep = set(ordinals)
         for original_index, node in enumerate(nodes(branch)):
             if original_index not in keep:
-                # F16: independently replay the original source members,
-                # then forbid a claimed Final that discarded their XML
-                # carrier without a reviewed source-member rebind witness.
-                # This closes a Worker packet forgery / stale cleanup gap.
-                if v2_supports:
-                    require(not any(tag(r) == 'Restraint' for r in node),
-                            'NATIVE_V2_RESTRAINT_CARRIER_REMOVED_BY_CLEANUP')
                 branch.remove(node)
             else:
                 if (bi, original_index) in normalized:
