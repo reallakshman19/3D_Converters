@@ -109,6 +109,36 @@ test('V5 carrier-edge matcher attests the corrected source-safe runtime',()=>{
  assert(!JSON.stringify(result).includes('DO_NOT_EXPOSE_PRIVATE_REF'));
 });
 
+test('V6 classifies carrier-route provenance without leaking producer identity',()=>{
+ const statuses=['VERIFIED','NOT_DECLARED','MALFORMED_REFERENCE',
+  'CONFLICTING_DECLARATIONS','BRANCH_UNRESOLVED','ROUTE_REF_NOT_FOUND',
+  'ROUTE_REF_OTHER_BRANCH','ROUTE_REF_DUPLICATED'];
+ for(const status of statuses){
+  const claimed=status!=='NOT_DECLARED';
+  const verified=status==='VERIFIED';
+  const v6={...sample,matcherRevision:'XML229_POSITION_CARRIER_PROVENANCE_V6',
+   sample:[{...sample.sample[0],originalSourceProofPresent:true,
+    originalSourceRestraintCandidates:0,originalMatchingRestraintCandidates:0,
+    carrierRefDeclared:claimed,carrierRouteVerified:verified,
+    carrierCandidateCount:0,carrierRouteStatus:status,
+    COMPRE:'SECRET_COMPRE',fullSourcePath:'SECRET_LOCATION'}]};
+  const read=readXml229BoundedStagedPositionEvidence([
+   'XML229_STAGED_POSITION_AMBIGUITY '+JSON.stringify(v6)]);
+  assert(read);
+  assert.equal(read.matcherRevision,'XML229_POSITION_CARRIER_PROVENANCE_V6');
+  assert.equal(read.sample[0].carrierRouteStatus,status);
+  assert.equal(read.sample[0].carrierRouteVerified,verified);
+  assert(!JSON.stringify(read).includes('SECRET_'));
+  const bad = [{...v6,sample:[{...v6.sample[0],carrierRouteStatus:'SECRET_STATUS'}]},
+   {...v6,sample:[{...v6.sample[0],carrierRouteStatus:status,
+    carrierRouteVerified:!verified}]},
+   {...v6,sample:[{...v6.sample[0],carrierRefDeclared:!claimed}]}];
+  for(const invalid of bad)assert.equal(
+   readXml229BoundedStagedPositionEvidence([
+    'XML229_STAGED_POSITION_AMBIGUITY '+JSON.stringify(invalid)]),null);
+ }
+});
+
 test('legacy pre-version receipt remains bounded and scope optional',()=>{
  const older={count:1,sampleTruncated:false,sample:[{
   sourceClaimIndex:3,reason:'NON_UNIQUE_POSITION_OWNER',
