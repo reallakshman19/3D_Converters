@@ -299,6 +299,7 @@ export async function openXml229EngineeringFactModel({
     prefinalRestraints:restraintStage.proof,
     originalXmlText:xmlText,
     canonicalNodeProposalEnabled:live.config?.xml229CanonicalNumberProposal===true,
+    contractionAuditEnabled:live.config?.xml229CanonicalContractionAudit===true,
   },{children,field,fail,canonicalJson});
   // WBS 1.1/1.2: explicitly opt-in NON-AUTHORIZING source-coordinate shadow
   // audit. The reviewed branch aliases come from the existing mass lineage,
