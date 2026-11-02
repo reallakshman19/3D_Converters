@@ -112,7 +112,7 @@ def verify(original_json, original_xml, config, ledger, enriched_xml, cii, final
         # Original-author-only proof, not a previously JSON-replayed restraint.
         authored = [_key(node) for node in original_nodes
                     if node["branch"] == branch and
-                    [kind, gap] in node.get("originalAuthored", [])]
+                    [s["kind"], gap] in node.get("originalAuthored", [])]
         if len(authored) == 1:
             witnesses.append(authored[0])
 
