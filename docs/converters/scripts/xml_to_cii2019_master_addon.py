@@ -213,7 +213,14 @@ def _iter_staged_components(value: Any, branch_name: str = ""):
     attrs = value.get("attributes")
     safe_attrs = attrs if isinstance(attrs, dict) else {}
     component_type = str(value.get("type") or safe_attrs.get("TYPE") or "").upper()
-    current_branch = str(value.get("name") or safe_attrs.get("NAME") or branch_name) if component_type == "BRANCH" or isinstance(value.get("children"), list) else branch_name
+    # Only a typed BRANCH owns branch scope. A nested carrier/group with
+    # children is not a new branch, even if it has its own NAME.
+    # Otherwise a route REF and its support COMPRE can be indexed against
+    # unrelated container names and valid source authority is lost.
+    current_branch = (
+        str(value.get("name") or safe_attrs.get("NAME") or branch_name)
+        if component_type == "BRANCH" else branch_name
+    )
     yield {"component": value, "attrs": safe_attrs, "branchName": current_branch}
     children = value.get("children")
     if isinstance(children, list):
@@ -431,6 +438,39 @@ def _staged_route_ref_counts(parsed: Any) -> dict[tuple[str, str], int]:
     return count
 
 
+def _carrier_route_status(
+    attrs: dict[str, Any], ref: str, declared: bool, branch: str,
+    route_refs: dict[tuple[str, str], int], route_branches: dict[str, set[str]],
+) -> str:
+    """Private source evidence reduced to a fixed, source-safe status.
+
+    A missing, duplicated, malformed or out-of-branch source carrier never
+    qualifies for native ownership. These statuses explain the gate; they do
+    not authorize a fallback to PS or nearest-position matching.
+    """
+    if not declared:
+        return "NOT_DECLARED"
+    if not ref:
+        values = {str(value).strip().upper()
+                  for key, value in attrs.items()
+                  if re.sub(r"[^A-Z0-9]", "", str(key).upper()) in
+                  ("COMPRE", "ATTACHEDCOMPONENTREF")
+                  and value is not None and str(value).strip()}
+        return ("CONFLICTING_DECLARATIONS" if len(values) > 1
+                else "MALFORMED_REFERENCE")
+    branch = branch.strip().upper()
+    if not branch:
+        return "BRANCH_UNRESOLVED"
+    matching = route_refs.get((branch, ref), 0)
+    if matching == 1:
+        return "VERIFIED"
+    if matching > 1:
+        return "ROUTE_REF_DUPLICATED"
+    if ref in route_branches:
+        return "ROUTE_REF_OTHER_BRANCH"
+    return "ROUTE_REF_NOT_FOUND"
+
+
 def build_dtxr_pos_entries(staged_json: Any, offset_option: dict[str, Any] | None) -> list[dict[str, Any]]:
     """Return staged DTXR entries whose POSI was converted into XML coordinates."""
     try:
@@ -438,6 +478,10 @@ def build_dtxr_pos_entries(staged_json: Any, offset_option: dict[str, Any] | Non
     except json.JSONDecodeError:
         return []
     route_refs = _staged_route_ref_counts(parsed)
+    route_branches: dict[str, set[str]] = {}
+    for (route_branch, route_ref), route_count in route_refs.items():
+        if route_count:
+            route_branches.setdefault(route_ref, set()).add(route_branch)
     entries: list[dict[str, Any]] = []
     for entry in _iter_staged_components(parsed):
         attrs = entry.get("attrs") if isinstance(entry, dict) else {}
@@ -456,8 +500,10 @@ def build_dtxr_pos_entries(staged_json: Any, offset_option: dict[str, Any] | Non
         tags = _ps_tags_from_attrs(attrs, component.get("name", ""))
         branch_name = str(entry.get("branchName") or attrs.get("OWNER") or "")
         carrier_ref, carrier_declared = _carrier_reference(attrs)
-        carrier_route_unique = bool(
-            carrier_ref and route_refs.get((branch_name.strip().upper(), carrier_ref)) == 1)
+        carrier_route_status = _carrier_route_status(
+            attrs, carrier_ref, carrier_declared, branch_name,
+            route_refs, route_branches)
+        carrier_route_unique = carrier_route_status == "VERIFIED"
         fields = ("DTXR", "NAME", "MDSSUPPTYPE", "SPRE", "CMPSUPTYPE",
                   "NODETYPE", "CMPSUPGAP", "CMPSUPGAP_POS", "CMPSUPGAP_PS",
                   "NODEGAP", "DESCRIPTION", "DESC", "OWNER", "SUPPORT_KIND",
@@ -472,6 +518,7 @@ def build_dtxr_pos_entries(staged_json: Any, offset_option: dict[str, Any] | Non
                         "sourceCarrierRefNo": carrier_ref,
                         "sourceCarrierRefDeclared": carrier_declared,
                         "sourceCarrierRouteUnique": carrier_route_unique,
+                        "sourceCarrierRouteStatus": carrier_route_status,
                         "tags": tags, "branchName": branch_name})
     return entries
 
@@ -775,6 +822,8 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
                 "sourceCarrierRefDeclared")),
             "carrierRouteVerified": bool(entries[claim_index].get(
                 "sourceCarrierRouteUnique")),
+            "carrierRouteStatus": entries[claim_index].get(
+                "sourceCarrierRouteStatus", "NOT_DECLARED"),
             "carrierCandidateCount": sum(
                 rows[i][4] == entries[claim_index].get("sourceCarrierRefNo")
                 for i in owner_rows) if entries[claim_index].get(
