@@ -20,7 +20,13 @@ installWeightBasisXmlDom(globalThis);
 const root = fileURLToPath(new URL('../', import.meta.url));
 const sha = value => createHash('sha256').update(value).digest('hex');
 const baseXml = '<PipeStressExport><Pipe><Branch><Branchname>BR-1</Branchname>'
+  + '<Pressure><Pressure1>0</Pressure1></Pressure>'
+  + '<Temperature><Temperature1>0</Temperature1>'
+  + '<Temperature2>0</Temperature2><Temperature3>0</Temperature3></Temperature>'
+  + '<FluidDensity>0</FluidDensity>'
   + '<Node><NodeNumber>10</NodeNumber><ComponentType>PIPE</ComponentType>'
+  + '<MaterialCode>1</MaterialCode><WallThickness>3.2</WallThickness>'
+  + '<CorrosionAllowance>0</CorrosionAllowance>'
   + '<Position>0 0 0</Position><Weight>0</Weight></Node>'
   + '<Node><NodeNumber>20</NodeNumber><NodeName>WGT</NodeName>'
   + '<ComponentType>RIGID</ComponentType><ComponentRefNo>REF-1</ComponentRefNo>'
