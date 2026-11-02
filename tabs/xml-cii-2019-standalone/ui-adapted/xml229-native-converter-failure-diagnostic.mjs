@@ -183,7 +183,9 @@ export function readXml229BoundedStagedPositionEvidence(logs){
  const reasons=new Set(['NON_UNIQUE_POSITION_OWNER','COMPETING_POSITION_TRANSFORMS']);
  const scopes=new Set(['MANDATORY','NOT_APPLICABLE']);
  const geometry=new Set(['COINCIDENT','DISTINCT']);
- const hasOriginalProof=parsed.matcherRevision==='XML229_POSITION_ORIGINAL_AUTHOR_V3';
+ const hasCarrier=parsed.matcherRevision==='XML229_POSITION_CARRIER_AUTHORITY_V4';
+ const hasOriginalProof=hasCarrier||
+  parsed.matcherRevision==='XML229_POSITION_ORIGINAL_AUTHOR_V3';
  const hasVersion=hasOriginalProof||
   parsed.matcherRevision==='XML229_POSITION_PRECISION_V2';
  if(parsed.matcherRevision!==undefined&&!hasVersion)return null;
@@ -215,6 +217,14 @@ export function readXml229BoundedStagedPositionEvidence(logs){
        (x.originalSourceRestraintCandidates!==0||
         x.originalMatchingRestraintCandidates!==0))
     ))return null;
+   if(hasCarrier&&(
+      typeof x.carrierRefDeclared!=='boolean'||
+      typeof x.carrierRouteVerified!=='boolean'||
+      !index(x.carrierCandidateCount)||
+      x.carrierCandidateCount>x.candidateCount||
+      (x.carrierRouteVerified&&!x.carrierRefDeclared)||
+      (!x.carrierRouteVerified&&x.carrierCandidateCount!==0)
+    ))return null;
    sample.push({sourceClaimIndex:x.sourceClaimIndex,reason:x.reason,
      ...(x.scope!==undefined?{scope:x.scope}:{}),
      candidateCount:x.candidateCount,
@@ -231,6 +241,11 @@ export function readXml229BoundedStagedPositionEvidence(logs){
        originalSourceProofPresent:x.originalSourceProofPresent,
        originalSourceRestraintCandidates:x.originalSourceRestraintCandidates,
        originalMatchingRestraintCandidates:x.originalMatchingRestraintCandidates,
+     }:{}),
+     ...(hasCarrier?{
+       carrierRefDeclared:x.carrierRefDeclared,
+       carrierRouteVerified:x.carrierRouteVerified,
+       carrierCandidateCount:x.carrierCandidateCount,
      }:{}),
    });
  }
