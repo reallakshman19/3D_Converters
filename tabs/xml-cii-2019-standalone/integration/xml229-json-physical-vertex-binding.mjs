@@ -53,7 +53,7 @@ function rawPosition(raw){
 function addDecimal(a,b){
   const x=canonicalXml229Decimal(a),y=canonicalXml229Decimal(b);
   if(x===null||y===null)fail('XML229_BIND_DATUM_INVALID');
-  const asParts=s=>{const m=s.match(/^(-?\d+)e(-?\d+)$/);return [BigInt(m[1]),Number(m[2])];};
+  const asParts=s=>{if(s==='0')return [0n,0];const m=s.match(/^(-?\d+)e(-?\d+)$/);return [BigInt(m[1]),Number(m[2])];};
   const [mx,ex]=asParts(x),[my,ey]=asParts(y),e=Math.min(ex,ey);
   if(Math.max(ex-e,ey-e)>128)fail('XML229_BIND_DATUM_RANGE');
   const sum=mx*10n**BigInt(ex-e)+my*10n**BigInt(ey-e);
