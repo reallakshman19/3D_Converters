@@ -47,6 +47,20 @@ function writeCache(key, fp, data) {
   } catch {}
 }
 
+/** Display-only candidates are joined by source branch occurrence, never name alone. */
+export function xml229PreviewLineKeyCandidateRows(rows = [], passes = []) {
+  return rows.map((row, occurrenceIndex) => {
+    if (row?.extractionStatus !== 'AMBIGUOUS') return { ...row };
+    const choices = passes.flatMap(pass => {
+      const candidate = pass?.branchRows?.[occurrenceIndex];
+      if (!candidate || candidate.branchName !== row.branchName ||
+          candidate.extractionStatus !== 'MATCHED' || !String(candidate.lineKey || '').trim()) return [];
+      return [{ formatIndex: pass.formatIndex, lineKey: candidate.lineKey }];
+    });
+    return { ...row, formatLineKeyCandidates: choices };
+  });
+}
+
 function publishPreviewResult(host, branchRows = [], nodeRows = [], formatPreviewPasses = []) {
   const result = {
     branchRows: Array.isArray(branchRows) ? branchRows : [],
@@ -352,7 +366,7 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
   }
 
   const table = new XmlCiiAdaptedEditablePreviewTable({
-    branchRows,
+    branchRows: xml229PreviewLineKeyCandidateRows(branchRows, formatPreviewPasses),
     nodesByBranch,
     matchBadgeHtmlRenderer: (method, confidence, needsReview, value, derived) => {
       const valEsc = _esc(value || '—'), derivedEsc = _esc(derived || ''), pctText = _percentText(confidence);
@@ -470,11 +484,11 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
   const passReview = (formatPreviewPasses || []).length > 1
     ? '<section class="model-converters-workflow-detail-note" data-mc-format-review-passes="2">'+
       '<strong>Format 1 / Format 2 conflict: two independent 4 Preview passes (not applied automatically).</strong>'+
-      '<div style="overflow-x:auto"><table><thead><tr><th>Pass</th><th>Branch</th><th>Line Key</th><th>Piping Class</th><th>Rating (optional)</th><th>Result</th></tr></thead><tbody>'+
+      '<div style="overflow:auto;max-height:460px"><table><thead><tr><th>Pass</th><th>Branch</th><th>Line Key</th><th>Piping Class</th><th>Rating (optional)</th><th>Result</th></tr></thead><tbody>'+
       formatPreviewPasses.flatMap(pass=>(pass.branchRows||[])
-        .filter(row=>branchRows.some(original=>original.branchName===row.branchName &&
-          original.extractionStatus==='AMBIGUOUS'))
-        .slice(0,20).map(row=>'<tr><td>Format '+(pass.formatIndex+1)+'</td><td>'+_esc(row.branchName)+
+        .filter((row, occurrenceIndex)=>branchRows[occurrenceIndex]?.branchName===row.branchName &&
+          branchRows[occurrenceIndex]?.extractionStatus==='AMBIGUOUS')
+        .map(row=>'<tr><td>Format '+(pass.formatIndex+1)+'</td><td>'+_esc(row.branchName)+
           '</td><td>'+_esc(row.lineKey||'UNMATCHED')+'</td><td>'+
           _esc(row.pipingClass||'UNMATCHED')+'</td><td>'+_esc(row.rating||'—')+'</td><td>'+
           _esc(row.extractionStatus)+'</td></tr>')).join('')+

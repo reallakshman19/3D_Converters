@@ -212,6 +212,14 @@ class NativeSubstageWitnessTests(unittest.TestCase):
         self.assertIn('LINE STOP(CMPSUPGAP=8mm)', '|'.join(dtxr(at(30))))
         self.assertNotIn('GUIDE', '|'.join(dtxr(at(30))))
         self.assertEqual(data['stats']['dtxrPosAmbiguous'], 1)
+        ambiguities = [entry for entry in data['diagnostics']
+                       if entry.get('type') == 'dtxr-position-ambiguous']
+        self.assertEqual(len(ambiguities), 1)
+        self.assertEqual(ambiguities[0]['sourceClaimIndex'], 1)
+        self.assertEqual(ambiguities[0]['reason'], 'NON_UNIQUE_POSITION_OWNER')
+        self.assertGreaterEqual(ambiguities[0]['candidateCount'], 2)
+        self.assertNotIn('rawPosition', ambiguities[0])
+        self.assertNotIn('sourceBranch', ambiguities[0])
 
     def test_bm2_calibration_needs_two_independent_position_anchors(self):
         """Source-attested multi-node offsets, never guessed from one tag."""

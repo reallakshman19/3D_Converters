@@ -1571,6 +1571,14 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
     result = addon.enrich_xml_addons(input_xml, linelist=None, overrides=None, staged_json=staged_json.read_text(encoding="utf-8-sig"), dtxr_position_offset=support_config.get("dtxrPositionOffset") if isinstance(support_config, dict) else None)
     stats = result.get("stats") or {}
     if stats.get("dtxrPosAmbiguous", 0):
+        # Keep the stable fail-closed error code. Export only bounded indices,
+        # not proprietary XML names, source JSON, DTXR strings or coordinates.
+        conflicts = [d for d in result.get("diagnostics", [])
+                     if d.get("type") == "dtxr-position-ambiguous"][:20]
+        print("XML229_STAGED_POSITION_AMBIGUITY " + json.dumps({
+            "count": stats["dtxrPosAmbiguous"], "sample": conflicts,
+            "sampleTruncated": stats["dtxrPosAmbiguous"] > len(conflicts),
+        }, sort_keys=True))
         raise ValueError("XML229_STAGED_POSITION_AMBIGUOUS")
     if stats.get("dtxrPosMandatoryUnmatched", 0):
         rejected = [d for d in result.get("diagnostics", [])

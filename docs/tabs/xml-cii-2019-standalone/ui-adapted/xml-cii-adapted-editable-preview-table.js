@@ -193,6 +193,17 @@ export class XmlCiiAdaptedEditablePreviewTable {
   }
 
   _renderLineKeyCell(row) {
+    const candidates = row.extractionStatus === 'AMBIGUOUS' &&
+      Array.isArray(row.formatLineKeyCandidates) ? row.formatLineKeyCandidates : [];
+    if (candidates.length) {
+      const items = candidates.map(candidate =>
+        '<div data-mc-linekey-candidate="' + this._escapeAttr(String(candidate.formatIndex)) +
+        '" title="Read-only format candidate; not an accepted Line List key">' +
+        'F' + this._escape(candidate.formatIndex + 1) + ': ' +
+        this._escape(candidate.lineKey) + '</div>').join('');
+      return '<span data-mc-linekey-authority="unresolved">—</span>' +
+        '<div data-mc-linekey-candidates>' + items + '</div>';
+    }
     const key = this._escape(row.lineKey || row.lineKeyProposed || '—');
     const method = String(row.lineKeyMethod || '');
     if (method.startsWith('similar')) {

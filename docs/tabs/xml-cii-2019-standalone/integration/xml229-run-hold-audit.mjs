@@ -117,6 +117,9 @@ function classify({hold,source,sessionState,proofValid,proof,readError,
   const c=proof.counts;
   if(c.unresolved>0)return 'UNRESOLVED_PHYSICAL_MASS';
   if(c.match1>0)return 'MATCH1_NOT_FINAL';
+  // An actually attempted failed native candidate is the primary diagnosis.
+  // Conflicting source formats remain visible in their separate evidence stage.
+  if(candidate?.status==='FAILED')return 'NATIVE_CANDIDATE_FAILED';
   if(branchFormat?.blocked)return 'BRANCH_FORMAT_IDENTITY_UNRESOLVED';
   if(source.topologyPending)return 'TOPOFIX_PREFINAL_REVIEW_REQUIRED';
   if(finalIntentReadError)return 'FINAL_INTENT_READ_FAILED';
@@ -236,7 +239,9 @@ export function buildXml229RunHoldAudit({
  const chronologyIntegrity=flowTrace
    ?auditXml229CrossWorkerFlowTrace(flowTrace)
    :{status:'NOT_AVAILABLE',issues:['NO_FLOW_TRACE'],firstGap:null,summary:{}};
- const first=evidence.find(x=>x.status!=='VERIFIED');
+ const first=code==='NATIVE_CANDIDATE_FAILED'
+   ?evidence.find(x=>x.name==='worker-r2-and-native-candidate')
+   :evidence.find(x=>x.status!=='VERIFIED');
  return Object.freeze({
    schema:XML229_RUN_HOLD_AUDIT_SCHEMA,
    gateId:'xml229-original-json-engineering-authority',
