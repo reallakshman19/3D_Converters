@@ -180,19 +180,47 @@ export function readXml229BoundedStagedPositionEvidence(logs){
  const index=x=>Number.isSafeInteger(x)&&x>=0&&x<=10000000;
  if(!index(parsed?.count)||parsed.count<1||!Array.isArray(parsed?.sample)||parsed.sample.length>20)return null;
  const reasons=new Set(['NON_UNIQUE_POSITION_OWNER','COMPETING_POSITION_TRANSFORMS']);
+ const scopes=new Set(['MANDATORY','NOT_APPLICABLE']);
+ const geometry=new Set(['COINCIDENT','DISTINCT']);
+ const hasVersion=parsed.matcherRevision==='XML229_POSITION_PRECISION_V2';
+ if(parsed.matcherRevision!==undefined&&!hasVersion)return null;
+ if(hasVersion&&!(parsed.matchToleranceMm===null||
+    (Number.isFinite(parsed.matchToleranceMm)&&parsed.matchToleranceMm>=0&&
+     parsed.matchToleranceMm<=1000000000)))return null;
  const sample=[];
  for(const x of parsed.sample){
    if(!index(x?.sourceClaimIndex)||!index(x?.candidateCount)||
       !reasons.has(x.reason)||!Array.isArray(x.candidatePositionRowIndices)||
       x.candidatePositionRowIndices.length>12||
-      !x.candidatePositionRowIndices.every(index))return null;
+      !x.candidatePositionRowIndices.every(index)||
+      (x.scope!==undefined&&!scopes.has(x.scope)))return null;
+   if(hasVersion&&(!geometry.has(x.candidateGeometry)||
+      !index(x.preciseCandidateCount)||!index(x.guardBandCandidateCount)||
+      !index(x.matchedTransformCount)||!index(x.psCorroboratedCandidateCount)||
+      typeof x.explicitXmlRefPresent!=='boolean'||
+      x.preciseCandidateCount>x.candidateCount||
+      x.guardBandCandidateCount>x.candidateCount||
+      x.psCorroboratedCandidateCount>x.candidateCount||
+      x.matchedTransformCount>3))return null;
    sample.push({sourceClaimIndex:x.sourceClaimIndex,reason:x.reason,
+     ...(x.scope!==undefined?{scope:x.scope}:{}),
      candidateCount:x.candidateCount,
-     candidatePositionRowIndices:[...x.candidatePositionRowIndices]});
+     candidatePositionRowIndices:[...x.candidatePositionRowIndices],
+     ...(hasVersion?{
+       candidateGeometry:x.candidateGeometry,
+       preciseCandidateCount:x.preciseCandidateCount,
+       guardBandCandidateCount:x.guardBandCandidateCount,
+       matchedTransformCount:x.matchedTransformCount,
+       psCorroboratedCandidateCount:x.psCorroboratedCandidateCount,
+       explicitXmlRefPresent:x.explicitXmlRefPresent,
+     }:{}),
+   });
  }
  return Object.freeze({schema:'XML229.NativeStagedPositionAmbiguity.v1',
-   ambiguousCount:parsed.count,sample,
-   sampleTruncated:parsed.sampleTruncated===true});
+   ambiguousCount:parsed.count,
+   ...(hasVersion?{matcherRevision:parsed.matcherRevision,
+     matchToleranceMm:parsed.matchToleranceMm}:{}),
+   sample,sampleTruncated:parsed.sampleTruncated===true});
 }
 export function diagnoseXml229NativeConverterFailure(native){
  const category=native?.ok!==true?'ENGINE_FAILED':

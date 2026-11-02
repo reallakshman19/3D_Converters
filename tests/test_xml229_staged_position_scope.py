@@ -273,6 +273,56 @@ class ScopedAmbiguityTests(unittest.TestCase):
         self.assertEqual(error, "XML229_STAGED_POSITION_AMBIGUOUS")
         self.assertEqual(model["stats"]["dtxrPosMandatoryAmbiguous"], 1)
 
+    def test_native_ambiguity_proof_distinguishes_geometry_and_records_revision(self):
+        xml = XML.replace("<NodeNumber>20</NodeNumber><NodeName>PS00002</NodeName>"
+                          "<Position>1 2 3</Position>",
+                          "<NodeNumber>20</NodeNumber><NodeName>PS00002</NodeName>"
+                          "<Position>3 2 3</Position>")
+        payload = json.dumps([{"type": "BRANCH", "name": "/TEST/B1",
+            "children": [{"type": "SUPPORT", "name": "source-midpoint",
+                "attributes": {"POSI": "2 2 3", "DTXR": "GUIDE"}}]}])
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "test.xml"
+            staged_path = Path(tmp) / "test.json"
+            source.write_text(xml, encoding="utf-8")
+            staged_path.write_text(payload, encoding="utf-8")
+            log = io.StringIO()
+            with contextlib.redirect_stdout(log):
+                with self.assertRaisesRegex(ValueError, "XML229_STAGED_POSITION_AMBIGUOUS"):
+                    _maybe_enrich_from_staged_json(
+                        source, staged_path,
+                        {"dtxrPositionOffset": {"enabled": False, "tolerance": 3}})
+        line = next(line for line in log.getvalue().splitlines()
+                    if line.startswith("XML229_STAGED_POSITION_AMBIGUITY "))
+        card = json.loads(line.split(" ", 1)[1])
+        self.assertEqual(card["matcherRevision"], "XML229_POSITION_PRECISION_V2")
+        self.assertEqual(card["matchToleranceMm"], 3.0)
+        self.assertEqual(card["count"], 1)
+        witness = card["sample"][0]
+        self.assertEqual(witness["scope"], "MANDATORY")
+        self.assertEqual(witness["candidateGeometry"], "DISTINCT")
+        self.assertEqual(witness["preciseCandidateCount"], 0)
+        self.assertEqual(witness["guardBandCandidateCount"], 2)
+        self.assertEqual(witness["matchedTransformCount"], 2)
+        self.assertEqual(witness["psCorroboratedCandidateCount"], 0)
+        self.assertEqual(witness["explicitXmlRefPresent"], False)
+        self.assertNotIn("rawPosition", witness)
+        self.assertNotIn("sourceBranch", witness)
+
+    def test_native_ambiguity_proof_reports_true_coincidence_without_owner_guess(self):
+        payload = json.dumps([{"type": "BRANCH", "name": "/TEST/B1",
+            "children": [{"type": "SUPPORT", "name": "no-ref",
+                "attributes": {"POSI": "1 2 3", "DTXR": "GUIDE"}}]}])
+        model, log, output, error = self.execute(payload)
+        self.assertIsNone(output)
+        self.assertEqual(error, "XML229_STAGED_POSITION_AMBIGUOUS")
+        line = next(line for line in log.splitlines()
+                    if line.startswith("XML229_STAGED_POSITION_AMBIGUITY "))
+        witness = json.loads(line.split(" ", 1)[1])["sample"][0]
+        self.assertEqual(witness["candidateGeometry"], "COINCIDENT")
+        self.assertEqual(witness["preciseCandidateCount"], 2)
+        self.assertEqual(witness["guardBandCandidateCount"], 2)
+
     def test_unrelated_nonrestraint_collision_does_not_block_unique_support(self):
         model, logs, output, error = self.execute(staged())
         self.assertIsNone(error)
