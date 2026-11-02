@@ -406,7 +406,7 @@ def _carrier_reference(attrs: dict[str, Any]) -> tuple[str, bool]:
     if len(unique) != 1:
         return "", True
     ref = next(iter(unique))
-    return (ref if re.fullmatch(r"=\\d+/\\d+", ref) else ""), True
+    return (ref if re.fullmatch(r"=\d+/\d+", ref) else ""), True
 
 
 def _staged_route_ref_counts(parsed: Any) -> dict[tuple[str, str], int]:
@@ -423,7 +423,7 @@ def _staged_route_ref_counts(parsed: Any) -> dict[tuple[str, str], int]:
         if kind not in _ROUTE_COMPONENT_TYPES:
             continue
         ref = str(attrs.get("REF") or "").strip().upper()
-        if not re.fullmatch(r"=\\d+/\\d+", ref):
+        if not re.fullmatch(r"=\d+/\d+", ref):
             continue
         branch = str(item.get("branchName") or "").strip().upper()
         key = (branch, ref)
