@@ -1,0 +1,66 @@
+name: XML229 Physical Vertex Prefinal V2 Source-Native Replay
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-physical-vertex-prefinal-materializer.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-physical-vertex-prefinal-materializer.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-prefinal-restraints.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-prefinal-restraints.mjs'
+      - 'converters/scripts/xml229_physical_vertex_prefinal.py'
+      - 'docs/converters/scripts/xml229_physical_vertex_prefinal.py'
+      - 'converters/scripts/xml229_prefinal_restraints.py'
+      - 'docs/converters/scripts/xml229_prefinal_restraints.py'
+      - 'converters/xml-cii2019-core/atta-default-restraint-closure.js'
+      - 'docs/converters/xml-cii2019-core/atta-default-restraint-closure.js'
+      - 'converters/xml-cii-2019-standalone/engine.js'
+      - 'docs/converters/xml-cii-2019-standalone/engine.js'
+      - 'tests/xml229-physical-vertex-prefinal-v2.test.mjs'
+      - 'tests/xml229-physical-vertex-v2-native-replay.py'
+      - '.github/workflows/xml229-physical-vertex-prefinal-v2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-nodal-member-native-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Byte-for-byte source and served docs parity
+        run: |
+          for n in xml229-physical-vertex-prefinal-materializer.mjs xml229-prefinal-restraints.mjs; do
+            cmp "tabs/xml-cii-2019-standalone/integration/$n" "docs/tabs/xml-cii-2019-standalone/integration/$n"
+            node --check "tabs/xml-cii-2019-standalone/integration/$n"
+          done
+          cmp converters/scripts/xml229_physical_vertex_prefinal.py docs/converters/scripts/xml229_physical_vertex_prefinal.py
+          cmp converters/scripts/xml229_prefinal_restraints.py docs/converters/scripts/xml229_prefinal_restraints.py
+          cmp converters/xml-cii2019-core/atta-default-restraint-closure.js docs/converters/xml-cii2019-core/atta-default-restraint-closure.js
+          cmp converters/xml-cii-2019-standalone/engine.js docs/converters/xml-cii-2019-standalone/engine.js
+          python3 -m py_compile converters/scripts/xml229_physical_vertex_prefinal.py converters/scripts/xml229_prefinal_restraints.py
+      - name: V2 source member to native independent whole-XML replay
+        run: |
+          node --test tests/xml229-physical-vertex-prefinal-v2.test.mjs
+          node --test tests/xml229-json-physical-vertex-binding.test.mjs tests/xml229-nodal-restraint-six-slot.test.mjs
+  existing-native-v1-backward-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Real V1 Worker Final → native Python CII
+        run: node --test tests/xml229-json-restraint-body-transfer.test.mjs
+      - name: Legacy six-slot writer
+        run: python3 -m unittest discover -s tests -p 'test_xml229_native_six_slot_actual_cii.py' -v
