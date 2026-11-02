@@ -1,0 +1,80 @@
+name: XML229 Original Physical Vertex Contraction Custody
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-preacceptance-vertex-contraction-audit.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-preacceptance-vertex-contraction-audit.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
+      - 'converters/scripts/xml229_preacceptance_contraction_audit.py'
+      - 'docs/converters/scripts/xml229_preacceptance_contraction_audit.py'
+      - 'converters/scripts/xml229_native_final_mass_binding.py'
+      - 'docs/converters/scripts/xml229_native_final_mass_binding.py'
+      - 'converters/xml-cii-2019-standalone/engine.js'
+      - 'docs/converters/xml-cii-2019-standalone/engine.js'
+      - 'tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-converter-failure-diagnostic.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-converter-failure-diagnostic.mjs'
+      - 'tests/xml229-preacceptance-contraction-native-parity.py'
+      - 'tests/xml229-preacceptance-vertex-contraction-audit.test.mjs'
+      - 'tests/xml229-json-restraint-body-transfer.test.mjs'
+      - 'tests/xml229-json-restraint-native-check.py'
+      - '.github/workflows/xml229-preacceptance-vertex-contraction.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-to-native-physical-vertex-contraction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Byte-for-byte original modules and served docs
+        run: |
+          for file in xml229-preacceptance-vertex-contraction-audit.mjs xml229-finalized-weight-geometry.mjs xml229-preview-engineering-fact-producer.mjs; do
+            cmp "tabs/xml-cii-2019-standalone/integration/$file" "docs/tabs/xml-cii-2019-standalone/integration/$file"
+            node --check "tabs/xml-cii-2019-standalone/integration/$file"
+          done
+          cmp converters/scripts/xml229_preacceptance_contraction_audit.py docs/converters/scripts/xml229_preacceptance_contraction_audit.py
+          cmp converters/scripts/xml229_native_final_mass_binding.py docs/converters/scripts/xml229_native_final_mass_binding.py
+          cmp converters/xml-cii-2019-standalone/engine.js docs/converters/xml-cii-2019-standalone/engine.js
+          cmp tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-converter-failure-diagnostic.mjs docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-converter-failure-diagnostic.mjs
+          python3 -m py_compile converters/scripts/xml229_preacceptance_contraction_audit.py converters/scripts/xml229_native_final_mass_binding.py
+      - name: Source graph independent JS/Python zero-edge and alias proof
+        run: |
+          node --test tests/xml229-preacceptance-vertex-contraction-audit.test.mjs
+          node --test tests/xml229-physical-vertex-prefinal-v2.test.mjs tests/xml229-native-lineage-diagnostic-codes.test.mjs
+      - name: Real GC-PW Worker to accepted-weight native EnrichedXML and CII
+        run: |
+          node --test tests/xml229-json-restraint-body-transfer.test.mjs
+  native-python-versions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11','3.12']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: |
+          python -m py_compile converters/scripts/xml229_preacceptance_contraction_audit.py
+          python -m unittest discover -s tests -p 'test_xml229_native_six_slot_actual_cii.py' -v
+      - name: Conformance boundary
+        run: |
+          echo "Review-only graph contraction custody; no unverified self-edge weld or post-Final mutation"
+          echo "Actual Owner 21 private-source claims not replayed; CII production release denied"
