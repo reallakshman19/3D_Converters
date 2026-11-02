@@ -417,6 +417,13 @@ def _validate_finalized_geometry(packet, source, staged_json_path=None, support_
         verify_proposal(source, snapshot, retained,
                         final["canonicalNodeNumberProposal"],
                         packet["sourceXmlSha256"], require)
+    if final.get("canonicalVertexContractionAudit") is not None:
+        from xml229_preacceptance_contraction_audit import verify_audit
+        lineage=final.get("physicalLineage") or {}
+        verify_audit(source,snapshot,retained,
+                     lineage.get("branchConnectionAliases") or [],
+                     packet["sourceXmlSha256"],
+                     final["canonicalVertexContractionAudit"],require)
     require(child(snapshot, LINEAGE_STAGE) is None and
             not any(child(n, LINEAGE_TAG) is not None
                     for branch in selected for n in nodes(branch)),
