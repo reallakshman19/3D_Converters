@@ -39,7 +39,7 @@ function segments(attrs,member){
 function segmentAttributes(base,segment){
   if(segment===null){
     const label=str(base.DTXR||base.DESC||base.DESCRIPTION);
-    const inline=label.match(/CMPSUPGAP\\s*=\\s*([-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?)\\s*(?:mm)?/i);
+    const inline=label.match(/CMPSUPGAP\s*=\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)\s*(?:mm)?/i);
     if(inline&&!str(base.CMPSUPGAP)&&!str(base.CMPSUPGAP_POS)&&!str(base.CMPSUPGAP_PS))
       return {...base,CMPSUPGAP:inline[1]};
     return base;
