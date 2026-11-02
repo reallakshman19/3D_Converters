@@ -692,10 +692,12 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
         if inferred is not None:
             positions.append({k: entry["rawPoint"][k] + inferred[k] for k in ("x", "y", "z")})
         matches = []
+        matched_positions = []
         for point in positions:
             candidates = nearby(entry, point)
             if candidates:
                 matches.append(candidates)
+                matched_positions.append(point)
         if not matches:
             continue
         # Competing transforms must not silently claim different source nodes.
@@ -717,7 +719,26 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
                 hits = []
         if len(hits) > 1:
             corroborated = [i for i in hits if rows[i][3] & tags]
-            hits = corroborated if len(corroborated) == 1 else []
+            if len(corroborated) == 1:
+                hits = corroborated
+            else:
+                # The configured tolerance is a *candidate search envelope*,
+                # not evidence that two different component positions are the
+                # same attachment. A second, native-default precision tier may
+                # accept one source-position owner without choosing the nearest
+                # node arbitrarily. Every plausible transform must agree, and
+                # all other candidates must lie outside a two-precision-unit
+                # guard band. Truly coincident components still require PS or
+                # explicit identity evidence.
+                precision = min(tol, DEFAULT_DTXR_POSITION_OFFSET["tolerance"])
+                exact = [i for i in hits if all(
+                    _positions_match(rows[i][2], pos, precision)
+                    for pos in matched_positions)]
+                separated = len(exact) == 1 and all(
+                    all(not _positions_match(rows[i][2], pos, 2 * precision)
+                        for pos in matched_positions)
+                    for i in hits if i != exact[0])
+                hits = exact if separated else []
         if len(hits) != 1:
             ambiguous += 1
             record_conflict(claim_index, "NON_UNIQUE_POSITION_OWNER", matches[:1])
