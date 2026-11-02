@@ -259,6 +259,11 @@ def _validate_finalized_geometry(packet, source, staged_json_path=None, support_
     require(isinstance(retained, list) and len(originals) == len(selected)
             and len(retained) == len(originals),
             "NATIVE_FINALIZED_GEOMETRY_CENSUS_DRIFT")
+    if final.get("canonicalNodeNumberProposal") is not None:
+        from xml229_canonical_node_proposal import verify_proposal
+        verify_proposal(source, snapshot, retained,
+                        final["canonicalNodeNumberProposal"],
+                        packet["sourceXmlSha256"], require)
     # Verify the Worker-assigned IDs by recomputing their exact deterministic
     # original-ordinal mapping. Only nonpositive source placeholders can change.
     # Never merge an original positive connected node or invent a new one.
