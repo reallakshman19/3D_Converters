@@ -6,6 +6,7 @@ whole-XML and original physical-mass verification. No topology or kg mutation.
 """
 from copy import deepcopy
 from decimal import Decimal, InvalidOperation
+import math
 import json
 import re
 import xml.etree.ElementTree as ET
@@ -239,7 +240,39 @@ def replay_physical_vertex_prefinal(original, parsed, config, claimed, require):
             generated=children(tmp,'Restraint')
             if len(generated)!=1:
                 fail('PROFILE_MUST_HAVE_ONE_SLOT')
-            expected.append(generated[0])
+            # V2 member-specific engineering fields override the fallback
+            # profile. The original V1 replay remains untouched.
+            restraint=generated[0]
+            overrides={
+                'Stiffness':abc(attrs,'STIFFNESS','NODESTIFFNESS'),
+                'Friction':abc(attrs,'FRICTION','NODEFRICTION'),
+            }
+            for key,val in overrides.items():
+                if val is not None:
+                    target=next((c for c in restraint if local(c)==key),None)
+                    if target is None:
+                        fail('PROFILE_FIELD_MISSING')
+                    target.text=str(val)
+            direction=[abc(attrs,'DirectionCosineX','DIRECTIONCOSINEX'),
+                       abc(attrs,'DirectionCosineY','DIRECTIONCOSINEY'),
+                       abc(attrs,'DirectionCosineZ','DIRECTIONCOSINEZ')]
+            if any(v is not None for v in direction):
+                if any(v is None for v in direction):
+                    fail('SOURCE_DIRECTION_INCOMPLETE')
+                try:
+                    vector=[float(v) for v in direction]
+                    norm=math.sqrt(sum(v*v for v in vector))
+                except (ValueError,TypeError,OverflowError):
+                    fail('SOURCE_DIRECTION_INVALID')
+                if not all(math.isfinite(v) for v in vector) or not norm:
+                    fail('SOURCE_DIRECTION_INVALID')
+                for axis,val in zip('XYZ',vector):
+                    name='DirectionCosine'+axis
+                    target=next((c for c in restraint if local(c)==name),None)
+                    if target is None:
+                        target=ET.SubElement(restraint,name)
+                    target.text=f'{val/norm:.9f}'
+            expected.append(restraint)
         desired=[sem(r) for r in expected]
         used=set()
         for current in children(node,'Restraint'):
