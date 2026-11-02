@@ -866,10 +866,15 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
             # identity is a HOLD, never a fallback to the nearest XML node.
             carrier_hits = ([i for i in hits if rows[i][4] == carrier_ref]
                             if entry.get("sourceCarrierRouteUnique") else [])
+            authored_hits = original_source_restraint_owner(entry, hits)
             if (len(carrier_hits) != 1 or
                 (source_ref and carrier_ref != source_ref) or
                 (len(uniquely_tagged) == 1 and
-                 carrier_hits[0] != uniquely_tagged[0])):
+                 carrier_hits[0] != uniquely_tagged[0]) or
+                (len(authored_hits) == 1 and
+                 carrier_hits[0] != authored_hits[0])):
+                # Contradictory independently authored source restraint is
+                # never silently overridden by a route-carrier relationship.
                 hits = []
             else:
                 hits = carrier_hits
