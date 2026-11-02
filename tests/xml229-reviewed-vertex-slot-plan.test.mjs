@@ -48,7 +48,7 @@ test('two -1 original source aliases given different positive Final IDs require 
   assert.equal(result.placements[0].canonicalNodeNumber,110);
   assert.deepEqual(result.placements[0].finalAliasNodeNumbers,[110,120]);
   assert.equal(result.placements[0].requiresCanonicalRenumber,true);
-  assert.equal(result.placements[0].readyForNativeTransfer,false);
+  assert.equal(result.placements[0].localAliasChecksPassed,false);
   assert.equal(result.summary.verticesRequiringCanonicalRenumber,1);
   assert.equal(result.summary.nativeReleaseAuthorized,false);
   assert.equal(result.summary.postFinalMutationAuthorized,false);
@@ -60,7 +60,7 @@ test('two already canonical positive alias rows admit one nodal REST/GUI/LIM pla
     node(10,'0 0 0'),node(110,'100 0 0','ATTA'),
     node(110,'100 0 0','PIPE'),node(20,'200 0 0')]);
   const result=plan(b,g);
-  assert.equal(result.placements[0].readyForNativeTransfer,true);
+  assert.equal(result.placements[0].localAliasChecksPassed,true);
   assert.equal(result.placements[0].slotCount,3);
   assert.deepEqual(result.placements[0].slots.map(s=>s.ciiTypeCode),[14,8,9]);
   assert.equal(result.summary.verticesRequiringCanonicalRenumber,0);
@@ -89,7 +89,7 @@ test('if all source aliases are removed from reviewed geometry, the nodal slots 
   const g=finalize([node(10,'0 0 0'),node(20,'200 0 0')],[[0,3]]);
   const result=plan(b,g);
   assert.equal(result.summary.orphanedVertexSlotSets,1);
-  assert.equal(result.placements[0].readyForNativeTransfer,false);
+  assert.equal(result.placements[0].localAliasChecksPassed,false);
   assert.equal(result.placements[0].canonicalNodeNumber,null);
 });
 
@@ -103,7 +103,7 @@ test('original-authored source restraint on other alias is a separate reconcilia
   assert.equal(result.summary.authoredRestraintsOnOtherAliases,1);
   assert(result.placements[0].reasons.includes(
     'ORIGINAL_AUTHORED_RESTRAINT_ON_OTHER_ALIAS'));
-  assert.equal(result.placements[0].readyForNativeTransfer,false);
+  assert.equal(result.placements[0].localAliasChecksPassed,false);
 });
 
 test('unbound original support member is not mistaken for an approved slot transfer',()=>{
