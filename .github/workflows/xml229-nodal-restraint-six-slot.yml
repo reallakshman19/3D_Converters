@@ -1,0 +1,57 @@
+name: XML229 Nodal Restraints 1-6 (nonreleasing)
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-nodal-restraint-slots.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-nodal-restraint-slots.mjs'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js'
+      - 'docs/tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js'
+      - 'tests/xml229-nodal-restraint-six-slot.test.mjs'
+      - 'tests/test_xml229_native_six_slot_actual_cii.py'
+      - '.github/workflows/xml229-nodal-restraint-six-slot.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  member-preservation-contract:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Validate mirrored source classification and slot code
+        run: |
+          cmp tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js docs/tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js
+          cmp tabs/xml-cii-2019-standalone/integration/xml229-nodal-restraint-slots.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-nodal-restraint-slots.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-nodal-restraint-slots.mjs
+      - name: Member multiplicity, gaps, saved Step7/8, capacity and baseline
+        run: |
+          node --test tests/xml229-nodal-restraint-six-slot.test.mjs
+          node --test tests/xml229-json-restraint-body-transfer.test.mjs tests/xml229-datum-node-type-mutation.test.mjs
+      - name: Explicitly NONRELEASING
+        run: |
+          echo "Pure nodal source-member projection; NOT attached to Final/native CII"
+          echo "No Owner 21-claim or real .cii verdict"
+  native-actual-cii-six-slot:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12']
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Actual native serializer, six nodes slots and seventh refusal
+        run: python -m unittest discover -s tests -p 'test_xml229_native_six_slot_actual_cii.py' -v
