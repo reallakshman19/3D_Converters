@@ -409,15 +409,19 @@ def main() -> None:
     # renumbering, or short-element cleanup. Original packet SHA is checked
     # against untouched args.input by the stage and again by the binder.
     staged_original = args.input
+    original_authored_restraints = None
     if args.xml229_native_final_packet is not None:
+        original_authored_restraints = {}
         from xml229_native_final_mass_binding import stage_native_original_lineage
         _mark_native_failure_stage('ORIGINAL_LINEAGE_STAGE')
         staged_original = stage_native_original_lineage(
-            args.input, args.xml229_native_final_packet, args.staged_json, support_config)
+            args.input, args.xml229_native_final_packet, args.staged_json,
+            support_config, authored_restraints_out=original_authored_restraints)
     _mark_native_failure_stage('STAGED_ENRICHMENT')
     _mark_native_failure_stage('STAGED_POSITION_TRANSFER')
     input_xml = patched._maybe_enrich_from_staged_json(
-        staged_original, args.staged_json, support_config)
+        staged_original, args.staged_json, support_config,
+        original_authored_restraints=original_authored_restraints)
     _mark_native_failure_stage('SOURCE_VALUE_HYDRATION')
     input_xml = patched._apply_process_data_to_xml(input_xml, support_config)
     _mark_native_failure_stage('BEND_RADIUS_POLICY')
