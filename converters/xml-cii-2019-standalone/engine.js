@@ -17,6 +17,7 @@ const SCRIPT_FILE_NAMES = Object.freeze([
   'xml229_canonical_node_proposal.py',
   'xml229_prefinal_restraint_source.py',
   'xml229_prefinal_restraints.py',
+  'xml229_physical_vertex_prefinal.py',
   'xml229_support_type_mapper.py',
   'xml_cii_weighted_geometry.py',
   'xml_to_cii2019_master_addon.py',
