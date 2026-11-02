@@ -19,6 +19,8 @@ import {finalizeXml229WeightGeometry} from './xml229-finalized-weight-geometry.m
 import {prepareXml229PrefinalRestraints} from './xml229-prefinal-restraints.mjs';
 import {bindXml229JsonToPhysicalVertices}
   from './xml229-json-physical-vertex-binding.mjs';
+import {planXml229ReviewedNodalPlacements}
+  from './xml229-reviewed-vertex-slot-plan.mjs';
 import {indexXml229ComponentBodyBores} from './xml229-component-body-bore.mjs';
 import {projectXmlCiiOccurrences}
   from '../ui-adapted/xml-cii-adapted-preview-facts-xml-source.js';
@@ -313,8 +315,12 @@ export async function openXml229EngineeringFactModel({
       });
       // Only bounded counts. No source positions, support tags, or raw JSON
       // leave the Worker through this diagnostic shadow path.
+      const pass2=planXml229ReviewedNodalPlacements({
+        sourceBinding:verified,finalizedGeometry,
+      });
       return Object.freeze({...verified.vertexIndex.summary,...verified.summary,
-        nodalSlotCount:verified.nodalSlots?.verifiedSourceMemberSegments||0});
+        nodalSlotCount:verified.nodalSlots?.verifiedSourceMemberSegments||0,
+        reviewedVertexPass2:pass2.summary});
     })()
     :null;
   if(physicalVertexShadow&&
