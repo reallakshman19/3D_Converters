@@ -553,7 +553,9 @@ def build_ca_sidecar(xml_path, pclass_master, material_map, linelist, overrides,
 
 def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
                          option: dict[str, Any] | None,
-                         conflict_samples: list[dict[str, Any]] | None = None
+                         conflict_samples: list[dict[str, Any]] | None = None,
+                         conflict_scope=None,
+                         conflict_counts: dict[str, int] | None = None,
                          ) -> tuple[dict[int, list[dict[str, Any]]], int]:
     """Assign each positioned JSON member to one source node using XYZ first.
 
@@ -639,10 +641,24 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
     ambiguous = 0
 
     def record_conflict(claim_index: int, reason: str, groups: list[list[int]]) -> None:
-        if conflict_samples is None or len(conflict_samples) >= 20:
+        scope = conflict_scope(entries[claim_index])[0] if conflict_scope else "MANDATORY"
+        if conflict_counts is not None:
+            conflict_counts[scope] = conflict_counts.get(scope, 0) + 1
+        if conflict_samples is None:
             return
+        # Keep mandatory failures in the bounded witness even when unrelated
+        # non-restraint claims occurred first in the staged source order.
+        if len(conflict_samples) >= 20:
+            if scope != "MANDATORY":
+                return
+            excluded = next((i for i in range(len(conflict_samples) - 1, -1, -1)
+                             if conflict_samples[i]["scope"] != "MANDATORY"), None)
+            if excluded is None:
+                return
+            conflict_samples.pop(excluded)
         owner_rows = sorted({index for group in groups for index in group})
         conflict_samples.append({
+            "scope": scope,
             "type": "dtxr-position-ambiguous",
             "sourceClaimIndex": claim_index,
             "reason": reason,
@@ -701,10 +717,6 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
     # members that lack any usable position, not a bypass for a failed POS claim.
     dtxr_index = build_dtxr_ps_index(staged_json, unpositioned_only=True)
     dtxr_pos_entries = build_dtxr_pos_entries(staged_json, dtxr_position_offset)
-    ambiguous_position_samples: list[dict[str, Any]] = []
-    pos_owners, pos_ambiguous = _position_bound_dtxr(
-        root, dtxr_pos_entries, dtxr_position_offset, ambiguous_position_samples)
-    assigned_entries = {id(entry) for owner_entries in pos_owners.values() for entry in owner_entries}
     # A support POSI claim is mandatory only within the XML's represented
     # branch scope. Non-support geometry and unrelated source branches remain
     # explicit, auditable exclusions; they are never quietly counted as matches.
@@ -723,10 +735,16 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
             return "NOT_APPLICABLE", "non-restraint-source-component"
         branch = str(entry.get("branchName") or "").strip().upper()
         if branch and branch not in xml_branches and (
-                re.search(r"/B\\d+$", branch) or
+                re.search(r"/B\d+$", branch) or
                 not any(x.startswith(branch.rstrip("/") + "/B") for x in xml_branches)):
             return "NOT_APPLICABLE", "source-branch-out-of-selected-xml-scope"
         return "MANDATORY", "source-support-positional-owner"
+    ambiguous_position_samples: list[dict[str, Any]] = []
+    ambiguity_counts: dict[str, int] = {}
+    pos_owners, pos_ambiguous = _position_bound_dtxr(
+        root, dtxr_pos_entries, dtxr_position_offset, ambiguous_position_samples,
+        conflict_scope=claim_scope, conflict_counts=ambiguity_counts)
+    assigned_entries = {id(entry) for owner_entries in pos_owners.values() for entry in owner_entries}
     unresolved_claims = [
         {"sourceClaimIndex": i, "sourceType": e.get("sourceType", ""),
          "sourceName": e.get("sourceAttrs", {}).get("NAME", ""),
@@ -738,6 +756,8 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
     ]
     stats = {"temperature2": 0, "temperature3": 0, "dtxrPs": 0,
              "dtxrPos": 0, "dtxrPosAmbiguous": pos_ambiguous,
+             "dtxrPosMandatoryAmbiguous": ambiguity_counts.get("MANDATORY", 0),
+             "dtxrPosExcludedAmbiguous": ambiguity_counts.get("NOT_APPLICABLE", 0),
              "dtxrPosUnmatched": len(unresolved_claims),
              "dtxrPosMandatoryUnmatched": sum(x["scope"] == "MANDATORY" for x in unresolved_claims),
              "dtxrPosExcluded": sum(x["scope"] == "NOT_APPLICABLE" for x in unresolved_claims)}
