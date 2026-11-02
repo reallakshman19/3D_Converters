@@ -270,6 +270,122 @@ class ScopedAmbiguityTests(unittest.TestCase):
         self.assertEqual(original_proof, {(0, 0): (),
                                           (0, 1): (("GUI", "5"),)})
 
+    def test_explicit_source_carrier_ref_resolves_exactly_one_xml_component(self):
+        # A source support REF is not its carrier. COMPRE must reference one
+        # independently present route component in the same staged branch.
+        xml = (XML.replace("<NodeNumber>10</NodeNumber>",
+                           "<NodeNumber>10</NodeNumber><ComponentRefNo>=42/100</ComponentRefNo>")
+                  .replace("<NodeNumber>20</NodeNumber>",
+                           "<NodeNumber>20</NodeNumber><ComponentRefNo>=42/200</ComponentRefNo>"))
+        carrier = {"type": "ELBO", "name": "the genuine carrier",
+                   "attributes": {"REF": "=42/200"}}
+        support = {"type": "SUPPORT", "name": "independent authored support",
+                   "attributes": {"REF": "=99/999", "POSI": "1 2 3",
+                                  "COMPRE": "=42/200", "DTXR": "GUIDE",
+                                  "CMPSUPGAP": "5mm"}}
+        def staged(*components):
+            return json.dumps([{"type": "BRANCH", "name": "/TEST/B1",
+                                "children": list(components)}])
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "source.xml"
+            path.write_text(xml, encoding="utf-8")
+            def evaluate(data):
+                return enrich_xml_addons(path, None, None, data,
+                                          {"enabled": False})
+            success = evaluate(staged(carrier, support))
+            self.assertEqual(success["stats"]["dtxrPosMandatoryAmbiguous"], 0)
+            nodes = [n for n in ET.fromstring(success["xmlText"]).iter()
+                     if n.tag.endswith("Node")]
+            def annotations(n):
+                return [c.text for c in n if c.tag.endswith("DTXR_POS")]
+            self.assertEqual([annotations(n) for n in nodes],
+                             [[], ["GUIDE(CMPSUPGAP=5mm)"]])
+            # An independently SHA-custodied original-authored restraint on
+            # a different node contradicts the carrier evidence: HOLD.
+            contrary = enrich_xml_addons(path, None, None,
+                staged(carrier, support), {"enabled": False},
+                original_authored_restraints={
+                    (0, 0): (("GUI", "5"),), (0, 1): ()})
+            self.assertEqual(
+                contrary["stats"]["dtxrPosMandatoryAmbiguous"], 1)
+            # The same explicit carrier reference works for two different
+            # independently authored restraint members: many-to-one, pipe
+            # delimiter retained and zero never replaced by a default.
+            rest = {"type": "SUPPORT", "name": "REST member",
+                    "attributes": {"POSI": "1 2 3", "COMPRE": "=42/200",
+                                   "DTXR": "REST", "CMPSUPGAP": "0mm"}}
+            multi = evaluate(staged(carrier, rest, support))
+            self.assertEqual(multi["stats"]["dtxrPosMandatoryAmbiguous"], 0)
+            owners = [n for n in ET.fromstring(multi["xmlText"]).iter()
+                      if n.tag.endswith("Node")]
+            self.assertEqual(annotations(owners[1]),
+                ["REST(CMPSUPGAP=0mm)|GUIDE(CMPSUPGAP=5mm)"])
+            self.assertEqual(annotations(owners[0]), [])
+            variants = (
+                # Missing source route inventory: a dangling COMPRE is not
+                # authority to attach to a nearby XML component.
+                staged(support),
+                # Duplicated source carrier REF in one branch is ambiguous.
+                staged(carrier, carrier, support),
+                # Conflicting declared attachment aliases never choose one.
+                staged(carrier, {**support, "attributes": {
+                    **support["attributes"], "ATTACHED_COMPONENT_REF": "=42/100"}}),
+                # A self support REF alone is not its carrier.
+                staged(carrier, {**support, "attributes": {
+                    "REF": "=42/200", "POSI": "1 2 3",
+                    "DTXR": "GUIDE", "CMPSUPGAP": "5mm"}}),
+                # Declared COMPRE for missing carrier fails closed.
+                staged(carrier, {**support, "attributes": {
+                    **support["attributes"], "COMPRE": "=42/999"}}),
+                # Explicit original XML identity disagreeing with producer
+                # carrier identity is not silently overridden.
+                staged(carrier, {**support, "attributes": {
+                    **support["attributes"], "XML_COMPONENT_REF_NO": "=42/100"}}),
+                # Unsupported arbitrary generic REF must never be authority.
+                staged(carrier, {**support, "attributes": {
+                    "REF": "=42/200", "POSI": "1 2 3", "DTXR": "GUIDE"}}),
+            )
+            for index, variant in enumerate(variants):
+                with self.subTest(variant=index):
+                    refused = evaluate(variant)
+                    self.assertEqual(refused["stats"]["dtxrPosMandatoryAmbiguous"], 1)
+
+    def test_authentic_managed_stage_compre_points_to_independent_route_ref(self):
+        # Real saved managed-stage hierarchy: PS00369.1's COMPRE points
+        # to a producer-owned ELBO component, not to the support's REF.
+        from xml_to_cii2019_master_addon import build_dtxr_pos_entries
+        source = (ROOT / "Benchmarks/Managejson to Input XML/B7410250/"
+                  "Auto_supportsplit_managed_stage.json")
+        entries = build_dtxr_pos_entries(source.read_text(encoding="utf-8"),
+                                         {"enabled": False})
+        owners = [e for e in entries
+                  if e.get("sourceCarrierRefNo") == "=67133182/8396"
+                  and e.get("sourceAttrs", {}).get("NAME") == "/PS00369.1"]
+        self.assertEqual(len(owners), 1)
+        owner = owners[0]
+        self.assertTrue(owner["sourceCarrierRefDeclared"])
+        self.assertTrue(owner["sourceCarrierRouteUnique"])
+        self.assertEqual(owner["branchName"],
+            '/ZGPS-1A1AA-30"-B7410250-11445-01/B2')
+        self.assertEqual(owner["sourceComponentRefNo"], "")
+
+    def test_unique_route_ref_but_duplicate_xml_component_nodes_is_hold(self):
+        xml = (XML.replace("<NodeNumber>10</NodeNumber>",
+                           "<NodeNumber>10</NodeNumber><ComponentRefNo>=42/200</ComponentRefNo>")
+                  .replace("<NodeNumber>20</NodeNumber>",
+                           "<NodeNumber>20</NodeNumber><ComponentRefNo>=42/200</ComponentRefNo>"))
+        payload = json.dumps([{"type": "BRANCH", "name": "/TEST/B1",
+            "children": [
+                {"type": "PIPE", "name": "route", "attributes": {"REF": "=42/200"}},
+                {"type": "SUPPORT", "name": "support",
+                 "attributes": {"POSI": "1 2 3", "DTXR": "GUIDE",
+                                "COMPRE": "=42/200", "CMPSUPGAP": "5mm"}}
+            ]}])
+        model, log, output, error = self.execute(payload, xml)
+        self.assertEqual(error, "XML229_STAGED_POSITION_AMBIGUOUS")
+        self.assertEqual(model["stats"]["dtxrPosMandatoryAmbiguous"], 1)
+        self.assertIsNone(output)
+
     def test_authentic_bm2_coincident_source_nodes_require_exact_reference(self):
         # Public BM2 first branch has two coincident, distinct source nodes:
         # 10 (BRAN) and 40 (ATTA). JSON member is synthetic and deliberately
@@ -388,7 +504,7 @@ class ScopedAmbiguityTests(unittest.TestCase):
         line = next(line for line in log.getvalue().splitlines()
                     if line.startswith("XML229_STAGED_POSITION_AMBIGUITY "))
         card = json.loads(line.split(" ", 1)[1])
-        self.assertEqual(card["matcherRevision"], "XML229_POSITION_ORIGINAL_AUTHOR_V3")
+        self.assertEqual(card["matcherRevision"], "XML229_POSITION_CARRIER_AUTHORITY_V4")
         self.assertEqual(card["matchToleranceMm"], 3.0)
         self.assertEqual(card["count"], 1)
         witness = card["sample"][0]
@@ -402,6 +518,9 @@ class ScopedAmbiguityTests(unittest.TestCase):
         self.assertEqual(witness["originalSourceProofPresent"], False)
         self.assertEqual(witness["originalSourceRestraintCandidates"], 0)
         self.assertEqual(witness["originalMatchingRestraintCandidates"], 0)
+        self.assertFalse(witness["carrierRefDeclared"])
+        self.assertFalse(witness["carrierRouteVerified"])
+        self.assertEqual(witness["carrierCandidateCount"], 0)
         self.assertNotIn("rawPosition", witness)
         self.assertNotIn("sourceBranch", witness)
 

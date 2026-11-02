@@ -385,12 +385,59 @@ def _explicit_xml_component_ref(attrs: dict[str, Any]) -> str:
     return value if re.fullmatch(r"=\d+/\d+", value) else ""
 
 
+# Only the managed-stage topology contract's explicit support-to-carrier
+# fields carry carrier identity. A support's ordinary REF identifies the
+# support itself and must NEVER be promoted to attachment authority.
+_ROUTE_COMPONENT_TYPES = frozenset((
+    "PIPE", "TUBE", "PCOM", "ELBO", "TEE", "OLET",
+    "FLAN", "GASK", "VALV", "INST", "REDU", "RIGID",
+))
+
+
+def _carrier_reference(attrs: dict[str, Any]) -> tuple[str, bool]:
+    values = [str(value).strip().upper()
+              for key, value in attrs.items()
+              if re.sub(r"[^A-Z0-9]", "", str(key).upper()) in
+              ("COMPRE", "ATTACHEDCOMPONENTREF")
+              and value is not None and str(value).strip()]
+    if not values:
+        return "", False
+    unique = set(values)
+    if len(unique) != 1:
+        return "", True
+    ref = next(iter(unique))
+    return (ref if re.fullmatch(r"=\d+/\d+", ref) else ""), True
+
+
+def _staged_route_ref_counts(parsed: Any) -> dict[tuple[str, str], int]:
+    """Prove carrier REF denotes one independent route item in its branch.
+
+    This is an index of the original staged hierarchy, not a manufactured
+    relationship inferred from position, support names, or an XML node.
+    """
+    count: dict[tuple[str, str], int] = {}
+    for item in _iter_staged_components(parsed):
+        component = item.get("component") or {}
+        attrs = item.get("attrs") or {}
+        kind = str(component.get("type") or attrs.get("TYPE") or "").upper()
+        if kind not in _ROUTE_COMPONENT_TYPES:
+            continue
+        ref = str(attrs.get("REF") or "").strip().upper()
+        if not re.fullmatch(r"=\d+/\d+", ref):
+            continue
+        branch = str(item.get("branchName") or "").strip().upper()
+        key = (branch, ref)
+        count[key] = count.get(key, 0) + 1
+    return count
+
+
 def build_dtxr_pos_entries(staged_json: Any, offset_option: dict[str, Any] | None) -> list[dict[str, Any]]:
     """Return staged DTXR entries whose POSI was converted into XML coordinates."""
     try:
         parsed = json.loads(staged_json) if isinstance(staged_json, str) else staged_json
     except json.JSONDecodeError:
         return []
+    route_refs = _staged_route_ref_counts(parsed)
     entries: list[dict[str, Any]] = []
     for entry in _iter_staged_components(parsed):
         attrs = entry.get("attrs") if isinstance(entry, dict) else {}
@@ -408,6 +455,9 @@ def build_dtxr_pos_entries(staged_json: Any, offset_option: dict[str, Any] | Non
         component = entry.get("component") or {}
         tags = _ps_tags_from_attrs(attrs, component.get("name", ""))
         branch_name = str(entry.get("branchName") or attrs.get("OWNER") or "")
+        carrier_ref, carrier_declared = _carrier_reference(attrs)
+        carrier_route_unique = bool(
+            carrier_ref and route_refs.get((branch_name.strip().upper(), carrier_ref)) == 1)
         fields = ("DTXR", "NAME", "MDSSUPPTYPE", "SPRE", "CMPSUPTYPE",
                   "NODETYPE", "CMPSUPGAP", "CMPSUPGAP_POS", "CMPSUPGAP_PS",
                   "NODEGAP", "DESCRIPTION", "DESC", "OWNER", "SUPPORT_KIND",
@@ -419,6 +469,9 @@ def build_dtxr_pos_entries(staged_json: Any, offset_option: dict[str, Any] | Non
                         "sourceAttrs": source_fields,
                         "sourceType": str(component.get("type") or attrs.get("TYPE") or ""),
                         "sourceComponentRefNo": _explicit_xml_component_ref(attrs),
+                        "sourceCarrierRefNo": carrier_ref,
+                        "sourceCarrierRefDeclared": carrier_declared,
+                        "sourceCarrierRouteUnique": carrier_route_unique,
                         "tags": tags, "branchName": branch_name})
     return entries
 
@@ -718,6 +771,14 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
                 bool(rows[i][5]) for i in owner_rows),
             "originalMatchingRestraintCandidates": len(
                 original_source_restraint_owner(entries[claim_index], owner_rows)),
+            "carrierRefDeclared": bool(entries[claim_index].get(
+                "sourceCarrierRefDeclared")),
+            "carrierRouteVerified": bool(entries[claim_index].get(
+                "sourceCarrierRouteUnique")),
+            "carrierCandidateCount": sum(
+                rows[i][4] == entries[claim_index].get("sourceCarrierRefNo")
+                for i in owner_rows) if entries[claim_index].get(
+                    "sourceCarrierRouteUnique") else 0,
         })
 
     def original_source_restraint_owner(entry: dict[str, Any],
@@ -791,7 +852,33 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
         tags = entry.get("tags") or set()
         uniquely_tagged = [i for i in hits if rows[i][3] & tags]
         source_ref = entry.get("sourceComponentRefNo") or ""
-        if source_ref:
+        carrier_declared = entry.get("sourceCarrierRefDeclared") is True
+        carrier_ref = entry.get("sourceCarrierRefNo") or ""
+        if carrier_declared and len(hits) > 1:
+            # A source carrier can denote a finite edge away from a support's
+            # unique XML node. This authority is only used to break otherwise
+            # ambiguous positional ties; never veto an already unique owner.
+            # Topology contract: COMPRE/ATTACHED_COMPONENT_REF is a producer
+            # supplied carrier edge, not the support's own REF. The referenced
+            # route item must occur exactly once in the same original branch;
+            # its exact REF must identify exactly one *positional* XML node.
+            # Missing/invalid/duplicated route carrier or contradictory PS/XML
+            # identity is a HOLD, never a fallback to the nearest XML node.
+            carrier_hits = ([i for i in hits if rows[i][4] == carrier_ref]
+                            if entry.get("sourceCarrierRouteUnique") else [])
+            authored_hits = original_source_restraint_owner(entry, hits)
+            if (len(carrier_hits) != 1 or
+                (source_ref and carrier_ref != source_ref) or
+                (len(uniquely_tagged) == 1 and
+                 carrier_hits[0] != uniquely_tagged[0]) or
+                (len(authored_hits) == 1 and
+                 carrier_hits[0] != authored_hits[0])):
+                # Contradictory independently authored source restraint is
+                # never silently overridden by a route-carrier relationship.
+                hits = []
+            else:
+                hits = carrier_hits
+        elif source_ref:
             hits = [i for i in hits if rows[i][4] == source_ref]
             if len(hits) == 1 and len(uniquely_tagged) == 1 and hits[0] != uniquely_tagged[0]:
                 hits = []

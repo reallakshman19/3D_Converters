@@ -42,7 +42,9 @@ const packetFor = source => ({
   nativeCiiReleaseAuthorized: false,
   components: [{
     occurrenceId: JSON.stringify(['SOURCE', 0, 1,
-      JSON.stringify(['RIGID', 'REF-1', '2', 'WGT'])]),
+      JSON.stringify(['RIGID',
+        source.includes('<ComponentRefNo>=42/200</ComponentRefNo>')
+          ? '=42/200' : 'REF-1', '2', 'WGT'])]),
     effectiveKg: 12.5,
   }],
 });
@@ -193,6 +195,74 @@ test('native original-authored restraint breaks 0.2 mm position tie with exact s
   } finally {
     run.dispose();
   }
+});
+
+test('real native CII CLI binds multiple support members through verified COMPRE route carrier', async () => {
+  // The parent route item is independently present in the same original
+  // staged BRANCH; its route REF is not the support's own REF.
+  // Two XML component positions differ by just 0.2 mm (< 0.5 mm native
+  // tolerance), so positional proximity alone cannot choose the owner.
+  const original = baseXml
+    .replace('<Position>0 0 0</Position>', '<Position>4.8 0 0</Position>')
+    .replace('<ComponentRefNo>REF-1</ComponentRefNo>',
+      '<ComponentRefNo>=42/200</ComponentRefNo>');
+  const support = (kind, gap) => ({
+    ...sourceMember(kind, gap),
+    attributes: { ...sourceMember(kind, gap).attributes,
+      REF: '=99/999', COMPRE: '=42/200' },
+  });
+  const source = staged([
+    {type: 'RIGID', name: 'original route carrier',
+     attributes: {REF: '=42/200'}},
+    support('REST', '0mm'),
+    support('GUIDE', '5mm'),
+    support('LINE STOP', '8mm'),
+  ]);
+  const run = nativeRun(original, source);
+  try {
+    assert.equal(run.run.status, 0,
+      `carrier authority native CLI failure: ${(run.run.stderr || '').slice(-1200)} ${(run.run.stdout || '').slice(-1600)}`);
+    const enriched = readFileSync(run.enrichedPath, 'utf8');
+    assert.match(enriched,
+      /<DTXR_POS>REST\(CMPSUPGAP=0mm\)\|GUIDE\(CMPSUPGAP=5mm\)\|LINE STOP\(CMPSUPGAP=8mm\)<\/DTXR_POS>/);
+    const cii = readFileSync(run.output, 'utf8');
+    assert.deepEqual(nativeRestraints(cii).filter(x => x.node === 20), [
+      { node: 20, kind: 14, gap: 0 },
+      { node: 20, kind: 8, gap: 5 },
+      { node: 20, kind: 9, gap: 8 },
+    ]);
+    assert.equal(nativeRestraints(cii).some(x=>x.node===10),false);
+    const engineering = verifyCiiEngineeringAgainstNativeXml(enriched,cii);
+    assert.equal(engineering.status,'VERIFIED');
+    assert.equal(engineering.restraints,3);
+    const massProof = await reconcileXml229ActualCiiAgainstFinal({
+      originalXmlText:original, packet:run.packet, ciiText:cii,
+      writerDiagnostic:JSON.parse(readFileSync(run.proofPath,'utf8')),
+    });
+    assert.equal(massProof.massConsumptionVerified,true);
+    assert.equal(massProof.nativeCiiReleaseAuthorized,true);
+  } finally { run.dispose(); }
+});
+
+test('real native CLI rejects unverified carrier even when XML ref exists',()=>{
+  const original = baseXml
+    .replace('<Position>0 0 0</Position>', '<Position>4.8 0 0</Position>')
+    .replace('<ComponentRefNo>REF-1</ComponentRefNo>',
+      '<ComponentRefNo>=42/200</ComponentRefNo>');
+  // Source has no independent route member with REF =42/200.
+  // Explicit COMPRE alone cannot manufacture a route identity.
+  const source = staged([{
+    ...sourceMember('GUIDE','5mm'),
+    attributes: {...sourceMember('GUIDE','5mm').attributes,
+      COMPRE:'=42/200'},
+  }]);
+  const run = nativeRun(original, source);
+  try {
+    assert.notEqual(run.run.status,0);
+    assert.match(run.run.stdout+run.run.stderr,/XML229_STAGED_POSITION_AMBIGUOUS/);
+    assert.equal(existsSync(run.output),false);
+    assert.equal(existsSync(run.proofPath),false);
+  } finally { run.dispose(); }
 });
 
 test('actual native CLI refuses same-position ambiguity and writes no CII', () => {
