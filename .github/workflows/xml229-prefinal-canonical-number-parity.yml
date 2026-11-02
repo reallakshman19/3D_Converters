@@ -16,6 +16,7 @@ on:
       - 'docs/converters/xml-cii-2019-standalone/engine.js'
       - 'tests/xml229-prefinal-canonical-node-parity.test.mjs'
       - 'tests/xml229-json-restraint-body-transfer.test.mjs'
+      - 'tests/xml229-json-restraint-native-check.py'
       - 'tests/xml229-canonical-node-native-parity-bridge.py'
       - '.github/workflows/xml229-prefinal-canonical-number-parity.yml'
   workflow_dispatch:
