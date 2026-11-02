@@ -177,6 +177,99 @@ class ScopedAmbiguityTests(unittest.TestCase):
             self.assertEqual({int(x.type_code): x.gap for x in specs[10]},
                              {14: 0, 8: 5})
 
+    def test_original_authored_restraint_uniquely_corrobates_coincident_owner(self):
+        # Original-authored GUI at node 20, not a prefinal-generated
+        # proximity assignment or a synthetic coincident-node preference.
+        xml = XML.replace("<Position>1 2 3</Position></Node>",
+                          "<Position>1 2 3</Position></Node>", 1)
+        payload = json.dumps([{"type": "BRANCH", "name": "/TEST/B1",
+            "children": [{"type": "SUPPORT", "name": "no-PS",
+                "attributes": {"POSI": "1 2 3", "DTXR": "GUIDE",
+                               "CMPSUPGAP": "5mm"}}]}])
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "original.xml"
+            path.write_text(xml, encoding="utf-8")
+            proof = {(0, 0): (), (0, 1): (("GUI", "5"),)}
+            model = enrich_xml_addons(path, None, None, payload,
+                {"enabled": False}, original_authored_restraints=proof)
+            self.assertEqual(model["stats"]["dtxrPosMandatoryAmbiguous"], 0)
+            output = ET.fromstring(model["xmlText"])
+            nodes = [n for n in output.iter() if n.tag.endswith("Node")]
+            values = [[v.text for v in n if v.tag.endswith("DTXR_POS")]
+                      for n in nodes]
+            self.assertEqual(values, [[], ["GUIDE(CMPSUPGAP=5mm)"]])
+            # Existing transformed/pre-Final data without an original
+            # authoring proof cannot break the same positional tie.
+            no_proof = enrich_xml_addons(path, None, None, payload,
+                                         {"enabled": False})
+            self.assertEqual(no_proof["stats"]["dtxrPosMandatoryAmbiguous"], 1)
+            for attestation in (
+                {(0, 0): (("GUI", "5"),), (0, 1): (("GUI", "5"),)},
+                {(0, 0): (), (0, 1): (("GUI", "7"),)},
+                {(0, 0): (), (0, 1): (("+Y", "5"),)},
+            ):
+                with self.subTest(attestation=attestation):
+                    conflict = enrich_xml_addons(path, None, None, payload,
+                        {"enabled": False},
+                        original_authored_restraints=attestation)
+                    self.assertEqual(conflict["stats"]["dtxrPosMandatoryAmbiguous"], 1)
+
+    def test_original_authored_restraint_can_preserve_two_independent_members(self):
+        payload = json.dumps([{"type": "BRANCH", "name": "/TEST/B1",
+            "children": [
+                {"type": "SUPPORT", "name": "REST member",
+                 "attributes": {"POSI": "1 2 3", "DTXR": "REST",
+                                "CMPSUPGAP": "0mm"}},
+                {"type": "SUPPORT", "name": "GUIDE member",
+                 "attributes": {"POSI": "1 2 3", "DTXR": "GUIDE",
+                                "CMPSUPGAP": "5mm"}}]}])
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "original.xml"
+            path.write_text(XML, encoding="utf-8")
+            proof = {(0, 0): (), (0, 1): (("+Y", "0"), ("GUI", "5"))}
+            out = enrich_xml_addons(path, None, None, payload,
+                     {"enabled": False}, original_authored_restraints=proof)
+        self.assertEqual(out["stats"]["dtxrPosMandatoryAmbiguous"], 0)
+        nodes = [n for n in ET.fromstring(out["xmlText"]).iter()
+                 if n.tag.endswith("Node")]
+        self.assertEqual([v.text for v in nodes[1]
+                          if v.tag.endswith("DTXR_POS")],
+                         ["REST(CMPSUPGAP=0mm)|GUIDE(CMPSUPGAP=5mm)"])
+        self.assertFalse(any(v.tag.endswith("DTXR_POS") for v in nodes[0]))
+
+    def test_original_xml_authored_proof_comes_from_custodied_original_only(self):
+        import hashlib
+        from xml229_native_final_mass_binding import stage_native_original_lineage
+        xml = ('<PipeStressExport><Pipe><Branch><Branchname>BR-1</Branchname>'
+               '<Node><NodeNumber>10</NodeNumber><ComponentType>PIPE</ComponentType>'
+               '<Position>0 0 0</Position></Node>'
+               '<Node><NodeNumber>20</NodeNumber><NodeName>WGT</NodeName>'
+               '<ComponentType>RIGID</ComponentType>'
+               '<ComponentRefNo>REF-1</ComponentRefNo><Endpoint>2</Endpoint>'
+               '<Rigid>2</Rigid><Position>5 0 0</Position>'
+               '<Restraint><Type>GUI</Type><Gap>5</Gap></Restraint></Node>'
+               '</Branch></Pipe></PipeStressExport>')
+        oid = json.dumps(["SOURCE", 0, 1,
+                          json.dumps(["RIGID", "REF-1", "2", "WGT"],
+                                     separators=(",", ":"))],
+                         separators=(",", ":"))
+        packet = {"schema": "XML229.NativeFinalPhysicalPacket.v1",
+                  "sourceId": "SOURCE", "basisId": "a" * 64,
+                  "finalIntentSha256": "b" * 64,
+                  "sourceXmlSha256": hashlib.sha256(xml.encode()).hexdigest(),
+                  "physicalCount": 1,
+                  "components": [{"occurrenceId": oid, "effectiveKg": 12.5}]}
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.xml"
+            packet_file = Path(tmp) / "packet.json"
+            source.write_text(xml, encoding="utf-8")
+            packet_file.write_text(json.dumps(packet), encoding="utf-8")
+            original_proof = {}
+            stage_native_original_lineage(source, packet_file,
+                authored_restraints_out=original_proof)
+        self.assertEqual(original_proof, {(0, 0): (),
+                                          (0, 1): (("GUI", "5"),)})
+
     def test_authentic_bm2_coincident_source_nodes_require_exact_reference(self):
         # Public BM2 first branch has two coincident, distinct source nodes:
         # 10 (BRAN) and 40 (ATTA). JSON member is synthetic and deliberately
@@ -295,7 +388,7 @@ class ScopedAmbiguityTests(unittest.TestCase):
         line = next(line for line in log.getvalue().splitlines()
                     if line.startswith("XML229_STAGED_POSITION_AMBIGUITY "))
         card = json.loads(line.split(" ", 1)[1])
-        self.assertEqual(card["matcherRevision"], "XML229_POSITION_PRECISION_V2")
+        self.assertEqual(card["matcherRevision"], "XML229_POSITION_ORIGINAL_AUTHOR_V3")
         self.assertEqual(card["matchToleranceMm"], 3.0)
         self.assertEqual(card["count"], 1)
         witness = card["sample"][0]
@@ -306,6 +399,9 @@ class ScopedAmbiguityTests(unittest.TestCase):
         self.assertEqual(witness["matchedTransformCount"], 2)
         self.assertEqual(witness["psCorroboratedCandidateCount"], 0)
         self.assertEqual(witness["explicitXmlRefPresent"], False)
+        self.assertEqual(witness["originalSourceProofPresent"], False)
+        self.assertEqual(witness["originalSourceRestraintCandidates"], 0)
+        self.assertEqual(witness["originalMatchingRestraintCandidates"], 0)
         self.assertNotIn("rawPosition", witness)
         self.assertNotIn("sourceBranch", witness)
 

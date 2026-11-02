@@ -1545,7 +1545,9 @@ def _patched_elements_payload_factory(temperature_map: dict[str, tuple[float, ..
     return _build_elements_payload
 
 
-def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, support_config: dict[str, Any]) -> Path:
+def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None,
+                                  support_config: dict[str, Any],
+                                  *, original_authored_restraints=None) -> Path:
     if staged_json is None:
         return input_xml
     # Track what was annotated BEFORE staged-source replay. Only these
@@ -1568,7 +1570,9 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
     # another node was already annotated; keep unmatched XML values intact.
     if addon is None:
         raise ValueError("--staged-json requires xml_to_cii2019_master_addon.py to be available.")
-    result = addon.enrich_xml_addons(input_xml, linelist=None, overrides=None, staged_json=staged_json.read_text(encoding="utf-8-sig"), dtxr_position_offset=support_config.get("dtxrPositionOffset") if isinstance(support_config, dict) else None)
+    result = addon.enrich_xml_addons(input_xml, linelist=None, overrides=None, staged_json=staged_json.read_text(encoding="utf-8-sig"), dtxr_position_offset=support_config.get("dtxrPositionOffset") if isinstance(support_config, dict) else None,
+                                       original_authored_restraints=original_authored_restraints,
+                                       authored_restraint_config=support_config)
     stats = result.get("stats") or {}
     mandatory_ambiguous = stats.get("dtxrPosMandatoryAmbiguous", stats.get("dtxrPosAmbiguous", 0))
     if mandatory_ambiguous:
@@ -1586,7 +1590,7 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
                            if isinstance(support_config, dict) else None)
         applied_tolerance = addon._dtxr_position_offset(position_option)["tolerance"]
         print("XML229_STAGED_POSITION_AMBIGUITY " + json.dumps({
-            "matcherRevision": "XML229_POSITION_PRECISION_V2",
+            "matcherRevision": "XML229_POSITION_ORIGINAL_AUTHOR_V3",
             "matchToleranceMm": (round(applied_tolerance, 6)
                                  if math.isfinite(applied_tolerance) else None),
             "count": mandatory_ambiguous, "sample": conflicts,

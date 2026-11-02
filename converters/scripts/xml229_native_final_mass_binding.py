@@ -596,7 +596,8 @@ def _verify_source_physical_lineage(lineage, packet, original, finalized,
     return True
 
 
-def stage_native_original_lineage(original_path, packet_path, staged_json_path=None, support_config=None):
+def stage_native_original_lineage(original_path, packet_path, staged_json_path=None,
+                                  support_config=None, authored_restraints_out=None):
     """Annotate exact original source occurrences BEFORE staged-JSON enrichment.
 
     These temporary private markers are carried by the XML converter's ET
@@ -614,6 +615,34 @@ def stage_native_original_lineage(original_path, packet_path, staged_json_path=N
         packet, source, staged_json_path, support_config)
     _native_lineage_probe('LINEAGE_OWNER_CENSUS')
     source_branches = branches(source)
+    if authored_restraints_out is not None:
+        # This private output is created by native runtime code, never from
+        # user configuration. Only ORIGINAL XML-authored restraints count.
+        # Stage-replayed supports in finalizedGeometry are not independent
+        # owner evidence (the earlier resolver can use proximity).
+        require(type(authored_restraints_out) is dict and
+                not authored_restraints_out,
+                "NATIVE_AUTHORED_RESTRAINT_PROOF_OUTPUT_INVALID")
+        if retained_by_original is None:
+            owner_source = {(bi, ni): ni for bi, branch in
+                            enumerate(branches(final_source))
+                            for ni, _ in enumerate(nodes(branch))}
+        else:
+            inverse = {id(target): original_index
+                       for (bi, original_index), target
+                       in retained_by_original.items()}
+            owner_source = {(bi, ni): inverse[id(target)]
+                            for bi, branch in enumerate(branches(final_source))
+                            for ni, target in enumerate(nodes(branch))}
+        for bi, branch in enumerate(branches(final_source)):
+            original_nodes = nodes(source_branches[bi])
+            for ni, _ in enumerate(nodes(branch)):
+                original_node = original_nodes[owner_source[(bi, ni)]]
+                authored_restraints_out[(bi, ni)] = tuple(
+                    (txt(restraint, "Type"), txt(restraint, "Gap"))
+                    for restraint in original_node
+                    if tag(restraint) == "Restraint"
+                    and txt(restraint, "Type") and txt(restraint, "Gap"))
     seen = set()
     for item in packet["components"]:
         require(isinstance(item, dict), "NATIVE_MASS_ROW_INVALID")

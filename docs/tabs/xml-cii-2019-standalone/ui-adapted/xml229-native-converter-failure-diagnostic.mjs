@@ -39,6 +39,7 @@ const NATIVE_GUARDS=Object.freeze([
  'ENGINE_XML_MALFORMED',
  'ENGINE_XML_NOT_PIPESTRESSEXPORT',
  'NATIVE_ACCEPTED_PHYSICAL_NOT_IN_FINAL_GEOMETRY',
+ 'NATIVE_AUTHORED_RESTRAINT_PROOF_OUTPUT_INVALID',
  'NATIVE_BRANCH_NAME_DRIFT',
  'NATIVE_BRANCH_OCCURRENCE_DRIFT',
  'NATIVE_BRANCH_OUT_OF_RANGE',
@@ -182,7 +183,9 @@ export function readXml229BoundedStagedPositionEvidence(logs){
  const reasons=new Set(['NON_UNIQUE_POSITION_OWNER','COMPETING_POSITION_TRANSFORMS']);
  const scopes=new Set(['MANDATORY','NOT_APPLICABLE']);
  const geometry=new Set(['COINCIDENT','DISTINCT']);
- const hasVersion=parsed.matcherRevision==='XML229_POSITION_PRECISION_V2';
+ const hasOriginalProof=parsed.matcherRevision==='XML229_POSITION_ORIGINAL_AUTHOR_V3';
+ const hasVersion=hasOriginalProof||
+  parsed.matcherRevision==='XML229_POSITION_PRECISION_V2';
  if(parsed.matcherRevision!==undefined&&!hasVersion)return null;
  if(hasVersion&&!(parsed.matchToleranceMm===null||
     (Number.isFinite(parsed.matchToleranceMm)&&parsed.matchToleranceMm>=0&&
@@ -202,6 +205,16 @@ export function readXml229BoundedStagedPositionEvidence(logs){
       x.guardBandCandidateCount>x.candidateCount||
       x.psCorroboratedCandidateCount>x.candidateCount||
       x.matchedTransformCount>3))return null;
+   if(hasOriginalProof&&(
+      typeof x.originalSourceProofPresent!=='boolean'||
+      !index(x.originalSourceRestraintCandidates)||
+      !index(x.originalMatchingRestraintCandidates)||
+      x.originalSourceRestraintCandidates>x.candidateCount||
+      x.originalMatchingRestraintCandidates>x.originalSourceRestraintCandidates||
+      (!x.originalSourceProofPresent&&
+       (x.originalSourceRestraintCandidates!==0||
+        x.originalMatchingRestraintCandidates!==0))
+    ))return null;
    sample.push({sourceClaimIndex:x.sourceClaimIndex,reason:x.reason,
      ...(x.scope!==undefined?{scope:x.scope}:{}),
      candidateCount:x.candidateCount,
@@ -213,6 +226,11 @@ export function readXml229BoundedStagedPositionEvidence(logs){
        matchedTransformCount:x.matchedTransformCount,
        psCorroboratedCandidateCount:x.psCorroboratedCandidateCount,
        explicitXmlRefPresent:x.explicitXmlRefPresent,
+     }:{}),
+     ...(hasOriginalProof?{
+       originalSourceProofPresent:x.originalSourceProofPresent,
+       originalSourceRestraintCandidates:x.originalSourceRestraintCandidates,
+       originalMatchingRestraintCandidates:x.originalMatchingRestraintCandidates,
      }:{}),
    });
  }

@@ -575,6 +575,8 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
                          conflict_samples: list[dict[str, Any]] | None = None,
                          conflict_scope=None,
                          conflict_counts: dict[str, int] | None = None,
+                         original_authored_restraints=None,
+                         authored_restraint_config=None,
                          ) -> tuple[dict[int, list[dict[str, Any]]], int]:
     """Assign each positioned JSON member to one source node using XYZ first.
 
@@ -589,20 +591,22 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
     offset = _dtxr_position_offset(option)
     tol = offset["tolerance"]
     cell_size = tol if tol > 0 else 0.000001
-    rows: list[tuple[ET.Element, str, dict[str, float], set[str], str]] = []
+    rows: list[tuple[ET.Element, str, dict[str, float], set[str], str, tuple]] = []
     by_cell: dict[tuple[int, int, int], list[int]] = {}
     by_tag: dict[str, list[int]] = {}
 
     def cell(pos: dict[str, float]) -> tuple[int, int, int]:
         return tuple(math.floor(pos[k] / cell_size) for k in ("x", "y", "z"))
 
-    for branch in root.iter():
-        if _local(branch.tag) != "Branch":
-            continue
+    for branch_index, branch in enumerate(
+            b for b in root.iter() if _local(b.tag) == "Branch"):
         name = next(((c.text or "").strip() for c in branch if _local(c.tag) == "Branchname"), "")
+        node_ordinal = 0
         for node in branch:
             if _local(node.tag) != "Node":
                 continue
+            ordinal = node_ordinal
+            node_ordinal += 1
             point = _parse_position_text(next(
                 ((c.text or "") for c in node if _local(c.tag) == "Position"), ""))
             if point is None:
@@ -611,7 +615,9 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
             component_ref = next(((c.text or "").strip().upper() for c in node
                                   if _local(c.tag) == "ComponentRefNo"), "")
             index = len(rows)
-            rows.append((node, name.upper(), point, tags, component_ref))
+            proof = ((original_authored_restraints or {}).get(
+                (branch_index, ordinal), ()))
+            rows.append((node, name.upper(), point, tags, component_ref, proof))
             by_cell.setdefault(cell(point), []).append(index)
             for tag in tags:
                 by_tag.setdefault(tag, []).append(index)
@@ -707,7 +713,56 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
                                                for i in owner_rows),
             "explicitXmlRefPresent": bool(entries[claim_index].get(
                 "sourceComponentRefNo")),
+            "originalSourceProofPresent": original_authored_restraints is not None,
+            "originalSourceRestraintCandidates": sum(
+                bool(rows[i][5]) for i in owner_rows),
+            "originalMatchingRestraintCandidates": len(
+                original_source_restraint_owner(entries[claim_index], owner_rows)),
         })
+
+    def original_source_restraint_owner(entry: dict[str, Any],
+                                        hits: list[int]) -> list[int]:
+        # Only a verified original XML restraint, indexed by an independently
+        # audited branch+source occurrence map, may corroborate coincident
+        # attachment ownership. Prefinal-generated restraints are excluded.
+        # A staged claim must explicitly state a supported type AND gap.
+        if original_authored_restraints is None:
+            return []
+        from xml229_prefinal_restraints import kinds, numeric, source_gap
+        def require(ok, code):
+            if not ok:
+                raise ValueError(code)
+        try:
+            attrs = entry.get("sourceAttrs") or {}
+            semantics = kinds([{"attrs": attrs,
+                                "desc": entry.get("dtxr", "")}],
+                              require, authored_restraint_config or {})
+            if len(semantics) != 1:
+                return []
+            kind, member = next(iter(semantics.items()))
+            original_type = {"REST": "+Y", "GUIDE": "GUI",
+                             "LINESTOP": "LIM"}.get(kind)
+            raw_gap = source_gap(member)
+            if not original_type or not raw_gap:
+                return []
+            gap = numeric(raw_gap)
+            if gap is None or not math.isfinite(gap):
+                return []
+        except (ValueError, TypeError, KeyError):
+            return []
+        attested = []
+        for i in hits:
+            for actual_type, actual_gap in rows[i][5]:
+                try:
+                    actual_value = float(actual_gap)
+                except (ValueError, TypeError):
+                    continue
+                if (str(actual_type).strip().upper() == original_type and
+                    math.isfinite(actual_value) and
+                    math.isclose(actual_value, gap, rel_tol=0, abs_tol=1e-9)):
+                    attested.append(i)
+                    break
+        return attested
 
     for claim_index, entry in enumerate(entries):
         positions = [entry["rawPoint"], entry["point"]]
@@ -745,6 +800,12 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
             if len(corroborated) == 1:
                 hits = corroborated
             else:
+                original_attested = original_source_restraint_owner(entry, hits)
+                if len(original_attested) == 1:
+                    hits = original_attested
+                    node = rows[hits[0]][0]
+                    assignments.setdefault(id(node), []).append(entry)
+                    continue
                 # The configured tolerance is a *candidate search envelope*,
                 # not evidence that two different component positions are the
                 # same attachment. A second, native-default precision tier may
@@ -772,7 +833,11 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
     return assignments, ambiguous
 
 
-def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, overrides: dict[str, Any] | None, staged_json: Any, dtxr_position_offset: dict[str, Any] | None = None) -> dict[str, Any]:
+def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None,
+                      overrides: dict[str, Any] | None, staged_json: Any,
+                      dtxr_position_offset: dict[str, Any] | None = None,
+                      *, original_authored_restraints=None,
+                      authored_restraint_config=None) -> dict[str, Any]:
     """Annotate XML with process T2/T3 and PS-matched staged DTXR values.
 
     Inputs:
@@ -820,7 +885,9 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
     ambiguity_counts: dict[str, int] = {}
     pos_owners, pos_ambiguous = _position_bound_dtxr(
         root, dtxr_pos_entries, dtxr_position_offset, ambiguous_position_samples,
-        conflict_scope=claim_scope, conflict_counts=ambiguity_counts)
+        conflict_scope=claim_scope, conflict_counts=ambiguity_counts,
+        original_authored_restraints=original_authored_restraints,
+        authored_restraint_config=authored_restraint_config)
     assigned_entries = {id(entry) for owner_entries in pos_owners.values() for entry in owner_entries}
     unresolved_claims = [
         {"sourceClaimIndex": i, "sourceType": e.get("sourceType", ""),
