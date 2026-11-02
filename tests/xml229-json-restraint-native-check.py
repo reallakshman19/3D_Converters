@@ -72,6 +72,17 @@ changed = deepcopy(packet)
 changed['finalizedGeometry']['canonicalNodeNumberProposal']['schema'] = 'FORGED'
 challenge(changed, code='NATIVE_CANONICAL_PROPOSAL_SCHEMA_INVALID')
 
+# The native source-graph auditor must reject Worker-provided topology/census
+# claims before writing any accepted-mass EnrichedXML or CII.
+if packet['finalizedGeometry'].get('canonicalVertexContractionAudit') is not None:
+    changed = deepcopy(packet)
+    changed['finalizedGeometry']['canonicalVertexContractionAudit']['summary'][
+        'retainedZeroLengthSourceEdges'] = 999
+    challenge(changed, code='NATIVE_CONTRACTION_AUDIT_DRIFT')
+    changed = deepcopy(packet)
+    changed['finalizedGeometry']['canonicalVertexContractionAudit']['schema'] = 'FORGED'
+    challenge(changed, code='NATIVE_CONTRACTION_SCHEMA_INVALID')
+
 
 def native(kg):
     current = deepcopy(packet)
