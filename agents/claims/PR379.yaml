@@ -17,3 +17,8 @@ authority_domains: [read_only_format_linekey_preview, actual_native_failure_diag
 protected: [native_final_mass, source_owner_identity, staged_json_ambiguity_refusal, independent_cii_release]
 coordination: COORDINATION_REQUIRED_WITH_PR377_PR378_PR260_PR253
 merge_authority: OWNER_ONLY_NOT_GRANTED
+
+  additional_exact:
+    - tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-converter-failure-diagnostic.mjs
+    - tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-debug.mjs
+  additional_mirrors: docs/tabs exact counterparts
