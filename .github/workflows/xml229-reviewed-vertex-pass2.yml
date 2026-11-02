@@ -1,0 +1,41 @@
+name: XML229 Reviewed Vertex Pass 2 (Nonreleasing)
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-reviewed-vertex-slot-plan.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-reviewed-vertex-slot-plan.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs'
+      - 'tests/xml229-reviewed-vertex-slot-plan.test.mjs'
+      - '.github/workflows/xml229-reviewed-vertex-pass2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reviewed-geometry-node-census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Verify docs parity and actual module import syntax
+        run: |
+          for file in xml229-reviewed-vertex-slot-plan.mjs xml229-preview-engineering-fact-producer.mjs; do
+            cmp "tabs/xml-cii-2019-standalone/integration/$file" "docs/tabs/xml-cii-2019-standalone/integration/$file"
+            node --check "tabs/xml-cii-2019-standalone/integration/$file"
+          done
+      - name: Reviewed source positions and slot placement contract
+        run: |
+          node --test tests/xml229-reviewed-vertex-slot-plan.test.mjs tests/xml229-json-physical-vertex-binding.test.mjs tests/xml229-original-physical-vertices.test.mjs tests/xml229-nodal-restraint-six-slot.test.mjs
+      - name: Nonreleasing
+        run: |
+          echo "Pass2 read-only diagnostic: no canonicalization or new-physical-node creation after Final"
+          echo "No ownership relabel, original 21 Owner source claims not supplied"
