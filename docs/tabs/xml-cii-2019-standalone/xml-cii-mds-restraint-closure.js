@@ -115,7 +115,7 @@ function configuredSupportRuleDecision(attrs, member, config) {
   return first;
 }
 
-function supportKindFromMember(member,config={}) {
+export function supportKindFromMember(member,config={}) {
   const attrs = memberAttributes(member);
   // An explicit source description wins over abbreviated MDS code aliases.
   // This mirrors the old confidence mapper, not its legacy axis defaults.
@@ -208,7 +208,7 @@ function sourceGapText(attrs){
     .map(key=>text(attrs?.[key])).find(Boolean)||'';
 }
 
-function supportGapNumber(attrs){
+export function supportGapNumber(attrs){
   // A legacy NODEGAP=0 is a placeholder only when an explicit
   // CMPSUPGAP is supplied on the SAME source member. Do not treat
   // two distinct nonzero source claims as equivalent or silently choose one.
@@ -227,7 +227,7 @@ function supportGapNumber(attrs){
   return values.length?values[0]:null;
 }
 
-function sourceNodeType(attrs,config){
+export function sourceNodeType(attrs,config){
   const raw=text(attrs?.NODETYPE);
   if(!raw)return '';
   const selected=mutateRestraintType(raw,
