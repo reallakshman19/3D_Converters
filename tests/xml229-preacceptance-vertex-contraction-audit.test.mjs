@@ -21,7 +21,7 @@ function audit(originalXmlText,finalizedXmlText,retainedSourceOrdinalsByBranch,a
     branchConnectionAliases:aliases,sourceXmlSha256:'source-sha',
   });
 }
-function native(originalXmlText,finalizedXmlText,retained,claimed,aliases=[]){
+function native(originalXmlText,finalizedXmlText,retained,claimed,aliases=[],requireContracted=false){
   const cwd=fileURLToPath(new URL('../',import.meta.url));
   return spawnSync('python3',['tests/xml229-preacceptance-contraction-native-parity.py'],{
     cwd,encoding:'utf8',timeout:30000,input:JSON.stringify({
@@ -29,6 +29,7 @@ function native(originalXmlText,finalizedXmlText,retained,claimed,aliases=[]){
       retainedSourceOrdinalsByBranch:retained,
       canonicalVertexContractionAudit:claimed,
       branchConnectionAliases:aliases,sourceXmlSha256:'source-sha',
+      requireContracted,
     }),
   });
 }
@@ -72,6 +73,27 @@ test('when preview already pruned redundant original alias, no retained self-edg
   assert.equal(r.candidates[0].status,'SOURCE_ZERO_EDGE_ALREADY_PRUNED');
   assert.equal(r.candidates[0].nativeNodeNumberReuseAllowedNow,false);
   assert.equal(native(original,finalized,[[0,1,3]],r).status,0);
+});
+
+test('strict native Final custody HOLD rejects a still-retained source zero-edge',()=>{
+  const original=source(),finalized=final(),retained=[[0,1,2,3]];
+  const r=audit(original,finalized,retained);
+  const result=native(original,finalized,retained,r,[],true);
+  assert.notEqual(result.status,0);
+  assert.match(result.stderr,/NATIVE_CONTRACTION_REVIEW_REQUIRED/);
+});
+
+test('strict native Final custody HOLD rejects disconnected source vertices sharing a CII node ID',()=>{
+  const original=xml(
+    branch('/A/B1',node(-1,'0 0 0','ATTA'),node(10,'100 0 0')),
+    branch('/B/B1',node(-1,'0 0 0','ATTA'),node(20,'0 100 0')));
+  const finalized=xml(
+    branch('/A/B1',node(110,'0 0 0','ATTA'),node(10,'100 0 0')),
+    branch('/B/B1',node(110,'0 0 0','ATTA'),node(20,'0 100 0')));
+  const r=audit(original,finalized,[[0,1],[0,1]]);
+  const result=native(original,finalized,[[0,1],[0,1]],r,[],true);
+  assert.notEqual(result.status,0);
+  assert.match(result.stderr,/NATIVE_CONTRACTION_TOPOLOGY_UNSAFE/);
 });
 
 test('two disconnected pipes crossing same XYZ are NOT candidates for welding',()=>{
