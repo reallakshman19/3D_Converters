@@ -180,13 +180,18 @@ export function readXml229BoundedStagedPositionEvidence(logs){
  const index=x=>Number.isSafeInteger(x)&&x>=0&&x<=10000000;
  if(!index(parsed?.count)||parsed.count<1||!Array.isArray(parsed?.sample)||parsed.sample.length>20)return null;
  const reasons=new Set(['NON_UNIQUE_POSITION_OWNER','COMPETING_POSITION_TRANSFORMS']);
+ // Native scope is a security-relevant engineering classification, not free text.
+ // Preserve only explicit allowlisted values; legacy receipts remain scope-unknown.
+ const scopes=new Set(['MANDATORY','NOT_APPLICABLE']);
  const sample=[];
  for(const x of parsed.sample){
    if(!index(x?.sourceClaimIndex)||!index(x?.candidateCount)||
       !reasons.has(x.reason)||!Array.isArray(x.candidatePositionRowIndices)||
       x.candidatePositionRowIndices.length>12||
-      !x.candidatePositionRowIndices.every(index))return null;
+      !x.candidatePositionRowIndices.every(index)||
+      (x.scope!==undefined&&!scopes.has(x.scope)))return null;
    sample.push({sourceClaimIndex:x.sourceClaimIndex,reason:x.reason,
+     ...(x.scope!==undefined?{scope:x.scope}:{}),
      candidateCount:x.candidateCount,
      candidatePositionRowIndices:[...x.candidatePositionRowIndices]});
  }
