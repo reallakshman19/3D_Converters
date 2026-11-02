@@ -198,9 +198,20 @@ def root(parent,index):
     return index
 
 
-def verify_audit(original,final,retained,aliases,source_sha,claimed,fail):
+def verify_audit(original,final,retained,aliases,source_sha,claimed,fail,
+                 require_contracted=False):
     fail(isinstance(claimed,dict) and claimed.get('schema')==SCHEMA,
          'NATIVE_CONTRACTION_SCHEMA_INVALID')
     derived=expected_audit(original,final,retained,aliases,source_sha)
     fail(claimed==derived,'NATIVE_CONTRACTION_AUDIT_DRIFT')
+    if require_contracted:
+        # Native conversion must never consume a Final that still encodes a
+        # zero-length original source edge or welds disconnected vertices.
+        # Exact physical equivalence does not authorize a CII self-element.
+        counts=derived['summary']
+        fail(counts['retainedZeroLengthSourceEdges']==0,
+             'NATIVE_CONTRACTION_REVIEW_REQUIRED')
+        fail(counts['disconnectedNativeIdCollisions']==0 and
+             counts['prematureNativeIdSelfEdges']==0,
+             'NATIVE_CONTRACTION_TOPOLOGY_UNSAFE')
     return derived
