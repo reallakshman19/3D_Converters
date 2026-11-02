@@ -2,6 +2,7 @@
 
 **Status:** PROPOSED / DESIGN ONLY — not implemented, not an approved engineering CII release  
 **Date:** 2026-11-02  
+**Tracking issue / 24-item WBS:** [#391](https://github.com/reallakshman19/3D_Converters/issues/391)  
 **Applies to:** Selected original PSI/XML229 + optional staged JSON Trace -> Pre-Final -> Weight Match/Final -> governed EnrichedXML -> native CII 2019  
 **Existing architecture draft:** [PR #390](https://github.com/reallakshman19/3D_Converters/pull/390); [detailed corrective RFC](xml229-coordinate-vertex-nodal-two-pass-rfc.md)  
 **Related existing work:** issues [#364](https://github.com/reallakshman19/3D_Converters/issues/364), [#350](https://github.com/reallakshman19/3D_Converters/issues/350), [#376](https://github.com/reallakshman19/3D_Converters/issues/376), [#98](https://github.com/reallakshman19/3D_Converters/issues/98), [#136](https://github.com/reallakshman19/3D_Converters/issues/136); historical PRs #356, #357, #365, #370–#389.
