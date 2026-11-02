@@ -183,8 +183,12 @@ export function readXml229BoundedStagedPositionEvidence(logs){
  const reasons=new Set(['NON_UNIQUE_POSITION_OWNER','COMPETING_POSITION_TRANSFORMS']);
  const scopes=new Set(['MANDATORY','NOT_APPLICABLE']);
  const geometry=new Set(['COINCIDENT','DISTINCT']);
+ const hasRouteStatus=parsed.matcherRevision==='XML229_POSITION_CARRIER_PROVENANCE_V6';
  const hasCarrier=parsed.matcherRevision==='XML229_POSITION_CARRIER_AUTHORITY_V4'||
-  parsed.matcherRevision==='XML229_POSITION_CARRIER_EDGE_V5';
+  parsed.matcherRevision==='XML229_POSITION_CARRIER_EDGE_V5'||hasRouteStatus;
+ const carrierStatuses=new Set(['NOT_DECLARED','MALFORMED_REFERENCE',
+  'CONFLICTING_DECLARATIONS','BRANCH_UNRESOLVED','ROUTE_REF_NOT_FOUND',
+  'ROUTE_REF_OTHER_BRANCH','ROUTE_REF_DUPLICATED','VERIFIED']);
  const hasOriginalProof=hasCarrier||
   parsed.matcherRevision==='XML229_POSITION_ORIGINAL_AUTHOR_V3';
  const hasVersion=hasOriginalProof||
@@ -226,6 +230,11 @@ export function readXml229BoundedStagedPositionEvidence(logs){
       (x.carrierRouteVerified&&!x.carrierRefDeclared)||
       (!x.carrierRouteVerified&&x.carrierCandidateCount!==0)
     ))return null;
+   if(hasRouteStatus&&(
+      !carrierStatuses.has(x.carrierRouteStatus)||
+      x.carrierRouteVerified!==(x.carrierRouteStatus==='VERIFIED')||
+      x.carrierRefDeclared!==(x.carrierRouteStatus!=='NOT_DECLARED')
+    ))return null;
    sample.push({sourceClaimIndex:x.sourceClaimIndex,reason:x.reason,
      ...(x.scope!==undefined?{scope:x.scope}:{}),
      candidateCount:x.candidateCount,
@@ -248,6 +257,7 @@ export function readXml229BoundedStagedPositionEvidence(logs){
        carrierRouteVerified:x.carrierRouteVerified,
        carrierCandidateCount:x.carrierCandidateCount,
      }:{}),
+     ...(hasRouteStatus?{carrierRouteStatus:x.carrierRouteStatus}:{}),
    });
  }
  return Object.freeze({schema:'XML229.NativeStagedPositionAmbiguity.v1',
