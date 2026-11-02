@@ -7,6 +7,7 @@ on:
       - 'tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js'
       - 'docs/tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js'
       - 'tests/xml229-nodal-restraint-six-slot.test.mjs'
+      - 'tests/test_xml229_native_six_slot_actual_cii.py'
       - '.github/workflows/xml229-nodal-restraint-six-slot.yml'
   workflow_dispatch:
 permissions:
@@ -38,3 +39,19 @@ jobs:
         run: |
           echo "Pure nodal source-member projection; NOT attached to Final/native CII"
           echo "No Owner 21-claim or real .cii verdict"
+  native-actual-cii-six-slot:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12']
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Actual native serializer, six nodes slots and seventh refusal
+        run: python -m unittest discover -s tests -p 'test_xml229_native_six_slot_actual_cii.py' -v
