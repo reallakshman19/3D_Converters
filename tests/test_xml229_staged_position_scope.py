@@ -143,19 +143,20 @@ class ScopedAmbiguityTests(unittest.TestCase):
 
     def test_two_distinct_members_one_pos_owner_survive_pipe_and_native_specs(self):
         from xml_to_cii2019_patched import _build_keyword_restraint_specs
-        xml = (XML.replace("<NodeNumber>10</NodeNumber>",
-                           "<NodeNumber>10</NodeNumber><ComponentRefNo>=42/100</ComponentRefNo>")
-                  .replace("<NodeNumber>20</NodeNumber>",
-                           "<NodeNumber>20</NodeNumber><ComponentRefNo>=42/200</ComponentRefNo>"))
+        # No staged component reference or PS tie-break: precise position
+        # must distinguish the owner from a separate nearby component,
+        # and both authored restraints must remain on that one owner.
+        xml = XML.replace("<NodeName>PS00002</NodeName><Position>1 2 3</Position>",
+                          "<NodeName>PS00002</NodeName><Position>1 2 6</Position>")
         payload = json.dumps([{"type": "BRANCH", "name": "/TEST/B1",
             "children": [
                 {"type": "SUPPORT", "name": "one-REST",
                  "attributes": {"POSI": "1 2 3", "DTXR": "REST",
-                                "CMPSUPGAP": "0mm", "COMPONENTREFNO": "=42/200"}},
+                                "CMPSUPGAP": "0mm"}},
                 {"type": "SUPPORT", "name": "one-GUIDE",
                  "attributes": {"POSI": "1 2 3", "DTXR": "GUIDE",
-                                "CMPSUPGAP": "5mm", "COMPONENTREFNO": "=42/200"}}]}])
-        cfg = {"dtxrPositionOffset": {"enabled": False}}
+                                "CMPSUPGAP": "5mm"}}]}])
+        cfg = {"dtxrPositionOffset": {"enabled": False, "tolerance": 6}}
         with tempfile.TemporaryDirectory() as tmp:
             source = Path(tmp) / "source.xml"
             staged_path = Path(tmp) / "source.json"
@@ -167,13 +168,13 @@ class ScopedAmbiguityTests(unittest.TestCase):
             nodes = [n for n in root.iter() if n.tag.endswith("Node")]
             text = lambda n, key: next((c.text or "" for c in n
                                          if c.tag.endswith(key)), "")
-            self.assertEqual(text(nodes[0], "DTXR_POS"), "")
-            self.assertEqual(text(nodes[1], "DTXR_POS"),
+            self.assertEqual(text(nodes[0], "DTXR_POS"),
                              "REST(CMPSUPGAP=0mm)|GUIDE(CMPSUPGAP=5mm)")
-            self.assertEqual(len(cfg["_stagedPositionMemberRows"][("/TEST/B1", "20")]), 2)
+            self.assertEqual(text(nodes[1], "DTXR_POS"), "")
+            self.assertEqual(len(cfg["_stagedPositionMemberRows"][("/TEST/B1", "10")]), 2)
             specs, _ = _build_keyword_restraint_specs(enriched, {})
-            self.assertEqual({int(x.type_code) for x in specs[20]}, {14, 8})
-            self.assertEqual({int(x.type_code): x.gap for x in specs[20]},
+            self.assertEqual({int(x.type_code) for x in specs[10]}, {14, 8})
+            self.assertEqual({int(x.type_code): x.gap for x in specs[10]},
                              {14: 0, 8: 5})
 
     def test_authentic_bm2_coincident_source_nodes_require_exact_reference(self):
