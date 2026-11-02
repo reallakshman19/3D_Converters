@@ -63,6 +63,119 @@ class ScopedAmbiguityTests(unittest.TestCase):
                 error = str(exc)
             return model, log.getvalue(), output, error
 
+    def test_public_bm2_distinct_component_positions_are_not_owners_by_proximity(self):
+        """Real BM2 node pairs, synthetic member at one real position.
+
+        The 200 mm search envelope deliberately admits two distinct physical
+        components; only a uniquely precision-qualified source position can
+        claim an owner. The original source is not a stand-in for the Owner's
+        private finalized XML, and these gaps are synthetic.
+        """
+        from copy import deepcopy
+        source = ROOT / "Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml"
+        tree = ET.parse(source)
+        nodes = []
+        for branch in tree.getroot().iter():
+            if branch.tag.rsplit("}", 1)[-1] != "Branch":
+                continue
+            name = next((c.text or "" for c in branch
+                         if c.tag.rsplit("}", 1)[-1] == "Branchname"), "")
+            for node in branch:
+                if node.tag.rsplit("}", 1)[-1] == "Node":
+                    nodes.append((name, node))
+        self.assertEqual(len(nodes), 1196)
+        distinct_pairs = ((699, 700), (786, 787), (110, 111),
+                          (324, 325), (537, 538), (219, 220))
+        def val(node, key):
+            return next((c.text or "" for c in node
+                         if c.tag.rsplit("}", 1)[-1] == key), "")
+        for first, second in distinct_pairs:
+            with self.subTest(pair=(first, second)):
+                branch_name, first_node = nodes[first]
+                second_branch, second_node = nodes[second]
+                self.assertEqual(branch_name, second_branch)
+                self.assertNotEqual(val(first_node, "Position"),
+                                    val(second_node, "Position"))
+                root = ET.Element("PipeStressExport")
+                pipe = ET.SubElement(root, "Pipe")
+                branch = ET.SubElement(pipe, "Branch")
+                ET.SubElement(branch, "Branchname").text = branch_name
+                branch.append(deepcopy(first_node))
+                branch.append(deepcopy(second_node))
+                xml = ET.tostring(root, encoding="unicode")
+                payload = json.dumps([{"type": "BRANCH", "name": branch_name,
+                    "children": [{"type": "SUPPORT", "name": "source-position-only",
+                        "attributes": {"POSI": val(first_node, "Position"),
+                                       "DTXR": "GUIDE",
+                                       "CMPSUPGAP": "0mm"}}]}])
+                with tempfile.TemporaryDirectory() as tmp:
+                    original = Path(tmp) / "test.xml"
+                    original.write_text(xml, encoding="utf-8")
+                    model = enrich_xml_addons(original, None, None, payload,
+                                               {"enabled": False, "tolerance": 200})
+                self.assertEqual(model["stats"]["dtxrPosMandatoryAmbiguous"], 0)
+                target = ET.fromstring(model["xmlText"])
+                original_nodes = [n for n in target.iter()
+                                  if n.tag.rsplit("}", 1)[-1] == "Node"]
+                self.assertEqual(val(original_nodes[0], "DTXR_POS"),
+                                 "GUIDE(CMPSUPGAP=0mm)")
+                self.assertEqual(val(original_nodes[1], "DTXR_POS"), "")
+
+    def test_broad_tolerance_does_not_choose_nearly_coincident_component(self):
+        # Two nodes inside the native 0.5 mm precision guard must remain
+        # ambiguous even when one is numerically closer.
+        xml = XML.replace("<Position>1 2 3</Position></Node>",
+                          "<Position>1 2 3</Position></Node>", 1)
+        xml = xml.replace("<NodeNumber>20</NodeNumber><NodeName>PS00002</NodeName>"
+                          "<Position>1 2 3</Position>",
+                          "<NodeNumber>20</NodeNumber><NodeName>PS00002</NodeName>"
+                          "<Position>1.8 2 3</Position>")
+        payload = json.dumps([{"type": "BRANCH", "name": "/TEST/B1",
+            "children": [{"type": "SUPPORT", "name": "no-PS",
+                "attributes": {"POSI": "1 2 3", "DTXR": "GUIDE"}}]}])
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "test.xml"
+            path.write_text(xml, encoding="utf-8")
+            model = enrich_xml_addons(path, None, None, payload,
+                                       {"enabled": False, "tolerance": 2})
+        self.assertEqual(model["stats"]["dtxrPosMandatoryAmbiguous"], 1)
+        self.assertEqual(model["stats"]["dtxrPos"], 0)
+
+    def test_two_distinct_members_one_pos_owner_survive_pipe_and_native_specs(self):
+        from xml_to_cii2019_patched import _build_keyword_restraint_specs
+        xml = (XML.replace("<NodeNumber>10</NodeNumber>",
+                           "<NodeNumber>10</NodeNumber><ComponentRefNo>=42/100</ComponentRefNo>")
+                  .replace("<NodeNumber>20</NodeNumber>",
+                           "<NodeNumber>20</NodeNumber><ComponentRefNo>=42/200</ComponentRefNo>"))
+        payload = json.dumps([{"type": "BRANCH", "name": "/TEST/B1",
+            "children": [
+                {"type": "SUPPORT", "name": "one-REST",
+                 "attributes": {"POSI": "1 2 3", "DTXR": "REST",
+                                "CMPSUPGAP": "0mm", "COMPONENTREFNO": "=42/200"}},
+                {"type": "SUPPORT", "name": "one-GUIDE",
+                 "attributes": {"POSI": "1 2 3", "DTXR": "GUIDE",
+                                "CMPSUPGAP": "5mm", "COMPONENTREFNO": "=42/200"}}]}])
+        cfg = {"dtxrPositionOffset": {"enabled": False}}
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.xml"
+            staged_path = Path(tmp) / "source.json"
+            source.write_text(xml, encoding="utf-8")
+            staged_path.write_text(payload, encoding="utf-8")
+            with contextlib.redirect_stdout(io.StringIO()):
+                enriched = _maybe_enrich_from_staged_json(source, staged_path, cfg)
+            root = ET.parse(enriched).getroot()
+            nodes = [n for n in root.iter() if n.tag.endswith("Node")]
+            text = lambda n, key: next((c.text or "" for c in n
+                                         if c.tag.endswith(key)), "")
+            self.assertEqual(text(nodes[0], "DTXR_POS"), "")
+            self.assertEqual(text(nodes[1], "DTXR_POS"),
+                             "REST(CMPSUPGAP=0mm)|GUIDE(CMPSUPGAP=5mm)")
+            self.assertEqual(len(cfg["_stagedPositionMemberRows"][("/TEST/B1", "20")]), 2)
+            specs, _ = _build_keyword_restraint_specs(enriched, {})
+            self.assertEqual({int(x.type_code) for x in specs[20]}, {14, 8})
+            self.assertEqual({int(x.type_code): x.gap for x in specs[20]},
+                             {14: 0, 8: 5})
+
     def test_authentic_bm2_coincident_source_nodes_require_exact_reference(self):
         # Public BM2 first branch has two coincident, distinct source nodes:
         # 10 (BRAN) and 40 (ATTA). JSON member is synthetic and deliberately
