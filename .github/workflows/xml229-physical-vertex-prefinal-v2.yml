@@ -15,6 +15,8 @@ on:
       - 'converters/xml-cii-2019-standalone/engine.js'
       - 'docs/converters/xml-cii-2019-standalone/engine.js'
       - 'tests/xml229-physical-vertex-prefinal-v2.test.mjs'
+      - 'tests/xml229-json-restraint-body-transfer.test.mjs'
+      - 'tests/xml229-json-restraint-native-check.py'
       - 'tests/xml229-physical-vertex-v2-native-replay.py'
       - '.github/workflows/xml229-physical-vertex-prefinal-v2.yml'
   workflow_dispatch:
