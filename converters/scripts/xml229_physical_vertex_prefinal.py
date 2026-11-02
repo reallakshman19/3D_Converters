@@ -43,12 +43,31 @@ def triple(value):
                  abc(value, 'y', 'N', 'north'),
                  abc(value, 'z', 'Z', 'U', 'EL', 'elev', 'elevation')]
     elif isinstance(value, str):
-        value = re.split(r'[\s,;]+', value.strip())
+        numeric=re.split(r'[\s,;]+',value.strip())
+        if len(numeric)==3:
+            value=numeric
+        else:
+            directional=re.findall(
+                r'\b(EL|E|W|N|S|U|D)\s*[:=]?\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][+-]?\d+)?)',
+                value,re.I)
+            if len(directional)!=3:
+                return None
+            components={}
+            for axis,raw in directional:
+                axis=axis.upper()
+                index=0 if axis in ('E','W') else 1 if axis in ('N','S') else 2
+                if index in components or (axis in ('W','S','D') and raw.startswith('-')):
+                    return None
+                signed='-'+raw if axis in ('W','S','D') else raw
+                components[index]=signed
+            if len(components)!=3:
+                return None
+            value=[components[i] for i in range(3)]
     if not isinstance(value, (list, tuple)) or len(value) != 3:
         return None
     try:
         parts = tuple(Decimal(str(v)) for v in value)
-    except (InvalidOperation, ValueError):
+    except (InvalidOperation, ValueError, TypeError):
         return None
     return parts if all(v.is_finite() for v in parts) else None
 
