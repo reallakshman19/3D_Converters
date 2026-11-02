@@ -78,7 +78,7 @@ function diagnostic(node, kind, entries) {
   };
 }
 
-export function closeGovernedAttaDefaultRestraints(document, config = {}) {
+export function closeGovernedAttaDefaultRestraints(document, config = {}, {skipNodes=new Set()} = {}) {
   const stats = {
     attaDefaultRestRestraintsAdded: 0,
     zeroInformationLimitPlaceholdersReplaced: 0,
@@ -99,6 +99,7 @@ export function closeGovernedAttaDefaultRestraints(document, config = {}) {
 
   for (const node of [...(document?.getElementsByTagName?.('Node') || [])]) {
     if (childText(node, 'ComponentType').toUpperCase() !== 'ATTA') continue;
+    if (skipNodes.has(node)) continue; // V2 physical-vertex restraint aliases never gain default REST
     const restraints = childrenByName(node, 'Restraint');
     const missing = restraints.length === 0;
     const placeholderOnly = restraints.length > 0
