@@ -78,6 +78,14 @@ export function proposeXml229PreFinalRigidSplitCoordinates({
     const A=occurrences.get(originalKey(bi,from));
     const B=occurrences.get(originalKey(bi,to));
     if(!A||!B)fail('XML229_SPLIT_SOURCE_EDGE_NOT_FOUND');
+    const ref=s=>String(s??'').trim().replace(/^=/,'').replace(/\s+/g,'').toUpperCase();
+    const eligible=new Set(['VALV','FLAN','INST','RIGID']);
+    if(!eligible.has(A.sourceComponentType)||
+       !eligible.has(B.sourceComponentType)||
+       !ref(A.sourceComponentRefNo)||
+       ref(A.sourceComponentRefNo)!==ref(B.sourceComponentRefNo)||
+       A.sourceEndpoint!=='1'||B.sourceEndpoint!=='2')
+      fail('XML229_SPLIT_RIGID_EDGE_WITNESS_INVALID');
     const av=xyz(A.positionRaw),bv=xyz(B.positionRaw);
     if(av.every((v,i)=>compare(v,bv[i])===0))
       fail('XML229_SPLIT_ZERO_LENGTH_EDGE');
