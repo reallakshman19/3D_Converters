@@ -1,0 +1,37 @@
+name: XML229 Exact Rigid Split Coordinate Lineage (Nonreleasing)
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-rigid-split-coordinate-lineage.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-rigid-split-coordinate-lineage.mjs'
+      - 'tests/xml229-rigid-split-coordinate-lineage.test.mjs'
+      - '.github/workflows/xml229-rigid-split-coordinate-lineage.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exact-source-edge-coordinate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22','24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Check served source parity and syntax
+        run: |
+          cmp tabs/xml-cii-2019-standalone/integration/xml229-rigid-split-coordinate-lineage.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-rigid-split-coordinate-lineage.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-rigid-split-coordinate-lineage.mjs
+      - name: Source-edge rigid splitting and physical-vertex second-pass regression
+        run: |
+          node --test tests/xml229-rigid-split-coordinate-lineage.test.mjs tests/xml229-reviewed-vertex-slot-plan.test.mjs tests/xml229-json-physical-vertex-binding.test.mjs
+      - name: Nonrelease statement
+        run: |
+          echo "Pre-Final split-lineage proposal only. No new nodes added to governed Final."
+          echo "No mass acceptance, no native CII release, no Owner 21 private source replay."
