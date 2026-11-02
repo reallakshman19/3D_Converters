@@ -431,7 +431,17 @@ function xml229RunHoldPlainMeaning(audit){
  if(code==='INDEPENDENT_NATIVE_RELEASE_AUTHORITY_ABSENT')
    return mass+'Final intent is eligible. Actual native CII output and independent mass reconciliation are still required.';
  if(code==='BRANCH_FORMAT_IDENTITY_UNRESOLVED')
-   return mass+'Conversion has not started because configured branch formats are unmatched or conflicting. See Branch format diagnosis and correct the affected Regex Tester formats.';
+   return mass+'Branch format identities are unresolved. No native candidate failure is recorded in this audit; review the two separate 4 Preview passes.';
+ if(code==='NATIVE_CANDIDATE_FAILED'){
+   const failure=audit?.nativeCandidate?.failureCode||'NATIVE_CANDIDATE_FAILED';
+   return mass+'Native conversion was attempted and FAILED: '+failure+
+     (failure==='XML229_STAGED_POSITION_AMBIGUOUS'
+       ?'. Staged JSON position evidence has multiple possible source owners. Review exact staged-position ownership before retrying; no CII was released.'
+       :'. Inspect the native failure diagnostic before retrying.')+
+     (audit?.branchFormat?.blocked
+       ?' Separate warning: configured Format 1 / Format 2 enrichment identity remains unresolved.'
+       :'');
+ }
  if(code==='FINAL_INTENT_SOURCE_OR_BASIS_DRIFT'||code==='FINAL_INTENT_POPULATION_DRIFT')
    return mass+'The returned Final intent contradicts the current source, Worker basis or mass census; rebuild on one source revision.';
  if(code==='FINAL_INTENT_INVALID')
