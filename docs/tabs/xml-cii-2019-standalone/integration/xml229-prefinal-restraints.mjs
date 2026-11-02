@@ -6,6 +6,8 @@ import {closeGovernedMdsPositionRestraintsXml}
   from '../xml-cii-mds-restraint-closure.js';
 import {closeGovernedAttaDefaultRestraints}
   from '../../../converters/xml-cii2019-core/atta-default-restraint-closure.js';
+import {materializeXml229PhysicalVertexRestraints}
+  from './xml229-physical-vertex-prefinal-materializer.mjs';
 
 const local=n=>String(n?.localName||n?.nodeName||'').replace(/^.*:/,'');
 const elements=n=>[...(n?.childNodes||[])].filter(x=>x.nodeType===1);
@@ -24,14 +26,27 @@ function parse(text){
 export async function prepareXml229PrefinalRestraints({xmlText,stagedJsonText='',config={}}){
   const original=parse(xmlText);
   const originalShape=JSON.stringify(sourceShape(original));
-  const resolved=closeGovernedMdsPositionRestraintsXml(
+  const enabled=config?.xml229PhysicalVertexPrefinal===true &&
+    config?.supportMapping?.useJsonForRestraints!==false &&
+    String(stagedJsonText||'').trim().length>0;
+  const vertex=enabled?materializeXml229PhysicalVertexRestraints({
+    originalXmlText:xmlText,stagedJsonText,config,document:original,
+  }):null;
+  const resolved=enabled?null:closeGovernedMdsPositionRestraintsXml(
     xmlText,stagedJsonText,config,{requireUnambiguous:true});
-  const document=resolved.changed?parse(resolved.xmlText):original;
-  const fallback=closeGovernedAttaDefaultRestraints(document,config);
+  const document=enabled?vertex.document:
+    resolved.changed?parse(resolved.xmlText):original;
+  const fallback=closeGovernedAttaDefaultRestraints(document,config,
+    enabled?{skipNodes:vertex.skipDefaultAtta}:{});
+
   if(originalShape!==JSON.stringify(sourceShape(document)))
     throw Object.assign(new Error('Support staging changed unrelated source fields'),
       {code:'PREFINAL_RESTRAINT_SOURCE_DRIFT'});
-  return {document,proof:Object.freeze({schema:'XML229.PrefinalRestraints.v1',
-    originalJsonSha256:await digestUtf8(stagedJsonText)}),
-    stats:{...resolved.stats,...fallback.stats}};
+  return {document,proof:Object.freeze({
+    schema:enabled?'XML229.PrefinalRestraints.v2':'XML229.PrefinalRestraints.v1',
+    originalJsonSha256:await digestUtf8(stagedJsonText),
+    ...(enabled?{physicalVertexMemberCensus:vertex.proofSummary}:{}),
+  }),
+    stats:{...(resolved?.stats||{}),...fallback.stats,
+      ...(enabled?vertex.proofSummary:{})}};
 }

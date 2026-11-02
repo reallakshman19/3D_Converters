@@ -296,13 +296,19 @@ def replay_prefinal_restraints(expected, packet, staged_json_path, config, requi
     stage = final.get('prefinalRestraints')
     if stage is None:
         return False
-    require(isinstance(stage, dict) and stage.get('schema') == 'XML229.PrefinalRestraints.v1',
+    require(isinstance(stage, dict) and stage.get('schema') in
+            ('XML229.PrefinalRestraints.v1','XML229.PrefinalRestraints.v2'),
             'NATIVE_PREFINAL_RESTRAINT_STAGE_INVALID')
+    v2 = stage['schema'] == 'XML229.PrefinalRestraints.v2'
     raw = staged_json_path.read_bytes() if staged_json_path is not None else b''
     sha = hashlib.sha256(raw).hexdigest()
     require(stage.get('originalJsonSha256') == sha and
             (not packet.get('originalJsonSha256') or packet['originalJsonSha256'] == sha),
             'NATIVE_PREFINAL_RESTRAINT_SOURCE_SHA_DRIFT')
+    require(v2 == (config.get('xml229PhysicalVertexPrefinal') is True and
+                   (config.get('supportMapping') or {}).get('useJsonForRestraints') is not False and
+                   staged_json_path is not None and bool(staged_json_path.read_bytes().strip())),
+            'NATIVE_PREFINAL_RESTRAINT_STAGE_INVALID')
     require(isinstance(config, dict), 'NATIVE_PREFINAL_RESTRAINT_CONFIG_REQUIRED')
     if (config.get('supportMapping') or {}).get('useJsonForRestraints') is False:
         return True
@@ -310,6 +316,11 @@ def replay_prefinal_restraints(expected, packet, staged_json_path, config, requi
         parsed = json.loads(raw.decode('utf-8-sig')) if raw.strip() else []
     except (ValueError, UnicodeError):
         require(False, 'NATIVE_PREFINAL_RESTRAINT_SOURCE_INVALID')
+    if v2:
+        from xml229_physical_vertex_prefinal import replay_physical_vertex_prefinal
+        replay_physical_vertex_prefinal(
+            expected, parsed, config, stage.get('physicalVertexMemberCensus'), require)
+        return True
     source_nodes = [(field(b, 'Branchname'), n) for b in expected.iter() if local(b) == 'Branch'
                     for n in children(b, 'Node')]
     groups = calibrated_groups(source_nodes, source_entries(parsed, config), config, field)
