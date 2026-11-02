@@ -62,6 +62,16 @@ changed = deepcopy(packet)
 changed['originalJsonSha256'] = 'f' * 64
 challenge(changed, code='NATIVE_PREFINAL_RESTRAINT_SOURCE_SHA_DRIFT')
 
+# Native must rederive any extra canonical-numbering receipt from the actual
+# original XML and reviewed Final, not trust a Worker-provided assertion.
+changed = deepcopy(packet)
+changed['finalizedGeometry']['canonicalNodeNumberProposal']['summary'][
+    'proposedNativeNodeRelabels'] = 999
+challenge(changed, code='NATIVE_CANONICAL_PROPOSAL_PARITY_DRIFT')
+changed = deepcopy(packet)
+changed['finalizedGeometry']['canonicalNodeNumberProposal']['schema'] = 'FORGED'
+challenge(changed, code='NATIVE_CANONICAL_PROPOSAL_SCHEMA_INVALID')
+
 
 def native(kg):
     current = deepcopy(packet)
@@ -102,4 +112,4 @@ def native(kg):
 
 native(12.5)
 native(0)  # Explicit controlled Final zero is retained, never auto replaced.
-print('SOURCE_JSON_NATIVE_TRANSFER_PASS: XML, CII, Final12.5/0; 11 tamper challenges held')
+print('SOURCE_JSON_NATIVE_TRANSFER_PASS: XML, CII, Final12.5/0; 13 tamper challenges held')
