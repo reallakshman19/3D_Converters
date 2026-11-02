@@ -142,3 +142,45 @@ test('V2 physical-vertex pre-Final → actual governed native CII + negative cha
   assert.match(result,/SOURCE_JSON_NATIVE_TRANSFER_PASS/);
  }finally{await rm(folder,{recursive:true,force:true});}
 });
+
+test('V2 one physical CII node emits two same-kind GUIDE slots with independent gaps',async()=>{
+ const sourceId='XML229-V2-TWO-GUIDES',masters={},overrides={},
+  selection=[{sourceId,selectionRef:'all'}];
+ const stagedData=staged();
+ stagedData[0].children[1].children[0].attributes.CMPSUPGAP=5;
+ stagedData[0].children[1].children.push({
+  type:'GT501',attributes:{MDSSUPPTYPE:'GT501',NAME:'/PS40/DATUM',CMPSUPGAP:8}});
+ const stagedSource=JSON.stringify(stagedData);
+ const cfg={...config,xml229PhysicalVertexPrefinal:true,xml229CanonicalNumberProposal:true};
+ const basis=await createPreviewBasis({domainId:'xml-cii/2019',
+  sources:[{sourceId,mediaType:'application/xml',text:XML}],
+  masters,selection,stagedSource,config:cfg,overrides,sha256:digestUtf8});
+ const original=projectXmlCiiOccurrences({xmlText:XML,sourceId});
+ const preview=xmlCiiDryRunPreview(XML,structuredClone(cfg),stagedSource);
+ const opened=await openXml229EngineeringFactModel({basis,
+  live:{sources:{[sourceId]:XML},masters,selection,stagedSource,config:cfg,overrides},
+  xmlText:XML,sourceId,previewResult:{...preview,sourceOccurrences:original,
+   engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},
+  expectedOriginalCount:7});
+ const ledger=opened.finalizedGeometry.prefinalRestraints;
+ assert.equal(ledger.schema,'XML229.PrefinalRestraints.v2');
+ assert.equal(ledger.physicalVertexMemberCensus.projectedSlotCount,4);
+ const packet={schema:'XML229.NativeFinalPhysicalPacket.v1',
+  sourceId,basisId:basis.basisId,sourceXmlSha256:await digestUtf8(XML),
+  originalJsonSha256:await digestUtf8(stagedSource),
+  finalIntentSha256:'b'.repeat(64),physicalCount:1,nativeCiiReleaseAuthorized:false,
+  finalizedGeometry:opened.finalizedGeometry,
+  components:opened.physicalOccurrences.map(o=>({occurrenceId:o.occurrenceId,effectiveKg:12.5}))};
+ const dir=await mkdtemp(join(tmpdir(),'xml229-v2-guides-cii-'));
+ try{
+  await Promise.all([
+   ['source.xml',XML],['staged.json',stagedSource],
+   ['config.json',JSON.stringify(cfg)],['packet.json',JSON.stringify(packet)],
+  ].map(([filename,data])=>writeFile(join(dir,filename),data)));
+  const python=process.env.PYTHON||(process.platform==='win32'?'python':'python3');
+  const output=execFileSync(python,[
+    fileURLToPath(new URL('./xml229-physical-v2-multislot-native-check.py',import.meta.url)),
+    dir],{encoding:'utf8'});
+  assert.match(output,/XML229_V2_TWO_GUIDES_ACTUAL_CII_PASS/);
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
