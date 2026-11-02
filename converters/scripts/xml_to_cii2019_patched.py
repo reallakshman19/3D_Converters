@@ -1570,14 +1570,17 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
         raise ValueError("--staged-json requires xml_to_cii2019_master_addon.py to be available.")
     result = addon.enrich_xml_addons(input_xml, linelist=None, overrides=None, staged_json=staged_json.read_text(encoding="utf-8-sig"), dtxr_position_offset=support_config.get("dtxrPositionOffset") if isinstance(support_config, dict) else None)
     stats = result.get("stats") or {}
-    if stats.get("dtxrPosAmbiguous", 0):
-        # Keep the stable fail-closed error code. Export only bounded indices,
-        # not proprietary XML names, source JSON, DTXR strings or coordinates.
+    mandatory_ambiguous = stats.get("dtxrPosMandatoryAmbiguous", stats.get("dtxrPosAmbiguous", 0))
+    if mandatory_ambiguous:
+        # Staged source cannot assign an ambiguous in-scope support owner.
+        # Unmatched non-restraint and out-of-scope members are audited
+        # exclusions, never a basis for CII engineering annotation or release.
         conflicts = [d for d in result.get("diagnostics", [])
-                     if d.get("type") == "dtxr-position-ambiguous"][:20]
+                     if d.get("type") == "dtxr-position-ambiguous"
+                     and d.get("scope", "MANDATORY") == "MANDATORY"][:20]
         print("XML229_STAGED_POSITION_AMBIGUITY " + json.dumps({
-            "count": stats["dtxrPosAmbiguous"], "sample": conflicts,
-            "sampleTruncated": stats["dtxrPosAmbiguous"] > len(conflicts),
+            "count": mandatory_ambiguous, "sample": conflicts,
+            "sampleTruncated": mandatory_ambiguous > len(conflicts),
         }, sort_keys=True))
         raise ValueError("XML229_STAGED_POSITION_AMBIGUOUS")
     if stats.get("dtxrPosMandatoryUnmatched", 0):
@@ -1609,6 +1612,8 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
         "dtxrPosOwners": stats.get("dtxrPos", 0),
         "dtxrPsOwners": stats.get("dtxrPs", 0),
         "ambiguous": stats.get("dtxrPosAmbiguous", 0),
+        "mandatoryPositionClaimsAmbiguous": stats.get("dtxrPosMandatoryAmbiguous", 0),
+        "excludedPositionClaimsAmbiguous": stats.get("dtxrPosExcludedAmbiguous", 0),
         "unmatchedPositionClaims": stats.get("dtxrPosUnmatched", 0),
         "mandatoryPositionClaimsUnmatched": stats.get("dtxrPosMandatoryUnmatched", 0),
         "positionClaimsExcluded": stats.get("dtxrPosExcluded", 0),
