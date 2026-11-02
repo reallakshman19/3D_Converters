@@ -552,7 +552,9 @@ def build_ca_sidecar(xml_path, pclass_master, material_map, linelist, overrides,
 
 
 def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
-                         option: dict[str, Any] | None) -> tuple[dict[int, list[dict[str, Any]]], int]:
+                         option: dict[str, Any] | None,
+                         conflict_samples: list[dict[str, Any]] | None = None
+                         ) -> tuple[dict[int, list[dict[str, Any]]], int]:
     """Assign each positioned JSON member to one source node using XYZ first.
 
     A coincident element boundary (BM2 20/30) is *not* two support owners.
@@ -635,7 +637,20 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
 
     assignments: dict[int, list[dict[str, Any]]] = {}
     ambiguous = 0
-    for entry in entries:
+
+    def record_conflict(claim_index: int, reason: str, groups: list[list[int]]) -> None:
+        if conflict_samples is None or len(conflict_samples) >= 20:
+            return
+        owner_rows = sorted({index for group in groups for index in group})
+        conflict_samples.append({
+            "type": "dtxr-position-ambiguous",
+            "sourceClaimIndex": claim_index,
+            "reason": reason,
+            "candidateCount": len(owner_rows),
+            "candidatePositionRowIndices": owner_rows[:12],
+        })
+
+    for claim_index, entry in enumerate(entries):
         positions = [entry["rawPoint"], entry["point"]]
         if inferred is not None:
             positions.append({k: entry["rawPoint"][k] + inferred[k] for k in ("x", "y", "z")})
@@ -649,6 +664,7 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
         # Competing transforms must not silently claim different source nodes.
         if any(set(hit) != set(matches[0]) for hit in matches[1:]):
             ambiguous += 1
+            record_conflict(claim_index, "COMPETING_POSITION_TRANSFORMS", matches)
             continue
         hits = matches[0]
         if len(hits) > 1:
@@ -656,6 +672,7 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
             hits = corroborated if len(corroborated) == 1 else []
         if len(hits) != 1:
             ambiguous += 1
+            record_conflict(claim_index, "NON_UNIQUE_POSITION_OWNER", matches[:1])
             continue
         node = rows[hits[0]][0]
         assignments.setdefault(id(node), []).append(entry)
@@ -684,7 +701,9 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
     # members that lack any usable position, not a bypass for a failed POS claim.
     dtxr_index = build_dtxr_ps_index(staged_json, unpositioned_only=True)
     dtxr_pos_entries = build_dtxr_pos_entries(staged_json, dtxr_position_offset)
-    pos_owners, pos_ambiguous = _position_bound_dtxr(root, dtxr_pos_entries, dtxr_position_offset)
+    ambiguous_position_samples: list[dict[str, Any]] = []
+    pos_owners, pos_ambiguous = _position_bound_dtxr(
+        root, dtxr_pos_entries, dtxr_position_offset, ambiguous_position_samples)
     assigned_entries = {id(entry) for owner_entries in pos_owners.values() for entry in owner_entries}
     # A support POSI claim is mandatory only within the XML's represented
     # branch scope. Non-support geometry and unrelated source branches remain
@@ -728,7 +747,7 @@ def enrich_xml_addons(xml_path: Path, linelist: list[dict[str, Any]] | None, ove
         if _local(source_node.tag) == "Node":
             for key in _node_ps_tags(source_node):
                 ps_nodes.setdefault(key, set()).add(id(source_node))
-    diagnostics: list[dict[str, Any]] = []
+    diagnostics: list[dict[str, Any]] = list(ambiguous_position_samples)
     diagnostics.extend({"type": "dtxr-position-unmatched", **claim}
                        for claim in unresolved_claims)
 
