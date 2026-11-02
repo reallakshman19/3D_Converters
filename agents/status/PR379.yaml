@@ -11,3 +11,7 @@ native_final_mass_release: HELD
 json_staged_position_ambiguity: UNRESOLVED_REQUIRES_SOURCE_SPECIFIC_EVIDENCE
 overlap: COORDINATION_REQUIRED_WITH_PR377_PR378_PR260_PR253
 exact_next_action: Inspect exact-source claim ambiguity when user Final geometry/offset/decision basis is available; test new UI and Python diagnostics on PR379 production head in CI/Chromium; preserve draft.
+
+native_failure_evidence_export: BOUNDED_CLAIM_INDEX_SAMPLES_AVAILABLE_AFTER_NEXT_FAILED_RUN
+root_docs_parity: PASS_EIGHT_PRODUCTION_FILES
+extra_validation: LOCAL_TYPED_PYTHON_RECEIPT_SAMPLE_PASS
