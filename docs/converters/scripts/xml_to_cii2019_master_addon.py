@@ -713,6 +713,11 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
                                                for i in owner_rows),
             "explicitXmlRefPresent": bool(entries[claim_index].get(
                 "sourceComponentRefNo")),
+            "originalSourceProofPresent": original_authored_restraints is not None,
+            "originalSourceRestraintCandidates": sum(
+                bool(rows[i][5]) for i in owner_rows),
+            "originalMatchingRestraintCandidates": len(
+                original_source_restraint_owner(entries[claim_index], owner_rows)),
         })
 
     def original_source_restraint_owner(entry: dict[str, Any],
@@ -757,7 +762,7 @@ def _position_bound_dtxr(root: ET.Element, entries: list[dict[str, Any]],
                     math.isclose(actual_value, gap, rel_tol=0, abs_tol=1e-9)):
                     attested.append(i)
                     break
-        return attested if len(attested) == 1 else []
+        return attested
 
     for claim_index, entry in enumerate(entries):
         positions = [entry["rawPoint"], entry["point"]]
