@@ -27,10 +27,15 @@ export function renderXml229NativeRunDebug(parent,stateRef,session){
  panel.appendChild(status);
  const button=createElement('button','Download execution debug JSON');
  button.type='button';button.dataset.action='xml229-download-native-execution-debug';
- button.addEventListener('click',()=>downloadTextFile('xml229-native-execution-debug.json',
+ button.addEventListener('click',()=>{
+  const receipt=stateRef.current?.result?.xml229NativeFailure?.stagedPositionAmbiguity;
+  downloadTextFile('xml229-native-execution-debug.json',
   JSON.stringify({schema:'XML229.NativeExecutionDebug.v1',...read(),
+   ...(receipt?.schema==='XML229.NativeStagedPositionAmbiguity.v1'
+     ?{stagedPositionAmbiguity:receipt}:{}),
    nativeCiiReleaseAuthorized:false,ciiDownloadAuthorized:false},null,2),
-  'application/json;charset=utf-8'));
+  'application/json;charset=utf-8');
+ });
  if(!['IDLE','RAW_RUNNING','RAW_FAILED','RAW_FINISHED'].includes(attempt.status))panel.appendChild(button);
  parent.appendChild(panel);
  if(!['IN_PROGRESS','RAW_RUNNING'].includes(attempt.status))return;
