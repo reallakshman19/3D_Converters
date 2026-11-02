@@ -43,6 +43,28 @@ test('only bounded source-free staged-position indices enter downloadable native
  assert.equal(failure.nativeCiiReleaseAuthorized,false);
  assert.equal(failure.candidatePublished,false);
 });
+test('V3 native original-source proof remains bounded, typed and independently inspectable',()=>{
+ const v3={...sample,matcherRevision:'XML229_POSITION_ORIGINAL_AUTHOR_V3',
+   sample:sample.sample.map((e,i)=>({...e,
+     originalSourceProofPresent:true,
+     originalSourceRestraintCandidates:i===0?1:2,
+     originalMatchingRestraintCandidates:i===0?0:2,
+     originalNodeRef:'SECRET_SOURCE_REFERENCE',
+   }))};
+ const x=readXml229BoundedStagedPositionEvidence([
+  'XML229_STAGED_POSITION_AMBIGUITY '+JSON.stringify(v3)]);
+ assert.equal(x.matcherRevision,'XML229_POSITION_ORIGINAL_AUTHOR_V3');
+ assert.equal(x.sample[0].originalSourceProofPresent,true);
+ assert.equal(x.sample[0].originalSourceRestraintCandidates,1);
+ assert.equal(x.sample[1].originalMatchingRestraintCandidates,2);
+ assert.equal(JSON.stringify(x).includes('SECRET_SOURCE_REFERENCE'),false);
+ for(const bad of [
+  {...v3,sample:[{...v3.sample[0],originalSourceProofPresent:'true'}]},
+  {...v3,sample:[{...v3.sample[0],originalSourceRestraintCandidates:99}]},
+  {...v3,sample:[{...v3.sample[0],originalMatchingRestraintCandidates:2}]},
+ ])assert.equal(readXml229BoundedStagedPositionEvidence([
+  'XML229_STAGED_POSITION_AMBIGUITY '+JSON.stringify(bad)]),null);
+});
 test('legacy pre-version receipt remains bounded and scope optional',()=>{
  const older={count:1,sampleTruncated:false,sample:[{
   sourceClaimIndex:3,reason:'NON_UNIQUE_POSITION_OWNER',
