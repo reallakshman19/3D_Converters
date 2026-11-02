@@ -197,7 +197,7 @@ export class XmlCiiAdaptedEditablePreviewTable {
       Array.isArray(row.formatLineKeyCandidates) ? row.formatLineKeyCandidates : [];
     if (candidates.length) {
       const items = candidates.map(candidate =>
-        '<div data-mc-linekey-candidate="' + this._escapeAttr(candidate.formatIndex) +
+        '<div data-mc-linekey-candidate="' + this._escapeAttr(String(candidate.formatIndex)) +
         '" title="Read-only format candidate; not an accepted Line List key">' +
         'F' + this._escape(candidate.formatIndex + 1) + ': ' +
         this._escape(candidate.lineKey) + '</div>').join('');
