@@ -26,10 +26,12 @@ export function buildPsiSequencePlan(stagedJson, records = []) {
     ));
 
   const knownNames = new Set(branches.map((branch) => branch.sourceBranchName));
+  const knownComponents = collectSourceComponentRefs(stagedJson);
   const unresolvedReferences = [];
   for (const branch of branches) {
     for (const reference of branch.references) {
-      if (!knownNames.has(reference.targetBranchName)) {
+      if (!knownNames.has(reference.targetBranchName)
+        && !knownComponents.has(reference.targetBranchName)) {
         unresolvedReferences.push({
           sourceBranchName: branch.sourceBranchName,
           ...reference,
@@ -66,6 +68,17 @@ export function buildPsiSequencePlan(stagedJson, records = []) {
       warnings: Object.freeze(unique(warnings)),
     }),
   });
+}
+
+function collectSourceComponentRefs(stagedJson) {
+  const root = Array.isArray(stagedJson) ? stagedJson : (stagedJson?.objects || [stagedJson]);
+  const refs = new Set();
+  walk(root, (node) => {
+    const attrs = plain(node.attributes);
+    const ref = text(attrs.REF || attrs.COMPRE);
+    if (ref) refs.add(ref);
+  });
+  return refs;
 }
 
 function collectSourceBranches(stagedJson, errors) {
