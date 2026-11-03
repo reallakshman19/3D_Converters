@@ -1,0 +1,23 @@
+GLRD-1000-PSI-02 enriched XML before/after comparison
+Input: STF_2026Nov03-0839_managed_stage.json
+Config: {}
+Clock: 2026-11-03T08:13:00Z
+Baseline: enriched_baseline.xml
+After: enriched_after.xml
+
+XML UNIFIED DIFF: (empty)
+Byte-identical XML output: YES
+Changed lines: 0
+Changed nodes: 0
+Baseline/after XML length: 754833 characters
+
+Diagnostics (not serialized into XML):
+  unresolved HREF/TREF/CREF target warnings: 79 -> 0
+  real missing target warning: retained
+  sequence validation: PASS -> PASS
+  shadow writer parity: PASS -> PASS
+  missing engineering-field audit findings: 480 -> 480 (unchanged, out of scope)
+
+Source PSI XML node count: 1224. Enriched writer node count: 1156.
+The source-versus-enriched counts are not equivalent cardinality oracles,
+because canonical branch grouping and node/endpoint representations differ.
