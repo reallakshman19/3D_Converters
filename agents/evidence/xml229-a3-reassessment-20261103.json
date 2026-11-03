@@ -1,0 +1,54 @@
+{
+  "task": "XML229 A3 reassessment after scratch differential",
+  "observedUTC": "2026-11-03T02:21:12.023507+00:00",
+  "pin": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+  "authority": "READ_ONLY",
+  "assessmentClass": "AUTHOR_ASSESSMENT_NOT_DISTINCT_REVIEW",
+  "rubricUnchanged": true,
+  "scores": {
+    "A1": 20,
+    "A2": 20,
+    "A3": 16,
+    "A4": 18,
+    "A5": 18
+  },
+  "total": 92,
+  "A3CriterionScore": 0,
+  "A3CriterionMaximum": 4,
+  "A3Verdict": "BELOW_MINIMUM_16_OF_20",
+  "qualificationVerdict": "NOT_QUALIFIED_A3_BELOW_MINIMUM",
+  "hypothesis": "Deleting EF alias60 alone while keeping coincident carrier50 preserves all native edge-facing semantics and member coverage.",
+  "hypothesisResult": "FALSIFIED_FOR_NAIVE_SCRATCH_PROJECTION",
+  "positiveObservations": [
+    "791 remaining native edges retain numerical/engineering properties after canonical number mapping, excluding separately challenged identity fields",
+    "Actual patched ELEMENTS physical rows and non-NODENAME auxiliary targets remain equivalent",
+    "Source-weight RIGID payload and198 source rigid/nonzero-weight designations unchanged",
+    "Explicit scratch relocation preserves literal one-to-six same-type authored member profiles"
+  ],
+  "counterexamples": [
+    "Outgoing60-to70 becomes50-to70 with SREF/119346 replaced by DATUM/119345; original SREF native NODENAME records2 become0",
+    "Controlled two-member source on aliases50/60 becomes one member under naive deletion; gap1 member is lost"
+  ],
+  "validation": {
+    "harnessChecks": 13,
+    "harnessStatus": "PASS",
+    "preservationVerdict": "NAIVE_PROJECTION_NOT_QUALIFIED_IDENTITY_AND_MEMBER_LOSS",
+    "oracleClasses": "Independent original XML/literal members; native model/formatter differential is implementation-coupled.",
+    "acceptedFinalMass": "NOT_RUN_NO_PACKET",
+    "fullGovernedGeometry": "NOT_RUN_833_POSITIVE_SOURCE_NODES_ONLY",
+    "distinctReview": "NOT_RUN"
+  },
+  "evidenceDigests": {
+    "agents/evidence/xml229-a3-alias-proof-20261103.json": "bc22d46e42db412d7ed879c7fde5431909562b2a21194bc77f659cce3c7066a0",
+    "agents/evidence/xml229_alias_projection_qualification_20261103.py": "e8b2cbcb4c65765ff141ec5f424ed59315f4c0cd4801bf5e94b79c143659517f",
+    "agents/evidence/xml229-a1-a5-assessment-20261103.json": "f3e4fb9e017a15b2f183c64f15cd1965f02081ebbe362a47e3be93f81ac57323"
+  },
+  "draftContractRefinement": [
+    "Canonical vertex identity is not edge-facing source occurrence identity; record original from/to occurrence and component witness for every surviving edge",
+    "Do not silently replace source NodeName or ComponentRefNo when choosing a carrier; field/output-label disposition must be explicit and independently verified",
+    "Preserve each original member identity/profile/order and source classification witness when relocating to one carrier; native binding must prevent a new carrier-name ownership vote",
+    "Absorbed occurrence in any accepted owner set, including prescribed zero, blocks projection; unchanged source weights are not accepted Final proof"
+  ],
+  "contractStatus": "DRAFT_NOT_ADOPTED",
+  "exactNextAction": "Qualify an explicit binding-preserving scratch projection: keep original from/to occurrence identity for every non-alias edge separate from canonical vertex IDs, relocate all qualified members in source order, and verify actual native identity/member/auxiliary output. Carry these witnesses through the proposed independent native replay before any Final comparison; retain A3/READ_ONLY until the preservation proof succeeds. No production edits, PR investigation or unavailable private-bundle request."
+}

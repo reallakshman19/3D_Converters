@@ -1,0 +1,19 @@
+schema: AgentStatus.v1
+pr_or_wip: WIP-XML229-BENCHMARK-3FIX-20261102
+state: SUPPORTING_EVIDENCE_NATIVE_OWNERSHIP_WBS_PRIORITY
+active_parent: WIP-XML229-OWNERSHIP-WBS-20261102
+report: agents/WIP-XML229-BENCHMARK-3FIX-20261102_workreport.md
+artifact: docs/architecture/xml229-benchmark-three-problem-wbs-20261102.md
+evidence: agents/evidence/xml229-benchmark-study-20261102.json
+branch: fix/xml229-inst-rigid-20261031
+local_head: a658ed0305a1745181938155b7f1c554f98ae283
+source_pin: 5c39dd7bdbb7f2f63a686823b72bdb81909d52af
+classification: ENGINEERING_CRITICAL_ANALYSIS_PLANNING_ONLY
+takeover_authority: READ_ONLY
+appendix_a: INCOMPLETE_UNSCORED
+validation: LITERAL_OBSERVATIONS_PASS_7_BYTE_PASS_2_CRLF_BYTE_FAIL
+engineering_acceptance: NOT_RUN
+review_mode: AUTHOR_STUDY_ONLY
+overlap: PRODUCTION_CUSTODY_REQUIRES_REFRESH
+merge_authority: OWNER_ONLY_NOT_GRANTED
+next_action: Support the Owner-selected native ownership WBS 0.1; defer this separate mutation-first sequence

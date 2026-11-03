@@ -1,0 +1,375 @@
+{
+  "schema": "XML229.BenchmarkStudyEvidence.v1",
+  "purpose": "Literal fixture examination; no converter acceptance",
+  "observedAt": "2026-11-02T11:15:00.661237+00:00",
+  "candidate": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+  "localHead": "a658ed0305a1745181938155b7f1c554f98ae283",
+  "inventoryFiles": 229,
+  "manifest": [
+    {
+      "path": "Benchmarks/EF-05-PRO.TEST.xml",
+      "bytes": 898252,
+      "sha256": "2573883480af904096dea2663c9cf585be2db28dd047785397b4d61edee0a030",
+      "pinnedSha256": "2573883480af904096dea2663c9cf585be2db28dd047785397b4d61edee0a030",
+      "gitBlob": "caf814c906e4155dcf388ac7ea822aeafec76780",
+      "byteIdentity": "PASS",
+      "difference": "NONE"
+    },
+    {
+      "path": "Benchmarks/EF-05-PRO.TEST_enriched-3.xml",
+      "bytes": 963440,
+      "sha256": "1964504c762190ff9c85cb0e5c0503bd5d1bcc79ff0e4d32b9c17beddeefc642",
+      "pinnedSha256": "1964504c762190ff9c85cb0e5c0503bd5d1bcc79ff0e4d32b9c17beddeefc642",
+      "gitBlob": "c4de91e921dbe4c00d9d1ee246f9b8924fa39591",
+      "byteIdentity": "PASS",
+      "difference": "NONE"
+    },
+    {
+      "path": "Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml",
+      "bytes": 629889,
+      "sha256": "6bcc477860fdbe9a80159839bf476a8c1e6ce7a966587a25bc62498709843151",
+      "pinnedSha256": "6bcc477860fdbe9a80159839bf476a8c1e6ce7a966587a25bc62498709843151",
+      "gitBlob": "2008bbcc344ef48dde95addd6a72dc9e08aee56c",
+      "byteIdentity": "PASS",
+      "difference": "NONE"
+    },
+    {
+      "path": "Benchmarks/XML-CII-2019/revamped/PL-BM1.xml",
+      "bytes": 1080931,
+      "sha256": "20be936279ba5b7128afdfac1759d1d822f746a3ebe05750bf5adb5085856b6b",
+      "pinnedSha256": "20be936279ba5b7128afdfac1759d1d822f746a3ebe05750bf5adb5085856b6b",
+      "gitBlob": "e5f0ca0c252fbb377c3852d92b5f9cd32c509a19",
+      "byteIdentity": "PASS",
+      "difference": "NONE"
+    },
+    {
+      "path": "Benchmarks/ASIM-1836_managed_stage-2.zip",
+      "bytes": 599137,
+      "sha256": "b0dc26ace4a718087cbc5d107c963a471c95f20a51d56d8559a9415d98be9353",
+      "pinnedSha256": "b0dc26ace4a718087cbc5d107c963a471c95f20a51d56d8559a9415d98be9353",
+      "gitBlob": "aaedcbd4405f9bd9075fef082ea6fbe4cb808ba4",
+      "byteIdentity": "PASS",
+      "difference": "NONE"
+    },
+    {
+      "path": "Benchmarks/INPUT XML to CII 2019/BM_CII/BM_CII_INPUT.XML",
+      "bytes": 77451,
+      "sha256": "a27d1122228f7e5f8a4335100107f5accd0d12cd43e0aec4995f07ada27debd1",
+      "pinnedSha256": "a27d1122228f7e5f8a4335100107f5accd0d12cd43e0aec4995f07ada27debd1",
+      "gitBlob": "4d440bd5f66d1bb30dbba2a00125da285ad677fc",
+      "byteIdentity": "PASS",
+      "difference": "NONE"
+    },
+    {
+      "path": "Benchmarks/INPUT XML to CII 2019/BM_CII/BM_CII[Benchmark].CII",
+      "bytes": 65871,
+      "sha256": "cc1caa9f278de601cd3c7f502b97b76e99556ad717daad552f905521c38f9c6e",
+      "pinnedSha256": "cc1caa9f278de601cd3c7f502b97b76e99556ad717daad552f905521c38f9c6e",
+      "gitBlob": "c72c0ee3c7a2e9a36d849085fbc8fc5b8757bca8",
+      "byteIdentity": "PASS",
+      "difference": "NONE"
+    },
+    {
+      "path": "Benchmarks/XML-CII-2019/sideload/bm_3branches_20nodes.input.xml",
+      "bytes": 5356,
+      "sha256": "be72c9ed7df8a11c3b4925e1f0067ae2ccd8f2ee8df51e92f7e249a7cfdc1541",
+      "pinnedSha256": "9b5e81fe42279931dd2f90e100745ce09137f1d2fcd092f830f4e4979d2ba0cf",
+      "gitBlob": "d593175fcaf0ac444f8564fe88c2b241a093f80d",
+      "byteIdentity": "FAIL",
+      "difference": "WORKTREE_CRLF_VS_GIT_LF"
+    },
+    {
+      "path": "Benchmarks/XML-CII-2019/sideload/bm_3branches_20nodes.source-like.json",
+      "bytes": 5259,
+      "sha256": "e25800836b7dba978e4f1ff76ccc336f06d4ea68ab7a042a911c80a2f0678857",
+      "pinnedSha256": "14854cfaea4d553b92c336c581613b19e7443b5c53d1c0b666d50631e0b5fa12",
+      "gitBlob": "2e6e1d60a542ee80eab569be8a8666a7512805ee",
+      "byteIdentity": "FAIL",
+      "difference": "WORKTREE_CRLF_VS_GIT_LF"
+    }
+  ],
+  "census": [
+    {
+      "path": "Benchmarks/EF-05-PRO.TEST.xml",
+      "branches": 41,
+      "nodes": 1654,
+      "minusOne": 810,
+      "minusTwo": 11,
+      "sameBranchCoincidentGroups": 420,
+      "sameBranchMixedPositiveNegativeGroups": 179,
+      "multiRestraintNodes": 0,
+      "maxRestraints": 1
+    },
+    {
+      "path": "Benchmarks/EF-05-PRO.TEST_enriched-3.xml",
+      "branches": 41,
+      "nodes": 1165,
+      "minusOne": 465,
+      "minusTwo": 11,
+      "sameBranchCoincidentGroups": 76,
+      "sameBranchMixedPositiveNegativeGroups": 46,
+      "multiRestraintNodes": 40,
+      "maxRestraints": 3
+    },
+    {
+      "path": "Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml",
+      "branches": 31,
+      "nodes": 1196,
+      "minusOne": 790,
+      "minusTwo": 0,
+      "sameBranchCoincidentGroups": 347,
+      "sameBranchMixedPositiveNegativeGroups": 114,
+      "multiRestraintNodes": 0,
+      "maxRestraints": 1
+    },
+    {
+      "path": "Benchmarks/XML-CII-2019/revamped/PL-BM1.xml",
+      "branches": 28,
+      "nodes": 1702,
+      "minusOne": 535,
+      "minusTwo": 3,
+      "sameBranchCoincidentGroups": 444,
+      "sameBranchMixedPositiveNegativeGroups": 56,
+      "multiRestraintNodes": 0,
+      "maxRestraints": 1
+    }
+  ],
+  "efEnrichedExamples": {
+    "90": {
+      "branch": "/ASIM-1836-8\"-P8810021-31441C4-PP/B4",
+      "node": {
+        "NodeNumber": "90",
+        "NodeName": "PS-14168/DATUM",
+        "Endpoint": "0",
+        "ComponentType": "ATTA",
+        "Weight": "0",
+        "ComponentRefNo": "=1006649732/119349",
+        "ConnectionType": "",
+        "OutsideDiameter": "219.1",
+        "WallThickness": "10.97",
+        "CorrosionAllowance": "6",
+        "InsulationThickness": "0",
+        "Position": "459657.72 -1484227.40 101259.55",
+        "BendRadius": "0",
+        "SIF": "0",
+        "PipingClass": "31441",
+        "Rating": "300",
+        "BoreMm": "200.000",
+        "ElementLengthMm": "2100.000",
+        "MaterialName": "ASTM A106-B",
+        "MaterialCode": "106",
+        "CMPSUPGAP_PS": "6mm GAP",
+        "CMPSUPGAP": "6mm GAP",
+        "DTXR_PS": "Pipe Rest XRT01|GUIDE PDO-TYPE-604A/B - 2 x L50x50x6x55HIGH|PIPE SUPPORT TYPE-104|GUIDE PDO-TYPE-604A/B - 2 x L50x100x6x160HIGH|GUIDE PDO-TYPE-604A/B - 2 x L50x50x6x80HIGH|WEAR PLATE TYPE-421 PAD L 450mm|PIPE SHOE FOR HORIZ LINES N.B. 3/4\" to 24\" 2-PDO-TYPE-416A/B-100-350 Carbon Steel|Directional Anchor On Shoe for Hot Insulated Pipe NPS 1/2- 36 2-XST06-40|GUIDE PDO-TYPE-603",
+        "CMPSUPGAP_POS": "6mm GAP",
+        "DTXR_POS": "Pipe Rest XRT01(NAME=/PS-14168/DATUM)|PIPE SUPPORT TYPE-104(NAME=/PS-14168/SREF)|GUIDE PDO-TYPE-604A/B - 2 x L50x100x6x160HIGH(NAME=/PS-14168.8,CMPSUPGAP=6mm GAP)"
+      },
+      "restraints": [
+        {
+          "Type": "+Y",
+          "Stiffness": "1.751270E+12",
+          "Gap": "0",
+          "Friction": "0.3",
+          "DirectionCosineX": "0.000000000",
+          "DirectionCosineY": "1.000000000",
+          "DirectionCosineZ": "0.000000000"
+        },
+        {
+          "Type": "GUI",
+          "Stiffness": "1.751270E+12",
+          "Gap": "6",
+          "Friction": "-1.010100",
+          "CMPSUPGAP": "6mm GAP"
+        }
+      ]
+    },
+    "160": {
+      "branch": "/ASIM-1836-8\"-P8810021-31441C4-PP/B4",
+      "node": {
+        "NodeNumber": "160",
+        "NodeName": "PS-14169/DATUM",
+        "Endpoint": "0",
+        "ComponentType": "ATTA",
+        "Weight": "0",
+        "ComponentRefNo": "=1006649732/119355",
+        "ConnectionType": "",
+        "OutsideDiameter": "219.1",
+        "WallThickness": "10.97",
+        "CorrosionAllowance": "6",
+        "InsulationThickness": "0",
+        "Position": "459657.72 -1488777.40 101259.55",
+        "BendRadius": "0",
+        "SIF": "0",
+        "PipingClass": "31441",
+        "Rating": "300",
+        "BoreMm": "200.000",
+        "ElementLengthMm": "1453.850",
+        "MaterialName": "ASTM A106-B",
+        "MaterialCode": "106",
+        "CMPSUPGAP_PS": "20mm GAP",
+        "CMPSUPGAP": "20mm GAP",
+        "DTXR_PS": "Pipe Rest XRT01|GUIDE PDO-TYPE-604A/B - 2 x L50x50x6x55HIGH|PIPE SUPPORT TYPE-104|GUIDE PDO-TYPE-604A/B - 2 x L50x100x6x160HIGH|WEAR PLATE TYPE-421 PAD L 550mm|PIPE STOP TYPE-602|GUIDE PDO-TYPE-604A/B - 2 x L50x50x6x80HIGH|PIPE SHOE FOR HORIZ LINES N.B. 3/4\" to 24\" 2-PDO-TYPE-416A/B-100-300 Carbon Steel|GUIDE PDO-TYPE-603",
+        "DTXR_POS": "Pipe Rest XRT01(NAME=/PS-14169/DATUM)|PIPE SUPPORT TYPE-104(NAME=/PS-14169/SREF)|GUIDE PDO-TYPE-604A/B - 2 x L50x100x6x160HIGH(NAME=/PS-14169.10)|WEAR PLATE TYPE-421 PAD L 550mm(NAME=/PS-14169.7)|PIPE STOP TYPE-602(NAME=/PS-14169.8)"
+      },
+      "restraints": [
+        {
+          "Type": "+Y",
+          "Stiffness": "1.751270E+12",
+          "Gap": "0",
+          "Friction": "0.3",
+          "DirectionCosineX": "0.000000000",
+          "DirectionCosineY": "1.000000000",
+          "DirectionCosineZ": "0.000000000"
+        },
+        {
+          "Type": "GUI",
+          "Stiffness": "1.751270E+12",
+          "Gap": "20",
+          "Friction": "-1.010100",
+          "CMPSUPGAP": "20mm GAP"
+        },
+        {
+          "Type": "LIM",
+          "Stiffness": "1.751270E+12",
+          "Gap": "20",
+          "Friction": "-1.010100",
+          "CMPSUPGAP": "20mm GAP"
+        }
+      ]
+    }
+  },
+  "bmCii": {
+    "auxBlocks": 8,
+    "slotsPerBlock": 6,
+    "linesPerSlot": 4,
+    "native": {
+      "35": [
+        {
+          "slot": 1,
+          "type": 14,
+          "stiffness": "0.175120E+13",
+          "gap": "0.000000",
+          "friction": "0.000000",
+          "direction": [
+            "0.000000",
+            "1.00000",
+            "0.000000"
+          ]
+        },
+        {
+          "slot": 2,
+          "type": 2,
+          "stiffness": "0.175120E+13",
+          "gap": "0.000000",
+          "friction": "0.000000",
+          "direction": [
+            "1.00000",
+            "0.000000",
+            "0.000000"
+          ]
+        },
+        {
+          "slot": 3,
+          "type": 4,
+          "stiffness": "0.175120E+13",
+          "gap": "0.000000",
+          "friction": "0.000000",
+          "direction": [
+            "0.000000",
+            "0.000000",
+            "1.00000"
+          ]
+        }
+      ],
+      "205": [
+        {
+          "slot": 1,
+          "type": 3,
+          "stiffness": "0.175120E+13",
+          "gap": "0.000000",
+          "friction": "0.000000",
+          "direction": [
+            "0.000000",
+            "1.00000",
+            "0.000000"
+          ]
+        },
+        {
+          "slot": 1,
+          "type": 9,
+          "stiffness": "0.175120E+13",
+          "gap": "0.000000",
+          "friction": "0.000000",
+          "direction": [
+            "1.00000",
+            "0.000000",
+            "0.000000"
+          ]
+        },
+        {
+          "slot": 2,
+          "type": 3,
+          "stiffness": "0.175120E+13",
+          "gap": "0.000000",
+          "friction": "0.000000",
+          "direction": [
+            "0.000000",
+            "1.00000",
+            "0.000000"
+          ]
+        }
+      ],
+      "255": [
+        {
+          "slot": 1,
+          "type": 14,
+          "stiffness": "0.175120E+13",
+          "gap": "0.000000",
+          "friction": "0.000000",
+          "direction": [
+            "0.000000",
+            "1.00000",
+            "0.000000"
+          ]
+        },
+        {
+          "slot": 2,
+          "type": 8,
+          "stiffness": "0.175120E+13",
+          "gap": "0.000000",
+          "friction": "0.000000",
+          "direction": [
+            "1.00000",
+            "0.000000",
+            "0.000000"
+          ]
+        }
+      ]
+    },
+    "inputXmlTypes": {
+      "35": [
+        17,
+        1,
+        3
+      ],
+      "205": [
+        10,
+        2,
+        2
+      ],
+      "255": [
+        17,
+        7
+      ]
+    }
+  },
+  "validation": {
+    "literalObservations": "PASS",
+    "byteIdentity": {
+      "PASS": 7,
+      "FAIL": 2
+    },
+    "oracle": "Independent of converter execution; fixture acceptance history unqualified",
+    "engineeringAcceptance": "NOT_RUN"
+  }
+}

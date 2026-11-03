@@ -1,0 +1,641 @@
+{
+  "task": "XML229 exact current-main extension option",
+  "observedUTC": "2026-11-02T19:03:39.373118+00:00",
+  "thread": "01a19b55-87a6-7a80-bfa9-252bfa853be6",
+  "role": "Coder",
+  "authority": "READ_ONLY",
+  "state": "REPAIR_BOUNDARY_PREPARED_NOT_ADOPTED",
+  "base": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+  "ownerInstruction": "proceed; within preserved READ_ONLY and recurring qualification scope",
+  "custody": "UNESTABLISHED; generic proceed is not evidence no other writer exists",
+  "providerSelection": "Current-main extension is made concrete as an option; no engineering adoption or implementation is claimed",
+  "sources": [
+    {
+      "path": "converters/scripts/xml229_native_final_mass_binding.py",
+      "sha256": "f1a5f4ddfc6844f824126633d17bd92c9649395a70a7019dd5db80a960447e43",
+      "bytes": 53748
+    },
+    {
+      "path": "converters/scripts/xml229_prefinal_restraint_source.py",
+      "sha256": "b6e400debfedb646d1d639f975fcb1278771d05982e92e713743b2088bad0587",
+      "bytes": 11530
+    },
+    {
+      "path": "converters/scripts/xml229_prefinal_restraints.py",
+      "sha256": "18a7082743426bfd5e32a1cbe2666a71298019afde1be17a192167ab1eb48fe0",
+      "bytes": 16978
+    },
+    {
+      "path": "converters/scripts/xml_to_cii2019_master_addon.py",
+      "sha256": "48adf9faa43a68016a011937f0a3b929d37decb2569397d9ba91bd592c875f98",
+      "bytes": 56944
+    },
+    {
+      "path": "converters/scripts/xml_to_cii2019_patched.py",
+      "sha256": "257c341aa8fc6cd568e717f960950c1a4d72bd68ba33e5e361435b28d93e2cae",
+      "bytes": 90667
+    },
+    {
+      "path": "converters/scripts/xml_to_cii2019_runtime_custody.py",
+      "sha256": "a097a533fd8a209729e5f3520bfc9e3a05f9957f5d862df6fce726b9ada1442f",
+      "bytes": 24568
+    },
+    {
+      "path": "converters/xml-cii-2019-standalone/engine-worker.mjs",
+      "sha256": "0d51acf6e74536ac94e3a78283d6658c43e9bb6436e6882d247b0b10fd95b166",
+      "bytes": 1013
+    },
+    {
+      "path": "converters/xml-cii-2019-standalone/engine.js",
+      "sha256": "dad9bd8e3ac46d3d22f129972b37f6cee7da142768376e10d039c50d4a204aac",
+      "bytes": 17708
+    },
+    {
+      "path": "converters/xml-cii2019-core/support-mapping.js",
+      "sha256": "c1440e2267eb939052211886cfc7b6494a8386c7796e15e137857e5b9709a55e",
+      "bytes": 9912
+    },
+    {
+      "path": "tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js",
+      "sha256": "ebc02155156c977a47e75de0a52db16fe30303acc7964e0fd7f0a31fdd9dcc0e",
+      "bytes": 21661
+    },
+    {
+      "path": "tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js",
+      "sha256": "544e1e9b35176eb99090de1978601cbdc03573212316743d30fb999f71be999c",
+      "bytes": 26840
+    }
+  ],
+  "existingWriteBoundary": [
+    {
+      "root": "tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs",
+      "mirror": "docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs",
+      "rootBlob": "1fba6b8a49035ed0c0c82d63b4b97aad4cab3dd2",
+      "mirrorBlob": "1fba6b8a49035ed0c0c82d63b4b97aad4cab3dd2",
+      "sameGitBlob": true
+    },
+    {
+      "root": "tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js",
+      "mirror": "docs/tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js",
+      "rootBlob": "faf632afeee59d72c861349c90dec9e10c1ea7a9",
+      "mirrorBlob": "faf632afeee59d72c861349c90dec9e10c1ea7a9",
+      "sameGitBlob": true
+    },
+    {
+      "root": "tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js",
+      "mirror": "docs/tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js",
+      "rootBlob": "cdc856631d8883906db74160782881be378f3953",
+      "mirrorBlob": "cdc856631d8883906db74160782881be378f3953",
+      "sameGitBlob": true
+    },
+    {
+      "root": "tabs/xml-cii-2019-standalone/integration/xml229-prefinal-restraints.mjs",
+      "mirror": "docs/tabs/xml-cii-2019-standalone/integration/xml229-prefinal-restraints.mjs",
+      "rootBlob": "85f8e1587d28ee7788dcbbd057e77aeb6a6499bc",
+      "mirrorBlob": "85f8e1587d28ee7788dcbbd057e77aeb6a6499bc",
+      "sameGitBlob": true
+    },
+    {
+      "root": "tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs",
+      "mirror": "docs/tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs",
+      "rootBlob": "fd510428482851188140119b2b465a67a2a97c7b",
+      "mirrorBlob": "fd510428482851188140119b2b465a67a2a97c7b",
+      "sameGitBlob": true
+    },
+    {
+      "root": "converters/scripts/xml229_prefinal_restraints.py",
+      "mirror": "docs/converters/scripts/xml229_prefinal_restraints.py",
+      "rootBlob": "3cc067c963f73ec164ce5dd12335aba10d9b1ade",
+      "mirrorBlob": "3cc067c963f73ec164ce5dd12335aba10d9b1ade",
+      "sameGitBlob": true
+    },
+    {
+      "root": "converters/scripts/xml229_prefinal_restraint_source.py",
+      "mirror": "docs/converters/scripts/xml229_prefinal_restraint_source.py",
+      "rootBlob": "6223f94ad4658767e3b7e4589680ff0e74423903",
+      "mirrorBlob": "6223f94ad4658767e3b7e4589680ff0e74423903",
+      "sameGitBlob": true
+    },
+    {
+      "root": "converters/scripts/xml229_native_final_mass_binding.py",
+      "mirror": "docs/converters/scripts/xml229_native_final_mass_binding.py",
+      "rootBlob": "38e3caff3059ea7e00b34c4cb724180eb62dbe0e",
+      "mirrorBlob": "38e3caff3059ea7e00b34c4cb724180eb62dbe0e",
+      "sameGitBlob": true
+    },
+    {
+      "root": "converters/scripts/xml_to_cii2019_runtime_custody.py",
+      "mirror": "docs/converters/scripts/xml_to_cii2019_runtime_custody.py",
+      "rootBlob": "81c6b37312d6a2beb7203c75848d7d23f2af77b5",
+      "mirrorBlob": "81c6b37312d6a2beb7203c75848d7d23f2af77b5",
+      "sameGitBlob": true
+    },
+    {
+      "root": "converters/scripts/xml_to_cii2019_patched.py",
+      "mirror": "docs/converters/scripts/xml_to_cii2019_patched.py",
+      "rootBlob": "4079148acc826274f95a7f14d58367ff284d3ddd",
+      "mirrorBlob": "4079148acc826274f95a7f14d58367ff284d3ddd",
+      "sameGitBlob": true
+    },
+    {
+      "root": "converters/scripts/xml_to_cii2019_master_addon.py",
+      "mirror": "docs/converters/scripts/xml_to_cii2019_master_addon.py",
+      "rootBlob": "a3d5d8a02c3f26febc1a5175630507e12fe1a180",
+      "mirrorBlob": "a3d5d8a02c3f26febc1a5175630507e12fe1a180",
+      "sameGitBlob": true
+    },
+    {
+      "root": "converters/xml-cii-2019-standalone/engine.js",
+      "mirror": "docs/converters/xml-cii-2019-standalone/engine.js",
+      "rootBlob": "5e53b90cbc9170acb476b62a79228cd55ebf4108",
+      "mirrorBlob": "5e53b90cbc9170acb476b62a79228cd55ebf4108",
+      "sameGitBlob": true
+    }
+  ],
+  "proposedNewRootPaths": [
+    "tabs/xml-cii-2019-standalone/integration/xml229-original-node-ownership.mjs",
+    "tabs/xml-cii-2019-standalone/integration/xml229-nodal-ownership-contract.mjs",
+    "tabs/xml-cii-2019-standalone/integration/xml229-geometry-alias-projection.mjs",
+    "converters/scripts/xml229_nodal_ownership.py",
+    "converters/scripts/xml229_emitted_nodal_restraints.py"
+  ],
+  "proposedNewMirrors": [
+    "docs/tabs/xml-cii-2019-standalone/integration/xml229-original-node-ownership.mjs",
+    "docs/tabs/xml-cii-2019-standalone/integration/xml229-nodal-ownership-contract.mjs",
+    "docs/tabs/xml-cii-2019-standalone/integration/xml229-geometry-alias-projection.mjs",
+    "docs/converters/scripts/xml229_nodal_ownership.py",
+    "docs/converters/scripts/xml229_emitted_nodal_restraints.py"
+  ],
+  "proposedNewPathsAbsentAtPin": true,
+  "readOnlyDependencies": [
+    "contracts/gc-pw-v1/contract.mjs",
+    "contracts/gc-pw-v1/occurrence-bridge.mjs",
+    "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-node-occurrence-ledger.js",
+    "tabs/xml-cii-2019-standalone/integration/xml229-physical-component-lineage.mjs",
+    "converters/xml-cii2019-core/support-mapping.js",
+    "converters/xml-cii2019-core/support-mapping-legacy.js",
+    "converters/xml-cii-2019-standalone/engine-worker.mjs"
+  ],
+  "proposedTests": {
+    "existing": [
+      "tests/xml-cii-229-p4-real-engineering-fact-producer.test.mjs",
+      "tests/xml229-native-final-mass-consumption.test.py"
+    ],
+    "new": [
+      "tests/xml229-nodal-ownership.test.mjs",
+      "tests/xml229-native-nodal-ownership.test.py",
+      "tests/xml229-governed-nodal-handoff-browser.mjs"
+    ]
+  },
+  "acceptance": [
+    {
+      "id": "EF_TWO_ONCE",
+      "expectation": "Two controlled REST/GUIDE members bind once at EF50/60; no alias-only zero-length native edge; both original identities/XYZ retained in proof",
+      "status": "NOT_RUN_REPAIR_NOT_IMPLEMENTED",
+      "oracle": "fixed requirement, not generated production expectation"
+    },
+    {
+      "id": "MEMBER_MULTIPLICITY",
+      "expectation": "One through six independently qualified members preserve source identity/order/full profiles; repeated type does not deduplicate; unknown independence held",
+      "status": "NOT_RUN_REPAIR_NOT_IMPLEMENTED",
+      "oracle": "fixed requirement, not generated production expectation"
+    },
+    {
+      "id": "HARDWARE",
+      "expectation": "Support hardware remains related evidence and does not become an independent REST or overwrite an explicit structural-member zero",
+      "status": "NOT_RUN_REPAIR_NOT_IMPLEMENTED",
+      "oracle": "fixed requirement, not generated production expectation"
+    },
+    {
+      "id": "AUTHORED_SIX",
+      "expectation": "Six original authored signed-axis types/gaps retain existing literal native auxiliary expectations",
+      "status": "NOT_RUN_REPAIR_NOT_IMPLEMENTED",
+      "oracle": "fixed requirement, not generated production expectation"
+    },
+    {
+      "id": "NO_FALSE_WELD",
+      "expectation": "Disconnected equal-XYZ routes remain distinct; negative NodeNumber placeholders remain individually keyed",
+      "status": "NOT_RUN_REPAIR_NOT_IMPLEMENTED",
+      "oracle": "fixed requirement, not generated production expectation"
+    },
+    {
+      "id": "FIELD_DISPOSITION",
+      "expectation": "All14 original EF fields covered; only NodeNumber/NodeName/ComponentRefNo differ between aliases; unknown/populated differing engineering fields block absorption",
+      "status": "NOT_RUN_REPAIR_NOT_IMPLEMENTED",
+      "oracle": "fixed requirement, not generated production expectation"
+    },
+    {
+      "id": "MASS_CENSUS",
+      "expectation": "Separate physical-part/accepted-owner set, endpoint guards and prescribed zeros remain unchanged",
+      "status": "NOT_RUN_REPAIR_NOT_IMPLEMENTED",
+      "oracle": "fixed requirement, not generated production expectation"
+    },
+    {
+      "id": "SOURCE_MEMBER_ID",
+      "expectation": "Python independently reconstructs exact JSON path/ordinal; reordered/changed/reused/lost member invalidates frozen binding",
+      "status": "NOT_RUN_REPAIR_NOT_IMPLEMENTED",
+      "oracle": "fixed requirement, not generated production expectation"
+    },
+    {
+      "id": "STALE_FORGED",
+      "expectation": "Changed source/config/basis, forged connection/alias, capacity overflow or changed saved mutation/profile blocks; failed v2 never falls back",
+      "status": "NOT_RUN_REPAIR_NOT_IMPLEMENTED",
+      "oracle": "fixed requirement, not generated production expectation"
+    },
+    {
+      "id": "NATIVE_NO_REVOTE",
+      "expectation": "Verified binding reaches addon and patched support paths; no second support owner vote; unrelated process hydration continues",
+      "status": "NOT_RUN_REPAIR_NOT_IMPLEMENTED",
+      "oracle": "fixed requirement, not generated production expectation"
+    },
+    {
+      "id": "ACTUAL_CII",
+      "expectation": "Verify actual ELEMENTS-to-RESTRANT references and every qualified member/profile before output write; existing mass verification still executes",
+      "status": "NOT_RUN_REPAIR_NOT_IMPLEMENTED",
+      "oracle": "fixed requirement, not generated production expectation"
+    },
+    {
+      "id": "ROOT_DOCS_WORKER",
+      "expectation": "Root/docs modules and Python script loading agree; actual governed Worker test executes selected bytes",
+      "status": "NOT_RUN_REPAIR_NOT_IMPLEMENTED",
+      "oracle": "fixed requirement, not generated production expectation"
+    },
+    {
+      "id": "POST_FINAL",
+      "expectation": "Existing preaccepted/native-model geometry checks remain; no post-Final contraction or new rigid generation",
+      "status": "NOT_RUN_REPAIR_NOT_IMPLEMENTED",
+      "oracle": "fixed requirement, not generated production expectation"
+    }
+  ],
+  "directBenchmarkChecks": {
+    "inventory": {
+      "source": "Benchmarks/EF-05-PRO.TEST.xml",
+      "pin": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+      "sha256": "2573883480af904096dea2663c9cf585be2db28dd047785397b4d61edee0a030",
+      "selectorFailureRetained": "Initial bare reference selector matched zero: actual ComponentRefNo includes =1006649732/ prefix. Corrected selection uses previously fixed original branch/node ordinals and exact expected names/numbers; no engineering expectation/source changed.",
+      "rows": [
+        {
+          "branchOrdinal": 0,
+          "nodeOrdinal": 7,
+          "nodeNumber": "50",
+          "nodeName": "PS-14167/DATUM",
+          "componentRefNo": "=1006649732/119345",
+          "componentType": "ATTA",
+          "endpoint": "0",
+          "fields": [
+            {
+              "name": "NodeNumber",
+              "populated": true,
+              "valueIsZero": false,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "NodeName",
+              "populated": true,
+              "valueIsZero": false,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "Endpoint",
+              "populated": true,
+              "valueIsZero": true,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "ComponentType",
+              "populated": true,
+              "valueIsZero": false,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "Weight",
+              "populated": true,
+              "valueIsZero": true,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "ComponentRefNo",
+              "populated": true,
+              "valueIsZero": false,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "ConnectionType",
+              "populated": false,
+              "valueIsZero": false,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "OutsideDiameter",
+              "populated": true,
+              "valueIsZero": false,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "WallThickness",
+              "populated": true,
+              "valueIsZero": true,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "CorrosionAllowance",
+              "populated": true,
+              "valueIsZero": true,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "InsulationThickness",
+              "populated": true,
+              "valueIsZero": true,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "Position",
+              "populated": true,
+              "valueIsZero": false,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "BendRadius",
+              "populated": true,
+              "valueIsZero": true,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "SIF",
+              "populated": true,
+              "valueIsZero": true,
+              "childCount": 0,
+              "attributes": {}
+            }
+          ],
+          "nodeAttributes": {},
+          "authoredRestraintCount": 0,
+          "position": "459657.72 -1481227.40 101259.55",
+          "fieldDigest": "e61d07fc23efff7acb64ca9bb99cf014cba4bb3865ca46ce651df24020e2bda2"
+        },
+        {
+          "branchOrdinal": 0,
+          "nodeOrdinal": 8,
+          "nodeNumber": "60",
+          "nodeName": "PS-14167/SREF",
+          "componentRefNo": "=1006649732/119346",
+          "componentType": "ATTA",
+          "endpoint": "0",
+          "fields": [
+            {
+              "name": "NodeNumber",
+              "populated": true,
+              "valueIsZero": false,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "NodeName",
+              "populated": true,
+              "valueIsZero": false,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "Endpoint",
+              "populated": true,
+              "valueIsZero": true,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "ComponentType",
+              "populated": true,
+              "valueIsZero": false,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "Weight",
+              "populated": true,
+              "valueIsZero": true,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "ComponentRefNo",
+              "populated": true,
+              "valueIsZero": false,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "ConnectionType",
+              "populated": false,
+              "valueIsZero": false,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "OutsideDiameter",
+              "populated": true,
+              "valueIsZero": false,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "WallThickness",
+              "populated": true,
+              "valueIsZero": true,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "CorrosionAllowance",
+              "populated": true,
+              "valueIsZero": true,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "InsulationThickness",
+              "populated": true,
+              "valueIsZero": true,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "Position",
+              "populated": true,
+              "valueIsZero": false,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "BendRadius",
+              "populated": true,
+              "valueIsZero": true,
+              "childCount": 0,
+              "attributes": {}
+            },
+            {
+              "name": "SIF",
+              "populated": true,
+              "valueIsZero": true,
+              "childCount": 0,
+              "attributes": {}
+            }
+          ],
+          "nodeAttributes": {},
+          "authoredRestraintCount": 0,
+          "position": "459657.72 -1481227.40 101259.55",
+          "fieldDigest": "bea77cd9d39f60984361ee27c5afed70214a98335cecc73482b782c165abac36"
+        }
+      ],
+      "oracle": "stdlib direct original XML field inventory; no production imports",
+      "status": "PASS"
+    },
+    "comparison": {
+      "sourceSha256": "2573883480af904096dea2663c9cf585be2db28dd047785397b4d61edee0a030",
+      "fieldComparisons": [
+        {
+          "field": "BendRadius",
+          "exactValueAndAttributesEqual": true,
+          "bothPresent": true
+        },
+        {
+          "field": "ComponentRefNo",
+          "exactValueAndAttributesEqual": false,
+          "bothPresent": true
+        },
+        {
+          "field": "ComponentType",
+          "exactValueAndAttributesEqual": true,
+          "bothPresent": true
+        },
+        {
+          "field": "ConnectionType",
+          "exactValueAndAttributesEqual": true,
+          "bothPresent": true
+        },
+        {
+          "field": "CorrosionAllowance",
+          "exactValueAndAttributesEqual": true,
+          "bothPresent": true
+        },
+        {
+          "field": "Endpoint",
+          "exactValueAndAttributesEqual": true,
+          "bothPresent": true
+        },
+        {
+          "field": "InsulationThickness",
+          "exactValueAndAttributesEqual": true,
+          "bothPresent": true
+        },
+        {
+          "field": "NodeName",
+          "exactValueAndAttributesEqual": false,
+          "bothPresent": true
+        },
+        {
+          "field": "NodeNumber",
+          "exactValueAndAttributesEqual": false,
+          "bothPresent": true
+        },
+        {
+          "field": "OutsideDiameter",
+          "exactValueAndAttributesEqual": true,
+          "bothPresent": true
+        },
+        {
+          "field": "Position",
+          "exactValueAndAttributesEqual": true,
+          "bothPresent": true
+        },
+        {
+          "field": "SIF",
+          "exactValueAndAttributesEqual": true,
+          "bothPresent": true
+        },
+        {
+          "field": "WallThickness",
+          "exactValueAndAttributesEqual": true,
+          "bothPresent": true
+        },
+        {
+          "field": "Weight",
+          "exactValueAndAttributesEqual": true,
+          "bothPresent": true
+        }
+      ],
+      "positiveNodeOccurrenceCounts": {
+        "50": 1,
+        "60": 1
+      },
+      "positionExactEqual": true,
+      "status": "PASS",
+      "oracle": "direct stdlib comparison, no production imports"
+    }
+  },
+  "newFindings": [
+    "Python source_entries93-128 omits JSON path/ordinal identity needed for new member replay",
+    "Native kinds/replay still collapses members by kind/type independently of JS",
+    "addon.enrich_xml_addons performs another position-owner selection before patched per-node support emission; both boundaries must consume a natively verified binding",
+    "Current Final geometry v1 preserves retained immutable fields, increasing original ordinals, exact full-source replay and accepted mass lookup; alias proof must be independently replayed before approved removal",
+    "CII bytes are published after existing mass verification at runtime529-531; emitted-member verification belongs before that write"
+  ],
+  "validation": [
+    {
+      "status": "PASS",
+      "observation": "Direct EF14-field inventory and comparison:11 equal fields,3 distinct identity fields; positive50/60 each occur once",
+      "oracle": "independent stdlib original-byte inspection"
+    },
+    {
+      "status": "PASS",
+      "observation": "12 proposed existing root/docs pairs have identical Git blob IDs at pinned main",
+      "oracle": "Git object identity, not execution/engineering acceptance"
+    },
+    {
+      "status": "NOT_RUN",
+      "observation": "Repaired ownership contract, native member verification, governed Worker acceptance, distinct review and exact private run",
+      "oracle": "no implementation or engineering acceptance claimed"
+    },
+    {
+      "status": "NOT_RUN",
+      "observation": "Bounded desktop chat metadata call returned no result before termination; no custody evidence obtained",
+      "oracle": "tool availability limit, not absence of another writer"
+    }
+  ],
+  "qualification": {
+    "A1": "Source trace refined through addon/patched/actual output write",
+    "A2": "Prior public reproduction retained; exact private run unavailable",
+    "A3": "Full-source/ordinal/mass and authored-vs-inferred invariants retained",
+    "A4": "Fixed independent original fields and13 future acceptance expectations",
+    "A5": "Exact proposed current-main module/API/import boundary prepared",
+    "score": "NOT_SCORED",
+    "effectiveImplementationAuthority": "READ_ONLY"
+  },
+  "resource": {
+    "approvalCall": "call_c9aaa2a0ac4c4fa0b0b359792d42bc05",
+    "approval": "Approve recurring bounded qualification routines",
+    "limits": "five minutes/eight source reads per routine; no production edits or PR investigation",
+    "baseline": "UNKNOWN",
+    "metric": "reported input including cached input plus output, not billing",
+    "forecastNextFiveMinutes": 1200000,
+    "basis": "express standing bounded approval, not ratio pass"
+  },
+  "productionEdits": false,
+  "prInvestigation": false,
+  "newAgentsSendsTimers": false,
+  "exactNextAction": "Resolve existing current-writer/provider question and qualification disposition; production remains READ_ONLY."
+}

@@ -1,0 +1,230 @@
+{
+  "task": "XML229 native attachment ownership",
+  "thread": "01a19b55-87a6-7a80-bfa9-252bfa853be6",
+  "timeUTC": "2026-11-02T18:51:23.353686+00:00",
+  "role": "Coder",
+  "takeoverAuthority": "READ_ONLY",
+  "classification": "ENGINEERING_CRITICAL_PLANNING_ONLY",
+  "mainPin": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+  "liveMainObservation": "GitHub GET git/ref/heads/main returned unchanged pin during this turn",
+  "localHead": "a658ed0305a1745181938155b7f1c554f98ae283",
+  "branch": "fix/xml229-inst-rigid-20261031",
+  "sources": [
+    {
+      "path": "contracts/gc-pw-v1/contract.mjs",
+      "sha256": "7c7cdb1246fab4905668c38b7a060c515afcfc7dd1d37d13a9ebb9b2076e1537",
+      "gitBlob": "3fc16070c4b66094273db5d33f7fa860d825316b",
+      "bytes": 13613
+    },
+    {
+      "path": "contracts/gc-pw-v1/occurrence-bridge.mjs",
+      "sha256": "5628466447dd8990a60316bf5de967f5020f98587512a8350f0d9cf214c5dcea",
+      "gitBlob": "516b0b22862caa2d6c03494798c092ced33faae1",
+      "bytes": 9973
+    },
+    {
+      "path": "docs/architecture/gc-pw-v1.md",
+      "sha256": "ad8b83488dbcfc42ba0b0d3c0d9ddcc17dc6de6ba6ab819bbdc7c9537c2f38aa",
+      "gitBlob": "aa20ff548a93b7b7cb82ae4319dcbdbd6e3489b7",
+      "bytes": 8697
+    },
+    {
+      "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-node-occurrence-ledger.js",
+      "sha256": "1da657450311e8af898ff13925f9f0e328a4c5adf4364b7ac2bf310b132afdd8",
+      "gitBlob": "2ad5d7be0ef71047a4f1b86cabc2a7e8d898398d",
+      "bytes": 4500
+    },
+    {
+      "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml229-topology-review-controller.mjs",
+      "sha256": "38936903e006c8da6dc21c239ee19485e985ae4d55fd1d34beccca066bb82083",
+      "gitBlob": "ff99f0e4685b71ed06e229254f08c7af039fe9f9",
+      "bytes": 6555
+    },
+    {
+      "path": "tabs/xml-cii-2019-standalone/integration/xml229-tee-port-route.mjs",
+      "sha256": "96b00a4b57a03e5583120ba40d5dec859c5603e7928f2a9a8c7b9606c21e90d7",
+      "gitBlob": "6b952d0a694850d1cc13151b1085e2fff935b2a9",
+      "bytes": 2326
+    },
+    {
+      "path": "tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs",
+      "sha256": "69061df75315a6e0865beadc6a2a7d76e448044394be694adc7c2b0bbe4a7e51",
+      "gitBlob": "fd510428482851188140119b2b465a67a2a97c7b",
+      "bytes": 11199
+    },
+    {
+      "path": "tabs/xml-cii-2019-standalone/integration/xml229-physical-component-lineage.mjs",
+      "sha256": "d9258020183b4562d648e2b10886828dda71e72634cf2acdd076f962e6b0088a",
+      "gitBlob": "0340540f860be7b8e76ee16cfbc8f0137e4484d6",
+      "bytes": 4684
+    },
+    {
+      "path": "tabs/stagedjson-to-enrichxml/topo-topology-index.js",
+      "sha256": "930bf39a79d764491328fa67871c94aa8c0e2053d2a53f3a3a2ef53f2ea62707",
+      "bytes": 21112
+    },
+    {
+      "path": "tabs/stagedjson-to-enrichxml/topology-normalization/topology-normalizer-shadow.js",
+      "sha256": "fba7496db173a52a64dfc3a5471ef3eb1eb33cc34fd4c99fd2a6b8b544530b46",
+      "bytes": 15062
+    },
+    {
+      "path": "converters/xml-cii-2019-standalone/topology-integration.js",
+      "sha256": "fe03a5afeedba8d5d2b5c090ef6eb279b38da2e94a87b07b9be5267706327203",
+      "bytes": 9955
+    },
+    {
+      "path": "converters/psi116_topology_resolver/models.py",
+      "sha256": "f0576c83d0fb74fa13ed942194dc73724c0cae3d15f3ccf4827ede20c04c2fbe",
+      "bytes": 8252
+    },
+    {
+      "path": "converters/psi116_topology_resolver/parser.py",
+      "sha256": "f4586cb2784e7a243162f9d448210c6324bae54547af0949e8ee14dea470f4d6",
+      "bytes": 10927
+    },
+    {
+      "path": "converters/psi116_topology_resolver/resolver.py",
+      "sha256": "47d88df3e6d0b950b9cac573b17e44f9b9dca68438259f2287dad25dc05041a0",
+      "bytes": 4588
+    },
+    {
+      "path": "converters/psi116_topology_resolver/analysis.py",
+      "sha256": "7cecfcb3734295d463670973fda4f88870ec219f6059b6fb3536a43303b81c74",
+      "bytes": 15929
+    },
+    {
+      "path": "tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs",
+      "sha256": "b61a11373cfa20d442024c255b883d3216aec5041734ca9e5a6d7d3446c91c7d",
+      "bytes": 19015
+    },
+    {
+      "path": "tabs/xml-cii-2019-standalone/integration/xml229-prefinal-restraints.mjs",
+      "sha256": "1a92a9e3124e99e1ac8c17f2713b58d972f95e84dc8de6e4ae47fa2a703112f1",
+      "bytes": 2020
+    }
+  ],
+  "claims": [
+    {
+      "path": "agents/claims/WIP-XML229-INST-RIGID-20261031.yaml",
+      "sha256": "032de20990c04fff24c6b65eaf79ff467f24f3c392dd18decc21d257397cc687"
+    },
+    {
+      "path": "agents/claims/WIP-XML229-TOPOLOGY-RUN-20261027.yaml",
+      "sha256": "6db812ee36586272c0ffc44eb8da79c1c976cf10ad27b509ded700ce33207f01"
+    },
+    {
+      "path": "agents/claims/WIP-XML229-TOPOLOGY-SOURCE-BYTES-20261027.yaml",
+      "sha256": "d8bc852c5a439053671867ac28c71d022d34ae445e476e7475297518a5a27432"
+    },
+    {
+      "path": "agents/claims/PR362.yaml",
+      "sha256": "c6269827494c1eccb3fdfebdeb509c0b3402754f91547d8429df8d3942abdd85"
+    }
+  ],
+  "observations": [
+    {
+      "status": "PASS",
+      "observation": "Exact pinned Git bytes inspected; source manifests retained",
+      "oracle": "repository source inspection, not engineering acceptance"
+    },
+    {
+      "status": "PASS",
+      "observation": "Existing occurrence bridge supplies identity/basis, not connectivity; original ordinal ledger supplies custody, not general vertex equivalence",
+      "oracle": "source inspection"
+    },
+    {
+      "status": "PASS",
+      "observation": "Staged-JSON topology index requires supplied graph/plans; PSI116 anchor/cluster logic filters nonpositive nodes and uses heuristic priorities",
+      "oracle": "source inspection"
+    },
+    {
+      "status": "PASS",
+      "observation": "Historical instrument WIP explicitly consolidates into one canonical registry claim; no current writer release/actor identity established",
+      "oracle": "claim-registry inspection, no PR lifecycle inference"
+    },
+    {
+      "status": "NOT_RUN",
+      "observation": "New ownership contract, repaired governed CII, exact private run and distinct engineering review",
+      "oracle": "no execution/adoption claimed"
+    },
+    {
+      "status": "NOT_APPLICABLE",
+      "observation": "Production tests rerun for this documentation/source-inspection-only update; prior unchanged results retained",
+      "oracle": "no new engineering validation claimed"
+    }
+  ],
+  "providerDecision": {
+    "reusable": "Existing original occurrence/basis/helper primitives",
+    "completeProvider": "NOT_ESTABLISHED_AMONG_INSPECTED_MAIN_CANDIDATES",
+    "recommendation": "Exact qualified provider and custodian, otherwise explicitly scope a single original-XML extension based on existing primitives",
+    "competingResolverStarted": false
+  },
+  "contract": {
+    "state": "DRAFT_NOT_ADOPTED",
+    "location": "docs/architecture/xml229-native-ownership-patch-qualification-20261102.md#proposed-canonical-handoff-ready-for-engineering-review",
+    "relations": [
+      "original node",
+      "physical mass part",
+      "qualified vertex",
+      "source member",
+      "attachment",
+      "geometry alias projection",
+      "frozen basis/Final handoff",
+      "pass two"
+    ],
+    "independentNegativeExpectations": "Fixed in document before implementation; not yet executed"
+  },
+  "custody": {
+    "state": "COORDINATION_REQUIRED",
+    "effectiveImplementationWriter": "UNESTABLISHED",
+    "proposedFutureWriter": "Coder chat 01a19b55-87a6-7a80-bfa9-252bfa853be6",
+    "confirmationNeeded": "Owner/current custodian confirms no conflicting current writer or clears exact overlap",
+    "claimScope": "documentation/reproduction only; no production reservation or transfer"
+  },
+  "qualification": {
+    "answerSet": "PREPARED",
+    "score": "NOT_SCORED",
+    "threshold": "NOT_ESTABLISHED",
+    "implementation": "NOT_QUALIFIED",
+    "distinctReview": "NOT_RUN"
+  },
+  "resource": {
+    "approvalReply": "Approve recurring bounded qualification routines",
+    "approvalCall": "call_c9aaa2a0ac4c4fa0b0b359792d42bc05",
+    "scope": "source/Git/claim checks, minimal patch/A1-A5, documentation; no production edits or PR investigation",
+    "routineLimits": "five minutes/eight source reads",
+    "metric": "reported input including cached input plus output; not billing",
+    "baseline": "UNKNOWN; comparable current rolling-five-minute telemetry not established",
+    "forecastNextFiveMinutes": 1200000,
+    "forecastBasis": "conservative continuation estimate for bounded source/design/artifact steps; not guaranteed usage",
+    "gateBasis": "express standing bounded approval, not a claimed ratio pass",
+    "sourceInspectionBatches": [
+      {
+        "name": "reusable-primitives",
+        "sourceFiles": 8
+      },
+      {
+        "name": "custody-and-alternatives",
+        "sourceFiles": 8,
+        "composition": "four claims, three alternative modules, primary WBS"
+      },
+      {
+        "name": "route-and-own-records",
+        "sourceFiles": 8,
+        "composition": "six pinned modules, own status and claim"
+      }
+    ]
+  },
+  "protected": {
+    "productionEdited": false,
+    "benchmarksOrOraclesEdited": false,
+    "schemaAdopted": false,
+    "runtimeWriterCanvasSwitched": false,
+    "prInvestigation": false,
+    "agentsTimersSends": false,
+    "gitMutation": false,
+    "mergeDeployment": false
+  },
+  "exactNextAction": "Owner/current custodian selects future writer/provider route; Coder finalizes one-provider contract/allowlist and qualification in READ_ONLY."
+}

@@ -1,0 +1,54 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-XML229-OWNERSHIP-WBS-20261102
+claim_state: ACTIVE_PRIORITY_READ_ONLY_REPRODUCTION_EVIDENCE
+branch: fix/xml229-inst-rigid-20261031
+files:
+  exact:
+    - docs/architecture/xml229-native-ownership-wbs-20261102.md
+    - agents/WIP-XML229-OWNERSHIP-WBS-20261102_workreport.md
+    - agents/status/WIP-XML229-OWNERSHIP-WBS-20261102.yaml
+    - agents/claims/WIP-XML229-OWNERSHIP-WBS-20261102.yaml
+    - agents/evidence/xml229-native-ownership-focus-20261102.json
+    - docs/architecture/xml229-native-ownership-handoff-trace-20261102.md
+    - agents/evidence/xml229-native-handoff-trace-20261102.json
+    - docs/architecture/xml229-native-ownership-reproduction-20261102.md
+    - agents/evidence/xml229-prefinal-repro-20261102.json
+    - agents/evidence/xml229-prefinal-repro-20261102-initial.json
+    - agents/evidence/xml229-prefinal-repro-20261102.mjs
+    - agents/evidence/xml229_prefinal_repro_20261102.py
+    - docs/architecture/xml229-native-ownership-topology-qualification-20261102.md
+    - agents/evidence/xml229-topology-qualification-20261102.json
+    - agents/evidence/xml229-topology-qualification-20261102-initial.json
+    - agents/evidence/xml229-topology-qualification-20261102.mjs
+    - agents/evidence/xml229_topology_qualification_20261102.py
+    - docs/architecture/xml229-native-ownership-patch-qualification-20261102.md
+    - agents/evidence/xml229-patch-qualification-20261102.json
+    - agents/evidence/xml229-ownership-prerequisites-20261102.json
+    - agents/evidence/xml229-current-main-repair-boundary-20261102.json
+    - agents/evidence/xml229-custody-selection-20261103.json
+    - agents/evidence/xml229-a1-a5-assessment-20261103.json
+    - agents/evidence/xml229-a3-alias-proof-20261103.json
+    - agents/evidence/xml229_alias_projection_qualification_20261103.py
+    - agents/evidence/xml229-a3-reassessment-20261103.json
+    - agents/evidence/xml229_a3_reproduce.py
+    - docs/architecture/xml229-native-ownership-handover-20261103.md
+    - agents/evidence/xml229-draft-pr-package-20261103.json
+    - docs/architecture/xml229-benchmark-three-problem-wbs-20261102.md
+    - agents/WIP-XML229-BENCHMARK-3FIX-20261102_workreport.md
+    - agents/status/WIP-XML229-BENCHMARK-3FIX-20261102.yaml
+authority_domains: [WBS planning, task recovery documentation, isolated read-only reproduction evidence]
+protected: [all production code, source inputs, engineering authority, existing user changes, workflows]
+implementation_authority: NOT_GRANTED_BY_THIS_CLAIM
+related_active_scope: PR392_to_PR396_physical_vertex_nodal_split_candidates
+takeover_authority: READ_ONLY
+overlap: OWNER_CONFIRMED_NO_OTHER_ACTIVE_WRITER_FOR_NAMED_FIRST_REPAIR
+merge_authority: PROHIBITED_OWNER_DO_NOT_MERGE
+future_implementation_writer: OWNER_CONFIRMED_CODER_CHAT_01a19b55_87a6_7a80_bfa9_252bfa853be6
+future_implementation_scope: SELECTED_CURRENT_MAIN_EXTENSION_FIRST_OWNERSHIP_REPAIR_ONLY
+owner_selection_evidence: agents/evidence/xml229-custody-selection-20261103.json
+production_claim_activation: NOT_ACTIVE_READ_ONLY_QUALIFICATION
+publication_branch: codex/xml229-ownership-evidence-20261103-01a19b55
+publication_base: 3377b7f4baeeee5851e72dcc414d6c4a93f5a933
+publication_state: PREPARED_NOT_YET_PUBLISHED
+handover: docs/architecture/xml229-native-ownership-handover-20261103.md
+owner_merge_instruction: DO_NOT_MERGE

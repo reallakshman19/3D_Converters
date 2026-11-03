@@ -1,0 +1,19 @@
+schema: AgentStatus.v1
+pr_or_wip: WIP-XML229-OWNERSHIP-INTAKE-20261102
+state: READ_ONLY_SAVED_BUNDLE_UNAVAILABLE_RECOVERY_ROUTE_REQUIRED
+report: agents/WIP-XML229-OWNERSHIP-INTAKE-20261102_workreport.md
+artifact: docs/architecture/xml229-native-ownership-intake-20261102.md
+branch: fix/xml229-inst-rigid-20261031
+local_head: a658ed0305a1745181938155b7f1c554f98ae283
+baseline_main: 5c39dd7bdbb7f2f63a686823b72bdb81909d52af
+source_snapshot: .local-test-tmp/xml229-v6-intake-source-5c39dd7b
+related_design_pr: 390
+related_design_head: 808ff2d611eb7eed32ecdea548f3e7248d9b6403
+takeover_authority: READ_ONLY
+appendix_a: INCOMPLETE_NOT_SCORED
+overlap: COORDINATION_REQUIRED_WRITER_AND_REVIEWER_UNASSIGNED
+validation: PYTHON_27_PASS_NODE_7_PASS_MIRROR_5_PASS_OWNER_REPLAY_NOT_RUN
+source_bundle: OWNER_CONFIRMED_UNAVAILABLE
+raw_source_and_live_run_availability: UNKNOWN
+merge_authority: OWNER_ONLY_NOT_GRANTED
+next_action: After Compact and fresh resource gate Coder inspects existing same-run capture routes

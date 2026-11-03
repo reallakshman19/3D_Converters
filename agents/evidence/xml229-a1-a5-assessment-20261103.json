@@ -1,0 +1,432 @@
+{
+  "task": "XML229 selected current-main extension A1-A5 assessment",
+  "observedUTC": "2026-11-03T01:58:56.789227+00:00",
+  "thread": "01a19b55-87a6-7a80-bfa9-252bfa853be6",
+  "role": "Coder",
+  "classification": "ENGINEERING_CRITICAL",
+  "sourcePin": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+  "assessmentClass": "AUTHOR_ASSESSMENT_NOT_DISTINCT_REVIEW",
+  "authorship": "This Coder authored the plan/reproductions and inspected upstream code/tests. No independent reviewer or Owner acceptance is inferred.",
+  "rubric": {
+    "criteriaPerChallenge": 5,
+    "maximumPerCriterion": 4,
+    "full": 4,
+    "partial": 2,
+    "notEstablished": 0,
+    "source": "Transparent evidence rubric used for this author assessment; not a new Owner-adopted qualification protocol or exemption."
+  },
+  "scores": {
+    "A1": 20,
+    "A2": 20,
+    "A3": 16,
+    "A4": 18,
+    "A5": 18
+  },
+  "total": 92,
+  "requiredTotal": 92,
+  "requiredEach": 17,
+  "totalThresholdMet": true,
+  "everyChallengeThresholdMet": false,
+  "verdict": "NOT_QUALIFIED_A3_BELOW_MINIMUM",
+  "disposition": "CONTINUE_READ_ONLY",
+  "effectiveAuthority": "READ_ONLY",
+  "productionClaimActivation": false,
+  "challenges": {
+    "A1": [
+      {
+        "criterion": "First incorrect boundary and order",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Producer stages row restraints before original cleanup ledger; inventory/provider must precede closure.",
+        "evidence": "producer103-108"
+      },
+      {
+        "criterion": "JS identity loss",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Map(kind) and existingTypes Set suppress same-kind/type members; per-row closure duplicates aliases.",
+        "evidence": "closure250-301,403-423; public reproduction"
+      },
+      {
+        "criterion": "Independent Python identity loss",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "source_entries drops paths/ordinals; replay loops source rows and reduces by kinds/types.",
+        "evidence": "source93-128; replay318-336"
+      },
+      {
+        "criterion": "Late custody path",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "runtime stages original, then patched enrichment calls addon position-owner selection; verified context must reach both.",
+        "evidence": "runtime417-424; patched1548-1575; addon673-721"
+      },
+      {
+        "criterion": "Actual publication boundary",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Existing mass verifier runs after serialization and before OUTPUT_WRITE; new actual-member check belongs there.",
+        "evidence": "runtime512-531; base1282-1292"
+      }
+    ],
+    "A2": [
+      {
+        "criterion": "Alias counterexample",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Controlled two-member EF50/60 case produces4 rather than2; both original aliases preserved in evidence.",
+        "evidence": "xml229-prefinal-repro-20261102.json"
+      },
+      {
+        "criterion": "Multiplicity counterexample",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Six distinct declared paths remain6 in ledger but materialize3; paths alone do not prove physical independence.",
+        "evidence": "xml229-prefinal-repro-20261102.json"
+      },
+      {
+        "criterion": "Controls and discriminating observations",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Single-alias2, JSON-disabled0, shape/profile/idempotence controls separate ownership from formatting.",
+        "evidence": "xml229-prefinal-repro-20261102.json"
+      },
+      {
+        "criterion": "Downstream consequence isolated",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Pinned native reader actually builds EF50-to60 zero-length edge; member-loop repair alone cannot remove it.",
+        "evidence": "xml229-topology-qualification-20261102.json native-original-route-zero-span"
+      },
+      {
+        "criterion": "Limits and original failures retained",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Public controlled inputs, fixture corrections, infrastructure failures and unavailable private21 remain explicit; no claimed exact private replay.",
+        "evidence": "reproduction/topology/qualification receipts"
+      }
+    ],
+    "A3": [
+      {
+        "criterion": "Occurrence, vertex, member and physical-part authority",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Original ordinals distinguish negative placeholders; geometry vertex never coalesces accepted physical owners.",
+        "evidence": "topology census; native typed L1 test; selected contract"
+      },
+      {
+        "criterion": "Immutable Final/source invariants",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Keep increasing retained ordinals, immutable fields, entire-source replay, original source and actual geometry guards.",
+        "evidence": "binding355-417; runtime434-498"
+      },
+      {
+        "criterion": "Source/member/profile and zero authority",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Saved Step7/8 profiles, member order/hardware and explicit zeros stay bound; unknown independence remains held.",
+        "evidence": "selected member contract; six authored native slots"
+      },
+      {
+        "criterion": "Fail-closed engineering limits",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "No post-Final contraction, arbitrary coordinate welding, mass formula/master change or native master-byte claim without bytes.",
+        "evidence": "current-main boundary; six native guard tests"
+      },
+      {
+        "criterion": "Complete alias reference and protected-edge proof",
+        "score": 0,
+        "maximum": 4,
+        "status": "NOT_ESTABLISHED",
+        "observation": "Fourteen-field equality and exact scalar identity counts do not establish complete reference semantics or preservation of non-alias edge/component authority after60-to50 projection. This proof is missing, not contradicted.",
+        "evidence": "new reference scan; current-main boundary directBenchmarkChecks and FIELD_DISPOSITION"
+      }
+    ],
+    "A4": [
+      {
+        "criterion": "Independent expectations identified",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Original stdlib census/fields, literal signed directions/gaps and controlled source declarations are separate from production predictions.",
+        "evidence": "original evidence; new scalar scan"
+      },
+      {
+        "criterion": "Existing regressions executed without oracle edits",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Six pinned upstream native guards previously passed; seven topology/member checks retained unchanged.",
+        "evidence": "native-guards-result.json; topology evidence"
+      },
+      {
+        "criterion": "New negative expectations fixed",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Thirteen fixed acceptance cases cover forged/stale/lost/reused/overflow, false welding, owners and publication.",
+        "evidence": "boundary acceptance matrix"
+      },
+      {
+        "criterion": "Actual full-output independent oracle",
+        "score": 2,
+        "maximum": 4,
+        "status": "PARTIAL",
+        "observation": "Six actual base RESTRANT slots and ELEMENTS pointer source inspected. Complete governed ELEMENTS-to-RESTRANT audit with independently fixed member/edge expectations remains unexecuted; no new repair exists.",
+        "evidence": "topology native-six-authored-member-slots; base1282-1292,1509-1550"
+      },
+      {
+        "criterion": "Validation integrity and authorship",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Implementation-coupled helpers, prior fixture errors, NOT_RUN repair and distinct review are disclosed separately.",
+        "evidence": "qualification nativeGuards; packet authorship"
+      }
+    ],
+    "A5": [
+      {
+        "criterion": "Exact current-main boundary",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Twelve existing root/docs pairs plus five planned helper pairs and bounded tests selected; stale working branch is not implementation base.",
+        "evidence": "current-main-repair-boundary-20261102.json"
+      },
+      {
+        "criterion": "Single provider and custody",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Owner selected original-XML current-main extension and this future sole writer; no need to reopen either decision.",
+        "evidence": "custody-selection-20261103.json"
+      },
+      {
+        "criterion": "Coherent minimal capability and falsifier",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Provider/member stage, pre-Final alias projection, native replay/consumption and actual CII validation must agree; JS-only or serializer-only patch is falsified by current trace.",
+        "evidence": "selected packet sequence and A1 trace"
+      },
+      {
+        "criterion": "Imports and protected dependencies",
+        "score": 4,
+        "maximum": 4,
+        "status": "SUPPORTED",
+        "observation": "Two native helpers go into existing engine script list/mirror; Worker, generic identity/mapper/emitter, physical mass lineage and workflows remain outside default writes.",
+        "evidence": "engine9-28; selected boundary"
+      },
+      {
+        "criterion": "Concrete version/compatibility acceptance",
+        "score": 2,
+        "maximum": 4,
+        "status": "PARTIAL",
+        "observation": "Explicit fail-closed version transition is required, but exact accepted v1/v2 compatibility behavior and adopted schema/policy are not fixed. Selection of route alone did not adopt them.",
+        "evidence": "packet version-transition paragraph; provider_contract DRAFT_NOT_ADOPTED"
+      }
+    ]
+  },
+  "sourceInspections": [
+    {
+      "path": "tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs",
+      "inspectedLines": "103-108",
+      "sha256": "b61a11373cfa20d442024c255b883d3216aec5041734ca9e5a6d7d3446c91c7d",
+      "pin": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+      "observation": "Direct git cat-file source inspection in this turn"
+    },
+    {
+      "path": "tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js",
+      "inspectedLines": "250-301,304-307,403-423",
+      "sha256": "ebc02155156c977a47e75de0a52db16fe30303acc7964e0fd7f0a31fdd9dcc0e",
+      "pin": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+      "observation": "Direct git cat-file source inspection in this turn"
+    },
+    {
+      "path": "tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs",
+      "inspectedLines": "208-220",
+      "sha256": "69061df75315a6e0865beadc6a2a7d76e448044394be694adc7c2b0bbe4a7e51",
+      "pin": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+      "observation": "Direct git cat-file source inspection in this turn"
+    },
+    {
+      "path": "converters/scripts/xml229_prefinal_restraint_source.py",
+      "inspectedLines": "93-128",
+      "sha256": "b6e400debfedb646d1d639f975fcb1278771d05982e92e713743b2088bad0587",
+      "pin": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+      "observation": "Direct git cat-file source inspection in this turn"
+    },
+    {
+      "path": "converters/scripts/xml229_prefinal_restraints.py",
+      "inspectedLines": "294-337",
+      "sha256": "18a7082743426bfd5e32a1cbe2666a71298019afde1be17a192167ab1eb48fe0",
+      "pin": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+      "observation": "Direct git cat-file source inspection in this turn"
+    },
+    {
+      "path": "converters/scripts/xml229_native_final_mass_binding.py",
+      "inspectedLines": "234-297,355-417",
+      "sha256": "f1a5f4ddfc6844f824126633d17bd92c9649395a70a7019dd5db80a960447e43",
+      "pin": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+      "observation": "Direct git cat-file source inspection in this turn"
+    },
+    {
+      "path": "converters/scripts/xml_to_cii2019_runtime_custody.py",
+      "inspectedLines": "413-447,488-531",
+      "sha256": "a097a533fd8a209729e5f3520bfc9e3a05f9957f5d862df6fce726b9ada1442f",
+      "pin": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+      "observation": "Direct git cat-file source inspection in this turn"
+    },
+    {
+      "path": "converters/scripts/xml_to_cii2019_master_addon.py",
+      "inspectedLines": "673-721",
+      "sha256": "48adf9faa43a68016a011937f0a3b929d37decb2569397d9ba91bd592c875f98",
+      "pin": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+      "observation": "Direct git cat-file source inspection in this turn"
+    }
+  ],
+  "referenceScan": {
+    "status": "PASS",
+    "oracle": "independent stdlib original-byte inventory",
+    "sourceSha256": "2573883480af904096dea2663c9cf585be2db28dd047785397b4d61edee0a030",
+    "branches": 41,
+    "originalNodes": 1654,
+    "elementNames": {
+      "PipeStressExport": 1,
+      "DateTime": 1,
+      "Source": 1,
+      "Version": 1,
+      "UserName": 1,
+      "Purpose": 1,
+      "ProjectName": 1,
+      "MDBName": 1,
+      "TitleLine": 1,
+      "Units": 1,
+      "DistanceUnits": 1,
+      "BoreUnits": 1,
+      "PressureUnits": 1,
+      "TemperatureUnits": 1,
+      "WeightUnits": 1,
+      "ForceUnits": 1,
+      "WallThicknessUnits": 1,
+      "FluidDensityUnits": 1,
+      "RestrainOpenEnds": 1,
+      "AmbientTemperature": 1,
+      "Pipe": 1,
+      "FullName": 1,
+      "Ref": 1,
+      "Branch": 41,
+      "Branchname": 41,
+      "Temperature": 41,
+      "Temperature1": 41,
+      "Temperature2": 41,
+      "Temperature3": 41,
+      "Temperature4": 41,
+      "Temperature5": 41,
+      "Temperature6": 41,
+      "Temperature7": 41,
+      "Temperature8": 41,
+      "Temperature9": 41,
+      "Pressure": 41,
+      "Pressure1": 41,
+      "Pressure2": 41,
+      "Pressure3": 41,
+      "Pressure4": 41,
+      "Pressure5": 41,
+      "Pressure6": 41,
+      "Pressure7": 41,
+      "Pressure8": 41,
+      "Pressure9": 41,
+      "MaterialNumber": 41,
+      "InsulationDensity": 41,
+      "FluidDensity": 41,
+      "Node": 1654,
+      "NodeNumber": 1654,
+      "NodeName": 1654,
+      "Endpoint": 1654,
+      "Rigid": 407,
+      "ComponentType": 1654,
+      "Weight": 1654,
+      "ComponentRefNo": 1654,
+      "ConnectionType": 1654,
+      "OutsideDiameter": 1654,
+      "WallThickness": 1654,
+      "CorrosionAllowance": 1654,
+      "InsulationThickness": 1654,
+      "Position": 1654,
+      "BendRadius": 1654,
+      "SIF": 1654,
+      "AlphaAngle": 3,
+      "BendType": 231,
+      "Restraint": 119,
+      "Type": 119,
+      "Stiffness": 119,
+      "Gap": 119,
+      "Friction": 119
+    },
+    "attributeNames": {},
+    "exactIdentityTextHitsByCategory": {
+      "NodeNumber": 2,
+      "NodeName": 2,
+      "ComponentRefNo": 2
+    },
+    "expectation": {
+      "branches": 41,
+      "originalNodes": 1654,
+      "exactIdentityTextHitsByCategory": {
+        "NodeNumber": 2,
+        "NodeName": 2,
+        "ComponentRefNo": 2
+      }
+    },
+    "limit": "Scalar exact-text inventory only; not tokenized-reference grammar, graph equivalence or physical-edge/owner preservation proof."
+  },
+  "evidenceDigests": {
+    "agents/evidence/xml229-prefinal-repro-20261102.json": "9fae4c1e1c8a06749d49ccbf66951e4943293605813f2ea592446ecf59f47c03",
+    "agents/evidence/xml229-topology-qualification-20261102.json": "763264289b7299beaaaddaa38c92200ec4c5209649324991a8d8a445f8a45b0f",
+    "agents/evidence/xml229-patch-qualification-20261102.json": "cd493743b7274069cf31bbb5eaf9c797c056d74f00ade3008138996360fdda8d",
+    "agents/evidence/xml229-current-main-repair-boundary-20261102.json": "c94dc385223e0940c5c63e06d9aa20be39dde8f0477bbb2ca80ad6ea6fa01e88",
+    "agents/evidence/xml229-custody-selection-20261103.json": "dedff45f26cef4b929c8671de67c72d1f6608fa2e5fd082098a84c06814df84e"
+  },
+  "liveMain": {
+    "sha": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+    "observation": "GitHub git/ref/heads/main refreshed this turn; unchanged",
+    "prInvestigation": false
+  },
+  "independentReview": "NOT_RUN",
+  "engineeringContract": "DRAFT_NOT_ADOPTED",
+  "runtimeValidation": {
+    "status": "NOT_RUN",
+    "observation": "No runtime rerun for unchanged production. Prior six guard PASS and all prior FAIL/NOT_RUN retained; new scalar source inventory executed.",
+    "oracle": "Source inventory independent; upstream tests include implementation-coupled helpers"
+  },
+  "missingProof": "Complete alias-reference disposition and independently specified non-alias edge/component/mass-owner preservation through proposed projection.",
+  "resource": {
+    "approvalCall": "call_c9aaa2a0ac4c4fa0b0b359792d42bc05",
+    "approval": "Approve recurring bounded qualification routines",
+    "limits": "<=5 minutes and <=8 source reads per routine; no production edits or PR investigation",
+    "metric": "reported input including cached input plus output; not billing",
+    "rollingBaseline": "UNKNOWN",
+    "forecastNextFiveMinutes": 1200000,
+    "basis": "Standing recurring approval; no ratio-pass claim",
+    "context": "UNKNOWN: inconsistent last token counters",
+    "accountAllowance": "UNKNOWN"
+  },
+  "exactNextAction": "Trace the pinned native edge/reference consumers and independently challenge EF alias60-to50 projection for complete reference disposition and preservation of every non-alias edge, endpoint, orientation, component authority and mass owner; record the falsifier and rescore A3 in READ_ONLY. Do not reopen custody/provider selection, investigate PRs, request the unavailable private bundle or edit production."
+}

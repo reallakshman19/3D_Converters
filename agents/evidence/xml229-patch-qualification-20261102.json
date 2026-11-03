@@ -1,0 +1,913 @@
+{
+  "schema": "XML229.MinimalPatchQualification.v1",
+  "observedAt": "2026-11-02T17:30:36.965912+00:00",
+  "candidate": {
+    "observedAt": "2026-11-02T17:11:49Z",
+    "url": "https://api.github.com/repos/reallakshman19/3D_Converters/git/ref/heads/main",
+    "sha": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af"
+  },
+  "local": {
+    "branch": "fix/xml229-inst-rigid-20261031",
+    "head": "a658ed0305a1745181938155b7f1c554f98ae283",
+    "ahead": 0,
+    "behind": 523,
+    "localMainExists": false,
+    "originMain": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af"
+  },
+  "authorization": {
+    "role": "Coder",
+    "takeover": "READ_ONLY",
+    "ownerReply": "Approve recurring bounded qualification routines",
+    "questionId": "call_c9aaa2a0ac4c4fa0b0b359792d42bc05",
+    "scope": "Minimal patch plan and repository-grounded A1-A5, source/Git/claim checks, documentation updates",
+    "limits": {
+      "perRoutineMinutes": 5,
+      "sourceReads": 8
+    },
+    "exclusions": [
+      "production edits",
+      "PR investigation"
+    ],
+    "recurring": true,
+    "noIdleExpirySpecified": true
+  },
+  "qualification": {
+    "answers": "A1_A5_PREPARED",
+    "score": "NOT_SCORED",
+    "threshold": {
+      "total": 92,
+      "perChallenge": 17
+    },
+    "implementationQualified": false,
+    "disposition": "CONTINUE_READ_ONLY",
+    "openPrerequisites": [
+      "Scored implementation qualification has not been established.",
+      "One implementation writer and overlap clearance are not established.",
+      "Graph-provider reuse and canonical geometry-alias/member contract remain proposed, not adopted."
+    ],
+    "distinctReview": "NOT_RUN"
+  },
+  "claims": {
+    "remoteDirectoryCount": 187,
+    "localDirectoryCount": 183,
+    "inspection": {
+      "observedAt": "2026-11-02T17:14:26.005706+00:00",
+      "candidate": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+      "records": [
+        {
+          "path": "agents/claims/WIP-XML229-OWNERSHIP-WBS-20261102.yaml",
+          "basis": "local documentation claim",
+          "sha256": "a9da097885a7ace1fbdb383bf29e9cebf11e05880f6350f269507218933bfbe2",
+          "data": {
+            "schema": "AgentClaim.v1",
+            "pr_or_wip": "WIP-XML229-OWNERSHIP-WBS-20261102",
+            "claim_state": "ACTIVE_PRIORITY_READ_ONLY_REPRODUCTION_EVIDENCE",
+            "branch": "fix/xml229-inst-rigid-20261031",
+            "files": {
+              "exact": [
+                "docs/architecture/xml229-native-ownership-wbs-20261102.md",
+                "agents/WIP-XML229-OWNERSHIP-WBS-20261102_workreport.md",
+                "agents/status/WIP-XML229-OWNERSHIP-WBS-20261102.yaml",
+                "agents/claims/WIP-XML229-OWNERSHIP-WBS-20261102.yaml",
+                "agents/evidence/xml229-native-ownership-focus-20261102.json",
+                "docs/architecture/xml229-native-ownership-handoff-trace-20261102.md",
+                "agents/evidence/xml229-native-handoff-trace-20261102.json",
+                "docs/architecture/xml229-native-ownership-reproduction-20261102.md",
+                "agents/evidence/xml229-prefinal-repro-20261102.json",
+                "agents/evidence/xml229-prefinal-repro-20261102-initial.json",
+                "agents/evidence/xml229-prefinal-repro-20261102.mjs",
+                "agents/evidence/xml229_prefinal_repro_20261102.py",
+                "docs/architecture/xml229-native-ownership-topology-qualification-20261102.md",
+                "agents/evidence/xml229-topology-qualification-20261102.json",
+                "agents/evidence/xml229-topology-qualification-20261102-initial.json",
+                "agents/evidence/xml229-topology-qualification-20261102.mjs",
+                "agents/evidence/xml229_topology_qualification_20261102.py",
+                "docs/architecture/xml229-benchmark-three-problem-wbs-20261102.md",
+                "agents/WIP-XML229-BENCHMARK-3FIX-20261102_workreport.md",
+                "agents/status/WIP-XML229-BENCHMARK-3FIX-20261102.yaml"
+              ]
+            },
+            "authority_domains": [
+              "WBS planning",
+              "task recovery documentation",
+              "isolated read-only reproduction evidence"
+            ],
+            "protected": [
+              "all production code",
+              "source inputs",
+              "engineering authority",
+              "existing user changes",
+              "workflows"
+            ],
+            "implementation_authority": "NOT_GRANTED_BY_THIS_CLAIM",
+            "related_active_scope": "PR392_to_PR396_physical_vertex_nodal_split_candidates",
+            "takeover_authority": "READ_ONLY",
+            "overlap": "COORDINATION_REQUIRED_FOR_PROPOSED_FUTURE_IMPLEMENTATION",
+            "merge_authority": "OWNER_ONLY_NOT_GRANTED"
+          },
+          "relevantLines": [
+            "- docs/architecture/xml229-native-ownership-topology-qualification-20261102.md",
+            "- agents/evidence/xml229-topology-qualification-20261102.json",
+            "- agents/evidence/xml229-topology-qualification-20261102-initial.json",
+            "- agents/evidence/xml229-topology-qualification-20261102.mjs",
+            "- agents/evidence/xml229_topology_qualification_20261102.py",
+            "authority_domains: [WBS planning, task recovery documentation, isolated read-only reproduction evidence]",
+            "protected: [all production code, source inputs, engineering authority, existing user changes, workflows]",
+            "implementation_authority: NOT_GRANTED_BY_THIS_CLAIM",
+            "related_active_scope: PR392_to_PR396_physical_vertex_nodal_split_candidates",
+            "takeover_authority: READ_ONLY",
+            "merge_authority: OWNER_ONLY_NOT_GRANTED"
+          ]
+        },
+        {
+          "path": "agents/claims/WIP-XML229-INST-RIGID-20261031.yaml",
+          "basis": "pinned main claim",
+          "sha256": "032de20990c04fff24c6b65eaf79ff467f24f3c392dd18decc21d257397cc687",
+          "data": {
+            "schema": "AgentClaim.v1",
+            "pr_or_wip": "WIP-XML229-INST-RIGID-20261031",
+            "claim_state": "LOCAL_IMPLEMENTATION_COMPLETE",
+            "branch": "fix/xml229-inst-rigid-20261031",
+            "files": {
+              "exact": [
+                "tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs",
+                "converters/scripts/xml229_native_final_mass_binding.py",
+                "converters/scripts/xml_to_cii2019_runtime_custody.py",
+                "tests/xml-cii-229-p4-real-engineering-fact-producer.test.mjs",
+                "tests/xml229-instrument-python-worker-cases.mjs",
+                "tests/xml229-native-final-mass-consumption.test.py",
+                "tests/xml229-p4-producer-integrity-cases.mjs"
+              ],
+              "mirrors": [
+                "docs/tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs",
+                "docs/converters/scripts/xml229_native_final_mass_binding.py",
+                "docs/converters/scripts/xml_to_cii2019_runtime_custody.py"
+              ]
+            },
+            "authority_domains": [
+              "Owner-selected INST rigid family before Final",
+              "exact CII proof bytes"
+            ],
+            "protected": [
+              "source coordinates",
+              "source weights",
+              "mass-owner cardinality",
+              "native release guards",
+              "workflows"
+            ],
+            "merge_authority": "OWNER_ONLY_NOT_GRANTED",
+            "publication_pr": 362,
+            "archive_state": "HISTORICAL_SCOPE_CONSOLIDATED_IN_PR362",
+            "active_report": "agents/PR362_workreport.md"
+          },
+          "relevantLines": [
+            "- tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs",
+            "- converters/scripts/xml229_native_final_mass_binding.py",
+            "- converters/scripts/xml_to_cii2019_runtime_custody.py",
+            "- tests/xml229-native-final-mass-consumption.test.py",
+            "- docs/tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs",
+            "- docs/converters/scripts/xml229_native_final_mass_binding.py",
+            "- docs/converters/scripts/xml_to_cii2019_runtime_custody.py",
+            "authority_domains: [Owner-selected INST rigid family before Final, exact CII proof bytes]",
+            "protected: [source coordinates, source weights, mass-owner cardinality, native release guards, workflows]",
+            "merge_authority: OWNER_ONLY_NOT_GRANTED"
+          ]
+        },
+        {
+          "path": "agents/claims/WIP-XML229-TOPOLOGY-RUN-20261027.yaml",
+          "basis": "pinned main claim",
+          "sha256": "6db812ee36586272c0ffc44eb8da79c1c976cf10ad27b509ded700ce33207f01",
+          "data": {
+            "work_id": "WIP-XML229-TOPOLOGY-RUN-20261027",
+            "owner": "Oracle standalone UNKNOWN",
+            "state": "REVIEW_READY_DRAFT",
+            "base": "0d4908eb3af1fcafee4436671675d7790f6322b2",
+            "scope": "topology-only engine entry, Run topology review UI, fresh O1/Worker transition, readiness diagnostics, root/docs mirrors and focused tests",
+            "protected": "native writer, mass formulas, physical-owner predicates, Final acceptance rules, workflow files",
+            "coordination": "existing PR329 domain overlap disclosed; its branch untouched",
+            "pr_number": 344,
+            "branch": "oracle/xml229-topology-fresh-run-20261027",
+            "report": "agents/PR344_workreport.md",
+            "ci_state": "FULL_BROWSER_JOURNEY_PASS",
+            "tested_head": "2033d03fda2401a078f2d17d881626c05451bb9e"
+          },
+          "relevantLines": [
+            "scope: topology-only engine entry, Run topology review UI, fresh O1/Worker transition, readiness diagnostics, root/docs mirrors and focused tests",
+            "protected: native writer, mass formulas, physical-owner predicates, Final acceptance rules, workflow files",
+            "branch: oracle/xml229-topology-fresh-run-20261027"
+          ]
+        },
+        {
+          "path": "agents/claims/WIP-XML229-TOPOLOGY-SOURCE-BYTES-20261027.yaml",
+          "basis": "pinned main claim",
+          "sha256": "d8bc852c5a439053671867ac28c71d022d34ae445e476e7475297518a5a27432",
+          "data": {
+            "work_id": "WIP-XML229-TOPOLOGY-SOURCE-BYTES-20261027",
+            "actor": "Oracle standalone UNKNOWN",
+            "base": "30e555e3d39db57b6b07e3720b54751f8ab73238",
+            "state": "REVIEW_READY_BROWSER_PASS",
+            "scope": "exact topology source UTF-8 hash, root/docs parser and encoding regressions",
+            "protected": "geometry, kg, owner rules, Final CAS, native writer/reconciler, workflows",
+            "merge_authority": "NOT_GRANTED",
+            "private_output_verified": false,
+            "report": "agents/PR345_workreport.md",
+            "pr_number": 345,
+            "tested_head": "094183fb51aecb4b44a59f4a472eac9581445913",
+            "browser_status": "LF_CRLF_ROOT_DOCS_FULL_JOURNEY_PASS"
+          },
+          "relevantLines": [
+            "scope: exact topology source UTF-8 hash, root/docs parser and encoding regressions",
+            "protected: geometry, kg, owner rules, Final CAS, native writer/reconciler, workflows",
+            "merge_authority: NOT_GRANTED"
+          ]
+        },
+        {
+          "path": "agents/claims/WIP-XML229-OLET-6ae1bed6.yaml",
+          "basis": "pinned main claim",
+          "sha256": "fd368997e44312c61fd38b636ef1073395603bc1cb6835fa99ddca2ffbc5b8a1",
+          "data": {
+            "schema": "AgentClaim.v1",
+            "pr_or_wip": "WIP-XML229-OLET-6ae1bed6",
+            "claim_state": "RELEASED_TO_PR355",
+            "successor": "agents/claims/PR355.yaml"
+          },
+          "relevantLines": []
+        },
+        {
+          "path": "agents/claims/WIP-XML229-TEE-6ae1bed6.yaml",
+          "basis": "pinned main claim",
+          "sha256": "371031cc6f796a615ec056892d346e6b0ac1aa20346cfd3997e325c944dc24fc",
+          "data": {
+            "schema": "AgentClaim.v1",
+            "pr_or_wip": "WIP-XML229-TEE-6ae1bed6",
+            "claim_state": "RELEASED_TO_PR356",
+            "successor": "agents/claims/PR356.yaml"
+          },
+          "relevantLines": []
+        },
+        {
+          "path": "agents/claims/WIP-XML229-INSTRUMENT-UI-6ae1bed6.yaml",
+          "basis": "pinned main claim",
+          "sha256": "3bf55245dedfda2bc2125089fb63d03137790a6d43fe3fdb72e7fa7a52f4cc4d",
+          "data": {
+            "schema": "AgentForwarder.v1",
+            "pr_or_wip": "WIP-XML229-INSTRUMENT-UI-6ae1bed6",
+            "canonical": "agents/claims/PR359.yaml"
+          },
+          "relevantLines": []
+        },
+        {
+          "path": "agents/claims/PR362.yaml",
+          "basis": "pinned main claim",
+          "sha256": "c6269827494c1eccb3fdfebdeb509c0b3402754f91547d8429df8d3942abdd85",
+          "data": {
+            "schema": "AgentClaim.v1",
+            "pr_or_wip": "PR362",
+            "claim_state": "LOCAL_IMPLEMENTATION_VERIFIED_OWNER_RETRY_PENDING",
+            "branch": "fix/xml229-inst-rigid-20261031",
+            "files": {
+              "exact": [
+                "tabs/xml-cii-2019-standalone/xml-cii-workflow-engine-client.js",
+                "converters/xml-cii-2019-standalone/engine-worker-client.mjs",
+                "converters/xml-cii-2019-standalone/engine-worker.mjs",
+                "converters/xml-cii-2019-standalone/engine-sif-result.mjs",
+                "converters/xml-cii-2019-standalone/engine.js",
+                "converters/xml-cii-2019-standalone/engine-progress.mjs",
+                "converters/scripts/xml_to_cii2019_runtime_custody.py",
+                "converters/scripts/xml229_prefinal_restraint_source.py",
+                "tabs/xml-cii-2019-standalone/integration/xml229-run-hold-audit.mjs",
+                "tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-action.mjs",
+                "tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs",
+                "tabs/xml-cii-2019-standalone/ui-adapted/xml229-flow-trace-registry.mjs",
+                "tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-debug.mjs",
+                "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js",
+                "tests/xml-cii-engine-worker-client.test.mjs",
+                "tests/xml-cii-engine-responsive-browser.mjs",
+                "tests/xml229-native-run-action.test.mjs",
+                "tests/xml229-native-run-debug.test.mjs",
+                "tests/xml229-native-run-debug-browser.mjs",
+                "tests/xml229-native-lineage-scale-browser.mjs",
+                "tests/xml229-native-restraint-spatial.test.py",
+                "tests/xml229-branch-format-hold-audit.test.mjs",
+                "tests/xml229-json-restraint-body-transfer.test.mjs",
+                "tests/xml229-owner-inputs-browser.mjs"
+              ],
+              "mirrors": [
+                "docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-engine-client.js",
+                "docs/converters/xml-cii-2019-standalone/engine-worker-client.mjs",
+                "docs/converters/xml-cii-2019-standalone/engine-worker.mjs",
+                "docs/converters/xml-cii-2019-standalone/engine-sif-result.mjs",
+                "docs/converters/xml-cii-2019-standalone/engine.js",
+                "docs/converters/xml-cii-2019-standalone/engine-progress.mjs",
+                "docs/converters/scripts/xml_to_cii2019_runtime_custody.py",
+                "docs/converters/scripts/xml229_prefinal_restraint_source.py",
+                "docs/tabs/xml-cii-2019-standalone/integration/xml229-run-hold-audit.mjs",
+                "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-action.mjs",
+                "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs",
+                "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-flow-trace-registry.mjs",
+                "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-debug.mjs",
+                "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js"
+              ]
+            },
+            "authority_domains": [
+              "same converter background execution",
+              "bounded Run lifecycle",
+              "diagnostic phase reporting",
+              "equivalent native restraint spatial lookup"
+            ],
+            "protected": [
+              "native writer and matching semantics",
+              "source and Final packet",
+              "geometry and mass guards",
+              "CII bytes",
+              "SIF semantics",
+              "workflows"
+            ],
+            "merge_authority": "OWNER_ONLY_NOT_GRANTED",
+            "optional_json_preview_files": [
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml229-preview-json-source.mjs",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-preview-json-source.mjs",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js",
+              "tests/xml229-preview-optional-json.test.mjs",
+              "tests/xml229-preview-optional-json-browser.mjs"
+            ],
+            "optional_json_weight_scope": [
+              "verified XML-only review custody",
+              "current Weight controls",
+              "Applied Weight drafts",
+              "read-only Preview restore",
+              "guarded Final popup eligibility"
+            ],
+            "optional_json_weight_modules": [
+              "xml229-review-source-input",
+              "xml229-original-blob-gcpw-client",
+              "xml229-original-blob-gcpw-worker",
+              "xml229-independent-engineering-preview-client",
+              "xml229-independent-engineering-preview-worker",
+              "xml229-live-preview-restoration",
+              "xml229-source-weight-review-transfer",
+              "xml229-p4-optional-json-custody",
+              "xml-cii-adapted-p4-verified-weight-panel",
+              "xml-cii-adapted-weight-match-v2",
+              "xml-cii-adapted-preview-diagnostics-audit-v7",
+              "xml-cii-adapted-preview-facts-button-session",
+              "xml229-p4-panel-shell",
+              "xml229-p4-weight-draft-workspace",
+              "xml229-run-unresolved-mass-popup",
+              "xml229-run-mass-review-button"
+            ],
+            "optional_json_weight_mirrors": "ALL_IDENTICAL_DOCS_COUNTERPARTS",
+            "run_entry_timer_modules": [
+              "xml229-current-run-review",
+              "xml229-run-clock",
+              "xml-cii-adapted-run-workflow",
+              "xml-cii-adapted-run-workflow-atta-default",
+              "xml-cii-adapted-output-run",
+              "xml229-native-run-debug"
+            ],
+            "run_entry_timer_mirrors": "ALL_IDENTICAL_DOCS_COUNTERPARTS",
+            "xml_only_native_handoff_scope": [
+              "full XML SHA identity",
+              "current accepted Final intent",
+              "native packet custody",
+              "source-bound readiness",
+              "existing native candidate",
+              "zero command provenance",
+              "duplicate popup async guard"
+            ],
+            "xml_only_native_handoff_new": [
+              "tabs/xml-cii-2019-standalone/integration/xml229-xml-review-attestation.mjs",
+              "tests/xml229-xml-native-handoff.test.mjs"
+            ],
+            "xml_only_native_handoff_mirrors": "ALL_15_PAIRS_IDENTICAL",
+            "xml_only_native_handoff_writer": "SAME_CODER_AUTHOR_VALIDATION_ONLY",
+            "publication_file_ledger": "46_ROOT_46_DOCS_20_TEST_6_RECORDS",
+            "publication_excluded": "LOCAL_BACKUP_REGISTRY_PRIVATE_INPUTS_GENERATED_CII_IGNORED_LOCAL_EVIDENCE",
+            "publication_overlap": "COORDINATION_REQUIRED_NOT_INTEGRATION_CLEARANCE",
+            "pr_url": "https://github.com/reallakshman19/3D_Converters/pull/362",
+            "report_basis_head": "7bc9e21c0f3e53303b5a5d32e6286dcd6d1eeeb8",
+            "ci_observation": "FIVE_FAILURES_OTHERS_RUNNING_OR_PASSED_NOT_ALL_GREEN",
+            "publication_exact_files": [
+              "agents/WIP-XML229-INST-RIGID-20261031_workreport.md",
+              "agents/WIP-XML229-RUN-RESPONSIVE-20261031_workreport.md",
+              "agents/claims/WIP-XML229-INST-RIGID-20261031.yaml",
+              "agents/status/WIP-XML229-INST-RIGID-20261031.yaml",
+              "converters/scripts/xml229_native_final_mass_binding.py",
+              "converters/scripts/xml229_prefinal_restraint_source.py",
+              "converters/scripts/xml_to_cii2019_runtime_custody.py",
+              "converters/xml-cii-2019-standalone/engine-progress.mjs",
+              "converters/xml-cii-2019-standalone/engine-sif-result.mjs",
+              "converters/xml-cii-2019-standalone/engine-worker-client.mjs",
+              "converters/xml-cii-2019-standalone/engine-worker.mjs",
+              "converters/xml-cii-2019-standalone/engine.js",
+              "converters/xml-cii2019-core/weight-facts-native-consumption-intent.js",
+              "docs/converters/scripts/xml229_native_final_mass_binding.py",
+              "docs/converters/scripts/xml229_prefinal_restraint_source.py",
+              "docs/converters/scripts/xml_to_cii2019_runtime_custody.py",
+              "docs/converters/xml-cii-2019-standalone/engine-progress.mjs",
+              "docs/converters/xml-cii-2019-standalone/engine-sif-result.mjs",
+              "docs/converters/xml-cii-2019-standalone/engine-worker-client.mjs",
+              "docs/converters/xml-cii-2019-standalone/engine-worker.mjs",
+              "docs/converters/xml-cii-2019-standalone/engine.js",
+              "docs/converters/xml-cii2019-core/weight-facts-native-consumption-intent.js",
+              "docs/tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs",
+              "docs/tabs/xml-cii-2019-standalone/integration/xml229-independent-engineering-preview-client.mjs",
+              "docs/tabs/xml-cii-2019-standalone/integration/xml229-independent-engineering-preview-worker.mjs",
+              "docs/tabs/xml-cii-2019-standalone/integration/xml229-live-preview-restoration.mjs",
+              "docs/tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs",
+              "docs/tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs",
+              "docs/tabs/xml-cii-2019-standalone/integration/xml229-review-source-input.mjs",
+              "docs/tabs/xml-cii-2019-standalone/integration/xml229-run-hold-audit.mjs",
+              "docs/tabs/xml-cii-2019-standalone/integration/xml229-source-weight-review-transfer.mjs",
+              "docs/tabs/xml-cii-2019-standalone/integration/xml229-verified-output-readiness.mjs",
+              "docs/tabs/xml-cii-2019-standalone/integration/xml229-weight-decision-provenance.mjs",
+              "docs/tabs/xml-cii-2019-standalone/integration/xml229-xml-review-attestation.mjs",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow.js",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-current-run-review.mjs",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-flow-trace-registry.mjs",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-action.mjs",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-context.mjs",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-debug.mjs",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-source-custody.mjs",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-optional-json-custody.mjs",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-panel-shell.mjs",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-draft-workspace.mjs",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-preview-json-source.mjs",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-auto-native.mjs",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-clock.mjs",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-mass-review-button.mjs",
+              "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-unresolved-mass-popup.mjs",
+              "docs/tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js",
+              "docs/tabs/xml-cii-2019-standalone/xml-cii-workflow-engine-client.js",
+              "tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs",
+              "tabs/xml-cii-2019-standalone/integration/xml229-independent-engineering-preview-client.mjs",
+              "tabs/xml-cii-2019-standalone/integration/xml229-independent-engineering-preview-worker.mjs",
+              "tabs/xml-cii-2019-standalone/integration/xml229-live-preview-restoration.mjs",
+              "tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-client.mjs",
+              "tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs",
+              "tabs/xml-cii-2019-standalone/integration/xml229-review-source-input.mjs",
+              "tabs/xml-cii-2019-standalone/integration/xml229-run-hold-audit.mjs",
+              "tabs/xml-cii-2019-standalone/integration/xml229-source-weight-review-transfer.mjs",
+              "tabs/xml-cii-2019-standalone/integration/xml229-verified-output-readiness.mjs",
+              "tabs/xml-cii-2019-standalone/integration/xml229-weight-decision-provenance.mjs",
+              "tabs/xml-cii-2019-standalone/integration/xml229-xml-review-attestation.mjs",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-output-run.js",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-p4-verified-weight-panel.js",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-diagnostics-audit-v7.js",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-renderer-v7.js",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow-atta-default.js",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-run-workflow.js",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-weight-match-v2.js",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml229-current-run-review.mjs",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml229-flow-trace-registry.mjs",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-cii-candidate-run.mjs",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-action.mjs",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-context.mjs",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-run-debug.mjs",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-source-custody.mjs",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-optional-json-custody.mjs",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-panel-shell.mjs",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-weight-draft-workspace.mjs",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml229-preview-json-source.mjs",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-auto-native.mjs",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-clock.mjs",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-mass-review-button.mjs",
+              "tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-unresolved-mass-popup.mjs",
+              "tabs/xml-cii-2019-standalone/xml-cii-output-run-readiness.js",
+              "tabs/xml-cii-2019-standalone/xml-cii-workflow-engine-client.js",
+              "tests/xml-cii-229-p4-real-engineering-fact-producer.test.mjs",
+              "tests/xml-cii-engine-responsive-browser.mjs",
+              "tests/xml-cii-engine-worker-client.test.mjs",
+              "tests/xml229-branch-format-hold-audit.test.mjs",
+              "tests/xml229-current-run-review.test.mjs",
+              "tests/xml229-instrument-python-worker-cases.mjs",
+              "tests/xml229-json-restraint-body-transfer.test.mjs",
+              "tests/xml229-native-final-mass-consumption.test.py",
+              "tests/xml229-native-lineage-scale-browser.mjs",
+              "tests/xml229-native-restraint-spatial.test.py",
+              "tests/xml229-native-run-action.test.mjs",
+              "tests/xml229-native-run-debug-browser.mjs",
+              "tests/xml229-native-run-debug.test.mjs",
+              "tests/xml229-owner-inputs-browser.mjs",
+              "tests/xml229-p4-producer-integrity-cases.mjs",
+              "tests/xml229-preview-optional-json-browser.mjs",
+              "tests/xml229-preview-optional-json.test.mjs",
+              "tests/xml229-weight-optional-json-browser.mjs",
+              "tests/xml229-weight-optional-json.test.mjs",
+              "tests/xml229-xml-native-handoff.test.mjs",
+              "agents/PR362_workreport.md",
+              "agents/status/PR362.yaml",
+              "agents/claims/PR362.yaml"
+            ]
+          },
+          "relevantLines": [
+            "- converters/scripts/xml_to_cii2019_runtime_custody.py",
+            "- docs/converters/scripts/xml_to_cii2019_runtime_custody.py",
+            "authority_domains: [same converter background execution, bounded Run lifecycle, diagnostic phase reporting, equivalent native restraint spatial lookup]",
+            "protected: [native writer and matching semantics, source and Final packet, geometry and mass guards, CII bytes, SIF semantics, workflows]",
+            "merge_authority: OWNER_ONLY_NOT_GRANTED",
+            "optional_json_weight_scope: [verified XML-only review custody, current Weight controls, Applied Weight drafts, read-only Preview restore, guarded Final popup eligibility]",
+            "optional_json_weight_modules: [xml229-review-source-input, xml229-original-blob-gcpw-client, xml229-original-blob-gcpw-worker, xml229-independent-engineering-preview-client, xml229-independent-engineering-preview-worker, xml229-live-preview-restoration, xml229-source-weight-review-transfer, xml229-p4-optional-json-custody, xml-cii-adapted-p4-verified-weight-panel, xml-cii-adapted-weight-match-v2, xml-cii-adapted-preview-diagnostics-audit-v7, xml-cii-adapted-preview-facts-button-session, xml229-p4-panel-shell, xml229-p4-weight-draft-workspace, xml229-run-unresolved-mass-popup, xml229-run-mass-review-button]",
+            "xml_only_native_handoff_scope: [full XML SHA identity, current accepted Final intent, native packet custody, source-bound readiness, existing native candidate, zero command provenance, duplicate popup async guard]",
+            "merge_authority: OWNER_ONLY_NOT_GRANTED",
+            "- converters/scripts/xml229_native_final_mass_binding.py",
+            "- converters/scripts/xml_to_cii2019_runtime_custody.py",
+            "- docs/converters/scripts/xml229_native_final_mass_binding.py",
+            "- docs/converters/scripts/xml_to_cii2019_runtime_custody.py",
+            "- docs/tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs",
+            "- docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-source-custody.mjs",
+            "- docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-optional-json-custody.mjs",
+            "- docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-mass-review-button.mjs",
+            "- docs/tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-unresolved-mass-popup.mjs",
+            "- tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs",
+            "- tabs/xml-cii-2019-standalone/ui-adapted/xml229-native-source-custody.mjs",
+            "- tabs/xml-cii-2019-standalone/ui-adapted/xml229-p4-optional-json-custody.mjs",
+            "- tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-mass-review-button.mjs",
+            "- tabs/xml-cii-2019-standalone/ui-adapted/xml229-run-unresolved-mass-popup.mjs",
+            "- tests/xml229-native-final-mass-consumption.test.py"
+          ]
+        }
+      ],
+      "limit": "Eight claim source files; no PR endpoint, head or diff inspected."
+    },
+    "overlap": "COORDINATION_REQUIRED",
+    "custody": "UNESTABLISHED",
+    "limits": "Main/local registry records only; no PR endpoints or unmerged/off-branch clearance."
+  },
+  "sourceBatches": [
+    {
+      "routine": 2,
+      "start": "2026-11-02T17:16:02.552190+00:00",
+      "end": "2026-11-02T17:16:03.711886+00:00",
+      "sourceReads": 8,
+      "candidate": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+      "files": [
+        {
+          "path": "tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs",
+          "sha256": "b61a11373cfa20d442024c255b883d3216aec5041734ca9e5a6d7d3446c91c7d",
+          "bytes": 19015,
+          "lineSpans": [
+            [
+              100,
+              112
+            ],
+            [
+              284,
+              299
+            ]
+          ]
+        },
+        {
+          "path": "tabs/xml-cii-2019-standalone/integration/xml229-prefinal-restraints.mjs",
+          "sha256": "1a92a9e3124e99e1ac8c17f2713b58d972f95e84dc8de6e4ae47fa2a703112f1",
+          "bytes": 2020,
+          "lineSpans": [
+            [
+              12,
+              37
+            ]
+          ]
+        },
+        {
+          "path": "tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js",
+          "sha256": "ebc02155156c977a47e75de0a52db16fe30303acc7964e0fd7f0a31fdd9dcc0e",
+          "bytes": 21661,
+          "lineSpans": [
+            [
+              250,
+              301
+            ],
+            [
+              357,
+              380
+            ],
+            [
+              403,
+              433
+            ]
+          ]
+        },
+        {
+          "path": "tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js",
+          "sha256": "544e1e9b35176eb99090de1978601cbdc03573212316743d30fb999f71be999c",
+          "bytes": 26840,
+          "lineSpans": [
+            [
+              487,
+              535
+            ],
+            [
+              593,
+              608
+            ]
+          ]
+        },
+        {
+          "path": "converters/scripts/xml229_prefinal_restraints.py",
+          "sha256": "18a7082743426bfd5e32a1cbe2666a71298019afde1be17a192167ab1eb48fe0",
+          "bytes": 16978,
+          "lineSpans": [
+            [
+              296,
+              337
+            ]
+          ]
+        },
+        {
+          "path": "converters/scripts/xml229_native_final_mass_binding.py",
+          "sha256": "f1a5f4ddfc6844f824126633d17bd92c9649395a70a7019dd5db80a960447e43",
+          "bytes": 53748,
+          "lineSpans": [
+            [
+              360,
+              416
+            ]
+          ]
+        },
+        {
+          "path": "converters/scripts/xml_to_cii2019_runtime_custody.py",
+          "sha256": "a097a533fd8a209729e5f3520bfc9e3a05f9957f5d862df6fce726b9ada1442f",
+          "bytes": 24568,
+          "lineSpans": [
+            [
+              405,
+              450
+            ],
+            [
+              462,
+              501
+            ]
+          ]
+        },
+        {
+          "path": "tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs",
+          "sha256": "69061df75315a6e0865beadc6a2a7d76e448044394be694adc7c2b0bbe4a7e51",
+          "bytes": 11199,
+          "lineSpans": [
+            [
+              11,
+              45
+            ],
+            [
+              190,
+              240
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "routine": 3,
+      "start": "2026-11-02T17:16:53.293555+00:00",
+      "end": "2026-11-02T17:16:54.338355+00:00",
+      "sourceReads": 8,
+      "files": [
+        {
+          "path": "tests/xml229-native-final-mass-consumption.test.py",
+          "sha256": "b3452bc85901d5bb0907170b662f0ba51f649a588c85e86d030be38cb5943f3a",
+          "bytes": 66507
+        },
+        {
+          "path": "tests/xml-cii-mds-position-restraints.test.mjs",
+          "sha256": "da101a2a58c5a9a1eeeb702ded5b94c9ce4fcb7e64fa4eff2b910b55f274b422",
+          "bytes": 7218
+        },
+        {
+          "path": "converters/scripts/xml229_prefinal_restraint_source.py",
+          "sha256": "b6e400debfedb646d1d639f975fcb1278771d05982e92e713743b2088bad0587",
+          "bytes": 11530
+        },
+        {
+          "path": "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-node-occurrence-ledger.js",
+          "sha256": "1da657450311e8af898ff13925f9f0e328a4c5adf4364b7ac2bf310b132afdd8",
+          "bytes": 4500
+        },
+        {
+          "path": "converters/xml-cii2019-core/weight-match-model.js",
+          "sha256": "50ef09b87faefcb948bf67cd9f9e2db872558dfd0e8c35ce78f78e0d8481bbbd",
+          "bytes": 32729
+        },
+        {
+          "path": "contracts/gc-pw-v1/occurrence-bridge.mjs",
+          "sha256": "5628466447dd8990a60316bf5de967f5020f98587512a8350f0d9cf214c5dcea",
+          "bytes": 9973
+        },
+        {
+          "path": "tabs/xml-cii-2019-standalone/integration/xml229-physical-component-lineage.mjs",
+          "sha256": "d9258020183b4562d648e2b10886828dda71e72634cf2acdd076f962e6b0088a",
+          "bytes": 4684
+        },
+        {
+          "path": "tests/xml229-native-final-mass-bridge.test.mjs",
+          "status": "UNAVAILABLE",
+          "reason": "fatal: path 'tests/xml229-native-final-mass-bridge.test.mjs' does not exist in '5c39dd7bdbb7f2f63a686823b72bdb81909d52af'\n"
+        }
+      ]
+    },
+    {
+      "routine": 4,
+      "start": "2026-11-02T17:18:10.862601+00:00",
+      "end": "2026-11-02T17:18:11.789533+00:00",
+      "sourceReads": 5,
+      "files": [
+        {
+          "path": "tests/xml229-native-final-mass-consumption.test.py",
+          "sha256": "b3452bc85901d5bb0907170b662f0ba51f649a588c85e86d030be38cb5943f3a",
+          "bytes": 66507
+        },
+        {
+          "path": "converters/xml-cii2019-core/weight-match-model.js",
+          "sha256": "50ef09b87faefcb948bf67cd9f9e2db872558dfd0e8c35ce78f78e0d8481bbbd",
+          "bytes": 32729
+        },
+        {
+          "path": "tabs/xml-cii-2019-standalone/integration/xml229-physical-component-lineage.mjs",
+          "sha256": "d9258020183b4562d648e2b10886828dda71e72634cf2acdd076f962e6b0088a",
+          "bytes": 4684
+        },
+        {
+          "path": "contracts/gc-pw-v1/occurrence-bridge.mjs",
+          "sha256": "5628466447dd8990a60316bf5de967f5020f98587512a8350f0d9cf214c5dcea",
+          "bytes": 9973
+        },
+        {
+          "path": "tests/xml229-physical-lineage-contract.test.mjs",
+          "sha256": "829f63971fe40e22dfe1d178ad34d2bf22dda3e62e4843812e73226a79146421",
+          "bytes": 4352
+        }
+      ]
+    }
+  ],
+  "nativeDependencyExports": {
+    "candidate": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+    "pending": [],
+    "files": {
+      "xml229_native_final_mass_binding.py": {
+        "sha256": "f1a5f4ddfc6844f824126633d17bd92c9649395a70a7019dd5db80a960447e43",
+        "bytes": 53748
+      },
+      "xml_to_cii2019_runtime_custody.py": {
+        "sha256": "a097a533fd8a209729e5f3520bfc9e3a05f9957f5d862df6fce726b9ada1442f",
+        "bytes": 24568
+      },
+      "xml_to_cii2019.py": {
+        "sha256": "53ab7a3129d61b59ca98173d9bd98e4bd481930df014f4c3fe32db9d1bcc661f",
+        "bytes": 72739
+      },
+      "xml229_prefinal_restraints.py": {
+        "sha256": "18a7082743426bfd5e32a1cbe2666a71298019afde1be17a192167ab1eb48fe0",
+        "bytes": 16978
+      },
+      "xml_to_cii2019_patched.py": {
+        "sha256": "257c341aa8fc6cd568e717f960950c1a4d72bd68ba33e5e361435b28d93e2cae",
+        "bytes": 90667
+      },
+      "xml_to_cii2019_direction.py": {
+        "sha256": "9234e2d30aca367174fefcdb650009f7e5ae805a4b8e35922b86409e9da1677e",
+        "bytes": 24740
+      },
+      "xml_to_cii2019_bend_radius_policy.py": {
+        "sha256": "9e16b2ee49a1eabbea8ee6eedb787859795d45b452185eac15c7605d194117d8",
+        "bytes": 5932
+      },
+      "xml_cii_weight_output_custody.py": {
+        "sha256": "cf938976dde57ec8e8fab28087f149b54635506864ddeb3ea433629a7f622eb1",
+        "bytes": 2904
+      },
+      "xml_cii_weighted_geometry.py": {
+        "sha256": "7d17dbf04f1fdcf26998e5e102af63775fb3c1a659351d57383fa78b5500be09",
+        "bytes": 2681
+      },
+      "xml229_support_type_mapper.py": {
+        "sha256": "72240ea15193eb1170c5f3f36368e684589048678264ee5b6bc1d1c7145d4bf6",
+        "bytes": 7130
+      },
+      "xml229_prefinal_restraint_source.py": {
+        "sha256": "b6e400debfedb646d1d639f975fcb1278771d05982e92e713743b2088bad0587",
+        "bytes": 11530
+      },
+      "xml_to_cii2019_master_addon.py": {
+        "sha256": "48adf9faa43a68016a011937f0a3b929d37decb2569397d9ba91bd592c875f98",
+        "bytes": 56944
+      },
+      "master_customization.py": {
+        "sha256": "288c519e99afcc932d371e550b98c2254f83088dd084dbc436b6e7eff7d5e768",
+        "bytes": 23930
+      }
+    },
+    "batches": [
+      {
+        "start": "2026-11-02T17:19:32.428649+00:00",
+        "end": "2026-11-02T17:19:33.805996+00:00",
+        "sourceExports": 8,
+        "files": [
+          "xml229_native_final_mass_binding.py",
+          "xml_to_cii2019_runtime_custody.py",
+          "xml_to_cii2019.py",
+          "xml229_prefinal_restraints.py",
+          "xml_to_cii2019_patched.py",
+          "xml_to_cii2019_direction.py",
+          "xml_to_cii2019_bend_radius_policy.py",
+          "xml_cii_weight_output_custody.py"
+        ]
+      },
+      {
+        "start": "2026-11-02T17:19:54.760952+00:00",
+        "end": "2026-11-02T17:19:55.464051+00:00",
+        "sourceExports": 5,
+        "files": [
+          "xml_cii_weighted_geometry.py",
+          "xml229_support_type_mapper.py",
+          "xml229_prefinal_restraint_source.py",
+          "xml_to_cii2019_master_addon.py",
+          "master_customization.py"
+        ]
+      }
+    ]
+  },
+  "nativeGuards": {
+    "status": "PASS",
+    "exitCode": 0,
+    "testNames": [
+      "test_l1_independent_typed_branch_connection_proof",
+      "test_accepted_owner_cannot_be_removed_from_finalized_geometry",
+      "test_altered_source_or_duplicate_owner_never_applies_mass",
+      "test_geometry_must_be_final_before_weight_acceptance",
+      "test_native_run_blocks_post_acceptance_short_element_cleanup",
+      "test_staged_lineage_fail_closed_on_split_lost_and_spoofed_markers"
+    ],
+    "start": "2026-11-02T17:20:52.228895+00:00",
+    "end": "2026-11-02T17:20:53.153921+00:00",
+    "command": "python <isolated-pinned-tree>/tests/xml229-native-final-mass-consumption.test.py <six recorded NativeFinalMassTests methods>",
+    "stdout": "",
+    "stderr": "......\n----------------------------------------------------------------------\nRan 6 tests in 0.625s\n\nOK\n",
+    "tempScope": "Child-process TMPDIR/TEMP/TMP point to verified workspace scratch; no test or production bytes changed.",
+    "oracle": "Existing literal source/Final/alias/mass negatives; tests authored upstream, this Coder inspected before running. Not distinct review or complete Owner replay.",
+    "initialAttempts": [
+      {
+        "status": "NOT_RUN",
+        "reason": "Older786-file source snapshot did not contain the test file; corrected isolated tree exported from exact Git."
+      },
+      {
+        "status": "ERROR_INFRASTRUCTURE",
+        "exit": 1,
+        "reason": "All six tests failed before assertion because default sandbox temporary directories denied file writes; original output retained."
+      }
+    ],
+    "rawReceipts": ".local-test-tmp/xml229-patch-qualification-20261102/native-guards-result.json"
+  },
+  "priorEvidenceDigests": {
+    "agents/evidence/xml229-prefinal-repro-20261102.json": "9fae4c1e1c8a06749d49ccbf66951e4943293605813f2ea592446ecf59f47c03",
+    "agents/evidence/xml229-topology-qualification-20261102.json": "763264289b7299beaaaddaa38c92200ec4c5209649324991a8d8a445f8a45b0f"
+  },
+  "protected": [
+    "original XML/JSON and ordinals",
+    "coordinate frame and raw XYZ",
+    "saved Step7/8 configuration and profiles",
+    "separate geometry-vertex and physical-mass-part identities",
+    "accepted physical masses and prescribed zeros",
+    "complete native source/Final/geometry checks",
+    "existing native writer and export numerical semantics",
+    "root/docs parity",
+    "workflows and Owner-only release"
+  ],
+  "plan": "docs/architecture/xml229-native-ownership-patch-qualification-20261102.md",
+  "resource": {
+    "window": [
+      "2026-11-02T17:21:13.165647+00:00",
+      "2026-11-02T17:26:13.165647+00:00"
+    ],
+    "sampleBracket": [
+      "2026-11-02T17:20:53.393000+00:00",
+      "2026-11-02T17:22:22.148000+00:00"
+    ],
+    "delta": {
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cached_input_tokens": 0
+    },
+    "B": 0,
+    "P": 1200000,
+    "metric": "reported input including cache plus output; not billing",
+    "approval": "Owner approved recurring bounded qualification routines: each <=5min and <=8 source reads, source/Git/claim checks and documentation, no production edits or PR investigation."
+  },
+  "limits": [
+    "No production patch or new graph/schema adoption.",
+    "Native guard checks do not establish repaired full governed CII or exact unavailable private21 replay.",
+    "The six-declared-path challenge remains a representation limitation, not physical member-independence evidence."
+  ]
+}

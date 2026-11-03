@@ -1,0 +1,17 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-XML229-BENCHMARK-3FIX-20261102
+claim_state: BENCHMARK_ANALYSIS_DOCUMENTATION_ONLY
+branch: fix/xml229-inst-rigid-20261031
+files:
+  exact:
+    - docs/architecture/xml229-benchmark-three-problem-wbs-20261102.md
+    - agents/evidence/xml229_benchmark_study_20261102.py
+    - agents/evidence/xml229-benchmark-study-20261102.json
+    - agents/WIP-XML229-BENCHMARK-3FIX-20261102_workreport.md
+    - agents/status/WIP-XML229-BENCHMARK-3FIX-20261102.yaml
+    - agents/claims/WIP-XML229-BENCHMARK-3FIX-20261102.yaml
+authority_domains: [read-only benchmark analysis and three-problem planning]
+protected: [benchmark inputs, production code, engineering authority, existing user changes, workflows]
+implementation_authority: NOT_GRANTED_BY_THIS_CLAIM
+overlap: NEW_ANALYSIS_FILES_ONLY_PRODUCTION_OVERLAP_REQUIRES_REFRESH
+merge_authority: OWNER_ONLY_NOT_GRANTED

@@ -1,0 +1,240 @@
+{
+  "task": "XML229 diagnostic evidence and handover draft",
+  "branch": "codex/xml229-ownership-evidence-20261103-01a19b55",
+  "publicationBase": "3377b7f4baeeee5851e72dcc414d6c4a93f5a933",
+  "evidencePin": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+  "authority": "READ_ONLY",
+  "merge": "PROHIBITED_OWNER_DO_NOT_MERGE",
+  "scope": "Documentation and isolated reproduction only; no production repair",
+  "manifestRule": "Lists published task artifacts excluding this manifest; Git commit identity is supplied by the live draft PR head.",
+  "files": [
+    {
+      "path": "agents/WIP-XML229-BENCHMARK-3FIX-20261102_workreport.md",
+      "bytes": 8818,
+      "sha256": "55185addb8184414d1195467ddba36efdbdf74121f5517a00648db10a7467070",
+      "gitBlobSha": "c7a36133c1408ddded32b92ffa647190794cd4ab"
+    },
+    {
+      "path": "agents/WIP-XML229-OWNERSHIP-INTAKE-20261102_workreport.md",
+      "bytes": 11256,
+      "sha256": "a82c461bce7a49f31e4479997c3633643f8b13d80e65fddfca1dce0257cc860a",
+      "gitBlobSha": "3f4547d64cbf02067094ad02d17141d1cd9fd1a0"
+    },
+    {
+      "path": "agents/WIP-XML229-OWNERSHIP-WBS-20261102_workreport.md",
+      "bytes": 68517,
+      "sha256": "8ddeea57bb4a677e444ed7c579cb5ca5acc9d3764823d05f336894921f281129",
+      "gitBlobSha": "556d5f33ddbfdedd763da72b8c7525065592283b"
+    },
+    {
+      "path": "agents/claims/WIP-XML229-BENCHMARK-3FIX-20261102.yaml",
+      "bytes": 885,
+      "sha256": "1f23521814707bd54adc625c3af052ffcebe6cced2040ddbd9bebb797685812f",
+      "gitBlobSha": "d5a4ade3779458e975c4c585725f94e5bf844748"
+    },
+    {
+      "path": "agents/claims/WIP-XML229-OWNERSHIP-INTAKE-20261102.yaml",
+      "bytes": 874,
+      "sha256": "6bc339aeec75c25aa340587b4a0dfc10cfcbdb4bb0e1e9a3c8604720dc1dabea",
+      "gitBlobSha": "a032cf155cef8e43a476fb86f211fdbcf307faf8"
+    },
+    {
+      "path": "agents/claims/WIP-XML229-OWNERSHIP-WBS-20261102.yaml",
+      "bytes": 3405,
+      "sha256": "06073ff8fb01557a2ce994224452dc4d11566ea403a3a2c7222c1de06bd4a1ac",
+      "gitBlobSha": "c0f6e916d7e7c055c5385267fbd8ad1ef0ee72ee"
+    },
+    {
+      "path": "agents/evidence/xml229-a1-a5-assessment-20261103.json",
+      "bytes": 18715,
+      "sha256": "f3e4fb9e017a15b2f183c64f15cd1965f02081ebbe362a47e3be93f81ac57323",
+      "gitBlobSha": "22ae70cf83d2c737cce3d51e7b25d44d6aa2738f"
+    },
+    {
+      "path": "agents/evidence/xml229-a3-alias-proof-20261103.json",
+      "bytes": 15675,
+      "sha256": "bc22d46e42db412d7ed879c7fde5431909562b2a21194bc77f659cce3c7066a0",
+      "gitBlobSha": "e05b7789975c3b219ae52b487db7b143b9b8269c"
+    },
+    {
+      "path": "agents/evidence/xml229-a3-reassessment-20261103.json",
+      "bytes": 3687,
+      "sha256": "de57f9cfd5cf1f9487655b905df4accb000712073a93bbccdf2d78e35e454751",
+      "gitBlobSha": "38cd8cc097330bebdb1d76bdb82efa02bb26bb5b"
+    },
+    {
+      "path": "agents/evidence/xml229-benchmark-study-20261102.json",
+      "bytes": 12415,
+      "sha256": "58926bfaeecb38f3b2499330f0c74d263408eb0d5530ea1a05e81306d684c9c1",
+      "gitBlobSha": "92c20ecfc076b9ca27f59050e980cdd8f063bee2"
+    },
+    {
+      "path": "agents/evidence/xml229-current-main-repair-boundary-20261102.json",
+      "bytes": 24797,
+      "sha256": "c94dc385223e0940c5c63e06d9aa20be39dde8f0477bbb2ca80ad6ea6fa01e88",
+      "gitBlobSha": "5d5eeac663cc7923b87ab295fe5348269bd41591"
+    },
+    {
+      "path": "agents/evidence/xml229-custody-selection-20261103.json",
+      "bytes": 4270,
+      "sha256": "dedff45f26cef4b929c8671de67c72d1f6608fa2e5fd082098a84c06814df84e",
+      "gitBlobSha": "9c905774286ae60216ce8a35596a75992d963fe1"
+    },
+    {
+      "path": "agents/evidence/xml229-native-handoff-trace-20261102.json",
+      "bytes": 3863,
+      "sha256": "4103f2309088439be822dc6f9a9f48462a19bbc601cfa050e407648f1c226fac",
+      "gitBlobSha": "fe8366b2c545a465f2e33c235c8ca30f292a7b1a"
+    },
+    {
+      "path": "agents/evidence/xml229-native-ownership-focus-20261102.json",
+      "bytes": 11055,
+      "sha256": "5c04292024bc456fa4119c8a588e874a7d3e66cf324f9cd03177db398cac1bf3",
+      "gitBlobSha": "aa7875904320827d7d9a4e3644e9d81bb63f5c63"
+    },
+    {
+      "path": "agents/evidence/xml229-ownership-prerequisites-20261102.json",
+      "bytes": 9537,
+      "sha256": "290b8006a5d167dab871d04e5a78e5843f8320ff3383615456587e2c9e4e25ef",
+      "gitBlobSha": "4c4686b868f0b99a9c73b69bdd8e522d5747c65a"
+    },
+    {
+      "path": "agents/evidence/xml229-patch-qualification-20261102.json",
+      "bytes": 47021,
+      "sha256": "cd493743b7274069cf31bbb5eaf9c797c056d74f00ade3008138996360fdda8d",
+      "gitBlobSha": "064c3b6680f580fef95774d32efe7be36bed93c6"
+    },
+    {
+      "path": "agents/evidence/xml229-prefinal-repro-20261102-initial.json",
+      "bytes": 25912,
+      "sha256": "d2d9c1615fddc0139de52bc232795cc6effc59e200381e47f5fb9de67544fab1",
+      "gitBlobSha": "ac903225ad61d29d78df39cb2917007ff5e039a9"
+    },
+    {
+      "path": "agents/evidence/xml229-prefinal-repro-20261102.json",
+      "bytes": 28456,
+      "sha256": "9fae4c1e1c8a06749d49ccbf66951e4943293605813f2ea592446ecf59f47c03",
+      "gitBlobSha": "00c0eb22beb662d30f6ea04928448862d899a317"
+    },
+    {
+      "path": "agents/evidence/xml229-prefinal-repro-20261102.mjs",
+      "bytes": 7221,
+      "sha256": "c8d4a82c02149371c5d5317648c8caeaa8f84eead94d094d2cc1cb9f40ace909",
+      "gitBlobSha": "aabac9b5ed097f7b827fbdf40b70fd44430b8ab4"
+    },
+    {
+      "path": "agents/evidence/xml229-topology-qualification-20261102-initial.json",
+      "bytes": 18361,
+      "sha256": "90273fb2474a2851d9f4703a7de9900133163768b2efb0d09a5c261ec0b89515",
+      "gitBlobSha": "5d2738b1b2958c7b287bf763cc564b95a630ad42"
+    },
+    {
+      "path": "agents/evidence/xml229-topology-qualification-20261102.json",
+      "bytes": 51470,
+      "sha256": "763264289b7299beaaaddaa38c92200ec4c5209649324991a8d8a445f8a45b0f",
+      "gitBlobSha": "6d60b736007751f470c50078487a80c02d1a3c0d"
+    },
+    {
+      "path": "agents/evidence/xml229-topology-qualification-20261102.mjs",
+      "bytes": 5947,
+      "sha256": "fb474b97321d9d21906ccbf3a7db6fdc2db8b535bb1598221570b764c3660583",
+      "gitBlobSha": "9426925afac95457efb7f3511eeea63dcfb201db"
+    },
+    {
+      "path": "agents/evidence/xml229_a3_reproduce.py",
+      "bytes": 3879,
+      "sha256": "bb7f3714fdec0df3d0386b73db47804685a2c3e7bf03b1ba66de8543f58ac58c",
+      "gitBlobSha": "2f6fe2e9deb222bf33cdf92874990658b010609f"
+    },
+    {
+      "path": "agents/evidence/xml229_alias_projection_qualification_20261103.py",
+      "bytes": 17312,
+      "sha256": "e8b2cbcb4c65765ff141ec5f424ed59315f4c0cd4801bf5e94b79c143659517f",
+      "gitBlobSha": "abce8ff9f45db4bf072db2d26d380a6912d28610"
+    },
+    {
+      "path": "agents/evidence/xml229_benchmark_study_20261102.py",
+      "bytes": 7588,
+      "sha256": "d071c6bf2acc393b8e4434cde55a4b52736d9f0c90438821a1bf14b441c49cf7",
+      "gitBlobSha": "d908cb740d402a1eb78dcaa827923038dbdd378d"
+    },
+    {
+      "path": "agents/evidence/xml229_prefinal_repro_20261102.py",
+      "bytes": 6913,
+      "sha256": "71707bd9e5fe63d6f8b2d6e1041e1274a24f1ebd6b73357aa2dd64f1b5b16322",
+      "gitBlobSha": "204f8b6cbd32753e1d35badc76cc9c5c51e207da"
+    },
+    {
+      "path": "agents/evidence/xml229_topology_qualification_20261102.py",
+      "bytes": 11649,
+      "sha256": "b52670d3359092827842cafc41256e284989ad75be36961f3be4fcc82c9ff308",
+      "gitBlobSha": "1dda3bca173f1d634e5d2cad3d7e3c69a9dd5fac"
+    },
+    {
+      "path": "agents/status/WIP-XML229-BENCHMARK-3FIX-20261102.yaml",
+      "bytes": 969,
+      "sha256": "1b0313ecce42826be6f4a227ebf6ef728a0c70ceb20272bfa152906ef3c59a78",
+      "gitBlobSha": "3bcf735fe6073ca48b05fba500efa88b3a9ae35c"
+    },
+    {
+      "path": "agents/status/WIP-XML229-OWNERSHIP-INTAKE-20261102.yaml",
+      "bytes": 1001,
+      "sha256": "2132d5258bac2d19dffe1b58de29a5c56da4d997dc2b85e5afd62939e692d63a",
+      "gitBlobSha": "877850dc47eabb0808e2952599c1530b0b8b09f7"
+    },
+    {
+      "path": "agents/status/WIP-XML229-OWNERSHIP-WBS-20261102.yaml",
+      "bytes": 3692,
+      "sha256": "f076d53e960991e203df7b470b79322f9932af5a9e00688199b54d6ef99ec9d8",
+      "gitBlobSha": "88b0da8678ba662e3a647db243becbc6440ac538"
+    },
+    {
+      "path": "docs/architecture/xml229-benchmark-three-problem-wbs-20261102.md",
+      "bytes": 14692,
+      "sha256": "fbd3f0aa4d0abb49a42d04608470f3921d73418e8d0637555ba6057b0a42c2f8",
+      "gitBlobSha": "1c2a2cbc84a6e00b533ca82a2c0a0ecb83d63aaa"
+    },
+    {
+      "path": "docs/architecture/xml229-native-ownership-handoff-trace-20261102.md",
+      "bytes": 8022,
+      "sha256": "f46c97de9bd0582283ff6f88ce3130dc462d017ca7a5bdc2ddafc699b5948fba",
+      "gitBlobSha": "4a84a305f939570b3be32bf3650199862ef82488"
+    },
+    {
+      "path": "docs/architecture/xml229-native-ownership-handover-20261103.md",
+      "bytes": 9400,
+      "sha256": "832cd1e18250224429182cd0e7eb2126a0728204694aedaceb626ea9fe5c0697",
+      "gitBlobSha": "f12b34dd44a67ebf1b9fe4f4a5ad2f2082b512fc"
+    },
+    {
+      "path": "docs/architecture/xml229-native-ownership-intake-20261102.md",
+      "bytes": 12171,
+      "sha256": "0e0c567bc4b4095b0b366510598e6bae95fe20b4a3381a691bec8598731429b9",
+      "gitBlobSha": "025f4ff383c0dd8977f359e5cfe6671c61a98f64"
+    },
+    {
+      "path": "docs/architecture/xml229-native-ownership-patch-qualification-20261102.md",
+      "bytes": 50396,
+      "sha256": "4cf645cc0b7722ae7ffa991f2266a7d7ed95378a7448565df29c740877184791",
+      "gitBlobSha": "b1ed0edf6d76187b333d4e127a80d9bac4206cce"
+    },
+    {
+      "path": "docs/architecture/xml229-native-ownership-reproduction-20261102.md",
+      "bytes": 9517,
+      "sha256": "01c7f97580ec84dbea31f50a9dcb2ce5965ab978f5bd88bcf829068540853cae",
+      "gitBlobSha": "0458a8d35e00bcc281ed5d8a0e344adfeff1207b"
+    },
+    {
+      "path": "docs/architecture/xml229-native-ownership-topology-qualification-20261102.md",
+      "bytes": 9876,
+      "sha256": "418e4d0bf2ef6588cd48a4e6caa0e2b90e36d6de32ab9073337e34588238df61",
+      "gitBlobSha": "00b46f8323021237f00fd8e1e8cc45a06b4e71f8"
+    },
+    {
+      "path": "docs/architecture/xml229-native-ownership-wbs-20261102.md",
+      "bytes": 32657,
+      "sha256": "2cd3573f7196315a3b97e254bfc9be1a7a559edd1405a5986fbee89e1e09d482",
+      "gitBlobSha": "a08bec67857ed0dbf74fc781592edd7c4fa4c0f5"
+    }
+  ]
+}

@@ -1,0 +1,1474 @@
+{
+  "schema": "XML229.TopologyMemberQualification.v1",
+  "candidate": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+  "observedAt": "2026-11-02T14:10:36.378974+00:00",
+  "browser": {
+    "schema": "XML229.OriginalTopologyQualification.v1",
+    "candidate": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "cases": [
+      {
+        "id": "original-EF-occurrence-and-route",
+        "status": "PASS",
+        "originalUnchanged": true,
+        "ledgerCount": 1654,
+        "uniqueOccurrenceKeys": 1654,
+        "retained": 1333,
+        "dropped": 321,
+        "aliases": [
+          {
+            "branchOccurrenceIndex": 0,
+            "sourceNodeOrdinal": 7,
+            "effectiveNodeOrdinal": 7,
+            "nodeNumber": "50",
+            "componentRefNo": "=1006649732/119345",
+            "endpoint": "0",
+            "status": "retained",
+            "dropReason": null
+          },
+          {
+            "branchOccurrenceIndex": 0,
+            "sourceNodeOrdinal": 8,
+            "effectiveNodeOrdinal": 8,
+            "nodeNumber": "60",
+            "componentRefNo": "=1006649732/119346",
+            "endpoint": "0",
+            "status": "retained",
+            "dropReason": null
+          }
+        ],
+        "olet": [
+          {
+            "branchOccurrenceIndex": 0,
+            "sourceNodeOrdinal": 9,
+            "effectiveNodeOrdinal": null,
+            "nodeNumber": "-1",
+            "componentRefNo": "=1006649732/119347",
+            "endpoint": "1",
+            "status": "dropped",
+            "dropReason": "OLET_GEOMETRY_HELPER"
+          },
+          {
+            "branchOccurrenceIndex": 0,
+            "sourceNodeOrdinal": 10,
+            "effectiveNodeOrdinal": null,
+            "nodeNumber": "-1",
+            "componentRefNo": "=1006649732/119347",
+            "endpoint": "3",
+            "status": "dropped",
+            "dropReason": "OLET_GEOMETRY_HELPER"
+          },
+          {
+            "branchOccurrenceIndex": 0,
+            "sourceNodeOrdinal": 11,
+            "effectiveNodeOrdinal": 9,
+            "nodeNumber": "70",
+            "componentRefNo": "=1006649732/119347",
+            "endpoint": "0",
+            "status": "retained",
+            "dropReason": null
+          },
+          {
+            "branchOccurrenceIndex": 0,
+            "sourceNodeOrdinal": 12,
+            "effectiveNodeOrdinal": null,
+            "nodeNumber": "-1",
+            "componentRefNo": "=1006649732/119347",
+            "endpoint": "2",
+            "status": "dropped",
+            "dropReason": "OLET_GEOMETRY_HELPER"
+          }
+        ],
+        "stationAfterCleanup": [
+          {
+            "number": "50",
+            "name": "PS-14167/DATUM",
+            "position": "459657.72 -1481227.40 101259.55"
+          },
+          {
+            "number": "60",
+            "name": "PS-14167/SREF",
+            "position": "459657.72 -1481227.40 101259.55"
+          }
+        ],
+        "stationLengths": [
+          {
+            "key": "/ASIM-1836-8\"-P8810021-31441C4-PP/B4::50::ATTA::1006649732/119345",
+            "branchName": "/ASIM-1836-8\"-P8810021-31441C4-PP/B4",
+            "nodeNumber": "50",
+            "nodeName": "PS-14167/DATUM",
+            "componentType": "ATTA",
+            "componentRefNo": "=1006649732/119345",
+            "endpoint": "0",
+            "nodeRole": "real-geometry-node",
+            "storedAt": "downstream-node",
+            "fromNodeNumber": "-1",
+            "fromNodeName": "",
+            "fromComponentType": "TEE",
+            "fromComponentRefNo": "=1006649732/119344",
+            "fromRole": "real-geometry-node",
+            "fromPoint": {
+              "x": 459657.72,
+              "y": -1480226.1,
+              "z": 101259.55
+            },
+            "toPoint": {
+              "x": 459657.72,
+              "y": -1481227.4,
+              "z": 101259.55
+            },
+            "lengthMm": 1001.3,
+            "method": "uxml-topology-previous-valid-route-point",
+            "sourceAuthority": "node-xml-inferred",
+            "confidence": "EXACT_SOURCE"
+          }
+        ],
+        "stationSkips": [
+          {
+            "key": "/ASIM-1836-8\"-P8810021-31441C4-PP/B4::60::ATTA::1006649732/119346",
+            "branchName": "/ASIM-1836-8\"-P8810021-31441C4-PP/B4",
+            "nodeNumber": "60",
+            "nodeName": "PS-14167/SREF",
+            "componentType": "ATTA",
+            "componentRefNo": "=1006649732/119346",
+            "endpoint": "0",
+            "nodeRole": "support-reference",
+            "action": "skip",
+            "reason": "support-reference-sref"
+          }
+        ],
+        "expectation": "Original ordinals distinguish all occurrences. Adjacent ATTA aliases stay in the working DOM; OLET anonymous helper witnesses are classified without erasing source lineage."
+      },
+      {
+        "id": "disconnected-interior-crossing",
+        "status": "PASS",
+        "inputBasis": "Explicit synthetic two-branch crossing, distinct positive node identities and no connection witness.",
+        "byBranch": [
+          {
+            "branch": "CONTROL-A",
+            "nodes": [
+              {
+                "number": "10",
+                "position": "0 0 0"
+              },
+              {
+                "number": "20",
+                "position": "100 0 0"
+              },
+              {
+                "number": "30",
+                "position": "200 0 0"
+              }
+            ]
+          },
+          {
+            "branch": "CONTROL-B",
+            "nodes": [
+              {
+                "number": "40",
+                "position": "100 -100 0"
+              },
+              {
+                "number": "50",
+                "position": "100 0 0"
+              },
+              {
+                "number": "60",
+                "position": "100 100 0"
+              }
+            ]
+          }
+        ],
+        "assignments": [
+          {
+            "key": "CONTROL-A::20::TUBE::",
+            "branchName": "CONTROL-A",
+            "nodeNumber": "20",
+            "nodeName": "",
+            "componentType": "TUBE",
+            "componentRefNo": "",
+            "endpoint": "0",
+            "nodeRole": "real-geometry-node",
+            "storedAt": "downstream-node",
+            "fromNodeNumber": "10",
+            "fromNodeName": "",
+            "fromComponentType": "TUBE",
+            "fromComponentRefNo": "",
+            "fromRole": "real-geometry-node",
+            "fromPoint": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "toPoint": {
+              "x": 100,
+              "y": 0,
+              "z": 0
+            },
+            "lengthMm": 100,
+            "method": "uxml-topology-previous-valid-route-point",
+            "sourceAuthority": "node-xml-inferred",
+            "confidence": "EXACT_SOURCE"
+          },
+          {
+            "key": "CONTROL-A::30::TUBE::",
+            "branchName": "CONTROL-A",
+            "nodeNumber": "30",
+            "nodeName": "",
+            "componentType": "TUBE",
+            "componentRefNo": "",
+            "endpoint": "0",
+            "nodeRole": "real-geometry-node",
+            "storedAt": "downstream-node",
+            "fromNodeNumber": "20",
+            "fromNodeName": "",
+            "fromComponentType": "TUBE",
+            "fromComponentRefNo": "",
+            "fromRole": "real-geometry-node",
+            "fromPoint": {
+              "x": 100,
+              "y": 0,
+              "z": 0
+            },
+            "toPoint": {
+              "x": 200,
+              "y": 0,
+              "z": 0
+            },
+            "lengthMm": 100,
+            "method": "uxml-topology-previous-valid-route-point",
+            "sourceAuthority": "node-xml-inferred",
+            "confidence": "EXACT_SOURCE"
+          },
+          {
+            "key": "CONTROL-B::50::TUBE::",
+            "branchName": "CONTROL-B",
+            "nodeNumber": "50",
+            "nodeName": "",
+            "componentType": "TUBE",
+            "componentRefNo": "",
+            "endpoint": "0",
+            "nodeRole": "real-geometry-node",
+            "storedAt": "downstream-node",
+            "fromNodeNumber": "40",
+            "fromNodeName": "",
+            "fromComponentType": "TUBE",
+            "fromComponentRefNo": "",
+            "fromRole": "real-geometry-node",
+            "fromPoint": {
+              "x": 100,
+              "y": -100,
+              "z": 0
+            },
+            "toPoint": {
+              "x": 100,
+              "y": 0,
+              "z": 0
+            },
+            "lengthMm": 100,
+            "method": "uxml-topology-previous-valid-route-point",
+            "sourceAuthority": "node-xml-inferred",
+            "confidence": "EXACT_SOURCE"
+          },
+          {
+            "key": "CONTROL-B::60::TUBE::",
+            "branchName": "CONTROL-B",
+            "nodeNumber": "60",
+            "nodeName": "",
+            "componentType": "TUBE",
+            "componentRefNo": "",
+            "endpoint": "0",
+            "nodeRole": "real-geometry-node",
+            "storedAt": "downstream-node",
+            "fromNodeNumber": "50",
+            "fromNodeName": "",
+            "fromComponentType": "TUBE",
+            "fromComponentRefNo": "",
+            "fromRole": "real-geometry-node",
+            "fromPoint": {
+              "x": 100,
+              "y": 0,
+              "z": 0
+            },
+            "toPoint": {
+              "x": 100,
+              "y": 100,
+              "z": 0
+            },
+            "lengthMm": 100,
+            "method": "uxml-topology-previous-valid-route-point",
+            "sourceAuthority": "node-xml-inferred",
+            "confidence": "EXACT_SOURCE"
+          }
+        ],
+        "expectation": "Two branch routes; equal XYZ at nodes20/50 does not create a cross-branch edge or shared vertex."
+      },
+      {
+        "id": "negative-helper-authority-conflict",
+        "status": "PASS",
+        "code": "OLET_HELPER_AUTHORITY_CONFLICT",
+        "message": "OLET helper carries named, restraint, rigid or mass authority; route cleanup blocked.",
+        "expectation": "A named negative helper cannot be silently dropped as geometry-only.",
+        "inputBasis": "Original XML with one explicit in-memory helper-name mutation."
+      }
+    ],
+    "limits": [
+      "No new physical-vertex graph or production mutation.",
+      "Native reader results are recorded separately.",
+      "Helper cleanup does not authorize a restraint or mass owner; exact private21 and engineering release NOT_RUN."
+    ],
+    "provenance": {
+      "candidate": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+      "fixtureSha256": "2573883480af904096dea2663c9cf585be2db28dd047785397b4d61edee0a030",
+      "sourceModules": {
+        "converters/xml-cii2019-core/topology/xml-cii-topology-element-length.js": {
+          "sha256": "36330f20056876f81797e8664aa4cbe1c7cd7e4ea718e3d40c55ecb4dd5939fd",
+          "bytes": 12835
+        },
+        "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-node-occurrence-ledger.js": {
+          "sha256": "1da657450311e8af898ff13925f9f0e328a4c5adf4364b7ac2bf310b132afdd8",
+          "bytes": 4500
+        },
+        "tabs/xml-cii-2019-standalone/integration/xml229-tee-port-route.mjs": {
+          "sha256": "96b00a4b57a03e5583120ba40d5dec859c5603e7928f2a9a8c7b9606c21e90d7",
+          "bytes": 2326
+        },
+        "tabs/xml-cii-2019-standalone/integration/xml229-olet-helper-route.mjs": {
+          "sha256": "30e1977fc65de5ae45b0a4e780cad1faef4df3f19c570cbf89bbb9e03d734cd9",
+          "bytes": 2395
+        },
+        "converters/xml-cii2019-core/weight-match-model.js": {
+          "sha256": "50ef09b87faefcb948bf67cd9f9e2db872558dfd0e8c35ce78f78e0d8481bbbd",
+          "bytes": 32729
+        },
+        "converters/xml-cii2019-core/staged-geometry-authority.js": {
+          "sha256": "5fbd59a73c683f7656f727842d0b68d049fe45b5bd91cf088eb97b7fdf3b8ed1",
+          "bytes": 19131
+        },
+        "converters/xml-cii2019-core/bore-authority.js": {
+          "sha256": "133a0b08c0d550248b355960781e312a8d6c9804814c1dbb1622058790512c32",
+          "bytes": 8026
+        },
+        "converters/xml-cii2019-core/xml-cii-node-block-cleanup.js": {
+          "sha256": "b20a2a08511edb4f0dc5c352fda8a8a05dc54901db5e79e7fd5399454243df70",
+          "bytes": 6057
+        },
+        "converters/xml-cii2019-core/post-split-element-length-cleanup.js": {
+          "sha256": "9218a45d990c138128bc667fed156503c58862cf1d8d402feba39149c6c92289",
+          "bytes": 10347
+        },
+        "converters/xml-cii2019-core/weight-valve-hints.js": {
+          "sha256": "11739a694df3fd4c7fe75b673ee591c4ff8036df20b95ccf78cc964d914d23ae",
+          "bytes": 39464
+        },
+        "converters/xml-cii2019-core/dtxr-resolver.js": {
+          "sha256": "802858734d129b3ac5603df92176706597b6035f8ff0c489f5abd082625c094b",
+          "bytes": 6127
+        },
+        "converters/xml-cii2019-core/dtxr-resolver-core.js": {
+          "sha256": "f730c38a19f70b9ac6b6de3f64406d898517a1c723cbee2173aaca5b97b7e563",
+          "bytes": 19016
+        },
+        "converters/xml-cii2019-core/dtxr-resolver-core-legacy.js": {
+          "sha256": "137d0b6e1ee880056e8970d56f89ed1136098ddf301f0171b0c2323d7d82a8d3",
+          "bytes": 45918
+        },
+        "converters/xml-cii2019-core/source-schema-adapter.js": {
+          "sha256": "5e3ed531aca0c9a27f82815589d3dd733cecb1d4e252edcc390260a7a4e07186",
+          "bytes": 26944
+        },
+        "converters/xml-cii2019-core/branch-process-resolver.js": {
+          "sha256": "25ddc34da9cefbe6402849e80b8830f6d33cecca97024c386911fd3be93da1c1",
+          "bytes": 21977
+        },
+        "converters/xml-cii2019-core/service-process-fallback.js": {
+          "sha256": "9876703e0b316584a037323643c8d45d631eab783a8664970d28eca0886d7457",
+          "bytes": 9736
+        },
+        "converters/xml-cii2019-core/config.js": {
+          "sha256": "9d8dbd3f75e72c45ed518cbe4394778d8337da247961ce2117d229349baf7a54",
+          "bytes": 14573
+        },
+        "converters/xml-cii2019-core/linelist-mapping.js": {
+          "sha256": "acfb338288dccf3422c4c9626088a43f23213d3d71f5acdb30906698cb93ca5a",
+          "bytes": 17856
+        },
+        "converters/xml-cii2019-core/line-density-resolver.js": {
+          "sha256": "9a4c208938df80bd81fde2da1433383250ec3c397ad062a85a0ff5f857d48cf7",
+          "bytes": 4161
+        },
+        "converters/xml-cii2019-core/support-mapping-config.js": {
+          "sha256": "25310e8c12f0ab5be100186078d52e515eb1278563cc571ae7599975182e5ed5",
+          "bytes": 14526
+        },
+        "support/SupportKindResolver.js": {
+          "sha256": "8485ec26a595f668a54df12e92b533d7db35489016d25f4cab4b2381816d7677",
+          "bytes": 16316
+        },
+        "converters/xml-cii2019-core/piping-class-source-resolver.js": {
+          "sha256": "22bc5820e4fedf3456f37710fa67bdb8fe6185b48046d0085573d66157d2b667",
+          "bytes": 3248
+        },
+        "converters/xml-cii2019-core/regex-line-key.js": {
+          "sha256": "5fe977c6eb068ca96470231fcefd5ca892740c4f7be6c5454b99ca6f05513f1f",
+          "bytes": 5260
+        },
+        "converters/xml-cii2019-core/branch-format-extraction.js": {
+          "sha256": "9b9954f073946e2a00cc9ac02cef6dce6856ea16172079c1d7c674089cab4035",
+          "bytes": 9214
+        },
+        "converters/xml-cii2019-core/dtxr-rating-resolver.js": {
+          "sha256": "82a07d7fa77fae00f9ba98f300c179c1d7e9852b9e513c1b84f3bb27c94587b7",
+          "bytes": 4640
+        },
+        "converters/xml-cii2019-core/material-code-fuzzy-resolver.js": {
+          "sha256": "358d6b7441778f07f14f85e4d97e45b9159d17d0aef32e619605cfd89f83d048",
+          "bytes": 9026
+        },
+        "converters/xml-cii2019-core/piping-class-material-code-resolver.js": {
+          "sha256": "209deeb22e41024caf8b1acf0d0a7a08233fa293762143df0fac635d1e011eb8",
+          "bytes": 9531
+        },
+        "converters/xml-cii2019-core/default-piping-class-material-code-rows.js": {
+          "sha256": "bcded483db33a9984e9f8c909390c299c3263adc6f8f7f326f6604b9135a602e",
+          "bytes": 6122
+        },
+        "converters/xml-cii2019-core/piping-class-resolver.js": {
+          "sha256": "f392be7aecf8e9fc3322a4475d0a3621c247ecbb0261b185b092839935ffb659",
+          "bytes": 14321
+        },
+        "converters/xml-cii2019-core/nps-bore-resolver.js": {
+          "sha256": "7d6d075c7b0733c325293b702a9bd0e2f7cf5e20cf238467fae493819a1f280a",
+          "bytes": 4381
+        }
+      },
+      "requests": [
+        "/",
+        "/harness.mjs",
+        "/source/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-node-occurrence-ledger.js",
+        "/source/converters/xml-cii2019-core/topology/xml-cii-topology-element-length.js",
+        "/source/converters/xml-cii2019-core/weight-match-model.js",
+        "/source/tabs/xml-cii-2019-standalone/integration/xml229-olet-helper-route.mjs",
+        "/source/tabs/xml-cii-2019-standalone/integration/xml229-tee-port-route.mjs",
+        "/source/converters/xml-cii2019-core/regex-line-key.js",
+        "/source/converters/xml-cii2019-core/linelist-mapping.js",
+        "/source/converters/xml-cii2019-core/piping-class-resolver.js",
+        "/source/converters/xml-cii2019-core/branch-process-resolver.js",
+        "/source/converters/xml-cii2019-core/dtxr-resolver.js",
+        "/source/converters/xml-cii2019-core/weight-valve-hints.js",
+        "/source/converters/xml-cii2019-core/bore-authority.js",
+        "/source/converters/xml-cii2019-core/staged-geometry-authority.js",
+        "/source/converters/xml-cii2019-core/branch-format-extraction.js",
+        "/source/converters/xml-cii2019-core/line-density-resolver.js",
+        "/source/converters/xml-cii2019-core/nps-bore-resolver.js",
+        "/source/converters/xml-cii2019-core/dtxr-resolver-core.js",
+        "/source/converters/xml-cii2019-core/source-schema-adapter.js",
+        "/source/converters/xml-cii2019-core/piping-class-resolver.js",
+        "/source/converters/xml-cii2019-core/piping-class-material-code-resolver.js",
+        "/source/converters/xml-cii2019-core/material-code-fuzzy-resolver.js",
+        "/source/converters/xml-cii2019-core/dtxr-rating-resolver.js",
+        "/source/converters/xml-cii2019-core/piping-class-source-resolver.js",
+        "/source/converters/xml-cii2019-core/config.js",
+        "/source/converters/xml-cii2019-core/service-process-fallback.js",
+        "/source/converters/xml-cii2019-core/post-split-element-length-cleanup.js",
+        "/source/converters/xml-cii2019-core/xml-cii-node-block-cleanup.js",
+        "/source/converters/xml-cii2019-core/dtxr-resolver-core-legacy.js",
+        "/source/converters/xml-cii2019-core/default-piping-class-material-code-rows.js",
+        "/source/converters/xml-cii2019-core/support-mapping-config.js",
+        "/source/support/SupportKindResolver.js",
+        "/fixture.xml",
+        "/favicon.ico"
+      ],
+      "harnessSha256": "fb474b97321d9d21906ccbf3a7db6fdc2db8b535bb1598221570b764c3660583",
+      "chromeExecutable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+      "browserExit": 0
+    }
+  },
+  "native": {
+    "schema": "XML229.NativeOriginalTopologyQualification.v1",
+    "candidate": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+    "cases": [
+      {
+        "id": "native-original-route-zero-span",
+        "status": "PASS",
+        "expectation": "Original positive-node branch order contains one zero-length 50->60 route edge.",
+        "observed": [
+          {
+            "from": 50,
+            "to": 60,
+            "lengthMm": 0.0
+          }
+        ],
+        "mode": "Direct original parser with preserve_finalized_geometry=True; no accepted Final packet supplied or runtime authority enabled."
+      },
+      {
+        "id": "legacy-short-span-contraction",
+        "status": "PASS",
+        "expectation": "Unmodified legacy cleanup contracts adjacent zero span into node50; this differs from governed preserved Final geometry.",
+        "observed": [
+          {
+            "number": 50,
+            "position": [
+              459657.72,
+              -1481227.4,
+              101259.55
+            ]
+          }
+        ]
+      },
+      {
+        "id": "native-disconnected-interior-crossing",
+        "status": "PASS",
+        "expectation": [
+          [
+            10,
+            20,
+            30
+          ],
+          [
+            40,
+            50,
+            60
+          ]
+        ],
+        "observedComponents": [
+          [
+            10,
+            20,
+            30
+          ],
+          [
+            40,
+            50,
+            60
+          ]
+        ],
+        "observedEdges": [
+          [
+            10,
+            20
+          ],
+          [
+            20,
+            30
+          ],
+          [
+            40,
+            50
+          ],
+          [
+            50,
+            60
+          ]
+        ]
+      },
+      {
+        "id": "native-six-authored-member-slots",
+        "status": "PASS",
+        "slots": [
+          {
+            "node": 20.0,
+            "type": 13.0,
+            "stiffness": 1751270000000.0,
+            "gap": 0.0,
+            "friction": 0.3,
+            "direction": [
+              1.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "node": 20.0,
+            "type": 14.0,
+            "stiffness": 1751270000000.0,
+            "gap": 1.0,
+            "friction": 0.3,
+            "direction": [
+              0.0,
+              1.0,
+              0.0
+            ]
+          },
+          {
+            "node": 20.0,
+            "type": 15.0,
+            "stiffness": 1751270000000.0,
+            "gap": 2.0,
+            "friction": 0.3,
+            "direction": [
+              0.0,
+              0.0,
+              1.0
+            ]
+          },
+          {
+            "node": 20.0,
+            "type": 16.0,
+            "stiffness": 1751270000000.0,
+            "gap": 3.0,
+            "friction": 0.3,
+            "direction": [
+              -1.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "node": 20.0,
+            "type": 17.0,
+            "stiffness": 1751270000000.0,
+            "gap": 4.0,
+            "friction": 0.3,
+            "direction": [
+              0.0,
+              -1.0,
+              0.0
+            ]
+          },
+          {
+            "node": 20.0,
+            "type": 18.0,
+            "stiffness": 1751270000000.0,
+            "gap": 5.0,
+            "friction": 0.3,
+            "direction": [
+              0.0,
+              0.0,
+              -1.0
+            ]
+          }
+        ],
+        "expectation": "Six explicitly authored different directional restraints on node20 retain six types, source gaps, stiffness, friction and axis directions.",
+        "scope": "Actual unchanged native RESTRANT auxiliary writer; no full accepted/Owner CII or JSON member-independence qualification."
+      }
+    ],
+    "sourceOccurrenceCensus": {
+      "all": 1654,
+      "uniqueOrdinalKeys": 1654,
+      "minusOne": 810,
+      "minusOneDistinctXYZ": 639,
+      "nodeNumberKeyStatus": "INVALID: repeated placeholder is not an occurrence/vertex identity"
+    },
+    "oletSourceWitnesses": [
+      {
+        "branchOrdinal0": 0,
+        "sourceNodeOrdinal0": 9,
+        "branch": "/ASIM-1836-8\"-P8810021-31441C4-PP/B4",
+        "NodeNumber": "-1",
+        "NodeName": "",
+        "Endpoint": "1",
+        "ComponentType": "OLET",
+        "ComponentRefNo": "=1006649732/119347",
+        "Position": "459657.72 -1481727.40 101259.55"
+      },
+      {
+        "branchOrdinal0": 0,
+        "sourceNodeOrdinal0": 10,
+        "branch": "/ASIM-1836-8\"-P8810021-31441C4-PP/B4",
+        "NodeNumber": "-1",
+        "NodeName": "",
+        "Endpoint": "3",
+        "ComponentType": "OLET",
+        "ComponentRefNo": "=1006649732/119347",
+        "Position": "459657.72 -1481727.40 101407.20"
+      },
+      {
+        "branchOrdinal0": 0,
+        "sourceNodeOrdinal0": 11,
+        "branch": "/ASIM-1836-8\"-P8810021-31441C4-PP/B4",
+        "NodeNumber": "70",
+        "NodeName": "",
+        "Endpoint": "0",
+        "ComponentType": "OLET",
+        "ComponentRefNo": "=1006649732/119347",
+        "Position": "459657.72 -1481727.40 101259.55"
+      },
+      {
+        "branchOrdinal0": 0,
+        "sourceNodeOrdinal0": 12,
+        "branch": "/ASIM-1836-8\"-P8810021-31441C4-PP/B4",
+        "NodeNumber": "-1",
+        "NodeName": "",
+        "Endpoint": "2",
+        "ComponentType": "OLET",
+        "ComponentRefNo": "=1006649732/119347",
+        "Position": "459657.72 -1481727.40 101259.55"
+      }
+    ],
+    "archiveMembers": {
+      "archiveSha256": "b0dc26ace4a718087cbc5d107c963a471c95f20a51d56d8559a9415d98be9353",
+      "member": "ASIM-1836_managed_stage-2.json",
+      "memberSha256": "5450819c0f19aa6743c32cd29b72acc9df5b9c51dc6b1e6203e529f3af057790",
+      "selectedByBranch": {
+        "/ASIM-1836-2\"-A8010128-13421/B4": 4,
+        "/ASIM-1836-2\"-D8810153-11441T3-PP/B2": 1,
+        "/ASIM-1836-8\"-P8810021-31441C4-PP/B3": 9,
+        "/ASIM-1836-4\"-P8810023-31441C4-PP/B3": 6,
+        "/ASIM-1836-2\"-P8810140-31441C4-HT/B3": 4,
+        "/ASIM-1836-2\"-P8810140-31441C4-HT/B4": 2,
+        "/ASIM-1836-2\"-P8810140-31441C4-HT/B5": 8,
+        "/ASIM-1836-4\"-W8810023-31441C4/B2": 5
+      },
+      "members": [
+        {
+          "sourcePath": "$[93].children[34]",
+          "branch": "/ASIM-1836-2\"-A8010128-13421/B4",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.16",
+            "DTXR": "Pipe Rest XRT01",
+            "SPRE": "/MDS/PIPE-REST.2-PMP",
+            "MDSSUPPTYPE": "PIPE-REST",
+            "POS": {
+              "x": 519307.718,
+              "y": -41777.4,
+              "z": 1186.15
+            },
+            "POSI": "E 519307.718mm S 41777.4mm U 1186.15mm"
+          }
+        },
+        {
+          "sourcePath": "$[93].children[35]",
+          "branch": "/ASIM-1836-2\"-A8010128-13421/B4",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.9",
+            "DTXR": "GUIDE PDO-TYPE-604A/B - 2 x L50x50x6x55HIGH",
+            "SPRE": "/MDS/GT02-2-PMP",
+            "MDSSUPPTYPE": "GT02",
+            "POS": {
+              "x": 519307.718,
+              "y": -41777.4,
+              "z": 1186.15
+            },
+            "POSI": "E 519307.718mm S 41777.4mm U 1186.15mm"
+          }
+        },
+        {
+          "sourcePath": "$[93].children[39]",
+          "branch": "/ASIM-1836-2\"-A8010128-13421/B4",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168.12",
+            "DTXR": "Pipe Rest XRT01",
+            "SPRE": "/MDS/PIPE-REST.2-PMP",
+            "MDSSUPPTYPE": "PIPE-REST",
+            "POS": {
+              "x": 519307.718,
+              "y": -37227.4,
+              "z": 1186.15
+            },
+            "POSI": "E 519307.718mm S 37227.4mm U 1186.15mm"
+          }
+        },
+        {
+          "sourcePath": "$[93].children[40]",
+          "branch": "/ASIM-1836-2\"-A8010128-13421/B4",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168.7",
+            "DTXR": "GUIDE PDO-TYPE-604A/B - 2 x L50x50x6x55HIGH",
+            "SPRE": "/MDS/GT02-2-PMP",
+            "MDSSUPPTYPE": "GT02",
+            "POS": {
+              "x": 519307.718,
+              "y": -37227.4,
+              "z": 1186.15
+            },
+            "POSI": "E 519307.718mm S 37227.4mm U 1186.15mm"
+          }
+        },
+        {
+          "sourcePath": "$[177].children[11]",
+          "branch": "/ASIM-1836-2\"-D8810153-11441T3-PP/B2",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.13",
+            "DTXR": "Pipe Rest XRT01",
+            "SPRE": "/MDS/PIPE-REST.2-PMP",
+            "MDSSUPPTYPE": "PIPE-REST",
+            "NODETYPE": "4",
+            "NODEGAP": "0",
+            "POS": {
+              "x": 518659.933,
+              "y": -41779.141,
+              "z": 843.849
+            },
+            "POSI": "E 518659.933mm S 41779.141mm U 843.849mm"
+          }
+        },
+        {
+          "sourcePath": "$[187].children[10]",
+          "branch": "/ASIM-1836-8\"-P8810021-31441C4-PP/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168/DATUM",
+            "DTXR": "Pipe Rest XRT01",
+            "SPRE": "/MDS/PIPE-REST.8-PMP",
+            "POS": {
+              "x": 519657.718,
+              "y": -37227.4,
+              "z": 1197.04
+            },
+            "POSI": "E 519657.718mm S 37227.4mm U 1197.04mm"
+          }
+        },
+        {
+          "sourcePath": "$[187].children[11]",
+          "branch": "/ASIM-1836-8\"-P8810021-31441C4-PP/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168/SREF",
+            "DTXR": "PIPE SUPPORT TYPE-104",
+            "SPRE": "/MDF/FT17-3.8-PMP",
+            "POS": {
+              "x": 519657.718,
+              "y": -37227.4,
+              "z": 1197.04
+            },
+            "POSI": "E 519657.718mm S 37227.4mm U 1197.04mm"
+          }
+        },
+        {
+          "sourcePath": "$[187].children[12]",
+          "branch": "/ASIM-1836-8\"-P8810021-31441C4-PP/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168.8",
+            "DTXR": "GUIDE PDO-TYPE-604A/B - 2 x L50x100x6x160HIGH",
+            "SPRE": "/MDS/GT02-8-PMP",
+            "MDSSUPPTYPE": "GT02",
+            "CMPSUPGAP": "6mm GAP",
+            "POS": {
+              "x": 519657.718,
+              "y": -37227.4,
+              "z": 1197.04
+            },
+            "POSI": "E 519657.718mm S 37227.4mm U 1197.04mm"
+          }
+        },
+        {
+          "sourcePath": "$[187].children[19]",
+          "branch": "/ASIM-1836-8\"-P8810021-31441C4-PP/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/Copy-of-PS-14169/DATUM",
+            "DTXR": "Pipe Rest XRT01",
+            "SPRE": "/MDS/PIPE-REST.8-PMP",
+            "POS": {
+              "x": 519657.718,
+              "y": -39823.546,
+              "z": 1197.04
+            },
+            "POSI": "E 519657.718mm S 39823.546mm U 1197.04mm"
+          }
+        },
+        {
+          "sourcePath": "$[187].children[22]",
+          "branch": "/ASIM-1836-8\"-P8810021-31441C4-PP/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169/DATUM",
+            "DTXR": "Pipe Rest XRT01",
+            "SPRE": "/MDS/PIPE-REST.8-PMP",
+            "POS": {
+              "x": 519657.718,
+              "y": -41777.4,
+              "z": 1197.04
+            },
+            "POSI": "E 519657.718mm S 41777.4mm U 1197.04mm"
+          }
+        },
+        {
+          "sourcePath": "$[187].children[23]",
+          "branch": "/ASIM-1836-8\"-P8810021-31441C4-PP/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169/SREF",
+            "DTXR": "PIPE SUPPORT TYPE-104",
+            "SPRE": "/MDF/FT17-3.8-PMP",
+            "POS": {
+              "x": 519657.718,
+              "y": -41777.4,
+              "z": 1197.04
+            },
+            "POSI": "E 519657.718mm S 41777.4mm U 1197.04mm"
+          }
+        },
+        {
+          "sourcePath": "$[187].children[24]",
+          "branch": "/ASIM-1836-8\"-P8810021-31441C4-PP/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.10",
+            "DTXR": "GUIDE PDO-TYPE-604A/B - 2 x L50x100x6x160HIGH",
+            "SPRE": "/MDS/GT02-8-PMP",
+            "MDSSUPPTYPE": "GT02",
+            "POS": {
+              "x": 519657.718,
+              "y": -41777.4,
+              "z": 1197.04
+            },
+            "POSI": "E 519657.718mm S 41777.4mm U 1197.04mm"
+          }
+        },
+        {
+          "sourcePath": "$[187].children[25]",
+          "branch": "/ASIM-1836-8\"-P8810021-31441C4-PP/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.7",
+            "DTXR": "WEAR PLATE TYPE-421 PAD L 550mm",
+            "SPRE": "/MDS/AT05-8-PMP",
+            "MDSSUPPTYPE": "AT05",
+            "POS": {
+              "x": 519657.718,
+              "y": -41777.4,
+              "z": 1197.04
+            },
+            "POSI": "E 519657.718mm S 41777.4mm U 1197.04mm"
+          }
+        },
+        {
+          "sourcePath": "$[187].children[26]",
+          "branch": "/ASIM-1836-8\"-P8810021-31441C4-PP/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.8",
+            "DTXR": "PIPE STOP TYPE-602",
+            "SPRE": "/MDS/ST03-8-PMP",
+            "MDSSUPPTYPE": "ST03",
+            "POS": {
+              "x": 519657.718,
+              "y": -41777.4,
+              "z": 1197.04
+            },
+            "POSI": "E 519657.718mm S 41777.4mm U 1197.04mm"
+          }
+        },
+        {
+          "sourcePath": "$[197].children[6]",
+          "branch": "/ASIM-1836-4\"-P8810023-31441C4-PP/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168.10",
+            "DTXR": "Pipe Rest XRT01",
+            "SPRE": "/MDS/PIPE-REST.4-PMP",
+            "MDSSUPPTYPE": "PIPE-REST",
+            "NODETYPE": "4",
+            "NODEGAP": "0",
+            "POS": {
+              "x": 520057.718,
+              "y": -37227.4,
+              "z": 1144.64
+            },
+            "POSI": "E 520057.718mm S 37227.4mm U 1144.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[197].children[7]",
+          "branch": "/ASIM-1836-4\"-P8810023-31441C4-PP/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168.9",
+            "DTXR": "GUIDE PDO-TYPE-604A/B - 2 x L50x50x6x80HIGH",
+            "SPRE": "/MDS/GT02-4-PMP",
+            "MDSSUPPTYPE": "GT02",
+            "POS": {
+              "x": 520057.718,
+              "y": -37227.4,
+              "z": 1144.64
+            },
+            "POSI": "E 520057.718mm S 37227.4mm U 1144.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[197].children[9]",
+          "branch": "/ASIM-1836-4\"-P8810023-31441C4-PP/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.14",
+            "DTXR": "Pipe Rest XRT01",
+            "SPRE": "/MDS/PIPE-REST.4-PMP",
+            "MDSSUPPTYPE": "PIPE-REST",
+            "NODETYPE": "4",
+            "NODEGAP": "0",
+            "POS": {
+              "x": 520057.718,
+              "y": -41777.4,
+              "z": 1144.64
+            },
+            "POSI": "E 520057.718mm S 41777.4mm U 1144.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[197].children[10]",
+          "branch": "/ASIM-1836-4\"-P8810023-31441C4-PP/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.3",
+            "DTXR": "WEAR PLATE TYPE-421 PAD L 550mm",
+            "SPRE": "/MDS/AT05-4-PMP",
+            "MDSSUPPTYPE": "AT05",
+            "POS": {
+              "x": 520057.718,
+              "y": -41777.4,
+              "z": 1144.64
+            },
+            "POSI": "E 520057.718mm S 41777.4mm U 1144.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[197].children[11]",
+          "branch": "/ASIM-1836-4\"-P8810023-31441C4-PP/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.4",
+            "DTXR": "PIPE STOP TYPE-602",
+            "SPRE": "/MDS/ST03-4-PMP",
+            "MDSSUPPTYPE": "ST03",
+            "POS": {
+              "x": 520057.718,
+              "y": -41777.4,
+              "z": 1144.64
+            },
+            "POSI": "E 520057.718mm S 41777.4mm U 1144.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[197].children[12]",
+          "branch": "/ASIM-1836-4\"-P8810023-31441C4-PP/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.11",
+            "DTXR": "GUIDE PDO-TYPE-604A/B - 2 x L50x50x6x80HIGH",
+            "SPRE": "/MDS/GT02-4-PMP",
+            "MDSSUPPTYPE": "GT02",
+            "POS": {
+              "x": 520057.718,
+              "y": -41777.4,
+              "z": 1144.64
+            },
+            "POSI": "E 520057.718mm S 41777.4mm U 1144.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[218].children[12]",
+          "branch": "/ASIM-1836-2\"-P8810140-31441C4-HT/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168.11",
+            "DTXR": "Pipe Rest XRT01",
+            "SPRE": "/MDS/PIPE-REST.2-PMP",
+            "MDSSUPPTYPE": "PIPE-REST",
+            "NODETYPE": "4",
+            "NODEGAP": "0",
+            "POS": {
+              "x": 520357.718,
+              "y": -37227.4,
+              "z": 1467.64
+            },
+            "POSI": "E 520357.718mm S 37227.4mm U 1467.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[218].children[13]",
+          "branch": "/ASIM-1836-2\"-P8810140-31441C4-HT/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168.2",
+            "DTXR": "WEAR PLATE TYPE-421 PAD L 450mm",
+            "SPRE": "/MDS/AT05-2-PMP",
+            "MDSSUPPTYPE": "AT05",
+            "POS": {
+              "x": 520357.718,
+              "y": -37227.4,
+              "z": 1467.64
+            },
+            "POSI": "E 520357.718mm S 37227.4mm U 1467.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[218].children[14]",
+          "branch": "/ASIM-1836-2\"-P8810140-31441C4-HT/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168.1",
+            "DTXR": "PIPE SHOE FOR HORIZ LINES N.B. 3/4\" to 24\" 2-PDO-TYPE-416A/B-100-350 Carbon Steel",
+            "SPRE": "/MDS/AT01-2-PMP",
+            "MDSSUPPTYPE": "AT01",
+            "NODETYPE": "4",
+            "NODEGAP": "0",
+            "POS": {
+              "x": 520357.718,
+              "y": -37227.4,
+              "z": 1467.64
+            },
+            "POSI": "E 520357.718mm S 37227.4mm U 1467.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[218].children[15]",
+          "branch": "/ASIM-1836-2\"-P8810140-31441C4-HT/B3",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168.3",
+            "DTXR": "Directional Anchor On Shoe for Hot Insulated Pipe NPS 1/2- 36 2-XST06-40",
+            "SPRE": "/MDS/ST06-2-PMP",
+            "MDSSUPPTYPE": "ST06",
+            "POS": {
+              "x": 520357.718,
+              "y": -37227.4,
+              "z": 1467.64
+            },
+            "POSI": "E 520357.718mm S 37227.4mm U 1467.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[219].children[2]",
+          "branch": "/ASIM-1836-2\"-P8810140-31441C4-HT/B4",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.15",
+            "DTXR": "Pipe Rest XRT01",
+            "SPRE": "/MDS/PIPE-REST.2-PMP",
+            "MDSSUPPTYPE": "PIPE-REST",
+            "NODETYPE": "4",
+            "NODEGAP": "0",
+            "POS": {
+              "x": 520357.718,
+              "y": -41777.4,
+              "z": 1467.64
+            },
+            "POSI": "E 520357.718mm S 41777.4mm U 1467.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[219].children[3]",
+          "branch": "/ASIM-1836-2\"-P8810140-31441C4-HT/B4",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.5",
+            "DTXR": "PIPE SHOE FOR HORIZ LINES N.B. 3/4\" to 24\" 2-PDO-TYPE-416A/B-100-300 Carbon Steel",
+            "SPRE": "/MDS/AT01-2-PMP",
+            "MDSSUPPTYPE": "AT01",
+            "NODETYPE": "4",
+            "NODEGAP": "0",
+            "POS": {
+              "x": 520357.718,
+              "y": -41777.4,
+              "z": 1467.64
+            },
+            "POSI": "E 520357.718mm S 41777.4mm U 1467.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[220].children[47]",
+          "branch": "/ASIM-1836-2\"-P8810140-31441C4-HT/B5",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.17",
+            "DTXR": "Pipe Rest XRT01",
+            "SPRE": "/MDS/PIPE-REST.2-PMP",
+            "MDSSUPPTYPE": "PIPE-REST",
+            "NODETYPE": "4",
+            "NODEGAP": "0",
+            "POS": {
+              "x": 520607.718,
+              "y": -41777.4,
+              "z": 1467.64
+            },
+            "POSI": "E 520607.718mm S 41777.4mm U 1467.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[220].children[48]",
+          "branch": "/ASIM-1836-2\"-P8810140-31441C4-HT/B5",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.6",
+            "DTXR": "PIPE SHOE FOR HORIZ LINES N.B. 3/4\" to 24\" 2-PDO-TYPE-416A/B-100-300 Carbon Steel",
+            "SPRE": "/MDS/AT01-2-PMP",
+            "MDSSUPPTYPE": "AT01",
+            "NODETYPE": "4",
+            "NODEGAP": "0",
+            "POS": {
+              "x": 520607.718,
+              "y": -41777.4,
+              "z": 1467.64
+            },
+            "POSI": "E 520607.718mm S 41777.4mm U 1467.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[220].children[49]",
+          "branch": "/ASIM-1836-2\"-P8810140-31441C4-HT/B5",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.19",
+            "DTXR": "GUIDE PDO-TYPE-603",
+            "SPRE": "/MDS/GT01.2-PMP",
+            "MDSSUPPTYPE": "GT01",
+            "CMPSUPGAP": "20mm GAP",
+            "POS": {
+              "x": 520607.718,
+              "y": -41777.4,
+              "z": 1467.64
+            },
+            "POSI": "E 520607.718mm S 41777.4mm U 1467.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[220].children[54]",
+          "branch": "/ASIM-1836-2\"-P8810140-31441C4-HT/B5",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168.6",
+            "DTXR": "WEAR PLATE TYPE-421 PAD L 450mm",
+            "SPRE": "/MDS/AT05-2-PMP",
+            "MDSSUPPTYPE": "AT05",
+            "POS": {
+              "x": 520607.718,
+              "y": -37227.4,
+              "z": 1467.64
+            },
+            "POSI": "E 520607.718mm S 37227.4mm U 1467.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[220].children[55]",
+          "branch": "/ASIM-1836-2\"-P8810140-31441C4-HT/B5",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168.13",
+            "DTXR": "Pipe Rest XRT01",
+            "SPRE": "/MDS/PIPE-REST.2-PMP",
+            "MDSSUPPTYPE": "PIPE-REST",
+            "NODETYPE": "4",
+            "NODEGAP": "0",
+            "POS": {
+              "x": 520607.718,
+              "y": -37227.4,
+              "z": 1467.64
+            },
+            "POSI": "E 520607.718mm S 37227.4mm U 1467.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[220].children[56]",
+          "branch": "/ASIM-1836-2\"-P8810140-31441C4-HT/B5",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168.4",
+            "DTXR": "PIPE SHOE FOR HORIZ LINES N.B. 3/4\" to 24\" 2-PDO-TYPE-416A/B-100-350 Carbon Steel",
+            "SPRE": "/MDS/AT01-2-PMP",
+            "MDSSUPPTYPE": "AT01",
+            "NODETYPE": "4",
+            "NODEGAP": "0",
+            "POS": {
+              "x": 520607.718,
+              "y": -37227.4,
+              "z": 1467.64
+            },
+            "POSI": "E 520607.718mm S 37227.4mm U 1467.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[220].children[57]",
+          "branch": "/ASIM-1836-2\"-P8810140-31441C4-HT/B5",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168.15",
+            "DTXR": "GUIDE PDO-TYPE-603",
+            "SPRE": "/MDS/GT01.2-PMP",
+            "MDSSUPPTYPE": "GT01",
+            "POS": {
+              "x": 520607.718,
+              "y": -37227.4,
+              "z": 1467.64
+            },
+            "POSI": "E 520607.718mm S 37227.4mm U 1467.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[220].children[58]",
+          "branch": "/ASIM-1836-2\"-P8810140-31441C4-HT/B5",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168.5",
+            "DTXR": "Directional Anchor On Shoe for Hot Insulated Pipe NPS 1/2- 36 2-XST06-40",
+            "SPRE": "/MDS/ST06-2-PMP",
+            "MDSSUPPTYPE": "ST06",
+            "POS": {
+              "x": 520607.718,
+              "y": -37227.4,
+              "z": 1467.64
+            },
+            "POSI": "E 520607.718mm S 37227.4mm U 1467.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[338].children[5]",
+          "branch": "/ASIM-1836-4\"-W8810023-31441C4/B2",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.18",
+            "DTXR": "Pipe Rest XRT01",
+            "SPRE": "/MDS/PIPE-REST.4-PMP",
+            "MDSSUPPTYPE": "PIPE-REST",
+            "NODETYPE": "4",
+            "NODEGAP": "0",
+            "POS": {
+              "x": 519007.718,
+              "y": -41777.4,
+              "z": 1144.64
+            },
+            "POSI": "E 519007.718mm S 41777.4mm U 1144.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[338].children[6]",
+          "branch": "/ASIM-1836-4\"-W8810023-31441C4/B2",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.12",
+            "DTXR": "GUIDE PDO-TYPE-604A/B - 2 x L50x50x6x80HIGH",
+            "SPRE": "/MDS/GT02-4-PMP",
+            "MDSSUPPTYPE": "GT02",
+            "POS": {
+              "x": 519007.718,
+              "y": -41777.4,
+              "z": 1144.64
+            },
+            "POSI": "E 519007.718mm S 41777.4mm U 1144.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[338].children[7]",
+          "branch": "/ASIM-1836-4\"-W8810023-31441C4/B2",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.1",
+            "DTXR": "WEAR PLATE TYPE-421 PAD L 550mm",
+            "SPRE": "/MDS/AT05-4-PMP",
+            "MDSSUPPTYPE": "AT05",
+            "POS": {
+              "x": 519007.718,
+              "y": -41777.4,
+              "z": 1144.64
+            },
+            "POSI": "E 519007.718mm S 41777.4mm U 1144.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[338].children[8]",
+          "branch": "/ASIM-1836-4\"-W8810023-31441C4/B2",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14169.2",
+            "DTXR": "PIPE STOP TYPE-602",
+            "SPRE": "/MDS/ST03-4-PMP",
+            "MDSSUPPTYPE": "ST03",
+            "POS": {
+              "x": 519007.718,
+              "y": -41777.4,
+              "z": 1144.64
+            },
+            "POSI": "E 519007.718mm S 41777.4mm U 1144.64mm"
+          }
+        },
+        {
+          "sourcePath": "$[338].children[27]",
+          "branch": "/ASIM-1836-4\"-W8810023-31441C4/B2",
+          "type": "SUPPORT",
+          "attributes": {
+            "NAME": "/PS-14168.14",
+            "DTXR": "Pipe Rest XRT01",
+            "SPRE": "/MDS/PIPE-REST.4-PMP",
+            "MDSSUPPTYPE": "PIPE-REST",
+            "NODETYPE": "4",
+            "NODEGAP": "0",
+            "POS": {
+              "x": 519007.718,
+              "y": -37227.4,
+              "z": 1144.64
+            },
+            "POSI": "E 519007.718mm S 37227.4mm U 1144.64mm"
+          }
+        }
+      ],
+      "bindingStatus": "NOT_QUALIFIED_TO_EF_XML: archived frame/branch differs; member classification evidence only."
+    },
+    "moduleIdentity": {
+      "converters/scripts/xml_to_cii2019.py": {
+        "sha256": "53ab7a3129d61b59ca98173d9bd98e4bd481930df014f4c3fe32db9d1bcc661f",
+        "bytes": 72739
+      },
+      "converters/scripts/xml_cii_weighted_geometry.py": {
+        "sha256": "7d17dbf04f1fdcf26998e5e102af63775fb3c1a659351d57383fa78b5500be09",
+        "bytes": 2681
+      }
+    },
+    "fixtureSha256": "2573883480af904096dea2663c9cf585be2db28dd047785397b4d61edee0a030",
+    "limits": [
+      "Original reader and base RESTRANT auxiliary writer only; no complete CII, accepted Final, private21 or engineering release.",
+      "No contracted_direction wrapper imported or installed; it is a distinct optional route."
+    ]
+  },
+  "staticSourceIdentity": {
+    "converters/scripts/xml_to_cii2019.py": {
+      "sha256": "53ab7a3129d61b59ca98173d9bd98e4bd481930df014f4c3fe32db9d1bcc661f",
+      "bytes": 72739
+    },
+    "converters/scripts/xml_to_cii2019_runtime_custody.py": {
+      "sha256": "a097a533fd8a209729e5f3520bfc9e3a05f9957f5d862df6fce726b9ada1442f",
+      "bytes": 24568
+    },
+    "converters/scripts/xml_to_cii2019_contracted_direction.py": {
+      "sha256": "3f0a219dc0135bac48a51cfd157f525951f75e52608ac0ec5f563e5f49e1e589",
+      "bytes": 29658
+    },
+    "tabs/xml-cii-2019-standalone/integration/xml229-finalized-weight-geometry.mjs": {
+      "sha256": "69061df75315a6e0865beadc6a2a7d76e448044394be694adc7c2b0bbe4a7e51",
+      "bytes": 11199
+    },
+    "tabs/xml-cii-2019-standalone/integration/xml229-olet-helper-route.mjs": {
+      "sha256": "30e1977fc65de5ae45b0a4e780cad1faef4df3f19c570cbf89bbb9e03d734cd9",
+      "bytes": 2395
+    },
+    "tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs": {
+      "sha256": "b61a11373cfa20d442024c255b883d3216aec5041734ca9e5a6d7d3446c91c7d",
+      "bytes": 19015
+    },
+    "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-node-occurrence-ledger.js": {
+      "sha256": "1da657450311e8af898ff13925f9f0e328a4c5adf4364b7ac2bf310b132afdd8",
+      "bytes": 4500
+    },
+    "converters/xml-cii2019-core/topology/xml-cii-topology-element-length.js": {
+      "sha256": "36330f20056876f81797e8664aa4cbe1c7cd7e4ea718e3d40c55ecb4dd5939fd",
+      "bytes": 12835
+    }
+  },
+  "testFixtureCorrection": {
+    "initialResultSha256": "90273fb2474a2851d9f4703a7de9900133163768b2efb0d09a5c261ec0b89515",
+    "initialStatus": "FAIL named-helper check due duplicated NodeName test field",
+    "correction": "Edit existing NodeName instead of appending a second field. Production and expected rejection unchanged. Corrected rerun PASS OLET_HELPER_AUTHORITY_CONFLICT."
+  },
+  "authority": {
+    "role": "Coder",
+    "takeover": "READ_ONLY",
+    "appendixA": "INCOMPLETE_UNSCORED",
+    "distinctReview": "NOT_RUN",
+    "fullOwnerRun21": "NOT_RUN",
+    "engineeringAcceptance": "NOT_RUN"
+  },
+  "sourceQualifiedConclusions": [
+    "EF50/60 have an actual zero-length branch route edge in the original native reader; current Preview preserves both source occurrences.",
+    "Disconnected crossing controls do not gain an edge from equal coordinates.",
+    "Repeated -1 values are not identities: 810 occurrences at639 distinct literal XYZ; source branch/node ordinals identify all1654 occurrences.",
+    "OLET ep1/3/0/2 geometry helper roles preserve original ordinal ledger; named helper blocks cleanup.",
+    "Pinned base native RESTRANT writer serializes six explicitly authored different directional members; complete governed CII not tested.",
+    "Archived PS14168/14169 support records include structural/support hardware; do not equate source child count with independent restraint count. Archive is not paired to EF coordinates/branch."
+  ]
+}
