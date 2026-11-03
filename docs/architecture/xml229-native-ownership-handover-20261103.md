@@ -8,7 +8,7 @@ The Owner's three requirements are connected physical-node identity despite mult
 
 The first selected package is the original-node/member/pre-Final/native ownership repair. New rigid generation is a later package. Role is **Coder**, chat `01a19b55-87a6-7a80-bfa9-252bfa853be6`. The Owner confirmed no other writer and selected this chat as the future sole writer for the current-main original-XML extension. Custody and provider choice are resolved; do not reopen them. Effective production authority remains **READ_ONLY**, production claim inactive, engineering contract `DRAFT_NOT_ADOPTED`. PR publication does not grant implementation, acceptance, merge or deployment authority. The Owner expressly said **do not merge**.
 
-The canonical work report is linked from this PR's description and the current status record. Earlier benchmark/intake reports and claims are historical evidence for this same investigation, not separate implementation assignments or active engineering writers.
+Canonical recovery: [PR405 work report](../../agents/PR405_workreport.md), [status](../../agents/status/PR405.yaml), [claim](../../agents/claims/PR405.yaml). [Draft PR405](https://github.com/reallakshman19/3D_Converters/pull/405) remains draft and must not be merged. Earlier benchmark/intake reports and claims are historical evidence for this same investigation, not separate implementation assignments or active engineering writers.
 
 ## Candidate and durable evidence
 

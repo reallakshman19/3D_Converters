@@ -9,6 +9,12 @@
   "manifestRule": "Lists published task artifacts excluding this manifest; Git commit identity is supplied by the live draft PR head.",
   "files": [
     {
+      "path": "agents/PR405_workreport.md",
+      "bytes": 70732,
+      "sha256": "8038951b084c5d8b096d1cfe79f3dacc9eb9d2fab7a1a2ed75417e9115ef9a6b",
+      "gitBlobSha": "4675dec761e8e272108f8001ddfc14b5bacdb440"
+    },
+    {
       "path": "agents/WIP-XML229-BENCHMARK-3FIX-20261102_workreport.md",
       "bytes": 8818,
       "sha256": "55185addb8184414d1195467ddba36efdbdf74121f5517a00648db10a7467070",
@@ -22,9 +28,15 @@
     },
     {
       "path": "agents/WIP-XML229-OWNERSHIP-WBS-20261102_workreport.md",
-      "bytes": 68517,
-      "sha256": "8ddeea57bb4a677e444ed7c579cb5ca5acc9d3764823d05f336894921f281129",
-      "gitBlobSha": "556d5f33ddbfdedd763da72b8c7525065592283b"
+      "bytes": 377,
+      "sha256": "9eeba2337720773fca7a1342aefb87ee8bc38e51dbde036ad30b92c9d7316ecd",
+      "gitBlobSha": "15109e6294f962a37ec6cd431c24efafdd085e72"
+    },
+    {
+      "path": "agents/claims/PR405.yaml",
+      "bytes": 3558,
+      "sha256": "21e1430910c70e4f92ad674fdf37e06471aa9a2a2d3a02b3a1df5c9fb0a08944",
+      "gitBlobSha": "ab1731bb70eb9ecddcf0268ac4a80256220f5692"
     },
     {
       "path": "agents/claims/WIP-XML229-BENCHMARK-3FIX-20261102.yaml",
@@ -40,9 +52,9 @@
     },
     {
       "path": "agents/claims/WIP-XML229-OWNERSHIP-WBS-20261102.yaml",
-      "bytes": 3405,
-      "sha256": "06073ff8fb01557a2ce994224452dc4d11566ea403a3a2c7222c1de06bd4a1ac",
-      "gitBlobSha": "c0f6e916d7e7c055c5385267fbd8ad1ef0ee72ee"
+      "bytes": 316,
+      "sha256": "6bd02c2547124ad4af883b5e85eaf635f2f0a0cf1586ef69a0fd447728752b48",
+      "gitBlobSha": "5ac237aeeba8ad5db1d1ca756c6c8f01641a1c3d"
     },
     {
       "path": "agents/evidence/xml229-a1-a5-assessment-20261103.json",
@@ -171,6 +183,12 @@
       "gitBlobSha": "1dda3bca173f1d634e5d2cad3d7e3c69a9dd5fac"
     },
     {
+      "path": "agents/status/PR405.yaml",
+      "bytes": 3894,
+      "sha256": "4eb63f79ba7479274df7971df5bfc48e6fe860a94a2377d881e4494be405e394",
+      "gitBlobSha": "7438fdbd94df6042406dc2c3fca5c41ad5279ccc"
+    },
+    {
       "path": "agents/status/WIP-XML229-BENCHMARK-3FIX-20261102.yaml",
       "bytes": 969,
       "sha256": "1b0313ecce42826be6f4a227ebf6ef728a0c70ceb20272bfa152906ef3c59a78",
@@ -184,9 +202,9 @@
     },
     {
       "path": "agents/status/WIP-XML229-OWNERSHIP-WBS-20261102.yaml",
-      "bytes": 3692,
-      "sha256": "f076d53e960991e203df7b470b79322f9932af5a9e00688199b54d6ef99ec9d8",
-      "gitBlobSha": "88b0da8678ba662e3a647db243becbc6440ac538"
+      "bytes": 295,
+      "sha256": "53af777ec576ea9608f338ca31f24ecefd1d63f3e8c20d91ea4b9223f659248f",
+      "gitBlobSha": "951ee5ce113c3e7a5dab8d72642f138061a5eebd"
     },
     {
       "path": "docs/architecture/xml229-benchmark-three-problem-wbs-20261102.md",
@@ -202,9 +220,9 @@
     },
     {
       "path": "docs/architecture/xml229-native-ownership-handover-20261103.md",
-      "bytes": 9400,
-      "sha256": "832cd1e18250224429182cd0e7eb2126a0728204694aedaceb626ea9fe5c0697",
-      "gitBlobSha": "f12b34dd44a67ebf1b9fe4f4a5ad2f2082b512fc"
+      "bytes": 9646,
+      "sha256": "8ab2d739deb152a3c97037af1b841a9a7545a0317dcc8db6d4d3dea6849d1e1a",
+      "gitBlobSha": "c75e29961eaf167e36eaf28c61388b653ee3a793"
     },
     {
       "path": "docs/architecture/xml229-native-ownership-intake-20261102.md",
@@ -214,9 +232,9 @@
     },
     {
       "path": "docs/architecture/xml229-native-ownership-patch-qualification-20261102.md",
-      "bytes": 50396,
-      "sha256": "4cf645cc0b7722ae7ffa991f2266a7d7ed95378a7448565df29c740877184791",
-      "gitBlobSha": "b1ed0edf6d76187b333d4e127a80d9bac4206cce"
+      "bytes": 50625,
+      "sha256": "cc4fcc380d46a05aab9524ede2cf08a7e26d5ec0ac92b4b50d59fb3920440056",
+      "gitBlobSha": "512cdbf09443232d4cf9e8d6614c6ba6e7e4cd49"
     },
     {
       "path": "docs/architecture/xml229-native-ownership-reproduction-20261102.md",
@@ -232,9 +250,13 @@
     },
     {
       "path": "docs/architecture/xml229-native-ownership-wbs-20261102.md",
-      "bytes": 32657,
-      "sha256": "2cd3573f7196315a3b97e254bfc9be1a7a559edd1405a5986fbee89e1e09d482",
-      "gitBlobSha": "a08bec67857ed0dbf74fc781592edd7c4fa4c0f5"
+      "bytes": 32886,
+      "sha256": "842f3f34beab0017f312bd47da9e41fb7ce6f7008eee3ea926c5a33be30da247",
+      "gitBlobSha": "6261ec4422eb2237268aba393e34578b4ebbde61"
     }
-  ]
+  ],
+  "prNumber": 405,
+  "prUrl": "https://github.com/reallakshman19/3D_Converters/pull/405",
+  "publicationState": "DRAFT_OPEN",
+  "canonicalReport": "agents/PR405_workreport.md"
 }

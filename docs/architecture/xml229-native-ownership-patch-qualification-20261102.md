@@ -257,3 +257,5 @@ EXACT_NEXT_ACTION: Qualify an explicit binding-preserving scratch projection: ke
 ## Draft publication handover — 03 November 2026
 
 Owner authorized a draft PR with handover and separately instructed **do not merge**. The [handover](xml229-native-ownership-handover-20261103.md) is the current recovery entry point. The [portable A3 replay launcher](../../agents/evidence/xml229_a3_reproduce.py) exports its four exact pinned modules and passed13diagnostics without overwriting historical evidence. Publication base3377b7f4baeeee5851e72dcc414d6c4a93f5a933 adds only three unrelated benchmark inputs after the unchanged engineering evidence pin. READ_ONLY/A3=16/draft-contract limits remain. This publication supplies usable diagnostics and review evidence; it does not implement the repair.
+
+Draft publication: [PR405](https://github.com/reallakshman19/3D_Converters/pull/405), [canonical recovery report](../../agents/PR405_workreport.md). Owner explicitly instructed **DO NOT MERGE**; draft/READ_ONLY limits remain.

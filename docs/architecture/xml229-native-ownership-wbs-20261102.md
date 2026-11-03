@@ -216,3 +216,5 @@ At each checkpoint update the WIP/PR work report, status and claim with changed 
 ## Draft PR handover — 03 November 2026
 
 See the [handover](xml229-native-ownership-handover-20261103.md) and [portable13-check replay](../../agents/evidence/xml229_a3_reproduce.py). Owner authorized draft publication and explicitly said **do not merge**. Publication changes documentation/reproduction artifacts only; A3=16, READ_ONLY and the selected future-writer/provider decisions remain.
+
+Draft publication: [PR405](https://github.com/reallakshman19/3D_Converters/pull/405), [canonical recovery report](../../agents/PR405_workreport.md). Owner explicitly instructed **DO NOT MERGE**; draft/READ_ONLY limits remain.
