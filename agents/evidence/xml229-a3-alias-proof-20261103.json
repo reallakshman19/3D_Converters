@@ -1,0 +1,590 @@
+{
+  "task": "XML229 A3 scratch alias projection qualification",
+  "pin": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+  "source": "Benchmarks/EF-05-PRO.TEST.xml",
+  "sourceSha256": "2573883480af904096dea2663c9cf585be2db28dd047785397b4d61edee0a030",
+  "authority": "READ_ONLY",
+  "checks": [
+    {
+      "id": "bounded_source_references",
+      "status": "PASS",
+      "observation": {
+        "exactPositiveIdOccurrences": [
+          [
+            0,
+            7,
+            "50"
+          ],
+          [
+            0,
+            8,
+            "60"
+          ]
+        ],
+        "fullNameOrRefStringHits": [
+          [
+            0,
+            7,
+            "NodeName",
+            "PS-14167/DATUM"
+          ],
+          [
+            0,
+            7,
+            "ComponentRefNo",
+            "=1006649732/119345"
+          ],
+          [
+            0,
+            8,
+            "NodeName",
+            "PS-14167/SREF"
+          ],
+          [
+            0,
+            8,
+            "ComponentRefNo",
+            "=1006649732/119346"
+          ]
+        ],
+        "scope": "This exact original XML only. No generic embedded-reference grammar or JSON/config correspondence inferred."
+      },
+      "oracle": "Independent original XML traversal, no production imports"
+    },
+    {
+      "id": "retained_xml_and_mass_fields_unchanged",
+      "status": "PASS",
+      "observation": {
+        "retainedOriginalNodes": 1653,
+        "aliasWeight": "0",
+        "aliasRigid": "",
+        "aliasAuthoredMembers": 0,
+        "acceptedFinalPacket": "NOT_AVAILABLE_NOT_RUN"
+      },
+      "oracle": "Independent whole-retained-node XML comparison; accepted mass decisions are not inferred from source Weight"
+    },
+    {
+      "id": "native_non_alias_edge_order_and_properties",
+      "status": "PASS",
+      "observation": {
+        "beforeEdges": 792,
+        "afterEdges": 791,
+        "comparedNonAliasEdges": 791,
+        "propertyDeltas": []
+      },
+      "oracle": "Differential native parser/model; implementation-coupled property preservation, not independent physical equivalence"
+    },
+    {
+      "id": "one_zero_edge_removed",
+      "status": "PASS",
+      "observation": "Exactly EF50-to60 is omitted; canonical numbers do not create a self edge.",
+      "oracle": "Fixed original source ordinals and explicit edge expectation"
+    },
+    {
+      "id": "actual_patched_element_core",
+      "status": "PASS",
+      "observation": {
+        "comparedBlocks": 791,
+        "rowsPerBlock": 15,
+        "physicalRowsCompared": 12,
+        "deltas": [],
+        "excludedRows": "Rows13-15 are auxiliary indices; semantic targets checked separately."
+      },
+      "oracle": "Actual unchanged patched formatter differential; not an independently authored numerical oracle"
+    },
+    {
+      "id": "native_component_auxiliary_roles",
+      "status": "PASS",
+      "observation": {
+        "deltas": [],
+        "rigidEdgesBefore": 192,
+        "rigidEdgesAfter": 192
+      },
+      "oracle": "Existing model classifications; does not supply an accepted Final mass packet"
+    },
+    {
+      "id": "actual_auxiliary_reference_targets",
+      "status": "PASS",
+      "observation": {
+        "comparedElements": 791,
+        "deltas": [],
+        "restraintAuxBefore": 137,
+        "restraintAuxAfter": 137,
+        "nodename": "Identity delta is separately reported as preservation FAIL."
+      },
+      "oracle": "Actual serialized pointer values and complete before/after model targets; implementation-coupled differential"
+    },
+    {
+      "id": "source_weight_rigid_payload",
+      "status": "PASS",
+      "observation": {
+        "equal": true,
+        "rowsBefore": 192,
+        "rowsAfter": 192,
+        "scale": 10,
+        "acceptedFinal": "NOT_RUN: raw source weights only"
+      },
+      "oracle": "Actual unchanged base RIGID writer on source-weight models; not accepted mass verification"
+    },
+    {
+      "id": "naive_projection_identity_loss_detected",
+      "status": "PASS",
+      "observation": {
+        "identityDeltas": [
+          {
+            "edge": [
+              "/ASIM-1836-8\"-P8810021-31441C4-PP/B4",
+              50,
+              70
+            ],
+            "before": [
+              "PS-14167/SREF",
+              "=1006649732/119346"
+            ],
+            "after": [
+              "PS-14167/DATUM",
+              "=1006649732/119345"
+            ]
+          }
+        ],
+        "srefLabelRecordsBefore": 2,
+        "srefLabelRecordsAfter": 0,
+        "preservationStatus": "FAIL",
+        "interpretation": "Numerical properties match, but edge-facing identity and NODENAME change. No adopted alias policy authorizes ignoring this."
+      },
+      "oracle": "Literal original SREF/ComponentRefNo and actual native NODENAME records"
+    },
+    {
+      "id": "one_to_six_same_type_authored_members",
+      "status": "PASS",
+      "observation": [
+        {
+          "count": 1,
+          "status": "PASS",
+          "actualSlots": [
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              0.0,
+              0.3
+            ]
+          ],
+          "expectedSlots": [
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              0.0,
+              0.3
+            ]
+          ]
+        },
+        {
+          "count": 2,
+          "status": "PASS",
+          "actualSlots": [
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              0.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              1.0,
+              0.3
+            ]
+          ],
+          "expectedSlots": [
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              0.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              1.0,
+              0.3
+            ]
+          ]
+        },
+        {
+          "count": 3,
+          "status": "PASS",
+          "actualSlots": [
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              0.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              1.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              2.0,
+              0.3
+            ]
+          ],
+          "expectedSlots": [
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              0.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              1.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              2.0,
+              0.3
+            ]
+          ]
+        },
+        {
+          "count": 4,
+          "status": "PASS",
+          "actualSlots": [
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              0.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              1.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              2.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              3.0,
+              0.3
+            ]
+          ],
+          "expectedSlots": [
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              0.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              1.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              2.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              3.0,
+              0.3
+            ]
+          ]
+        },
+        {
+          "count": 5,
+          "status": "PASS",
+          "actualSlots": [
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              0.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              1.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              2.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              3.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              4.0,
+              0.3
+            ]
+          ],
+          "expectedSlots": [
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              0.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              1.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              2.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              3.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              4.0,
+              0.3
+            ]
+          ]
+        },
+        {
+          "count": 6,
+          "status": "PASS",
+          "actualSlots": [
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              0.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              1.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              2.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              3.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              4.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              5.0,
+              0.3
+            ]
+          ],
+          "expectedSlots": [
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              0.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              1.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              2.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              3.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              4.0,
+              0.3
+            ],
+            [
+              50.0,
+              14.0,
+              1751270000000.0,
+              5.0,
+              0.3
+            ]
+          ]
+        }
+      ],
+      "oracle": "Literal synthetic +Y type14, source-ordered gaps0..N-1, stiffness1751270000000, friction0.3. Explicit XML relocation in scratch; not JSON independence or governed replay."
+    },
+    {
+      "id": "naive_projection_member_loss_detected",
+      "status": "PASS",
+      "observation": {
+        "expectedMembers": 2,
+        "actualMembers": 1,
+        "missingGap": 1,
+        "preservationStatus": "FAIL",
+        "control": "Explicit relocation retains both in the separate positive case."
+      },
+      "oracle": "Two literal derived XML members at original ordinals7/8, gaps0/1; no production oracle generates the expectation"
+    },
+    {
+      "id": "source_rigid_nonzero_weight_census",
+      "status": "PASS",
+      "observation": {
+        "sourceCensusCount": 198,
+        "same": true,
+        "warning": "Zero source weight does not establish absence from an accepted Final owner set."
+      },
+      "oracle": "Independent original XML source-designation census; not accepted mass publication"
+    },
+    {
+      "id": "loaded_native_source_identity",
+      "status": "PASS",
+      "observation": [
+        {
+          "path": "converters/scripts/xml_to_cii2019.py",
+          "sha256": "53ab7a3129d61b59ca98173d9bd98e4bd481930df014f4c3fe32db9d1bcc661f",
+          "exactPinnedBytes": true
+        },
+        {
+          "path": "converters/scripts/master_customization.py",
+          "sha256": "288c519e99afcc932d371e550b98c2254f83088dd084dbc436b6e7eff7d5e768",
+          "exactPinnedBytes": true
+        },
+        {
+          "path": "converters/scripts/xml_to_cii2019_master_addon.py",
+          "sha256": "48adf9faa43a68016a011937f0a3b929d37decb2569397d9ba91bd592c875f98",
+          "exactPinnedBytes": true
+        },
+        {
+          "path": "converters/scripts/xml_to_cii2019_patched.py",
+          "sha256": "257c341aa8fc6cd568e717f960950c1a4d72bd68ba33e5e361435b28d93e2cae",
+          "exactPinnedBytes": true
+        }
+      ],
+      "oracle": "Exact Git bytes of each loaded native module, not a copied hash assertion"
+    }
+  ],
+  "harnessStatus": "PASS",
+  "preservationVerdict": "NAIVE_PROJECTION_NOT_QUALIFIED_IDENTITY_AND_MEMBER_LOSS",
+  "structural": {
+    "beforeEdges": 792,
+    "afterEdges": 791,
+    "nativePositiveNodesBefore": 833,
+    "identityDeltas": [
+      {
+        "edge": [
+          "/ASIM-1836-8\"-P8810021-31441C4-PP/B4",
+          50,
+          70
+        ],
+        "before": [
+          "PS-14167/SREF",
+          "=1006649732/119346"
+        ],
+        "after": [
+          "PS-14167/DATUM",
+          "=1006649732/119345"
+        ]
+      }
+    ]
+  },
+  "witness": "D:\\CodeD\\3D_Converter\\.local-test-tmp\\xml229-a3-alias-proof-20261103\\source-alias-witness.json",
+  "oracleClasses": "Independent original XML/literal members; native model/formatter differential is implementation-coupled.",
+  "limits": [
+    "Native parser uses positive original nodes only:833 before/832 after; not1333-row governed Final.",
+    "No adopted alias contract, complete JSON/config/master binding or accepted Final mass packet supplied.",
+    "Scratch authored-member relocation is explicit hypothesis, not production implementation or engineering authorization.",
+    "Actual governed Worker/native CII, unknown-reference grammar and private21 replay NOT_RUN.",
+    "No production, source fixture, oracle, workflow or Git mutation."
+  ],
+  "disposition": "CONTINUE_READ_ONLY; A3 complete-preservation criterion remains0/4 with concrete falsifiers."
+}

@@ -1,0 +1,288 @@
+{
+  "schema": "XML229.NativeOwnershipFocus.v1",
+  "observedAt": "2026-11-02T12:17:30.933Z",
+  "ownerPriority": "docs/architecture/xml229-native-ownership-wbs-20261102.md FIRST",
+  "localHead": "a658ed0305a1745181938155b7f1c554f98ae283",
+  "main": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+  "sourceTask": 391,
+  "productionAuthority": "READ_ONLY",
+  "sourceBundle": "OWNER_CONFIRMED_UNAVAILABLE",
+  "prs": [
+    {
+      "number": 390,
+      "title": "[DESIGN][XML229] Coordinate-preserving physical-node restraints and rigid-split second pass",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "head": "caa7ebd9dd2a15f4eee19a258869fb54bc2249ea",
+      "base": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+      "updatedAt": "2026-11-02T11:01:37Z",
+      "files": [
+        "docs/architecture/xml229-canonical-support-ownership-ledger-rfc.md",
+        "docs/architecture/xml229-coordinate-vertex-nodal-two-pass-rfc.md",
+        "docs/architecture/xml229-physical-vertex-two-pass-concept-note.md"
+      ],
+      "reviews": null,
+      "ci": null
+    },
+    {
+      "number": 392,
+      "title": "[XML229 #391][WBS 1] Original-coordinate physical vertex index (opt-in shadow)",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "head": "9d45d238cd5f3af0228ad4ea26f1e8d37796b32b",
+      "base": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+      "updatedAt": "2026-11-02T11:20:00Z",
+      "files": [
+        ".github/workflows/xml229-physical-vertex-pass1.yml",
+        "docs/tabs/xml-cii-2019-standalone/integration/xml229-original-physical-vertices.mjs",
+        "docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs",
+        "tabs/xml-cii-2019-standalone/integration/xml229-original-physical-vertices.mjs",
+        "tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs",
+        "tests/xml229-original-physical-vertices.test.mjs"
+      ],
+      "reviews": [],
+      "ci": {
+        "totalCount": 49,
+        "pageReturned": 30,
+        "conclusions": {
+          "success": 23,
+          "failure": 7
+        },
+        "focused": [
+          {
+            "id": 41435991482,
+            "name": "XML229 P4 source-bound Worker GC-PW integration",
+            "head": "9d45d238cd5f3af0228ad4ea26f1e8d37796b32b",
+            "status": "completed",
+            "conclusion": "failure"
+          }
+        ]
+      }
+    },
+    {
+      "number": 393,
+      "title": "[XML229 #391][WBS 2] Preserve 1–6 nodal REST/GUIDE/LINESTOP member slots",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "head": "7e9f4d553cb187ba0d0f1c248c9bb28c610096a1",
+      "base": "9d45d238cd5f3af0228ad4ea26f1e8d37796b32b",
+      "updatedAt": "2026-11-02T11:32:47Z",
+      "files": [
+        ".github/workflows/xml229-nodal-restraint-six-slot.yml",
+        "docs/tabs/xml-cii-2019-standalone/integration/xml229-nodal-restraint-slots.mjs",
+        "docs/tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js",
+        "tabs/xml-cii-2019-standalone/integration/xml229-nodal-restraint-slots.mjs",
+        "tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js",
+        "tests/test_xml229_native_six_slot_actual_cii.py",
+        "tests/xml229-nodal-restraint-six-slot.test.mjs"
+      ],
+      "reviews": [],
+      "ci": {
+        "totalCount": 43,
+        "pageReturned": 30,
+        "conclusions": {
+          "failure": 6,
+          "success": 24
+        },
+        "focused": [
+          {
+            "id": 41437314797,
+            "name": "XML229 Canonical Verified Output Readiness",
+            "head": "7e9f4d553cb187ba0d0f1c248c9bb28c610096a1",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "id": 41437315217,
+            "name": "XML229 Nodal Restraints 1-6 (nonreleasing)",
+            "head": "7e9f4d553cb187ba0d0f1c248c9bb28c610096a1",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      }
+    },
+    {
+      "number": 394,
+      "title": "[XML229 #391][WBS 2→1] Original JSON Trace to connected physical vertex binding (shadow)",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "head": "672bedfb3c2d738932e16d71d704e4a6fd06ad7a",
+      "base": "7e9f4d553cb187ba0d0f1c248c9bb28c610096a1",
+      "updatedAt": "2026-11-02T11:56:04Z",
+      "files": [
+        ".github/workflows/xml229-json-physical-vertex-binding.yml",
+        "docs/tabs/xml-cii-2019-standalone/integration/xml229-json-physical-vertex-binding.mjs",
+        "docs/tabs/xml-cii-2019-standalone/integration/xml229-original-physical-vertices.mjs",
+        "docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs",
+        "tabs/xml-cii-2019-standalone/integration/xml229-json-physical-vertex-binding.mjs",
+        "tabs/xml-cii-2019-standalone/integration/xml229-original-physical-vertices.mjs",
+        "tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs",
+        "tests/xml229-json-physical-vertex-binding.test.mjs"
+      ],
+      "reviews": [],
+      "ci": {
+        "totalCount": 45,
+        "pageReturned": 30,
+        "conclusions": {
+          "success": 23,
+          "failure": 7
+        },
+        "focused": [
+          {
+            "id": 41440664063,
+            "name": "XML229 Physical Vertex Pass 1 (Nonreleasing)",
+            "head": "672bedfb3c2d738932e16d71d704e4a6fd06ad7a",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 41440664495,
+            "name": "XML229 JSON Physical Vertex Bind (Nonreleasing)",
+            "head": "672bedfb3c2d738932e16d71d704e4a6fd06ad7a",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 41440664649,
+            "name": "XML229 P4 source-bound Worker GC-PW integration",
+            "head": "672bedfb3c2d738932e16d71d704e4a6fd06ad7a",
+            "status": "completed",
+            "conclusion": "failure"
+          }
+        ]
+      }
+    },
+    {
+      "number": 395,
+      "title": "[XML229 #391][WBS 4] Reviewed geometry pass-2 nodal slot and alias numbering audit",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "head": "7a788eab07090dd8a5211ffa5256e2591c3d60d4",
+      "base": "672bedfb3c2d738932e16d71d704e4a6fd06ad7a",
+      "updatedAt": "2026-11-02T12:08:16Z",
+      "files": [
+        ".github/workflows/xml229-reviewed-vertex-pass2.yml",
+        "docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs",
+        "docs/tabs/xml-cii-2019-standalone/integration/xml229-reviewed-vertex-slot-plan.mjs",
+        "tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs",
+        "tabs/xml-cii-2019-standalone/integration/xml229-reviewed-vertex-slot-plan.mjs",
+        "tests/xml229-reviewed-vertex-slot-plan.test.mjs"
+      ],
+      "reviews": [],
+      "ci": {
+        "totalCount": 46,
+        "pageReturned": 30,
+        "conclusions": {
+          "success": 23,
+          "in_progress": 1,
+          "failure": 6
+        },
+        "focused": [
+          {
+            "id": 41442239373,
+            "name": "XML229 Physical Vertex Pass 1 (Nonreleasing)",
+            "head": "7a788eab07090dd8a5211ffa5256e2591c3d60d4",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 41442239425,
+            "name": "XML229 Canonical Verified Output Readiness",
+            "head": "7a788eab07090dd8a5211ffa5256e2591c3d60d4",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "id": 41442238295,
+            "name": "XML229 P4 source-bound Worker GC-PW integration",
+            "head": "7a788eab07090dd8a5211ffa5256e2591c3d60d4",
+            "status": "completed",
+            "conclusion": "failure"
+          }
+        ]
+      }
+    },
+    {
+      "number": 396,
+      "title": "[XML229 #391][WBS 3] Exact source-attested rigid split coordinates before Final",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "head": "b95a5bc8e8f64a30b12aa6dfd0c4ff139dcb9cbb",
+      "base": "7df2134913a29b6c3f3fb1b5fc1b2949f4e99f9d",
+      "updatedAt": "2026-11-02T12:08:58Z",
+      "files": [
+        ".github/workflows/xml229-rigid-split-coordinate-lineage.yml",
+        "docs/tabs/xml-cii-2019-standalone/integration/xml229-original-physical-vertices.mjs",
+        "docs/tabs/xml-cii-2019-standalone/integration/xml229-reviewed-vertex-slot-plan.mjs",
+        "docs/tabs/xml-cii-2019-standalone/integration/xml229-rigid-split-coordinate-lineage.mjs",
+        "tabs/xml-cii-2019-standalone/integration/xml229-original-physical-vertices.mjs",
+        "tabs/xml-cii-2019-standalone/integration/xml229-reviewed-vertex-slot-plan.mjs",
+        "tabs/xml-cii-2019-standalone/integration/xml229-rigid-split-coordinate-lineage.mjs",
+        "tests/xml229-reviewed-vertex-slot-plan.test.mjs",
+        "tests/xml229-rigid-split-coordinate-lineage.test.mjs"
+      ],
+      "reviews": [],
+      "ci": {
+        "totalCount": 45,
+        "pageReturned": 30,
+        "conclusions": {
+          "success": 24,
+          "failure": 6
+        },
+        "focused": [
+          {
+            "id": 41442337784,
+            "name": "XML229 Exact Rigid Split Coordinate Lineage (Nonreleasing)",
+            "head": "b95a5bc8e8f64a30b12aa6dfd0c4ff139dcb9cbb",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 41442337383,
+            "name": "XML229 Physical Vertex Pass 1 (Nonreleasing)",
+            "head": "b95a5bc8e8f64a30b12aa6dfd0c4ff139dcb9cbb",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 41442337587,
+            "name": "XML229 Reviewed Vertex Pass 2 (Nonreleasing)",
+            "head": "b95a5bc8e8f64a30b12aa6dfd0c4ff139dcb9cbb",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 41442337306,
+            "name": "XML229 JSON Physical Vertex Bind (Nonreleasing)",
+            "head": "b95a5bc8e8f64a30b12aa6dfd0c4ff139dcb9cbb",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      }
+    }
+  ],
+  "stackDrift": {
+    "pr": 396,
+    "expectedParentPr": 395,
+    "parentHead": "7a788eab07090dd8a5211ffa5256e2591c3d60d4",
+    "actualBase": "7df2134913a29b6c3f3fb1b5fc1b2949f4e99f9d",
+    "comparisonStatus": "behind",
+    "ahead": 0,
+    "behind": 3,
+    "mergeBase": "7df2134913a29b6c3f3fb1b5fc1b2949f4e99f9d"
+  },
+  "limitations": [
+    "PR body implementation claims are attributed and not an independent code review",
+    "CI is first page (30) per exact queried head; broader failures retained",
+    "Review lists for PR392-396 were empty",
+    "Production and engineering acceptance NOT_RUN"
+  ]
+}

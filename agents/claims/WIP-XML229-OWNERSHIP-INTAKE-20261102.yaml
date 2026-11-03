@@ -1,0 +1,16 @@
+schema: AgentClaim.v1
+pr_or_wip: WIP-XML229-OWNERSHIP-INTAKE-20261102
+claim_state: READ_ONLY_ENGINEERING_INTAKE_DOCUMENTATION_ONLY
+branch: fix/xml229-inst-rigid-20261031
+files:
+  exact:
+    - docs/architecture/xml229-native-ownership-intake-20261102.md
+    - agents/WIP-XML229-OWNERSHIP-INTAKE-20261102_workreport.md
+    - agents/status/WIP-XML229-OWNERSHIP-INTAKE-20261102.yaml
+    - agents/claims/WIP-XML229-OWNERSHIP-INTAKE-20261102.yaml
+authority_domains: [read-only source intake and qualification evidence, documentation only]
+protected: [all production code and tests, exact Owner inputs, engineering authority, runtime and writer and canvas custody, workflows, existing user changes]
+related_design_pr: 390
+implementation_custody: UNASSIGNED_NOT_GRANTED_BY_THIS_CLAIM
+overlap: COORDINATION_REQUIRED_BEFORE_PRODUCTION_MUTATION
+merge_authority: OWNER_ONLY_NOT_GRANTED

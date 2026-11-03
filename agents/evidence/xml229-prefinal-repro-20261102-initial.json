@@ -1,0 +1,792 @@
+{
+  "schema": "XML229.PrefinalBoundaryReproduction.v1",
+  "candidate": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+  "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+  "inputBasis": "Original EF-05 XML plus explicitly controlled staged JSON; single-alias cases are derived XML.",
+  "configuration": {
+    "defaultStiffness": "1751270000000",
+    "defaultGap": "0",
+    "defaultFriction": "0.3",
+    "resolverJsonTrace": {
+      "coordinateTolerance": 6
+    }
+  },
+  "baseline": [
+    {
+      "nodeNumber": "50",
+      "name": "PS-14167/DATUM",
+      "componentRef": "=1006649732/119345",
+      "position": "459657.72 -1481227.40 101259.55",
+      "restraints": []
+    },
+    {
+      "nodeNumber": "60",
+      "name": "PS-14167/SREF",
+      "componentRef": "=1006649732/119346",
+      "position": "459657.72 -1481227.40 101259.55",
+      "restraints": []
+    }
+  ],
+  "cases": [
+    {
+      "id": "single-alias-two-members",
+      "expected": {
+        "memberCount": 2,
+        "oracle": "Controlled source declares REST and GUIDE once at one retained occurrence."
+      },
+      "declaredSourceMembers": [
+        {
+          "type": "REST",
+          "name": "CONTROLLED-REST-1",
+          "attributes": {
+            "DTXR": "REST",
+            "NAME": "/PS-14167/DATUM",
+            "CMPSUPGAP": "0mm GAP",
+            "NODEGAP": "0"
+          }
+        },
+        {
+          "type": "GUIDE",
+          "name": "CONTROLLED-GUIDE-2",
+          "attributes": {
+            "DTXR": "GUIDE",
+            "NAME": "/PS-14167/SREF",
+            "CMPSUPGAP": "6mm GAP",
+            "NODEGAP": "6"
+          }
+        }
+      ],
+      "inputNodes": [
+        {
+          "nodeNumber": "50",
+          "name": "PS-14167/DATUM",
+          "componentRef": "=1006649732/119345",
+          "position": "459657.72 -1481227.40 101259.55",
+          "restraints": []
+        }
+      ],
+      "ledger": [
+        {
+          "xmlIndex": 8,
+          "node": "50",
+          "status": "RESOLVED_POS_PS",
+          "branchRelationship": "exact",
+          "distanceMm": 0,
+          "members": [
+            {
+              "sourcePath": "$[0].children[0].children[0]",
+              "name": "/PS-14167/DATUM",
+              "type": "REST"
+            },
+            {
+              "sourcePath": "$[0].children[0].children[1]",
+              "name": "/PS-14167/SREF",
+              "type": "GUIDE"
+            }
+          ]
+        }
+      ],
+      "directClosure": {
+        "nodes": [
+          {
+            "nodeNumber": "50",
+            "name": "PS-14167/DATUM",
+            "componentRef": "=1006649732/119345",
+            "position": "459657.72 -1481227.40 101259.55",
+            "restraints": [
+              {
+                "Type": "+Y",
+                "Stiffness": "1751270000000",
+                "Gap": "0",
+                "Friction": "0.3",
+                "DirectionCosineX": "0.000000000",
+                "DirectionCosineY": "1.000000000",
+                "DirectionCosineZ": "0.000000000"
+              },
+              {
+                "Type": "GUI",
+                "Stiffness": "1751270000000",
+                "Gap": "6",
+                "Friction": "-1.010100",
+                "CMPSUPGAP": "6mm GAP"
+              }
+            ]
+          }
+        ],
+        "stats": {
+          "mdsPositionNodesChanged": 1,
+          "mdsRestRestraintsAdded": 1,
+          "mdsGuideRestraintsAdded": 1,
+          "mdsLineStopRestraintsAdded": 0
+        }
+      },
+      "actualNodes": [
+        {
+          "nodeNumber": "50",
+          "name": "PS-14167/DATUM",
+          "componentRef": "=1006649732/119345",
+          "position": "459657.72 -1481227.40 101259.55",
+          "restraints": [
+            {
+              "Type": "+Y",
+              "Stiffness": "1751270000000",
+              "Gap": "0",
+              "Friction": "0.3",
+              "DirectionCosineX": "0.000000000",
+              "DirectionCosineY": "1.000000000",
+              "DirectionCosineZ": "0.000000000"
+            },
+            {
+              "Type": "GUI",
+              "Stiffness": "1751270000000",
+              "Gap": "6",
+              "Friction": "-1.010100",
+              "CMPSUPGAP": "6mm GAP"
+            }
+          ]
+        }
+      ],
+      "actualMemberCount": 2,
+      "nonRestraintShapePreserved": true,
+      "proof": {
+        "schema": "XML229.PrefinalRestraints.v1",
+        "originalJsonSha256": "49722088a1c37bb191e620d01cd3984f286a74500961eb973c783eace1403eda"
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "benchmark-aliases-two-members",
+      "expected": {
+        "memberCount": 2,
+        "oracle": "Owner connected-node contract: adjacent zero-span ATTA aliases share one station; each source member once."
+      },
+      "declaredSourceMembers": [
+        {
+          "type": "REST",
+          "name": "CONTROLLED-REST-1",
+          "attributes": {
+            "DTXR": "REST",
+            "NAME": "/PS-14167/DATUM",
+            "CMPSUPGAP": "0mm GAP",
+            "NODEGAP": "0"
+          }
+        },
+        {
+          "type": "GUIDE",
+          "name": "CONTROLLED-GUIDE-2",
+          "attributes": {
+            "DTXR": "GUIDE",
+            "NAME": "/PS-14167/SREF",
+            "CMPSUPGAP": "6mm GAP",
+            "NODEGAP": "6"
+          }
+        }
+      ],
+      "inputNodes": [
+        {
+          "nodeNumber": "50",
+          "name": "PS-14167/DATUM",
+          "componentRef": "=1006649732/119345",
+          "position": "459657.72 -1481227.40 101259.55",
+          "restraints": []
+        },
+        {
+          "nodeNumber": "60",
+          "name": "PS-14167/SREF",
+          "componentRef": "=1006649732/119346",
+          "position": "459657.72 -1481227.40 101259.55",
+          "restraints": []
+        }
+      ],
+      "ledger": [
+        {
+          "xmlIndex": 8,
+          "node": "50",
+          "status": "RESOLVED_POS_PS",
+          "branchRelationship": "exact",
+          "distanceMm": 0,
+          "members": [
+            {
+              "sourcePath": "$[0].children[0].children[0]",
+              "name": "/PS-14167/DATUM",
+              "type": "REST"
+            },
+            {
+              "sourcePath": "$[0].children[0].children[1]",
+              "name": "/PS-14167/SREF",
+              "type": "GUIDE"
+            }
+          ]
+        },
+        {
+          "xmlIndex": 9,
+          "node": "60",
+          "status": "RESOLVED_POS_PS",
+          "branchRelationship": "exact",
+          "distanceMm": 0,
+          "members": [
+            {
+              "sourcePath": "$[0].children[0].children[0]",
+              "name": "/PS-14167/DATUM",
+              "type": "REST"
+            },
+            {
+              "sourcePath": "$[0].children[0].children[1]",
+              "name": "/PS-14167/SREF",
+              "type": "GUIDE"
+            }
+          ]
+        }
+      ],
+      "directClosure": {
+        "nodes": [
+          {
+            "nodeNumber": "50",
+            "name": "PS-14167/DATUM",
+            "componentRef": "=1006649732/119345",
+            "position": "459657.72 -1481227.40 101259.55",
+            "restraints": [
+              {
+                "Type": "+Y",
+                "Stiffness": "1751270000000",
+                "Gap": "0",
+                "Friction": "0.3",
+                "DirectionCosineX": "0.000000000",
+                "DirectionCosineY": "1.000000000",
+                "DirectionCosineZ": "0.000000000"
+              },
+              {
+                "Type": "GUI",
+                "Stiffness": "1751270000000",
+                "Gap": "6",
+                "Friction": "-1.010100",
+                "CMPSUPGAP": "6mm GAP"
+              }
+            ]
+          },
+          {
+            "nodeNumber": "60",
+            "name": "PS-14167/SREF",
+            "componentRef": "=1006649732/119346",
+            "position": "459657.72 -1481227.40 101259.55",
+            "restraints": [
+              {
+                "Type": "+Y",
+                "Stiffness": "1751270000000",
+                "Gap": "0",
+                "Friction": "0.3",
+                "DirectionCosineX": "0.000000000",
+                "DirectionCosineY": "1.000000000",
+                "DirectionCosineZ": "0.000000000"
+              },
+              {
+                "Type": "GUI",
+                "Stiffness": "1751270000000",
+                "Gap": "6",
+                "Friction": "-1.010100",
+                "CMPSUPGAP": "6mm GAP"
+              }
+            ]
+          }
+        ],
+        "stats": {
+          "mdsPositionNodesChanged": 2,
+          "mdsRestRestraintsAdded": 2,
+          "mdsGuideRestraintsAdded": 2,
+          "mdsLineStopRestraintsAdded": 0
+        }
+      },
+      "actualNodes": [
+        {
+          "nodeNumber": "50",
+          "name": "PS-14167/DATUM",
+          "componentRef": "=1006649732/119345",
+          "position": "459657.72 -1481227.40 101259.55",
+          "restraints": [
+            {
+              "Type": "+Y",
+              "Stiffness": "1751270000000",
+              "Gap": "0",
+              "Friction": "0.3",
+              "DirectionCosineX": "0.000000000",
+              "DirectionCosineY": "1.000000000",
+              "DirectionCosineZ": "0.000000000"
+            },
+            {
+              "Type": "GUI",
+              "Stiffness": "1751270000000",
+              "Gap": "6",
+              "Friction": "-1.010100",
+              "CMPSUPGAP": "6mm GAP"
+            }
+          ]
+        },
+        {
+          "nodeNumber": "60",
+          "name": "PS-14167/SREF",
+          "componentRef": "=1006649732/119346",
+          "position": "459657.72 -1481227.40 101259.55",
+          "restraints": [
+            {
+              "Type": "+Y",
+              "Stiffness": "1751270000000",
+              "Gap": "0",
+              "Friction": "0.3",
+              "DirectionCosineX": "0.000000000",
+              "DirectionCosineY": "1.000000000",
+              "DirectionCosineZ": "0.000000000"
+            },
+            {
+              "Type": "GUI",
+              "Stiffness": "1751270000000",
+              "Gap": "6",
+              "Friction": "-1.010100",
+              "CMPSUPGAP": "6mm GAP"
+            }
+          ]
+        }
+      ],
+      "actualMemberCount": 4,
+      "nonRestraintShapePreserved": true,
+      "proof": {
+        "schema": "XML229.PrefinalRestraints.v1",
+        "originalJsonSha256": "49722088a1c37bb191e620d01cd3984f286a74500961eb973c783eace1403eda"
+      },
+      "status": "FAIL"
+    },
+    {
+      "id": "single-alias-six-members",
+      "expected": {
+        "memberCount": 6,
+        "oracle": "Controlled cardinality challenge: six distinct declared source paths; physical compatibility/independent ownership is NOT qualified."
+      },
+      "declaredSourceMembers": [
+        {
+          "type": "REST",
+          "name": "CONTROLLED-REST-1",
+          "attributes": {
+            "DTXR": "REST",
+            "NAME": "/PS-14167/MEMBER-1",
+            "CMPSUPGAP": "0mm GAP",
+            "NODEGAP": "0"
+          }
+        },
+        {
+          "type": "REST",
+          "name": "CONTROLLED-REST-2",
+          "attributes": {
+            "DTXR": "REST",
+            "NAME": "/PS-14167/MEMBER-2",
+            "CMPSUPGAP": "0mm GAP",
+            "NODEGAP": "0"
+          }
+        },
+        {
+          "type": "GUIDE",
+          "name": "CONTROLLED-GUIDE-3",
+          "attributes": {
+            "DTXR": "GUIDE",
+            "NAME": "/PS-14167/MEMBER-3",
+            "CMPSUPGAP": "6mm GAP",
+            "NODEGAP": "6"
+          }
+        },
+        {
+          "type": "GUIDE",
+          "name": "CONTROLLED-GUIDE-4",
+          "attributes": {
+            "DTXR": "GUIDE",
+            "NAME": "/PS-14167/MEMBER-4",
+            "CMPSUPGAP": "6mm GAP",
+            "NODEGAP": "6"
+          }
+        },
+        {
+          "type": "LINESTOP",
+          "name": "CONTROLLED-LINESTOP-5",
+          "attributes": {
+            "DTXR": "LINESTOP",
+            "NAME": "/PS-14167/MEMBER-5",
+            "CMPSUPGAP": "20mm GAP",
+            "NODEGAP": "20"
+          }
+        },
+        {
+          "type": "LINESTOP",
+          "name": "CONTROLLED-LINESTOP-6",
+          "attributes": {
+            "DTXR": "LINESTOP",
+            "NAME": "/PS-14167/MEMBER-6",
+            "CMPSUPGAP": "20mm GAP",
+            "NODEGAP": "20"
+          }
+        }
+      ],
+      "inputNodes": [
+        {
+          "nodeNumber": "50",
+          "name": "PS-14167/DATUM",
+          "componentRef": "=1006649732/119345",
+          "position": "459657.72 -1481227.40 101259.55",
+          "restraints": []
+        }
+      ],
+      "ledger": [
+        {
+          "xmlIndex": 8,
+          "node": "50",
+          "status": "RESOLVED_POS_PS",
+          "branchRelationship": "exact",
+          "distanceMm": 0,
+          "members": [
+            {
+              "sourcePath": "$[0].children[0].children[0]",
+              "name": "/PS-14167/MEMBER-1",
+              "type": "REST"
+            },
+            {
+              "sourcePath": "$[0].children[0].children[1]",
+              "name": "/PS-14167/MEMBER-2",
+              "type": "REST"
+            },
+            {
+              "sourcePath": "$[0].children[0].children[2]",
+              "name": "/PS-14167/MEMBER-3",
+              "type": "GUIDE"
+            },
+            {
+              "sourcePath": "$[0].children[0].children[3]",
+              "name": "/PS-14167/MEMBER-4",
+              "type": "GUIDE"
+            },
+            {
+              "sourcePath": "$[0].children[0].children[4]",
+              "name": "/PS-14167/MEMBER-5",
+              "type": "LINESTOP"
+            },
+            {
+              "sourcePath": "$[0].children[0].children[5]",
+              "name": "/PS-14167/MEMBER-6",
+              "type": "LINESTOP"
+            }
+          ]
+        }
+      ],
+      "directClosure": {
+        "nodes": [
+          {
+            "nodeNumber": "50",
+            "name": "PS-14167/DATUM",
+            "componentRef": "=1006649732/119345",
+            "position": "459657.72 -1481227.40 101259.55",
+            "restraints": [
+              {
+                "Type": "+Y",
+                "Stiffness": "1751270000000",
+                "Gap": "0",
+                "Friction": "0.3",
+                "DirectionCosineX": "0.000000000",
+                "DirectionCosineY": "1.000000000",
+                "DirectionCosineZ": "0.000000000"
+              },
+              {
+                "Type": "GUI",
+                "Stiffness": "1751270000000",
+                "Gap": "6",
+                "Friction": "-1.010100",
+                "CMPSUPGAP": "6mm GAP"
+              },
+              {
+                "Type": "LIM",
+                "Stiffness": "1751270000000",
+                "Gap": "20",
+                "Friction": "-1.010100",
+                "CMPSUPGAP": "20mm GAP"
+              }
+            ]
+          }
+        ],
+        "stats": {
+          "mdsPositionNodesChanged": 1,
+          "mdsRestRestraintsAdded": 1,
+          "mdsGuideRestraintsAdded": 1,
+          "mdsLineStopRestraintsAdded": 1
+        }
+      },
+      "actualNodes": [
+        {
+          "nodeNumber": "50",
+          "name": "PS-14167/DATUM",
+          "componentRef": "=1006649732/119345",
+          "position": "459657.72 -1481227.40 101259.55",
+          "restraints": [
+            {
+              "Type": "+Y",
+              "Stiffness": "1751270000000",
+              "Gap": "0",
+              "Friction": "0.3",
+              "DirectionCosineX": "0.000000000",
+              "DirectionCosineY": "1.000000000",
+              "DirectionCosineZ": "0.000000000"
+            },
+            {
+              "Type": "GUI",
+              "Stiffness": "1751270000000",
+              "Gap": "6",
+              "Friction": "-1.010100",
+              "CMPSUPGAP": "6mm GAP"
+            },
+            {
+              "Type": "LIM",
+              "Stiffness": "1751270000000",
+              "Gap": "20",
+              "Friction": "-1.010100",
+              "CMPSUPGAP": "20mm GAP"
+            }
+          ]
+        }
+      ],
+      "actualMemberCount": 3,
+      "nonRestraintShapePreserved": true,
+      "proof": {
+        "schema": "XML229.PrefinalRestraints.v1",
+        "originalJsonSha256": "ffb651515c2497eea36fa4dc439efb393223c5f4ad159ab7e398246e8fd1b241"
+      },
+      "status": "FAIL"
+    },
+    {
+      "id": "json-disabled-control",
+      "expected": {
+        "memberCount": 2,
+        "oracle": "XML-only fallback adds one default REST to each unchanged ATTA occurrence; GUIDE must be absent."
+      },
+      "declaredSourceMembers": [
+        {
+          "type": "REST",
+          "name": "CONTROLLED-REST-1",
+          "attributes": {
+            "DTXR": "REST",
+            "NAME": "/PS-14167/DATUM",
+            "CMPSUPGAP": "0mm GAP",
+            "NODEGAP": "0"
+          }
+        },
+        {
+          "type": "GUIDE",
+          "name": "CONTROLLED-GUIDE-2",
+          "attributes": {
+            "DTXR": "GUIDE",
+            "NAME": "/PS-14167/SREF",
+            "CMPSUPGAP": "6mm GAP",
+            "NODEGAP": "6"
+          }
+        }
+      ],
+      "inputNodes": [
+        {
+          "nodeNumber": "50",
+          "name": "PS-14167/DATUM",
+          "componentRef": "=1006649732/119345",
+          "position": "459657.72 -1481227.40 101259.55",
+          "restraints": []
+        },
+        {
+          "nodeNumber": "60",
+          "name": "PS-14167/SREF",
+          "componentRef": "=1006649732/119346",
+          "position": "459657.72 -1481227.40 101259.55",
+          "restraints": []
+        }
+      ],
+      "ledger": [
+        {
+          "xmlIndex": 8,
+          "node": "50",
+          "status": "RESOLVED_POS_PS",
+          "branchRelationship": "exact",
+          "distanceMm": 0,
+          "members": [
+            {
+              "sourcePath": "$[0].children[0].children[0]",
+              "name": "/PS-14167/DATUM",
+              "type": "REST"
+            },
+            {
+              "sourcePath": "$[0].children[0].children[1]",
+              "name": "/PS-14167/SREF",
+              "type": "GUIDE"
+            }
+          ]
+        },
+        {
+          "xmlIndex": 9,
+          "node": "60",
+          "status": "RESOLVED_POS_PS",
+          "branchRelationship": "exact",
+          "distanceMm": 0,
+          "members": [
+            {
+              "sourcePath": "$[0].children[0].children[0]",
+              "name": "/PS-14167/DATUM",
+              "type": "REST"
+            },
+            {
+              "sourcePath": "$[0].children[0].children[1]",
+              "name": "/PS-14167/SREF",
+              "type": "GUIDE"
+            }
+          ]
+        }
+      ],
+      "directClosure": {
+        "nodes": [
+          {
+            "nodeNumber": "50",
+            "name": "PS-14167/DATUM",
+            "componentRef": "=1006649732/119345",
+            "position": "459657.72 -1481227.40 101259.55",
+            "restraints": []
+          },
+          {
+            "nodeNumber": "60",
+            "name": "PS-14167/SREF",
+            "componentRef": "=1006649732/119346",
+            "position": "459657.72 -1481227.40 101259.55",
+            "restraints": []
+          }
+        ],
+        "stats": {
+          "mdsPositionNodesChanged": 0,
+          "mdsRestRestraintsAdded": 0,
+          "mdsGuideRestraintsAdded": 0,
+          "mdsLineStopRestraintsAdded": 0
+        }
+      },
+      "actualNodes": [
+        {
+          "nodeNumber": "50",
+          "name": "PS-14167/DATUM",
+          "componentRef": "=1006649732/119345",
+          "position": "459657.72 -1481227.40 101259.55",
+          "restraints": []
+        },
+        {
+          "nodeNumber": "60",
+          "name": "PS-14167/SREF",
+          "componentRef": "=1006649732/119346",
+          "position": "459657.72 -1481227.40 101259.55",
+          "restraints": []
+        }
+      ],
+      "actualMemberCount": 0,
+      "nonRestraintShapePreserved": true,
+      "proof": {
+        "schema": "XML229.PrefinalRestraints.v1",
+        "originalJsonSha256": "49722088a1c37bb191e620d01cd3984f286a74500961eb973c783eace1403eda"
+      },
+      "status": "FAIL"
+    }
+  ],
+  "limitations": [
+    "Not the unavailable private 21-ambiguity run.",
+    "Six-member case demonstrates representation cardinality only; it does not establish engineering compatibility.",
+    "No rigid split, native CII export, Final acceptance or engineering release performed."
+  ],
+  "provenance": {
+    "candidate": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+    "fixtureSha256": "2573883480af904096dea2663c9cf585be2db28dd047785397b4d61edee0a030",
+    "sourceModules": {
+      "tabs/xml-cii-2019-standalone/integration/xml229-prefinal-restraints.mjs": {
+        "sha256": "1a92a9e3124e99e1ac8c17f2713b58d972f95e84dc8de6e4ae47fa2a703112f1",
+        "bytes": 2020
+      },
+      "converters/xml-cii2019-core/atta-default-restraint-closure.js": {
+        "sha256": "eefe04e7379b420d0c3dc7982481c41f3fd64cd99b09d9056dae5fb0c02fb1eb",
+        "bytes": 6078
+      },
+      "converters/xml-cii2019-core/support-mapping-config.js": {
+        "sha256": "25310e8c12f0ab5be100186078d52e515eb1278563cc571ae7599975182e5ed5",
+        "bytes": 14526
+      },
+      "support/SupportKindResolver.js": {
+        "sha256": "8485ec26a595f668a54df12e92b533d7db35489016d25f4cab4b2381816d7677",
+        "bytes": 16316
+      },
+      "converters/xml-cii2019-core/support-mapping.js": {
+        "sha256": "c1440e2267eb939052211886cfc7b6494a8386c7796e15e137857e5b9709a55e",
+        "bytes": 9912
+      },
+      "converters/xml-cii2019-core/support-mapping-legacy.js": {
+        "sha256": "5a758c2d68440bc9af2d44e128c8da7844054f6ae1e2423aff8c49379df0a2fa",
+        "bytes": 26920
+      },
+      "rvm-viewer/RvmSupportMapper.js": {
+        "sha256": "20fc6be8f211b658174e27e49bd17cf5a5105881848ce948c88825adcb157236",
+        "bytes": 17183
+      },
+      "converters/xml-cii2019-core/source-schema-adapter.js": {
+        "sha256": "5e3ed531aca0c9a27f82815589d3dd733cecb1d4e252edcc390260a7a4e07186",
+        "bytes": 26944
+      },
+      "tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js": {
+        "sha256": "ebc02155156c977a47e75de0a52db16fe30303acc7964e0fd7f0a31fdd9dcc0e",
+        "bytes": 21661
+      },
+      "tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js": {
+        "sha256": "24a81523655e38f37ac5f3d28075fdaff1b70743f15046636982e609cc21ba61",
+        "bytes": 7494
+      },
+      "tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js": {
+        "sha256": "544e1e9b35176eb99090de1978601cbdc03573212316743d30fb999f71be999c",
+        "bytes": 26840
+      },
+      "tabs/xml-cii-2019-standalone/xml-cii-trace-spatial-index.js": {
+        "sha256": "a9ba5228a4ac8822ac29f7877fcc8d0c352bee6bb434d4387cc12d9dadf5ca69",
+        "bytes": 3102
+      },
+      "tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js": {
+        "sha256": "5e403291ee3a4edd8db8268175ed65204948d95677eb9eeb3ed298b9c46f9181",
+        "bytes": 16877
+      },
+      "converters/xml-cii2019-core/restraint-type-mutation.js": {
+        "sha256": "de3fea8f08f2623d6c1a1b24dc5c86c80e8298a128a25be0e47abddd9a04bdb0",
+        "bytes": 2628
+      },
+      "converters/xml-cii2019-core/restraint-type-codes.js": {
+        "sha256": "7b54977cd0206c4a0404dddd602a5b1d0519cf722d759d447d56ab55ff07a299",
+        "bytes": 2233
+      },
+      "contracts/gc-pw-v1/contract.mjs": {
+        "sha256": "7c7cdb1246fab4905668c38b7a060c515afcfc7dd1d37d13a9ebb9b2076e1537",
+        "bytes": 13613
+      }
+    },
+    "requests": [
+      "/",
+      "/harness.mjs",
+      "/source/tabs/xml-cii-2019-standalone/integration/xml229-prefinal-restraints.mjs",
+      "/source/tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js",
+      "/source/tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js",
+      "/source/converters/xml-cii2019-core/source-schema-adapter.js",
+      "/source/tabs/xml-cii-2019-standalone/xml-cii-trace-spatial-index.js",
+      "/source/converters/xml-cii2019-core/support-mapping.js",
+      "/source/converters/xml-cii2019-core/support-mapping-config.js",
+      "/source/converters/xml-cii2019-core/restraint-type-mutation.js",
+      "/source/tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js",
+      "/source/tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js",
+      "/source/converters/xml-cii2019-core/atta-default-restraint-closure.js",
+      "/source/contracts/gc-pw-v1/contract.mjs",
+      "/source/converters/xml-cii2019-core/support-mapping-legacy.js",
+      "/source/support/SupportKindResolver.js",
+      "/source/converters/xml-cii2019-core/restraint-type-codes.js",
+      "/source/converters/xml-cii2019-core/support-mapping.js",
+      "/source/converters/xml-cii2019-core/support-mapping-config.js",
+      "/source/rvm-viewer/RvmSupportMapper.js",
+      "/fixture.xml",
+      "/favicon.ico"
+    ],
+    "harnessSha256": "2b7fb6bbda86905f99121d6522f486b5be30b72cea7085d032ebeeb65b71a2c3",
+    "chromeExecutable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "browserExit": 0
+  }
+}

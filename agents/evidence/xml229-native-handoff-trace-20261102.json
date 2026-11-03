@@ -1,0 +1,107 @@
+{
+  "sha": "5c39dd7bdbb7f2f63a686823b72bdb81909d52af",
+  "sourceFiles": [
+    {
+      "path": "tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs",
+      "sha256": "b61a11373cfa20d442024c255b883d3216aec5041734ca9e5a6d7d3446c91c7d",
+      "gitBlob": "1fba6b8a49035ed0c0c82d63b4b97aad4cab3dd2",
+      "lines": 325
+    },
+    {
+      "path": "tabs/xml-cii-2019-standalone/integration/xml229-prefinal-restraints.mjs",
+      "sha256": "1a92a9e3124e99e1ac8c17f2713b58d972f95e84dc8de6e4ae47fa2a703112f1",
+      "gitBlob": "85f8e1587d28ee7788dcbbd057e77aeb6a6499bc",
+      "lines": 37
+    },
+    {
+      "path": "tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js",
+      "sha256": "544e1e9b35176eb99090de1978601cbdc03573212316743d30fb999f71be999c",
+      "gitBlob": "faf632afeee59d72c861349c90dec9e10c1ea7a9",
+      "lines": 628
+    },
+    {
+      "path": "tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js",
+      "sha256": "ebc02155156c977a47e75de0a52db16fe30303acc7964e0fd7f0a31fdd9dcc0e",
+      "gitBlob": "cdc856631d8883906db74160782881be378f3953",
+      "lines": 445
+    },
+    {
+      "path": "converters/scripts/xml229_prefinal_restraints.py",
+      "sha256": "18a7082743426bfd5e32a1cbe2666a71298019afde1be17a192167ab1eb48fe0",
+      "gitBlob": "3cc067c963f73ec164ce5dd12335aba10d9b1ade",
+      "lines": 353
+    },
+    {
+      "path": "converters/scripts/xml_to_cii2019_patched.py",
+      "sha256": "257c341aa8fc6cd568e717f960950c1a4d72bd68ba33e5e361435b28d93e2cae",
+      "gitBlob": "4079148acc826274f95a7f14d58367ff284d3ddd",
+      "lines": 1735
+    },
+    {
+      "path": "converters/scripts/xml229_native_final_mass_binding.py",
+      "sha256": "f1a5f4ddfc6844f824126633d17bd92c9649395a70a7019dd5db80a960447e43",
+      "gitBlob": "38e3caff3059ea7e00b34c4cb724180eb62dbe0e",
+      "lines": 1091
+    },
+    {
+      "path": "converters/scripts/xml_to_cii2019_runtime_custody.py",
+      "sha256": "a097a533fd8a209729e5f3520bfc9e3a05f9957f5d862df6fce726b9ada1442f",
+      "gitBlob": "81c6b37312d6a2beb7203c75848d7d23f2af77b5",
+      "lines": 546
+    }
+  ],
+  "schema": "XML229.NativeHandoffTrace.v1",
+  "sourcePhaseUtc": [
+    "2026-11-02T13:17:02Z",
+    "2026-11-02T13:19:16Z"
+  ],
+  "ownerInstruction": "ignore PR, proceed next",
+  "scope": "Current main only; read-only; eight source files; no PR investigation or production edits",
+  "findings": [
+    {
+      "id": "H1",
+      "path": "tabs/xml-cii-2019-standalone/integration/xml229-prefinal-restraints.mjs",
+      "lines": [
+        24,
+        36
+      ],
+      "observation": "Row-based closure receives XML/JSON/config only; proof records JSON SHA without a physical-vertex/member-slot map."
+    },
+    {
+      "id": "H2",
+      "path": "tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js",
+      "lines": [
+        250,
+        301,
+        357,
+        427
+      ],
+      "observation": "Evidence keyed by kind and generated entries filtered by present type, then written by XML row index."
+    },
+    {
+      "id": "H3",
+      "path": "converters/scripts/xml229_prefinal_restraints.py",
+      "lines": [
+        313,
+        331
+      ],
+      "observation": "Native source validation reconstructs support profiles per original XML node."
+    },
+    {
+      "id": "H4",
+      "path": "converters/scripts/xml_to_cii2019_runtime_custody.py",
+      "lines": [
+        417,
+        447
+      ],
+      "observation": "Native stages original lineage, then invokes independent staged enrichment before final mass binding."
+    }
+  ],
+  "validation": {
+    "sourceIdentity": "PASS_EIGHT_PINNED_GIT_BLOBS",
+    "method": "Independent byte hash versus pinned Git objects; static source/control-flow inspection",
+    "runtimeFailureReproduction": "NOT_RUN",
+    "ownerPrivateReplay": "NOT_RUN",
+    "engineeringAcceptance": "NOT_RUN"
+  }
+}

@@ -1,0 +1,8 @@
+schema: AgentStatus.v1
+pr_or_wip: PR405
+state: SUPERSEDED_BY_PR405
+canonical_record: agents/status/PR405.yaml
+report: agents/PR405_workreport.md
+pr_url: https://github.com/reallakshman19/3D_Converters/pull/405
+takeover_authority: READ_ONLY
+merge_authority: PROHIBITED_OWNER_DO_NOT_MERGE
