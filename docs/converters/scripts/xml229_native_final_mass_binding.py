@@ -1089,3 +1089,198 @@ def verify_emitted_native_masses(cii_text, owners, model, scale=10):
             "independentNativeChildLineageVerified": False,
             "nativeCiiReleaseAuthorized": False}
 
+
+
+# ---- RIGID S1: non-releasing PCOM/FLAN original-source witnesses (R-LT9/10) ----
+# The functions below do not change normal Native Final packet acceptance.
+# They are explicitly invoked by the isolated S1 test-only renderer.
+def s1_source_pcom_flange_pairs(original_root, expected_count=14):
+    """Find exact original ordinal witnesses, including both PCOM -1 records.
+
+    Never infer the physical owner from the arrival node. Requiring the two
+    original PCOM records is deliberate: deleting one must fail closed.
+    """
+    result = []
+    for bi, branch in enumerate(branches(original_root)):
+        src = nodes(branch)
+        for i in range(1, len(src) - 3):
+            prev, pc1, pc2, flange, tail = src[i-1:i+4]
+            if [txt(n, "ComponentType").upper() for n in
+                    (pc1, pc2, flange, tail)] != ["PCOM", "PCOM", "FLAN", "RIGID"]:
+                continue
+            if (txt(pc1, "NodeNumber") != "-1" or
+                    txt(pc2, "NodeNumber") != "-1" or
+                    (txt(pc1, "Endpoint"), txt(pc2, "Endpoint"),
+                     txt(flange, "Endpoint"), txt(tail, "Endpoint")) !=
+                    ("1", "2", "1", "2")):
+                continue
+            pc_ref = txt(pc1, "ComponentRefNo").strip().lstrip("=")
+            f_ref = txt(flange, "ComponentRefNo").strip().lstrip("=")
+            if not pc_ref or not f_ref or (
+                    txt(pc2, "ComponentRefNo").strip().lstrip("=") != pc_ref or
+                    txt(tail, "ComponentRefNo").strip().lstrip("=") != f_ref):
+                continue
+            require(txt(flange, "Rigid") == "2" and
+                    txt(tail, "Rigid") == "2", "S1_SOURCE_RIGID_PAIR_MISSING")
+            require(int(txt(prev, "NodeNumber")) > 0 and
+                    int(txt(flange, "NodeNumber")) > 0 and
+                    int(txt(tail, "NodeNumber")) > 0, "S1_SOURCE_POSITIVE_PAIR_MISSING")
+            distance = math.dist(_normalized_position(txt(prev, "Position")),
+                                 _normalized_position(txt(flange, "Position")))
+            f_len = math.dist(_normalized_position(txt(flange, "Position")),
+                              _normalized_position(txt(tail, "Position")))
+            require(abs(distance - 19.1) <= 0.03 and
+                    abs(f_len - 109) <= 0.03, "S1_R9_CHECKPOINT_GEOMETRY_DRIFT")
+            require(txt(flange, "BoreMm") == txt(tail, "BoreMm") and
+                    txt(flange, "Rating") == txt(tail, "Rating"),
+                    "S1_FLANGE_MATERIAL_ID_DRIFT")
+            result.append({
+                "branchOccurrenceIndex": bi,
+                "branch": txt(branch, "Branchname"),
+                "sourceOrdinals": [i-1, i, i+1, i+2, i+3],
+                "sourceNodes": (prev, pc1, pc2, flange, tail),
+                "from": txt(prev, "NodeNumber"),
+                "flangeStart": txt(flange, "NodeNumber"),
+                "flangeEnd": txt(tail, "NodeNumber"),
+                "pcomRef": pc_ref, "flangeRef": f_ref,
+                "connectionMm": distance, "flangeMm": f_len,
+                "dn": int(float(txt(flange, "BoreMm"))),
+                "rating": int(float(txt(flange, "Rating"))),
+            })
+    require(len(result) == expected_count and
+            len({(p["branch"], p["flangeRef"]) for p in result}) == len(result) and
+            len({(p["branch"], p["pcomRef"]) for p in result}) == len(result),
+            "S1_SOURCE_14_PCOM_PAIR_CENSUS")
+    return result
+
+
+def s1_rlt10_length_suggestion(length_mm, dn, rating, master_rows,
+                                flange_type="Weldneck Flange"):
+    """R-LT10: a suggestion, never a master/accepted physical weight.
+
+    A unique exact same-DN/rating reference is mandatory. The equality case
+    (length == flange length + 6 mm) was not ruled by Owner: REVIEW/null.
+    """
+    def find(family):
+        candidates = [r for r in master_rows
+            if str(r.get("TypeDesc", r.get("typeDesc", ""))).strip() == family
+            and float(r.get("DN", r.get("bore", 0)) or 0) == dn
+            and float(r.get("Rating", r.get("rating", 0)) or 0) == rating]
+        if len(candidates) != 1:
+            return None
+        r = candidates[0]
+        try:
+            L = float(r.get("length"))
+            W = float(r.get("RF/RTJ KG", r.get("weight")))
+        except (ValueError, TypeError):
+            return None
+        if not all(math.isfinite(x) and x > 0 for x in (L, W)):
+            return None
+        return r, L, W
+    review = {"status": "REVIEW", "weightKg": None, "formula": None,
+              "referenceRow": None, "ownerApproved": False}
+    if not math.isfinite(length_mm) or length_mm <= 0:
+        return review
+    flange = find(flange_type)
+    if flange is None:
+        return review
+    threshold = flange[1] + 6
+    if math.isclose(length_mm, threshold, rel_tol=0, abs_tol=1e-9):
+        return review
+    selected = (flange if length_mm < threshold
+                else find("Flanged Ball Valve-Reduced Bore"))
+    if selected is None:
+        return review
+    row, ref_len, ref_weight = selected
+    suggestion = round(ref_weight * length_mm / ref_len, 2)
+    if suggestion <= 0:
+        return review
+    return {"status": "SUGGESTED", "weightKg": suggestion,
+            "unroundedWeightKg": ref_weight * length_mm / ref_len,
+            "formula": f"{ref_weight:g} kg x {length_mm:.4f} mm / {ref_len:g} mm",
+            "referenceRow": {
+                "id": row.get("masterRowId", row.get("id")),
+                "typeDesc": row.get("TypeDesc", row.get("typeDesc")),
+                "DN": dn, "rating": rating, "lengthMm": ref_len,
+                "weightKg": ref_weight,
+            },
+            "ownerApproved": False, "thresholdMm": threshold}
+
+
+def s1_build_test_only_fixture(source_bytes, master_rows, expected_count=14):
+    """Extract ONLY witnessed R9 pairs, keeping PCOM -1 in the staged XML.
+
+    Produces a DERIVED NON-RELEASE fixture and an unapproved Final-style
+    physical packet. Never use an original mass for a connection span.
+    The 14 actual source ordinal numbers are recorded in the evidence, while
+    extracted fixture ordinals are necessarily local (0..4).
+    """
+    root = parse_bytes(source_bytes)
+    pairs = s1_source_pcom_flange_pairs(root, expected_count=expected_count)
+    source_sha = hashlib.sha256(source_bytes).hexdigest()
+    ns = root.tag.split("}", 1)[0] + "}" if "}" in root.tag else ""
+    ET.register_namespace("", ns[:-1][1:] if ns else "")
+    fixture = ET.Element(ns + "PipeStressExport")
+    pipe = ET.SubElement(fixture, ns + "Pipe")
+    components, evidence = [], []
+    source_id = "PUBLIC-BM2-RIGID-S1-NONRELEASE"
+    for bi, pair in enumerate(pairs):
+        require(pair["dn"] == 50 and pair["rating"] == 900,
+                "S1_CHECKPOINT_UNEXPECTED_BORE_RATING")
+        suggest = s1_rlt10_length_suggestion(
+            pair["connectionMm"], pair["dn"], pair["rating"], master_rows)
+        require(suggest["status"] == "SUGGESTED",
+                "S1_UNKNOWN_REFERENCE_REVIEW_NO_TEST_CII")
+        branch = ET.SubElement(pipe, ns + "Branch")
+        ET.SubElement(branch, ns + "Branchname").text = pair["branch"]
+        clones = [ET.fromstring(ET.tostring(node, encoding="utf-8"))
+                  for node in pair["sourceNodes"]]
+        # This isolated 14-pair excerpt starts at the preceding valve END:
+        # it is a cut-boundary witness, NOT an accepted upstream valve weight.
+        # Drop only its Rigid marker so the absent preceding valve element
+        # cannot be mistaken for a 15th physical mass in this test fixture.
+        boundary_rigid = child(clones[0], "Rigid")
+        if boundary_rigid is not None:
+            clones[0].remove(boundary_rigid)
+        # The FLAN entry node is the 19.1 mm CONNECTION's arrival; it does
+        # not carry the 109 mm flange's master weight in test-only bytes.
+        child(clones[3], "Weight").text = format(suggest["weightKg"], ".17g")
+        # The trailing RIGID endpoint is the actual 109 mm flange owner.
+        child(clones[4], "Weight").text = "15"
+        for n in clones:
+            branch.append(n)
+        oid = _lineage_oid(source_id, bi, 4, clones[4])
+        components.append({"occurrenceId": oid, "effectiveKg": 15})
+        evidence.append({
+            "originalSourceSha256": source_sha,
+            "sourceBranchOccurrenceIndex": pair["branchOccurrenceIndex"],
+            "sourceNodeOrdinals": pair["sourceOrdinals"],
+            "fixtureBranchOccurrenceIndex": bi,
+            "extractedFixtureLocalPCOMMinus1Ordinals": [1, 2],
+            "branch": pair["branch"], "pcomRef": pair["pcomRef"],
+            "flangeRef": pair["flangeRef"],
+            "connectionFrom": pair["from"],
+            "connectionTo": pair["flangeStart"],
+            "flangeFrom": pair["flangeStart"], "flangeTo": pair["flangeEnd"],
+            "connectionMm": pair["connectionMm"], "flangeMm": pair["flangeMm"],
+            "flangeOwnerKg": 15, "flangeForceN": 150,
+            **suggest,
+        })
+    xml = ET.tostring(fixture, encoding="utf-8", xml_declaration=True)
+    packet = {
+        "schema": SCHEMA,
+        "sourceId": source_id,
+        "sourceXmlSha256": hashlib.sha256(xml).hexdigest(),
+        "basisId": hashlib.sha256(b"S1-test-only-basis:" + xml).hexdigest(),
+        "finalIntentSha256": hashlib.sha256(b"S1-NON-RELEASE-ONLY:" + xml).hexdigest(),
+        "physicalCount": len(components), "components": components,
+        "nativeCiiReleaseAuthorized": False,
+        "s1TestOnlyNonrelease": True,
+    }
+    return xml, packet, {
+        "schema": "RigidS1.NonReleasePcomFlangeWitness.v1",
+        "originalSourceSha256": source_sha,
+        "derivedFixtureSha256": packet["sourceXmlSha256"],
+        "nativeCiiReleaseAuthorized": False,
+        "checkpoints": evidence,
+    }

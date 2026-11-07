@@ -1,0 +1,67 @@
+name: Rigid S1 BM2 checkpoint native CII nonrelease
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'converters/scripts/xml229_native_final_mass_binding.py'
+      - 'converters/scripts/xml_cii_weight_output_custody.py'
+      - 'converters/scripts/xml229_rigid_s1_testonly.py'
+      - 'docs/converters/scripts/xml229_native_final_mass_binding.py'
+      - 'docs/converters/scripts/xml_cii_weight_output_custody.py'
+      - 'docs/converters/scripts/xml229_rigid_s1_testonly.py'
+      - 'tests/rigid-s1-testonly.test.py'
+      - 'tests/rigid-s1-r1-main-positive-control.test.py'
+      - 'tests/rigid-s1-r1-deletion-mutants.test.py'
+      - 'tests/rigid-s1-r2-guards.test.py'
+      - 'tests/rigid-s1-r2-deletion-mutants.test.py'
+      - '.github/workflows/rigid-s1-testonly.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  r9-derived-14-pair-nonrelease:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Root/live mirrors and compile
+        run: |
+          for f in xml229_native_final_mass_binding.py xml_cii_weight_output_custody.py xml229_rigid_s1_testonly.py; do
+            diff -u "converters/scripts/$f" "docs/converters/scripts/$f"
+            python3 -m py_compile "converters/scripts/$f"
+          done
+      - name: Test-only Native Final binding + actual native CII + five RED mutants
+        run: python3 tests/rigid-s1-testonly.test.py -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Independent JS reconciler must reject S1 test-only release
+        run: node --test tests/rigid-s1-nonrelease-independent.test.mjs
+      - name: R2 negative tampered-CII, witness, source and R-LT10 tests
+        run: python3 tests/rigid-s1-r2-guards.test.py -v
+      - name: 25 R2 isolated delete-one source mutants (assertion failures only)
+        run: python3 tests/rigid-s1-r2-deletion-mutants.test.py -v
+      - name: Ten isolated source-code deletion mutants must turn the guard tests RED
+        run: python3 tests/rigid-s1-r1-deletion-mutants.test.py -v
+      - name: R1 ordinary PCOM and Native Final compare byte-exact to pinned main
+        run: python3 tests/rigid-s1-r1-main-positive-control.test.py -v
+      - name: No test-only CII fixture in tracked production paths
+        run: |
+          if git ls-files | grep -E '(S1_TEST_ONLY_NON_RELEASE\.cii|bm2-enriched-R9\.xml)'; then
+            echo "S1 protected original and test CII must not be committed"
+            exit 1
+          fi
+          echo "NON_RELEASE_SOURCE_AND_CII_NOT_COMMITTED"
+      - name: Package native Python source for offline exact-R9 test
+        run: tar -czf rigid-s1-python-source-testonly.tgz -C converters scripts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rigid-s1-native-source-nonrelease
+          path: rigid-s1-python-source-testonly.tgz
+          retention-days: 3
