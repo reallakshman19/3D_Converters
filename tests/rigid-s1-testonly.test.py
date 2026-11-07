@@ -165,6 +165,18 @@ class RigidS1ActualCiiTests(unittest.TestCase):
         with self.assertRaises(NativeMassError) as caught:
             nonrelease_guard(wrong)
         self.assertEqual(caught.exception.code,'S1_FINAL_RELEASE_BLOCKED')
+        # A normal Native Final source packet WITHOUT the explicit test-only
+        # quarantine marker must be held before PCOM -1 is pruned.
+        fixture, packet, _ = s1_build_test_only_fixture(self.source, MASTER_ROWS)
+        packet.pop('s1TestOnlyNonrelease')
+        with TemporaryDirectory() as td:
+            src=Path(td)/'original.xml';src.write_bytes(fixture)
+            manifest=Path(td)/'packet.json'
+            manifest.write_text(json.dumps(packet))
+            with self.assertRaises(NativeMassError) as denied:
+                stage_native_original_lineage(src,manifest)
+            self.assertEqual(denied.exception.code,
+                'NATIVE_S1_PCOM_UNAPPROVED_RELEASE_BLOCKED')
 
 
 if __name__=='__main__':
