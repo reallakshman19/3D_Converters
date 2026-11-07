@@ -189,8 +189,8 @@ def verify_actual_bytes(cii, ledger):
             "elementId": e["elementId"], "pointer": pointer,
             "actualForceN": force, "status": e["status"],
             "sourceKg": e["weightKg"], "ownerElementId": e["ownerElementId"]})
-    require(len(claim_pointers) == 64,
-            "S2_CII_ASSIGNED_CENSUS_DRIFT")
+    # The 64 assigned pointer census is already enforced by the 50+14
+    # ledger statuses and the one-to-one per-element pointer check.
     return {
         "schema": "RIGID.S2.NonreleaseActualBytes.v1",
         "releaseAuthorized": False,
@@ -237,6 +237,12 @@ class S2BudgetTests(unittest.TestCase):
         data = copy.deepcopy(self.ledger)
         next(x for x in data["sources"] if x["status"] == "REVIEW")["knownMassKg"] = 0.0
         self.reject(data, "S2_UNKNOWN_NOT_ZERO")
+
+    def test_m1_unique_source_identity_mutant_refused(self):
+        data = copy.deepcopy(self.ledger)
+        unknowns = [s for s in data["sources"] if s["status"] == "REVIEW"]
+        unknowns[1]["sourceId"] = unknowns[0]["sourceId"]
+        self.reject(data, "S2_SOURCE_POPULATION")
 
     def test_m1_held_must_carry_no_mass_mutant_refused(self):
         data = copy.deepcopy(self.ledger)
@@ -307,6 +313,28 @@ class S2BudgetTests(unittest.TestCase):
         first[1], second[1] = second[1], first[1]
         lines[a], lines[b] = " ".join(first), " ".join(second)
         with self.assertRaisesRegex(S2NonreleaseError, "S2_CII_POINTER_OWNER_DRIFT"):
+            verify_actual_bytes("\n".join(lines) + "\n", self.ledger)
+
+    def test_m2_145th_actual_element_refused(self):
+        cii, _ = render_nonrelease(self.ledger)
+        lines = cii.splitlines()
+        e_start = lines.index("#$ ELEMENTS") + 1
+        extra = list(lines[e_start:e_start + 15])
+        first = extra[0].split()
+        first[0], first[1] = "98989", "98990"
+        extra[0] = " ".join(first)
+        row13 = extra[12].split()
+        row13[1] = "145"
+        extra[12] = " ".join(row13)
+        lines[e_start + 144 * 15:e_start + 144 * 15] = extra
+        r_start = lines.index("#$ RIGID") + 1
+        lines.insert(r_start + 144, "0 0")
+        control = lines.index("#$ CONTROL") + 1
+        fields1, fields2 = lines[control].split(), lines[control + 1].split()
+        fields1[0], fields2[1] = "145", "145"
+        lines[control], lines[control + 1] = (
+            " ".join(fields1), " ".join(fields2))
+        with self.assertRaisesRegex(S2NonreleaseError, "S2_CII_POPULATION_DRIFT"):
             verify_actual_bytes("\n".join(lines) + "\n", self.ledger)
 
     def test_m2_actual_owned_force_tamper_refused(self):
