@@ -95,7 +95,7 @@ class RigidS1ActualCiiTests(unittest.TestCase):
     def test_s1a_pcom_minus1_and_geometry_pass(self):
         checks=self.receipt['checkpoints']
         self.assertEqual(len(checks),14)
-        self.assertTrue(all(p['fixturePCOMMinus1Ordinals']==[1,2] for p in checks))
+        self.assertTrue(all(p['extractedFixtureLocalPCOMMinus1Ordinals']==[1,2] for p in checks))
         self.assertTrue(all(abs(p['connectionMm']-19.1)<.03 for p in checks))
         self.assertTrue(all(abs(p['flangeMm']-109)<.03 for p in checks))
         self.assertTrue(self.receipt['actualCiiBytesChecked'])
