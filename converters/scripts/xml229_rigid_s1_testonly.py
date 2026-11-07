@@ -182,8 +182,6 @@ def main():
         _table_csv(receipt), encoding="utf-8")
 
 
-if __name__ == "__main__":
-    main()
 
 
 # S1-only custody. These tests cannot authorize ordinary production CII.
@@ -291,3 +289,7 @@ def require_s1_test_only_weight_owners(xml_path, model, witness):
         raise NativeMassError("S1_TEST_ONLY_WITNESS_REQUIRED")
     return require_rigid_weight_owners(
         xml_path, model, s1_test_only_witness=witness)
+
+
+if __name__ == "__main__":
+    main()
