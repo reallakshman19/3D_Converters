@@ -108,7 +108,7 @@ class RigidS1ActualCiiTests(unittest.TestCase):
             s1_build_test_only_fixture(ET.tostring(root),MASTER_ROWS)
         self.assertEqual(caught.exception.code,'S1_SOURCE_14_PCOM_PAIR_CENSUS')
 
-    def test_s1b_unique_flan_owner_and_duplicate_packet_mutant(self):
+    def test_existing_main_owner_cardinality_duplicate_packet_mutant(self):
         fixture,packet,_=s1_build_test_only_fixture(self.source,MASTER_ROWS)
         self.assertEqual(packet['physicalCount'],14)
         self.assertEqual(len({x['occurrenceId'] for x in packet['components']}),14)
@@ -165,18 +165,129 @@ class RigidS1ActualCiiTests(unittest.TestCase):
         with self.assertRaises(NativeMassError) as caught:
             nonrelease_guard(wrong)
         self.assertEqual(caught.exception.code,'S1_FINAL_RELEASE_BLOCKED')
-        # A normal Native Final source packet WITHOUT the explicit test-only
-        # quarantine marker must be held before PCOM -1 is pruned.
-        fixture, packet, _ = s1_build_test_only_fixture(self.source, MASTER_ROWS)
-        packet.pop('s1TestOnlyNonrelease')
-        with TemporaryDirectory() as td:
-            src=Path(td)/'original.xml';src.write_bytes(fixture)
-            manifest=Path(td)/'packet.json'
-            manifest.write_text(json.dumps(packet))
-            with self.assertRaises(NativeMassError) as denied:
-                stage_native_original_lineage(src,manifest)
-            self.assertEqual(denied.exception.code,
-                'NATIVE_S1_PCOM_UNAPPROVED_RELEASE_BLOCKED')
+        # R1: ordinary Native Final packets retain MAIN's error precedence.
+        # S1-specific invalid witnesses are tested in RigidS1ExclusiveCustodyMutants.
+
+
+# R1/F3: These tests invoke the actual public custody function with a BAD S1
+# witness. Delete the call to _s1_assert_pcom_release_hold in the shared
+# require_rigid_weight_owners() and each S1-specific negative becomes GREEN
+# unexpectedly (this suite fails). The pre-existing NATIVE_OWNER_DUPLICATED
+# guard is intentionally NOT credited as an R1-specific mutant.
+from contextlib import contextmanager
+import hashlib
+import xml_to_cii2019 as native
+import xml_to_cii2019_patched as patched
+from xml229_native_final_mass_binding import bind_native_final_xml
+from xml_cii_weight_output_custody import require_rigid_weight_owners
+from xml229_rigid_s1_testonly import require_s1_test_only_weight_owners
+
+
+@contextmanager
+def _s1_bound_witness():
+    fixture, packet, receipt = s1_build_test_only_fixture(
+        derived_source(), MASTER_ROWS)
+    with TemporaryDirectory() as td:
+        src = Path(td)/"source.xml"
+        pkt = Path(td)/"packet.json"
+        src.write_bytes(fixture)
+        pkt.write_text(json.dumps(packet))
+        staged = stage_native_original_lineage(src, pkt)
+        bound, owners = bind_native_final_xml(
+            src, staged, pkt, require_staged_lineage=True)
+        assert len(owners) == 14
+        receipt["boundTestInputSha256"] = hashlib.sha256(
+            bound.read_bytes()).hexdigest()
+        document = native._parse_xml_document(
+            bound, preserve_rigid_weight_owners=False)
+        model = patched._build_conversion_model(document, {}, {}, {})
+        yield bound, model, receipt
+
+
+class RigidS1ExclusiveCustodyMutants(unittest.TestCase):
+
+    def _must_fail(self, code, alter):
+        with _s1_bound_witness() as (bound, model, witness):
+            alter(bound, model, witness)
+            with self.assertRaises(ValueError) as e:
+                require_rigid_weight_owners(
+                    bound, model, s1_test_only_witness=witness)
+            self.assertIn(code, str(e.exception))
+
+    def test_r1_s1b_double_owner_guard_red(self):
+        def mutation(bound, model, witness):
+            # Duplicate a *physical occurrence* in the second otherwise
+            # distinct branch; old owner-cardinality check remains satisfied.
+            a, b = witness["checkpoints"][:2]
+            b["branch"], b["flangeRef"] = a["branch"], a["flangeRef"]
+        self._must_fail("CII_S1_DOUBLE_PHYSICAL_OWNER", mutation)
+
+    def test_r1_s1b_neighbor_15kg_on_connection_red(self):
+        def mutation(bound, model, witness):
+            witness["checkpoints"][0]["weightKg"] = 15
+        self._must_fail("CII_S1_CONNECTION_BORROWED_FLANGE_MASS", mutation)
+
+    def test_r1_s1b_mass_moved_flange_to_connection_red(self):
+        def mutation(bound, model, witness):
+            # Change ACTUAL staged XML mass allocation and the native model
+            # consistently: ordinary source-owner cardinality still PASSES.
+            root = ET.parse(bound).getroot()
+            first = next(e for e in root.iter() if e.tag == "Branch")
+            ns = [n for n in first if n.tag == "Node"]
+            next(e for e in ns[3] if e.tag.endswith("Weight")).text = "15"
+            next(e for e in ns[4] if e.tag.endswith("Weight")).text = "2.63"
+            bound.write_bytes(ET.tostring(root, encoding="utf-8"))
+            witness["boundTestInputSha256"] = hashlib.sha256(
+                bound.read_bytes()).hexdigest()
+            updated = native._parse_xml_document(
+                bound, preserve_rigid_weight_owners=False)
+            replacement = patched._build_conversion_model(updated, {}, {}, {})
+            model.rigid_edges = replacement.rigid_edges
+            model.edges = replacement.edges
+        self._must_fail("CII_S1_CONNECTION_BORROWED_FLANGE_MASS", mutation)
+
+    def test_r1_s1b_owner_approved_true_red(self):
+        def mutation(bound, model, witness):
+            witness["checkpoints"][0]["ownerApproved"] = True
+        self._must_fail("CII_S1_UNAPPROVED_MASS_CLAIM", mutation)
+
+    def test_r1_s1b_duplicate_edge_cannot_steal_owner_red(self):
+        def mutation(bound, model, witness):
+            # Clone the same FROM/TO and weight but change the source identity,
+            # so main's source-owner cardinality is still satisfied; only the
+            # S1 edge-uniqueness rule catches it.
+            extra = copy.deepcopy(model.rigid_edges[0])
+            extra.to_node.component_ref_no = "=UNATTESTED/DUPLICATE"
+            extra.to_node.position = tuple(x+0.123 for x in extra.to_node.position)
+            model.rigid_edges.append(extra)
+            model.edges.append(extra)
+        self._must_fail(
+            "CII_S1_CONNECTION_FLANGE_EDGE_OWNER_AMBIGUOUS", mutation)
+
+    def test_r1_s1b_test_renderer_missing_witness_red_not_normal_conversion(self):
+        with _s1_bound_witness() as (bound, model, receipt):
+            # This must be allowed for ordinary app conversions.
+            self.assertIsNone(require_rigid_weight_owners(bound, model))
+            # Only the S1 TEST renderer requires the explicit witness.
+            with self.assertRaises(NativeMassError) as e:
+                require_s1_test_only_weight_owners(bound, model, None)
+            self.assertEqual(e.exception.code,"S1_TEST_ONLY_WITNESS_REQUIRED")
+            # And explicit S1 test custody still accepts the correct witness.
+            self.assertIsNone(require_s1_test_only_weight_owners(
+                bound, model, receipt))
+
+
+class RigidS1Rlt10LookupMutants(unittest.TestCase):
+    def test_r1_s1d_dn_rating_and_duplicate_master_fail_closed(self):
+        invalid = [(80,900,MASTER_ROWS),(50,600,MASTER_ROWS),
+                   (50,900,(*MASTER_ROWS,dict(MASTER_ROWS[0])))]
+        for dn,rating,rows in invalid:
+            with self.subTest(dn=dn,rating=rating,rows=len(rows)):
+                suggestion = s1_rlt10_length_suggestion(
+                    19.1,dn,rating,rows)
+                self.assertEqual(suggestion["status"],"REVIEW")
+                self.assertIsNone(suggestion["weightKg"])
+                self.assertFalse(suggestion["ownerApproved"])
 
 
 if __name__=='__main__':
