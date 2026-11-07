@@ -35,6 +35,9 @@ MUTANTS = [
     ("M3-held-named-geometry-reason",
      's["holdReason"] in (', 'True or s["holdReason"] in (',
      "test_m3_each_held_component_requires_geometry_reason"),
+    ("M3-held-no-complete-owner-edge",
+     'e["nodePair"] == [int(nums[0]), int(nums[-1])]', 'False',
+     "test_m3_held_never_has_a_complete_owner_edge"),
     ("M1-unresolved-null-not-zero",
      'all(e["weightKg"] is None and e["ownerElementId"] is None',
      'all(True',
@@ -68,7 +71,7 @@ MUTANTS = [
 
 
 class S2DeleteOneMutationAudit(unittest.TestCase):
-    def test_thirteen_real_s2_source_deletions_red(self):
+    def test_fourteen_real_s2_source_deletions_red(self):
         count = 0
         for label, before, after, method in MUTANTS:
             with self.subTest(label=label):
@@ -104,7 +107,7 @@ class S2DeleteOneMutationAudit(unittest.TestCase):
                     self.assertIn(method, output, label)
                     count += 1
                     print("S2_MUTANT_RED behavior", label, method, flush=True)
-        self.assertEqual(count, 13)
+        self.assertEqual(count, 14)
         print("S2_DELETE_ONE_BEHAVIOR_KILLS", count, "TOTAL", len(MUTANTS),
               flush=True)
 
