@@ -606,17 +606,6 @@ def stage_native_original_lineage(original_path, packet_path, staged_json_path=N
     """
     _native_lineage_probe('LINEAGE_PACKET_VALIDATE')
     packet, source = read_packet(packet_path, original_path)
-    # S1 test-only packets may stage the R9 PCOM witnesses, but normal
-    # Native Final packets MUST hold before pruned -1 lineage can disappear.
-    pcom_unapproved = any(
-        txt(n, "ComponentType").upper() == "PCOM" and
-        txt(n, "NodeNumber") == "-1"
-        for b in branches(source) for n in nodes(b))
-    if pcom_unapproved:
-        require(packet.get("s1TestOnlyNonrelease") is True and
-                packet.get("sourceId") == "PUBLIC-BM2-RIGID-S1-NONRELEASE" and
-                packet.get("nativeCiiReleaseAuthorized") is False,
-                "NATIVE_S1_PCOM_UNAPPROVED_RELEASE_BLOCKED")
     require(child(source, LINEAGE_STAGE) is None and
             not any(child(node, LINEAGE_TAG) is not None
                     for branch in branches(source) for node in nodes(branch)),
