@@ -29,6 +29,9 @@ MUTANTS = [
     ("M1-unknown-not-zero",
      'all(s["knownMassKg"] is None for s in unknown),', 'True,',
      "test_m1_unknown_is_null_mutant_refused"),
+    ("M1-unique-source-id",
+     'len({s["sourceId"] for s in sources}) == 154,', 'True,',
+     "test_m1_unique_source_identity_mutant_refused"),
     ("M1-held-no-assignment",
      'all(s["ownerElementId"] is None for s in held) and', 'True and',
      "test_m1_held_must_carry_no_mass_mutant_refused"),
@@ -56,6 +59,10 @@ MUTANTS = [
      '                "S2_CII_POINTER_OWNER_DRIFT")',
      'require(True, "S2_CII_POINTER_OWNER_DRIFT")',
      "test_m2_actual_pointer_swap_between_review_edges_refused"),
+    ("M2-actual-145-element-census",
+     'len(parsed) == 144 and len(weights) == 144 and len(slots) == 144,',
+     'True,',
+     "test_m2_145th_actual_element_refused"),
     ("M2-actual-owned-force",
      'math.isclose(force, 10 * e["weightKg"],\n'
      '                                 abs_tol=1e-6, rel_tol=1e-9),',
@@ -71,7 +78,7 @@ MUTANTS = [
 
 
 class S2DeleteOneMutationAudit(unittest.TestCase):
-    def test_fourteen_real_s2_source_deletions_red(self):
+    def test_sixteen_real_s2_source_deletions_red(self):
         count = 0
         for label, before, after, method in MUTANTS:
             with self.subTest(label=label):
@@ -107,7 +114,7 @@ class S2DeleteOneMutationAudit(unittest.TestCase):
                     self.assertIn(method, output, label)
                     count += 1
                     print("S2_MUTANT_RED behavior", label, method, flush=True)
-        self.assertEqual(count, 14)
+        self.assertEqual(count, 16)
         print("S2_DELETE_ONE_BEHAVIOR_KILLS", count, "TOTAL", len(MUTANTS),
               flush=True)
 
