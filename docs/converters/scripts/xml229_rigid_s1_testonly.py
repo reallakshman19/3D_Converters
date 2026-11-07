@@ -129,7 +129,11 @@ def render_s1_nonrelease(source_bytes, *, master_rows=MASTER_ROWS):
                 len(owners) != 14 or audit["doubleAcceptedPairs"]):
             raise NativeMassError("S1_NATIVE_BINDING_ALIAS_CENSUS")
         receipt["boundTestInputSha256"] = hashlib.sha256(bound.read_bytes()).hexdigest()
-        doc = native._parse_xml_document(bound, preserve_rigid_weight_owners=True)
+        # In this isolated S1 geometry the PCOM -1 rows stay in ORIGINAL
+        # source/lineage evidence, not as a manufactured positive native
+        # predecessor to the weighted FLAN entry. Promoting PCOM endpoint 2
+        # would wrongly split 19.1 into 15.9 + 3.2 mm.
+        doc = native._parse_xml_document(bound, preserve_rigid_weight_owners=False)
         model = patched._build_conversion_model(doc, {}, {}, {})
         require_rigid_weight_owners(bound, model, s1_test_only_witness=receipt)
         # The actual native serializer produces full CONTROL, ELEMENTS and
