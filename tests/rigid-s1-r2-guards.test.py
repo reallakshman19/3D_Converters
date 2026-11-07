@@ -112,6 +112,12 @@ class R2ActualCiiByteGuards(unittest.TestCase):
         lines = self.cii.splitlines()
         start = lines.index("#$ ELEMENTS") + 1
         extra = list(lines[start:start + 15])
+        # Give the unclaimed record unique endpoints so no checkpoint
+        # _emitted_force() lookup can reject it for duplicate FROM/TO.
+        first_fields = extra[0].split()
+        self.assertEqual(len(first_fields), 6)
+        first_fields[0], first_fields[1] = "99999", "99998"
+        extra[0] = " ".join(first_fields)
         pointer_fields = extra[12].split()
         self.assertEqual(len(pointer_fields), 6)
         pointer_fields[1] = "0"
