@@ -398,6 +398,11 @@ def main() -> None:
 
     _mark_native_failure_stage('RUNTIME_OPTIONS')
     args = patched._parse_args()
+    if args.xml229_native_final_packet is not None:
+        from xml229_native_final_mass_binding import read_packet
+        probe_packet, _ = read_packet(args.xml229_native_final_packet, args.input)
+        if probe_packet.get("s1TestOnlyNonrelease") is True:
+            raise ValueError("NATIVE_S1_TEST_ONLY_PACKET_RELEASE_FORBIDDEN")
     support_config = patched._load_support_config(args.support_config_json)
     if args.split_condensed_valve_flange is not None:
         support_config["splitCondensedValveFlange"] = bool(args.split_condensed_valve_flange)
