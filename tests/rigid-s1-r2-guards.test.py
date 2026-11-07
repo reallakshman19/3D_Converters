@@ -114,7 +114,8 @@ class R2ActualCiiByteGuards(unittest.TestCase):
         source = (ROOT / "converters/scripts/xml229_rigid_s1_testonly.py").read_text()
         for marker in ("c_n == 150", "c_n == f_n",
                        "c_idx in used", "f_idx in used",
-                       "len(used) != 28"):
+                       "len(used) != 28",
+                       "len(checkpoints) != 14"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, source)
 
@@ -203,6 +204,7 @@ class R2ExplicitWitnessGuards(unittest.TestCase):
         source = (ROOT / "converters/scripts/xml229_rigid_s1_testonly.py").read_text()
         self.assertIn("pc in pcom_ids", source)
         self.assertIn("len(checked_edges) != 2 * len(checks)", source)
+        self.assertIn("pc in pcom_ids", source)
 
 
 class R2SourceAndReferenceGuards(unittest.TestCase):
@@ -222,7 +224,7 @@ class R2SourceAndReferenceGuards(unittest.TestCase):
         nodes = [n for n in branch if n.tag == "Node"]
         position = next(c for c in nodes[3] if c.tag == "Position")
         xyz = position.text.split()
-        xyz[1] = str(float(xyz[1]) + 0.4)
+        xyz[2] = str(float(xyz[2]) + 0.4)
         position.text = " ".join(xyz)
         self.source_rejected(ET.tostring(root), "S1_R9_CHECKPOINT_GEOMETRY_DRIFT")
 
@@ -250,6 +252,11 @@ class R2SourceAndReferenceGuards(unittest.TestCase):
         self.assertEqual(result["status"], "REVIEW")
         self.assertIsNone(result["weightKg"])
         self.assertFalse(result["ownerApproved"])
+
+    def test_t4_invalid_reference_defensive_guards_present(self):
+        source = (ROOT / "converters/scripts/xml229_native_final_mass_binding.py").read_text()
+        self.assertIn("if not math.isfinite(length_mm) or length_mm <= 0:", source)
+        self.assertIn("if selected is None:", source)
 
 
 if __name__ == "__main__":
