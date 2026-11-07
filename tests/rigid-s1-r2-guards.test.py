@@ -106,6 +106,27 @@ class R2ActualCiiByteGuards(unittest.TestCase):
     def test_t1_population_drift_in_coherent_tampered_cii(self):
         self.assert_cii_refused(remove_last_pair_element_and_rigid(self.cii))
 
+    def test_y3_29th_nonrigid_element_population_refused(self):
+        # Append an actual fifteenth-row ELEMENTS block with RIGID pointer 0;
+        # the RIGID section remains 28 records and CONTROL is consistent.
+        lines = self.cii.splitlines()
+        start = lines.index("#$ ELEMENTS") + 1
+        extra = list(lines[start:start + 15])
+        pointer_fields = extra[12].split()
+        self.assertEqual(len(pointer_fields), 6)
+        pointer_fields[1] = "0"
+        extra[12] = " ".join(pointer_fields)
+        lines[start + 28 * 15:start + 28 * 15] = extra
+        control = lines.index("#$ CONTROL") + 1
+        fields = lines[control].split()
+        self.assertEqual(fields[0], "28")
+        fields[0] = "29"
+        lines[control] = " ".join(fields)
+        bad = "\n".join(lines) + "\n"
+        with self.assertRaises(binder.NativeMassError) as caught:
+            s1.verify_actual_cii(bad, copy.deepcopy(self.receipt))
+        self.assertEqual(caught.exception.code, "S1_CII_PAIR_POPULATION_DRIFT")
+
     def test_t1_used_and_equal_force_guards_present(self):
         # Logical overlap: c_n == f_n is subsumed by c_n == 150 plus
         # f_n == 150. Used-index uniqueness is also implied by the 28-owner
@@ -172,6 +193,18 @@ class R2ExplicitWitnessGuards(unittest.TestCase):
             witness["boundTestInputSha256"] = hashlib.sha256(bound.read_bytes()).hexdigest()
         self.must_fail("CII_S1_PCOM_ORDINAL_WITNESS_MISSING", alter)
 
+    def test_y2_second_pcom_witness_number_five_refused(self):
+        def alter(bound, model, witness):
+            root = ET.parse(bound).getroot()
+            branch = next(b for b in root.iter() if b.tag == "Branch")
+            nodes = [n for n in branch if n.tag == "Node"]
+            self.assertEqual(next(c for c in nodes[2] if c.tag == "NodeNumber").text,
+                             "-1")
+            next(c for c in nodes[2] if c.tag == "NodeNumber").text = "5"
+            bound.write_bytes(ET.tostring(root, encoding="utf-8"))
+            witness["boundTestInputSha256"] = hashlib.sha256(bound.read_bytes()).hexdigest()
+        self.must_fail("CII_S1_PCOM_ORDINAL_WITNESS_MISSING", alter)
+
     def test_t3_duplicate_pcom_identity_refused(self):
         # This case also becomes a branch-lineage error if the duplicate-ID
         # check is deleted. Marker audit explicitly covers that redundancy.
@@ -217,6 +250,12 @@ class R2SourceAndReferenceGuards(unittest.TestCase):
             set_xml_field(derived_source(), 1, "NodeNumber", "5"),
             "S1_SOURCE_14_PCOM_PAIR_CENSUS")
 
+    def test_y1_source_second_pcom_number_five_refused(self):
+        raw = derived_source()
+        self.source_rejected(
+            set_xml_field(raw, 2, "NodeNumber", "5"),
+            "S1_SOURCE_14_PCOM_PAIR_CENSUS")
+
     def test_t4_source_19_5mm_connection_drift(self):
         raw = derived_source()
         root = ET.fromstring(raw)
@@ -254,10 +293,24 @@ class R2SourceAndReferenceGuards(unittest.TestCase):
 
     def test_t4_missing_ball_valve_row_review_null(self):
         rows = tuple(r for r in s1.MASTER_ROWS if r["id"] != 974)
-        result = binder.s1_rlt10_length_suggestion(400, 50, 900, rows)
+        try:
+            result = binder.s1_rlt10_length_suggestion(400, 50, 900, rows)
+        except (TypeError, ValueError) as error:
+            self.fail(f"missing valve reference must return REVIEW/null, not {type(error).__name__}")
         self.assertEqual(result["status"], "REVIEW")
         self.assertIsNone(result["weightKg"])
         self.assertFalse(result["ownerApproved"])
+
+    def test_y4_nan_reference_weight_and_length_review_null(self):
+        # Separate exact master-row corruption cases (not unknown input length).
+        for field in ("RF/RTJ KG", "length"):
+            with self.subTest(master_field=field):
+                rows = [dict(r) for r in s1.MASTER_ROWS]
+                rows[0][field] = float("nan")
+                result = binder.s1_rlt10_length_suggestion(19.1, 50, 900, rows)
+                self.assertEqual(result["status"], "REVIEW")
+                self.assertIsNone(result["weightKg"])
+                self.assertFalse(result["ownerApproved"])
 
     def test_t4_invalid_reference_defensive_guards_present(self):
         source = (ROOT / "converters/scripts/xml229_native_final_mass_binding.py").read_text()
