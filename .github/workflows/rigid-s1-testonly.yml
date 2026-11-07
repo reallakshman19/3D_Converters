@@ -11,6 +11,7 @@ on:
       - 'docs/converters/scripts/xml229_rigid_s1_testonly.py'
       - 'tests/rigid-s1-testonly.test.py'
       - 'tests/rigid-s1-r1-main-positive-control.test.py'
+      - 'tests/rigid-s1-r1-deletion-mutants.test.py'
       - '.github/workflows/rigid-s1-testonly.yml'
   workflow_dispatch:
 permissions:
@@ -40,6 +41,8 @@ jobs:
           node-version: '22'
       - name: Independent JS reconciler must reject S1 test-only release
         run: node --test tests/rigid-s1-nonrelease-independent.test.mjs
+      - name: Ten isolated source-code deletion mutants must turn the guard tests RED
+        run: python3 tests/rigid-s1-r1-deletion-mutants.test.py -v
       - name: R1 ordinary PCOM and Native Final compare byte-exact to pinned main
         run: python3 tests/rigid-s1-r1-main-positive-control.test.py -v
       - name: No test-only CII fixture in tracked production paths
