@@ -1256,7 +1256,7 @@ def s1_build_test_only_fixture(source_bytes, master_rows, expected_count=14):
             "sourceBranchOccurrenceIndex": pair["branchOccurrenceIndex"],
             "sourceNodeOrdinals": pair["sourceOrdinals"],
             "fixtureBranchOccurrenceIndex": bi,
-            "fixturePCOMMinus1Ordinals": [1, 2],
+            "extractedFixtureLocalPCOMMinus1Ordinals": [1, 2],
             "branch": pair["branch"], "pcomRef": pair["pcomRef"],
             "flangeRef": pair["flangeRef"],
             "connectionFrom": pair["from"],
