@@ -234,7 +234,7 @@ def _s1_assert_pcom_release_hold(xml_path, model, witness):
                 p.get("weightKg") is None or
                 p.get("flangeOwnerKg") != 15 or
                 p.get("flangeForceN") != 150 or
-                p.get("fixturePCOMMinus1Ordinals") != [1, 2] or
+                p.get("extractedFixtureLocalPCOMMinus1Ordinals") != [1, 2] or
                 not isinstance(p.get("referenceRow"), dict)):
             raise ValueError("CII_S1_UNAPPROVED_MASS_CLAIM")
         physical = (p["branch"], p["flangeRef"])
