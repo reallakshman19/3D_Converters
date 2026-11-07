@@ -10,6 +10,7 @@ on:
       - 'docs/converters/scripts/xml_cii_weight_output_custody.py'
       - 'docs/converters/scripts/xml229_rigid_s1_testonly.py'
       - 'tests/rigid-s1-testonly.test.py'
+      - 'tests/rigid-s1-r1-main-positive-control.test.py'
       - '.github/workflows/rigid-s1-testonly.yml'
   workflow_dispatch:
 permissions:
@@ -22,6 +23,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -38,6 +40,8 @@ jobs:
           node-version: '22'
       - name: Independent JS reconciler must reject S1 test-only release
         run: node --test tests/rigid-s1-nonrelease-independent.test.mjs
+      - name: R1 ordinary PCOM and Native Final compare byte-exact to pinned main
+        run: python3 tests/rigid-s1-r1-main-positive-control.test.py -v
       - name: No test-only CII fixture in tracked production paths
         run: |
           if git ls-files | grep -E '(S1_TEST_ONLY_NON_RELEASE\.cii|bm2-enriched-R9\.xml)'; then
