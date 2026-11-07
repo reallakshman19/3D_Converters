@@ -1,8 +1,8 @@
-"""R2 delete-one mutation audit.
+"""R2/R3 delete-one mutation audit.
 
 Each source deletion executes its designated *passing* R2 test in an isolated
-copy. Only assertion failures count. Structural kills for clauses redundant
-with other guards are distinguished from independent behavioral kills.
+copy. Only assertion failures count. Structural kills for redundant source-presence clauses are reported separately
+from assertion-based behavioral kills. The four R3 mutants are behavioral.
 """
 import shutil
 import subprocess
@@ -68,7 +68,7 @@ MUTANTS = [
      'and True and', WITNESS + "test_t3_pcom_node_number_five_refused", "behavior"),
     ("T3-pcom-set-overlap", S1,
      'pc in pcom_ids or', 'False or',
-     WITNESS + "test_t3_redundant_pcom_and_edge_census_guards_present", "structural"),
+     WITNESS + "test_t3_duplicate_pcom_identity_refused", "behavior"),
     ("T3-edge-kind", S1,
      'e.to_node.component_type == kind and',
      'True and', WITNESS + "test_t3_edge_kind_drift_refused", "behavior"),
@@ -101,10 +101,25 @@ MUTANTS = [
     ("T4-nonfinite-length", BINDER,
      'if not math.isfinite(length_mm) or length_mm <= 0:',
      'if False:',
-     SOURCE + "test_t4_invalid_reference_defensive_guards_present", "structural"),
+     SOURCE + "test_t4_invalid_length_nan_zero_negative_review_null", "behavior"),
     ("T4-missing-ball-row", BINDER,
      'if selected is None:', 'if False:',
-     SOURCE + "test_t4_invalid_reference_defensive_guards_present", "structural"),
+     SOURCE + "test_t4_missing_ball_valve_row_review_null", "behavior"),
+    ("Y1-second-source-PCOM-minus1", BINDER,
+     'txt(pc2, "NodeNumber") != "-1" or',
+     'False or',
+     SOURCE + "test_y1_source_second_pcom_number_five_refused", "behavior"),
+    ("Y2-second-witness-PCOM-minus1", S1,
+     '_text(b, "NodeNumber") == "-1" and',
+     'True and',
+     WITNESS + "test_y2_second_pcom_witness_number_five_refused", "behavior"),
+    ("Y3-extra-unclaimed-CII-element", S1,
+     'len(elements) != 28 or', 'False or',
+     BYTE + "test_y3_29th_nonrigid_element_population_refused", "behavior"),
+    ("Y4-reference-row-finite-positive", BINDER,
+     'if not all(math.isfinite(x) and x > 0 for x in (L, W)):',
+     'if False:',
+     SOURCE + "test_y4_nan_reference_weight_and_length_review_null", "behavior"),
 ]
 
 
