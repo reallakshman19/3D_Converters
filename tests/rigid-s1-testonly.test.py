@@ -242,8 +242,8 @@ class RigidS1ExclusiveCustodyMutants(unittest.TestCase):
             updated = native._parse_xml_document(
                 bound, preserve_rigid_weight_owners=False)
             replacement = patched._build_conversion_model(updated, {}, {}, {})
-            model.rigid_edges = replacement.rigid_edges
-            model.edges = replacement.edges
+            model.rigid_edges[:] = replacement.rigid_edges
+            model.edges[:] = replacement.edges
         self._must_fail("CII_S1_CONNECTION_BORROWED_FLANGE_MASS", mutation)
 
     def test_r1_s1b_owner_approved_true_red(self):
@@ -256,9 +256,12 @@ class RigidS1ExclusiveCustodyMutants(unittest.TestCase):
             # Clone the same FROM/TO and weight but change the source identity,
             # so main's source-owner cardinality is still satisfied; only the
             # S1 edge-uniqueness rule catches it.
-            extra = copy.deepcopy(model.rigid_edges[0])
-            extra.to_node.component_ref_no = "=UNATTESTED/DUPLICATE"
-            extra.to_node.position = tuple(x+0.123 for x in extra.to_node.position)
+            from dataclasses import replace
+            copied = copy.deepcopy(model.rigid_edges[0])
+            fake_to = replace(copied.to_node,
+                component_ref_no="=UNATTESTED/DUPLICATE",
+                position=tuple(x+0.123 for x in copied.to_node.position))
+            extra = replace(copied, to_node=fake_to)
             model.rigid_edges.append(extra)
             model.edges.append(extra)
         self._must_fail(
