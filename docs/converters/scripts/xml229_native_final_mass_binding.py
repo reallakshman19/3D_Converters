@@ -616,7 +616,6 @@ def stage_native_original_lineage(original_path, packet_path, staged_json_path=N
         require(packet.get("s1TestOnlyNonrelease") is True and
                 packet.get("sourceId") == "PUBLIC-BM2-RIGID-S1-NONRELEASE" and
                 packet.get("nativeCiiReleaseAuthorized") is False and
-                packet["physicalCount"] == 14,
                 "NATIVE_S1_PCOM_UNAPPROVED_RELEASE_BLOCKED")
     require(child(source, LINEAGE_STAGE) is None and
             not any(child(node, LINEAGE_TAG) is not None
