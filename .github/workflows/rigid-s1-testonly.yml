@@ -33,6 +33,11 @@ jobs:
           done
       - name: Test-only Native Final binding + actual native CII + five RED mutants
         run: python3 tests/rigid-s1-testonly.test.py -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Independent JS reconciler must reject S1 test-only release
+        run: node --test tests/rigid-s1-nonrelease-independent.test.mjs
       - name: No test-only CII fixture in tracked production paths
         run: |
           if git ls-files | grep -E '(S1_TEST_ONLY_NON_RELEASE\.cii|bm2-enriched-R9\.xml)'; then
