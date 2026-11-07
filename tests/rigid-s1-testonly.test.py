@@ -224,7 +224,22 @@ class RigidS1ExclusiveCustodyMutants(unittest.TestCase):
 
     def test_r1_s1b_neighbor_15kg_on_connection_red(self):
         def mutation(bound, model, witness):
+            # Maliciously attest the neighbour flange's FULL 15 kg on the
+            # connection, with source and model changed consistently. Only
+            # the S1 prohibition on neighbour-master borrowing detects it.
+            root = ET.parse(bound).getroot()
+            first = next(e for e in root.iter() if e.tag == "Branch")
+            ns = [n for n in first if n.tag == "Node"]
+            next(e for e in ns[3] if e.tag.endswith("Weight")).text = "15"
+            bound.write_bytes(ET.tostring(root, encoding="utf-8"))
+            witness["boundTestInputSha256"] = hashlib.sha256(
+                bound.read_bytes()).hexdigest()
             witness["checkpoints"][0]["weightKg"] = 15
+            updated = native._parse_xml_document(
+                bound, preserve_rigid_weight_owners=False)
+            model2 = patched._build_conversion_model(updated, {}, {}, {})
+            model.rigid_edges[:] = model2.rigid_edges
+            model.edges[:] = model2.edges
         self._must_fail("CII_S1_CONNECTION_BORROWED_FLANGE_MASS", mutation)
 
     def test_r1_s1b_mass_moved_flange_to_connection_red(self):
