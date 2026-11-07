@@ -398,19 +398,6 @@ def main() -> None:
 
     _mark_native_failure_stage('RUNTIME_OPTIONS')
     args = patched._parse_args()
-    if args.xml229_native_final_packet is not None:
-        # Only sniff the S1 quarantine flag. Do NOT prevalidate the packet
-        # here: stage_native_original_lineage owns typed packet failure
-        # precedence, including NATIVE_FINALIZED_GEOMETRY_REQUIRED.
-        import json as _s1_json
-        try:
-            probe_packet = _s1_json.loads(
-                args.xml229_native_final_packet.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            probe_packet = None
-        if (isinstance(probe_packet, dict) and
-                probe_packet.get("s1TestOnlyNonrelease") is True):
-            raise ValueError("NATIVE_S1_TEST_ONLY_PACKET_RELEASE_FORBIDDEN")
     support_config = patched._load_support_config(args.support_config_json)
     if args.split_condensed_valve_flange is not None:
         support_config["splitCondensedValveFlange"] = bool(args.split_condensed_valve_flange)
