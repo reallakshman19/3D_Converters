@@ -12,6 +12,8 @@ on:
       - 'tests/rigid-s1-testonly.test.py'
       - 'tests/rigid-s1-r1-main-positive-control.test.py'
       - 'tests/rigid-s1-r1-deletion-mutants.test.py'
+      - 'tests/rigid-s1-r2-guards.test.py'
+      - 'tests/rigid-s1-r2-deletion-mutants.test.py'
       - '.github/workflows/rigid-s1-testonly.yml'
   workflow_dispatch:
 permissions:
@@ -19,7 +21,7 @@ permissions:
 jobs:
   r9-derived-14-pair-nonrelease:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,6 +43,10 @@ jobs:
           node-version: '22'
       - name: Independent JS reconciler must reject S1 test-only release
         run: node --test tests/rigid-s1-nonrelease-independent.test.mjs
+      - name: R2 negative tampered-CII, witness, source and R-LT10 tests
+        run: python3 tests/rigid-s1-r2-guards.test.py -v
+      - name: 25 R2 isolated delete-one source mutants (assertion failures only)
+        run: python3 tests/rigid-s1-r2-deletion-mutants.test.py -v
       - name: Ten isolated source-code deletion mutants must turn the guard tests RED
         run: python3 tests/rigid-s1-r1-deletion-mutants.test.py -v
       - name: R1 ordinary PCOM and Native Final compare byte-exact to pinned main
