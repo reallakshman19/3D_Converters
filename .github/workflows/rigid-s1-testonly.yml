@@ -52,7 +52,7 @@ jobs:
         run: python3 tests/rigid-s1-r2-deletion-mutants.test.py -v
       - name: S2 R9 144 rigid / 154 source full budget and actual native test CII bytes
         run: python3 tests/rigid-s2-owner-budget.test.py -v
-      - name: S2 13 isolated behavioral delete-one mutants
+      - name: S2 14 isolated behavioral delete-one mutants
         run: python3 tests/rigid-s2-deletion-mutants.test.py -v
       - name: S2 emit derived JSON ledger, actual 144-record CII and SHA256 (TEST ONLY)
         run: python3 tests/rigid-s2-owner-budget.test.py --write-test-only-dir rigid-s2-evidence
