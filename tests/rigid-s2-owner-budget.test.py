@@ -68,6 +68,15 @@ def verify_budget(ledger):
             s["holdRuleFileLine"] ==
                 "converters/scripts/xml229_native_final_mass_binding.py:827-856;975-1044"
             for s in held), "S2_HELD_MISSING_GEOMETRY_REASON")
+    # M3: this is a geometric hold, not merely a status label. A held
+    # physical's exact source two-endpoint span must not already be a
+    # single same-component RIGID ownership edge.
+    for source in held:
+        nums = source["sourceNodeNumbers"]
+        require(not any(e["branch"] == source["branch"] and
+                        e["sourceGeometryClass"] == "OWNED" and
+                        e["nodePair"] == [int(nums[0]), int(nums[-1])]
+                        for e in elements), "S2_HELD_GEOMETRY_OWNER_EXISTS")
     owner_ids = [s["ownerElementId"] for s in owned]
     require(all(isinstance(i, str) and i.startswith("E") for i in owner_ids) and
             len(set(owner_ids)) == 50,
@@ -251,6 +260,15 @@ class S2BudgetTests(unittest.TestCase):
         next(e for e in data["elements"] if e["status"] == "OWNED")["ownerSourceId"] = "UNATTESTED"
         self.reject(data, "S2_OWNED_SOURCE_PROVENANCE")
 
+    def test_m3_held_never_has_a_complete_owner_edge(self):
+        data = copy.deepcopy(self.ledger)
+        h = next(s for s in data["sources"] if s["status"] == "HELD")
+        candidate = next(e for e in data["elements"]
+                         if e["branch"] == h["branch"] and
+                         e["sourceGeometryClass"] == "OWNED")
+        h["sourceNodeNumbers"] = [str(n) for n in candidate["nodePair"]]
+        self.reject(data, "S2_HELD_GEOMETRY_OWNER_EXISTS")
+
     def test_m1_suggested_is_not_owned(self):
         data = copy.deepcopy(self.ledger)
         next(x for x in data["elements"]
@@ -297,6 +315,13 @@ class S2BudgetTests(unittest.TestCase):
                    if e["status"] == "OWNED")
         with self.assertRaisesRegex(S2NonreleaseError, "S2_CII_FORCE_DRIFT"):
             verify_actual_bytes(self.change_force(cii, idx, 0), self.ledger)
+
+    def test_m2_rlt10_suggested_actual_force_tamper_refused(self):
+        cii, _ = render_nonrelease(self.ledger)
+        idx = next(i for i, e in enumerate(self.ledger["elements"])
+                   if e["status"] == "SUGGESTED")
+        with self.assertRaisesRegex(S2NonreleaseError, "S2_CII_FORCE_DRIFT"):
+            verify_actual_bytes(self.change_force(cii, idx, 150), self.ledger)
 
     def test_m2_unclaimed_review_force_tamper_refused(self):
         cii, _ = render_nonrelease(self.ledger)
