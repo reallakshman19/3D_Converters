@@ -207,6 +207,12 @@ class S2BudgetTests(unittest.TestCase):
             (p["ownedSourceKg"], p["heldSourceKg"], p["knownSourceKg"]),
             (894, 976, 1870))
 
+    def test_m1_duplicate_element_id_refused(self):
+        data = copy.deepcopy(self.ledger)
+        review = [e for e in data["elements"] if e["status"] == "REVIEW"]
+        review[1]["elementId"] = review[0]["elementId"]
+        self.reject(data, "S2_RIGID_ELEMENT_CENSUS")
+
     def test_m1_known_mass_sum_mutant_refused(self):
         data = copy.deepcopy(self.ledger)
         next(x for x in data["sources"] if x["status"] == "HELD")["knownMassKg"] += 1
@@ -235,6 +241,16 @@ class S2BudgetTests(unittest.TestCase):
         next(x for x in data["sources"] if x["status"] == "HELD")["holdReason"] = None
         self.reject(data, "S2_HELD_MISSING_GEOMETRY_REASON")
 
+    def test_m1_unresolved_element_not_zero(self):
+        data = copy.deepcopy(self.ledger)
+        next(e for e in data["elements"] if e["status"] == "REVIEW")["weightKg"] = 0.0
+        self.reject(data, "S2_UNRESOLVED_MASS_INVENTED")
+
+    def test_m1_owned_source_provenance(self):
+        data = copy.deepcopy(self.ledger)
+        next(e for e in data["elements"] if e["status"] == "OWNED")["ownerSourceId"] = "UNATTESTED"
+        self.reject(data, "S2_OWNED_SOURCE_PROVENANCE")
+
     def test_m1_suggested_is_not_owned(self):
         data = copy.deepcopy(self.ledger)
         next(x for x in data["elements"]
@@ -261,6 +277,19 @@ class S2BudgetTests(unittest.TestCase):
         parts[0] = str(value)
         lines[pos] = " ".join(parts)
         return "\n".join(lines) + "\n"
+
+    def test_m2_actual_pointer_swap_between_review_edges_refused(self):
+        cii, _ = render_nonrelease(self.ledger)
+        indices = [i for i, e in enumerate(self.ledger["elements"])
+                   if e["status"] == "REVIEW"][:2]
+        lines = cii.splitlines()
+        start = lines.index("#$ ELEMENTS") + 1
+        a, b = [start + i * 15 + 12 for i in indices]
+        first, second = lines[a].split(), lines[b].split()
+        first[1], second[1] = second[1], first[1]
+        lines[a], lines[b] = " ".join(first), " ".join(second)
+        with self.assertRaisesRegex(S2NonreleaseError, "S2_CII_POINTER_OWNER_DRIFT"):
+            verify_actual_bytes("\n".join(lines) + "\n", self.ledger)
 
     def test_m2_actual_owned_force_tamper_refused(self):
         cii, _ = render_nonrelease(self.ledger)
