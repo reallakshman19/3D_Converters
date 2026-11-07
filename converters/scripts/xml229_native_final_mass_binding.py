@@ -1287,6 +1287,7 @@ def s1_build_test_only_fixture(source_bytes, master_rows, expected_count=14):
         "finalIntentSha256": hashlib.sha256(b"S1-NON-RELEASE-ONLY:" + xml).hexdigest(),
         "physicalCount": len(components), "components": components,
         "nativeCiiReleaseAuthorized": False,
+        "s1TestOnlyNonrelease": True,
     }
     return xml, packet, {
         "schema": "RigidS1.NonReleasePcomFlangeWitness.v1",
