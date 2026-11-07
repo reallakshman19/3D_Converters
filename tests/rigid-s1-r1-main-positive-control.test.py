@@ -117,7 +117,7 @@ class R1MainPositiveControls(unittest.TestCase):
                 source, p/"head.cii", packet=invalid)
             self.assertNotEqual(a.returncode, 0)
             self.assertNotEqual(b.returncode, 0)
-            errors = lambda s: re.findall(r"NATIVE_[A-Z0-9_]+",s)
+            errors = lambda s: re.findall(r"(?:NATIVE|ORIGINAL)_[A-Z0-9_]+",s)
             base_codes = errors(a.stdout+a.stderr)
             head_codes = errors(b.stdout+b.stderr)
             self.assertTrue(base_codes, a.stdout+a.stderr)
