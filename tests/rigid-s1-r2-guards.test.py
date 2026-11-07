@@ -226,6 +226,12 @@ class R2SourceAndReferenceGuards(unittest.TestCase):
         xyz = position.text.split()
         xyz[2] = str(float(xyz[2]) + 0.4)
         position.text = " ".join(xyz)
+        # Translate the tail by the same 0.4mm: flange stays 109mm,
+        # isolating the 19.5mm PCOM connection-span guard.
+        tail_position = next(c for c in nodes[4] if c.tag == "Position")
+        tail_xyz = tail_position.text.split()
+        tail_xyz[2] = str(float(tail_xyz[2]) + 0.4)
+        tail_position.text = " ".join(tail_xyz)
         self.source_rejected(ET.tostring(root), "S1_R9_CHECKPOINT_GEOMETRY_DRIFT")
 
     def test_t4_tail_rating_600_material_mismatch(self):
