@@ -102,6 +102,8 @@ function sameNativeFormattedMass(expected,actual){
 export async function reconcileXml229ActualCiiAgainstFinal({
  originalXmlText,packet,ciiText,writerDiagnostic,
 }={}){
+ if(packet?.s1TestOnlyNonrelease===true)
+  fail('NATIVE_S1_TEST_ONLY_PACKET_RELEASE_FORBIDDEN');
  if(packet?.schema!=='XML229.NativeFinalPhysicalPacket.v1'||
     !digest(packet?.basisId)||!digest(packet?.finalIntentSha256)||
     !digest(packet?.sourceXmlSha256)||packet?.nativeCiiReleaseAuthorized!==false||
