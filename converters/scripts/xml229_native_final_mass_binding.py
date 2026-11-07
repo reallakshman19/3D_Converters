@@ -1235,6 +1235,13 @@ def s1_build_test_only_fixture(source_bytes, master_rows, expected_count=14):
         ET.SubElement(branch, ns + "Branchname").text = pair["branch"]
         clones = [ET.fromstring(ET.tostring(node, encoding="utf-8"))
                   for node in pair["sourceNodes"]]
+        # This isolated 14-pair excerpt starts at the preceding valve END:
+        # it is a cut-boundary witness, NOT an accepted upstream valve weight.
+        # Drop only its Rigid marker so the absent preceding valve element
+        # cannot be mistaken for a 15th physical mass in this test fixture.
+        boundary_rigid = child(clones[0], "Rigid")
+        if boundary_rigid is not None:
+            clones[0].remove(boundary_rigid)
         # The FLAN entry node is the 19.1 mm CONNECTION's arrival; it does
         # not carry the 109 mm flange's master weight in test-only bytes.
         child(clones[3], "Weight").text = format(suggest["weightKg"], ".17g")
