@@ -40,3 +40,10 @@ jobs:
             exit 1
           fi
           echo "NON_RELEASE_SOURCE_AND_CII_NOT_COMMITTED"
+      - name: Package native Python source for offline exact-R9 test
+        run: tar -czf rigid-s1-python-source-testonly.tgz -C converters scripts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rigid-s1-native-source-nonrelease
+          path: rigid-s1-python-source-testonly.tgz
+          retention-days: 3
