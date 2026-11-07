@@ -14,6 +14,9 @@ on:
       - 'tests/rigid-s1-r1-deletion-mutants.test.py'
       - 'tests/rigid-s1-r2-guards.test.py'
       - 'tests/rigid-s1-r2-deletion-mutants.test.py'
+      - 'tests/rigid-s2-owner-budget.test.py'
+      - 'tests/rigid-s2-deletion-mutants.test.py'
+      - 'tests/fixtures/rigid-s2-r9-ledger.json'
       - '.github/workflows/rigid-s1-testonly.yml'
   workflow_dispatch:
 permissions:
@@ -47,6 +50,17 @@ jobs:
         run: python3 tests/rigid-s1-r2-guards.test.py -v
       - name: 25 R2 isolated delete-one source mutants (assertion failures only)
         run: python3 tests/rigid-s1-r2-deletion-mutants.test.py -v
+      - name: S2 R9 144 rigid / 154 source full budget and actual native test CII bytes
+        run: python3 tests/rigid-s2-owner-budget.test.py -v
+      - name: S2 13 isolated behavioral delete-one mutants
+        run: python3 tests/rigid-s2-deletion-mutants.test.py -v
+      - name: S2 emit derived JSON ledger, actual 144-record CII and SHA256 (TEST ONLY)
+        run: python3 tests/rigid-s2-owner-budget.test.py --write-test-only-dir rigid-s2-evidence
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rigid-s2-full-budget-native-cii-nonrelease
+          path: rigid-s2-evidence/
+          retention-days: 3
       - name: Ten isolated source-code deletion mutants must turn the guard tests RED
         run: python3 tests/rigid-s1-r1-deletion-mutants.test.py -v
       - name: R1 ordinary PCOM and Native Final compare byte-exact to pinned main
