@@ -65,6 +65,13 @@ jobs:
         run: python3 tests/rigid-s1-r1-deletion-mutants.test.py -v
       - name: R1 ordinary PCOM and Native Final compare byte-exact to pinned main
         run: python3 tests/rigid-s1-r1-main-positive-control.test.py -v
+      - name: Package S2 test source for offline R9 verification
+        run: tar -czf s2-test-source.tgz tests/rigid-s2-*.test.py tests/fixtures/rigid-s2-r9-ledger.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rigid-s2-test-source-for-offline-repair
+          path: s2-test-source.tgz
+          retention-days: 3
       - name: No test-only CII fixture in tracked production paths
         run: |
           if git ls-files | grep -E '(S1_TEST_ONLY_NON_RELEASE\.cii|bm2-enriched-R9\.xml)'; then
