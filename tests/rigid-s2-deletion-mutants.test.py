@@ -36,7 +36,7 @@ MUTANTS = [
      'all(s["ownerElementId"] is None for s in held) and', 'True and',
      "test_m1_held_must_carry_no_mass_mutant_refused"),
     ("M3-held-named-geometry-reason",
-     's["holdReason"] in (', 'True or s["holdReason"] in (',
+     'source_has_hold_reason(s) for s in held', 'True for s in held',
      "test_m3_each_held_component_requires_geometry_reason"),
     ("M3-held-no-complete-owner-edge",
      'e["nodePair"] == [int(nums[0]), int(nums[-1])]', 'False',
