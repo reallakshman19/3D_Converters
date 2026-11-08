@@ -1,8 +1,8 @@
 """Rigid S1 14-pair NON-RELEASE actual native CII byte regression + delete-one mutants.
 
-The fixture below is MINIMAL PUBLIC R9-DERIVED GEOMETRY, not the complete R9
-source. CI never fetches protected Drive files. Run the CLI separately with
-the SHA-verified 687252-byte R9 input for the original-source receipt.
+The fixture below is wholly invented with 14 independent connections and
+distinct 19.1mm/109mm spans. CI never fetches protected Owner R9 data.
+No source-specific R9 bytes, branch identities, or coordinates are committed.
 """
 import copy
 import json
@@ -23,33 +23,17 @@ from xml229_rigid_s1_testonly import (
     MASTER_ROWS, render_s1_nonrelease, verify_actual_cii, nonrelease_guard,
 )
 
-# Branch, source FROM, flange ENTRY, flange EXIT, PCOM ref suffix,
-# FLANGE ref suffix, x, route pattern. These are taken from public R9
-# source ordinals and geometry, NOT the older 9608d9ad proxy.
+# All 14 fixture branches, IDs, refs, and coordinates are invented.
+# The geometry alone encodes R-LT9 (19.1mm PCOM, separate 109mm flange).
+# Original Owner R9 is ONLY replayed in the offline Owner custody workflow.
 PAIR_ROWS=[
- ('P4110005',639,10000,640,24771,24773,109298.00,'P'),
- ('B4110004',749,10010,750,27516,27506,109599.99,'B'),
- ('P4110010',1119,10020,1120,28062,28064,107898.00,'P'),
- ('B4110005',1219,10030,1220,28967,28969,108199.99,'B'),
- ('P4110015',1579,10040,1580,28074,28076,106498.00,'P'),
- ('B4110006',1679,10050,1680,28992,28994,106799.99,'B'),
- ('P4110020',2039,10060,2040,28086,28088,105098.00,'P'),
- ('B4110007',2139,10070,2140,29092,29094,105399.99,'B'),
- ('P4110025',2509,10080,2510,28098,28100,103698.00,'P'),
- ('B4110008',2609,10090,2610,29117,29119,103999.99,'B'),
- ('P4110030',2979,10100,2980,28110,28112,102298.00,'P'),
- ('B4110009',3079,10110,3080,29142,29144,102599.99,'B'),
- ('B4110001',3359,10120,3360,7830,8456,112849.97,'X'),
- ('B4110011',3629,10130,3630,8004,27950,111042.13,'Y'),
+    (f"SYNTH-CASE-{i:02d}", 5000+20*i, 6000+20*i, 5001+20*i,
+     7000+i, 8000+i, 1000.0+500*i, 'P' if i%2==0 else 'B')
+    for i in range(14)
 ]
 ROUTE_POS={
- 'P':([107731.53]*5,[101819.20,101822.40,101835.10,101838.30,101947.30]),
- 'B':([108557.89,108561.09,108573.79,108576.99,108685.99],
-      [101774.38,101774.36,101774.30,101774.28,101773.73]),
- 'X':([108594.16,108597.36,108610.06,108613.26,108722.26],
-      [101415.43,101415.41,101415.35,101415.33,101414.79]),
- 'Y':([108559.11,108562.31,108575.01,108578.21,108687.21],
-      [101698.80,101698.78,101698.72,101698.70,101698.16]),
+    'P':([200.0]*5,[100.0,103.2,115.9,119.1,228.1]),
+    'B':([300.0]*5,[400.0,403.2,415.9,419.1,528.1]),
 }
 
 def derived_source():
