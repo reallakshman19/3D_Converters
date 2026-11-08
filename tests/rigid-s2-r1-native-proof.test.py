@@ -265,14 +265,14 @@ def verify_sidecar(cii,sidecar):
          "S2R1_NO_UNRESOLVED_RELEASE_PROHIBITED")
     return True
 
-def verify_product_bytes(ledger,model,cii,basis,source_hash):
+def verify_product_bytes(ledger,model,cii,basis,source_hash,byname=None):
     slots,weights=binder.emitted_sections(cii)
     elements=binder._cii_elements(cii)
     must(len(model.edges)==433 and len(elements)==433 and
          len(model.rigid_edges)==143 and len(weights)==143,
          "S2R1_REAL_NATIVE_143_RIGID_CENSUS")
     projected={(e["branch"],tuple(e["nodePair"])):e for e in ledger["elements"]}
-    matching=set();extra=[];side={}
+    matching=set();extra=[];alias_ids=set();side={}
     for i,edge in enumerate(model.edges):
         if i not in model.edge_to_rigid_index:continue
         pointer=model.edge_to_rigid_index[i]
@@ -282,21 +282,30 @@ def verify_product_bytes(ledger,model,cii,basis,source_hash):
              elements[i][2]==pointer and slots[pointer-1][0]==i,
              "S2R1_REAL_NATIVE_CII_POINTER_DRIFT")
         item=projected.get((edge.branch_name,(frm,to)))
-        cause=None;held=None
+        cause=None
         if item is not None:
             matching.add(item["elementId"])
             status=item["status"];kg=item["weightKg"]
         else:
+            # Derive product-only edges from the PRODUCT PARSER's positions.
+            # Do not look up literal pairs: a short collapsed endpoint is
+            # recognized by geometric start alignment and a 3.2mm span delta.
             extra.append((edge.branch_name,frm,to))
-            if (frm,to)==(570,580):
-                item=next(x for x in ledger["elements"] if x["elementId"]=="E59")
-                status="OWNED";kg=17;cause="579_580_COLLAPSE_3_2MM"
-            elif (frm,to)==(3370,3380):
-                item=next(x for x in ledger["elements"] if x["elementId"]=="E403")
-                status="HELD";kg=None;cause="3379_3380_COLLAPSE_3_2MM"
-                held=next(s["sourceId"] for s in ledger["sources"]
-                          if s["componentRef"].endswith("/26728"))
-            else:raise S2R1Error("S2R1_UNEXPLAINED_RIGID_IN_PRODUCT")
+            candidates=[]
+            for candidate in ledger["elements"]:
+                if candidate["branch"]!=edge.branch_name:continue
+                start_gap=math.dist(candidate["fromPositionMm"],edge.from_node.position)
+                length_gap=math.dist(edge.from_node.position,edge.to_node.position)-candidate["lengthMm"]
+                if start_gap<=.01 and 3.0<=length_gap<=3.4:
+                    candidates.append((candidate,length_gap))
+            must(len(candidates)==1,"S2R2_PRODUCT_MERGE_NOT_SOURCE_DERIVED")
+            item,merge_mm=candidates[0]
+            must(item["elementId"] not in alias_ids,
+                 "S2R2_PRODUCT_MERGE_DUPLICATE_ALIAS")
+            alias_ids.add(item["elementId"])
+            status=("OWNED" if item["status"]=="OWNED" else "HELD")
+            kg=item["weightKg"] if status=="OWNED" else None
+            cause=f"PRODUCT_SHORT_NODE_MERGE_{merge_mm:.1f}MM"
         actualN=weights[pointer-1]
         must((math.isclose(actualN,10*kg,abs_tol=1e-6)
               if status in ("OWNED","SUGGESTED") else actualN==0.0),
@@ -305,16 +314,51 @@ def verify_product_bytes(ledger,model,cii,basis,source_hash):
           "fromTo":[frm,to],"ledgerId":item["elementId"],
           "status":status,"weightKg":kg,"actualForceN":actualN,
           "ownerSourceId":item["ownerSourceId"] if status=="OWNED" else None,
-          "heldSourceId":held,"productDifference":cause}
-    must(len(side)==143 and len(matching)==141 and
-         {e["elementId"] for e in ledger["elements"]}-matching==
-         {"E59","E403","E404"} and
-         {(fr,to) for _,fr,to in extra}=={(570,580),(3370,3380)},
+          "heldSources":[],"productDifference":cause}
+    differences=sorted({e["elementId"] for e in ledger["elements"]}-matching,
+                       key=lambda x:int(x[1:]))
+    must(len(side)==143 and len(matching)==141 and len(alias_ids)==2 and
+         len(differences)==3 and len(extra)==2 and
+         set(differences)-alias_ids and
+         all(any(e.branch_name==proj["branch"] and
+                 e.from_node.node_number==proj["nodePair"][0] and
+                 e.to_node.node_number==proj["nodePair"][1] and
+                 i not in model.edge_to_rigid_index
+                 for i,e in enumerate(model.edges))
+             for proj in ledger["elements"] if proj["elementId"] in
+             set(differences)-alias_ids),
          "S2R1_5_SOURCE_NATIVE_DIFFERENCES")
     must(Counter(x["status"] for x in side.values())==
          Counter({"OWNED":50,"SUGGESTED":14,"REVIEW":78,"HELD":1}),
          "S2R1_PRODUCT_STATUS_CENSUS")
-    receipt={"schema":"RigidS2R1.NonreleaseNativeCiiSidecar.v1",
+    # HELD source is a sidecar annotation, not an allocation. Prefer a source
+    # tail match to product TO; collapsed-flange head may match product FROM.
+    must(byname is not None,"S2R2_HELD_GEOMETRY_SOURCE_REQUIRED")
+    allocated=set()
+    for source in (s for s in ledger["sources"] if s["status"]=="HELD"):
+        ns=binder.nodes(byname[source["branch"]][1])
+        a,z=[ns[j] for j in (source["sourceOrdinals"][0],
+                             source["sourceOrdinals"][-1])]
+        start,end=[tuple(map(float,binder.txt(n,"Position").split()))
+                   for n in (a,z)]
+        candidates=[]
+        for index,edge in enumerate(model.edges):
+            if (index not in model.edge_to_rigid_index or
+                    edge.branch_name!=source["branch"]):continue
+            pointer=model.edge_to_rigid_index[index]
+            if side[str(pointer)]["status"] not in ("REVIEW","HELD"):continue
+            tail_dist=math.dist(end,edge.to_node.position)
+            head_dist=math.dist(start,edge.from_node.position)
+            if min(tail_dist,head_dist)<=.01:
+                candidates.append((0 if tail_dist<=.01 else 1,pointer))
+        must(bool(candidates),"S2R2_HELD_NOT_VISIBLE_IN_PRODUCT")
+        pointer=min(candidates)[1]
+        must(source["sourceId"] not in allocated,
+             "S2R2_HELD_DUPLICATE_SOURCE")
+        allocated.add(source["sourceId"])
+        side[str(pointer)]["heldSources"].append(
+            {"sourceId":source["sourceId"],"kg":source["knownMassKg"]})
+    receipt={"schema":"RigidS2R2.NonreleaseNativeCiiSidecar.v2",
       "sourceBasis":basis,"originalR9Sha256":ORIGINAL_SHA,
       "inputSourceSha256":source_hash,
       "ledgerSha256":hashlib.sha256(LEDGER_PATH.read_bytes()).hexdigest(),
@@ -324,10 +368,10 @@ def verify_product_bytes(ledger,model,cii,basis,source_hash):
       "releaseBlocked":True,
       "ciiElementCount":433,"rigidPointerCount":143,
       "unresolvedPointerCount":79,
-      "projectedOnlyLedgerIds":["E59","E403","E404"],
-      "nativeOnlyNodePairs":[[570,580],[3370,3380]],
+      "projectedOnlyLedgerIds":differences,
+      "nativeOnlyNodePairs":[list(x[1:]) for x in extra],
       "knownSourceKg":1870,"ownedSourceKg":894,"heldSourceKg":976,
-      "rigidPointers":side}
+      "heldSourceCount":len(allocated),"rigidPointers":side}
     verify_sidecar(cii,receipt)
     return receipt
 
@@ -340,7 +384,7 @@ def render_from_r9(ledger=None,raw=None):
     _,byname=verify_r9_ledger(ledger,raw)
     verify_held_positions(ledger,byname)
     model,cii,isolated_sha=native_r9_serialization(ledger,raw)
-    receipt=verify_product_bytes(ledger,model,cii,basis,hashlib.sha256(raw).hexdigest())
+    receipt=verify_product_bytes(ledger,model,cii,basis,hashlib.sha256(raw).hexdigest(),byname)
     receipt["testOnlyStagedSourceSha256"]=isolated_sha
     return cii,receipt
 
@@ -359,8 +403,10 @@ class S2R1NativeR9Tests(unittest.TestCase):
         self.assertEqual(self.sidecar["rigidPointerCount"],143)
         self.assertEqual(self.sidecar["projectedOnlyLedgerIds"],
                          ["E59","E403","E404"])
-        self.assertEqual(self.sidecar["nativeOnlyNodePairs"],
-                         [[570,580],[3370,3380]])
+        self.assertEqual(len(self.sidecar["nativeOnlyNodePairs"]),2)
+        self.assertTrue(all("PRODUCT_SHORT_NODE_MERGE_3.2MM" in p["productDifference"]
+                            for p in self.sidecar["rigidPointers"].values()
+                            if p["productDifference"]))
 
     def test_n1_corrupted_model_143_census_refused(self):
         model,cii,_=native_r9_serialization(self.ledger,self.raw)
