@@ -51,7 +51,7 @@ def derived_source():
         refs=[f'134234934/TESTVALVE{i}', f'134234934/{pcom_id}',
               f'134234934/{pcom_id}', f'134234934/{flange_ref}',
               f'134234934/{flange_ref}']
-        weights=['47','0','0','15','157.034']
+        weights=['3','0','0','0','5']
         for j in range(5):
             node=ET.SubElement(branch,'Node')
             fields={
