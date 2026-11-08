@@ -125,7 +125,7 @@ def verify_synthetic(raw,model,cii):
         assert pair in expected[edge.branch_name], f'UNMAPPED_SYNTH_PRODUCT_EDGE_{pair}'
         status,kg=expected[edge.branch_name][pair]
         force=weights[pointer-1]
-        if kg is None:assert force==0.0
+        if kg is None:assert force==0.0, "SYNTH_UNASSIGNED_CII_FORCE"
         else:assert math.isclose(force,10*kg,abs_tol=1e-6)
         held=([{'sourceId':'SYNTH-HELD-FLAN-F3','kg':29}]
               if edge.branch_name=='SYNTH-LAB-POSITION' else
@@ -171,6 +171,18 @@ class SyntheticNativeProofTests(unittest.TestCase):
                 AssertionError,
                 'SYNTH_SHORT_MERGE_RIGID_CENSUS|UNMAPPED_SYNTH_PRODUCT_EDGE'):
             verify_synthetic(raw,model,cii)
+
+    def test_p3_held_source_force_tamper_must_be_rejected(self):
+        raw=synthetic_xml();model,cii=product(raw)
+        lines=cii.splitlines()
+        index=lines.index("#$ RIGID")+1+3
+        parts=lines[index].split()
+        self.assertEqual(len(parts),2)
+        parts[0]="290"
+        lines[index]=" ".join(parts)
+        tampered="\n".join(lines)+"\n"
+        with self.assertRaisesRegex(AssertionError,"SYNTH_UNASSIGNED_CII_FORCE"):
+            verify_synthetic(raw,model,tampered)
 
     def test_p3_held_and_review_never_claim_mass(self):
         raw=synthetic_xml();model,cii=product(raw)
