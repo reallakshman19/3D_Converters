@@ -338,6 +338,12 @@ class S2R1NativeR9Tests(unittest.TestCase):
         self.assertEqual(self.sidecar["nativeOnlyNodePairs"],
                          [[570,580],[3370,3380]])
 
+    def test_n1_corrupted_model_143_census_refused(self):
+        model,cii,_=native_r9_serialization(self.ledger,self.raw)
+        model.rigid_edges.pop()
+        with self.assertRaisesRegex(S2R1Error,"S2R1_REAL_NATIVE_143_RIGID_CENSUS"):
+            verify_product_bytes(self.ledger,model,cii,"TEST",hashlib.sha256(self.raw).hexdigest())
+
     def test_n2_all_zero_forces_have_unresolved_status_sidecar(self):
         self.assertTrue(verify_sidecar(self.cii,self.sidecar))
         self.assertEqual(Counter(p["status"] for p in
@@ -352,6 +358,12 @@ class S2R1NativeR9Tests(unittest.TestCase):
                                     "S2R1_ZERO_CII_FORCE_REQUIRES_UNRESOLVED_LABEL"):
             verify_sidecar(self.cii,bad)
 
+    def test_n2_sidecar_sha_corruption_is_rejected(self):
+        bad=copy.deepcopy(self.sidecar)
+        bad["ciiSha256"]="0"*64
+        with self.assertRaisesRegex(S2R1Error,"S2R1_SIDECAR_SHA_DRIFT"):
+            verify_sidecar(self.cii,bad)
+
     def test_n2_sidecar_release_authorization_is_rejected(self):
         bad=copy.deepcopy(self.sidecar)
         bad["releaseBlocked"]=False
@@ -361,6 +373,14 @@ class S2R1NativeR9Tests(unittest.TestCase):
     def test_n3_position_alias_e403_remains_held(self):
         _,byname=decode_source(self.raw)
         self.assertTrue(verify_held_positions(self.ledger,byname))
+
+    def test_n3_dn100_position_match_must_stay_held_named_e403(self):
+        bad=copy.deepcopy(self.ledger)
+        target=next(s for s in bad["sources"] if s["componentRef"].endswith("/26728"))
+        target["holdReason"]="GENERIC_UNSPECIFIED_HELD"
+        _,byname=decode_source(self.raw)
+        with self.assertRaisesRegex(S2R1Error,"S2R1_DN100_E403_POSITION_HOLD"):
+            verify_held_positions(bad,byname)
 
     def test_d1_sum_preserving_per_component_kg_swap_rejected(self):
         bad=copy.deepcopy(self.ledger)
