@@ -440,6 +440,50 @@ class S2R1NativeR9Tests(unittest.TestCase):
         with self.assertRaisesRegex(S2R1Error,"S2R1_FINAL_RELEASE_BLOCKED"):
             verify_sidecar(self.cii,bad)
 
+    def test_p3_all_32_held_sources_visible_once_on_unresolved_pointers(self):
+        annotated=[(p,x) for p in self.sidecar["rigidPointers"].values()
+                   for x in p["heldSources"]]
+        originals=[s for s in self.ledger["sources"] if s["status"]=="HELD"]
+        self.assertEqual(len(annotated),32)
+        self.assertEqual(sum(x["kg"] for _,x in annotated),976)
+        self.assertEqual({x["sourceId"] for _,x in annotated},
+                         {s["sourceId"] for s in originals})
+        self.assertTrue(all(p["status"] in ("REVIEW","HELD") for p,_ in annotated))
+
+    def test_p3_duplicate_held_source_annotation_refused(self):
+        bad=copy.deepcopy(self.sidecar)
+        picks=[p for p in bad["rigidPointers"].values() if p["heldSources"]]
+        picks[1]["heldSources"][0]["sourceId"]=picks[0]["heldSources"][0]["sourceId"]
+        with self.assertRaisesRegex(S2R1Error,"S2R2_HELD_32_SOURCES_976_KG_CENSUS"):
+            verify_sidecar(self.cii,bad)
+
+    def test_p3_rule_reference_line_drift_refused(self):
+        bad=copy.deepcopy(self.ledger)
+        s=next(s for s in bad["sources"] if s["status"]=="HELD" and
+               s["physicalFamily"]!="VALV")
+        s["holdRuleFileLine"]="converters/scripts/xml229_native_final_mass_binding.py:999-999"
+        _,byname=decode_source(self.raw)
+        with self.assertRaisesRegex(S2R1Error,"S2R2_HELD_RULE_EXACT_FILE_LINES"):
+            verify_held_positions(bad,byname)
+
+    def test_p4_short_merge_geometry_change_rejected(self):
+        root=ET.fromstring(self.raw)
+        _,byname=decode_source(self.raw)
+        target=next(e for e in self.ledger["elements"] if e["elementId"]=="E59")
+        br=next(b for b in binder.branches(root)
+                if binder.txt(b,"Branchname")==target["branch"])
+        ns=binder.nodes(br)
+        alias=next(n for n in ns if binder.txt(n,"NodeNumber")==str(target["nodePair"][1]+1))
+        coords=[float(x) for x in binder.txt(alias,"Position").split()]
+        coords[1]+=9
+        binder.child(alias,"Position").text=" ".join(map(str,coords))
+        modified=ET.tostring(root,encoding="utf-8")
+        model,cii,_=native_r9_serialization(self.ledger,modified)
+        with self.assertRaisesRegex(S2R1Error,
+                 "S2R1_REAL_NATIVE_143_RIGID_CENSUS|S2R2_PRODUCT_MERGE_NOT_SOURCE_DERIVED"):
+            verify_product_bytes(self.ledger,model,cii,"TEST",
+                                 hashlib.sha256(modified).hexdigest(),byname)
+
     def test_n3_position_alias_e403_remains_held(self):
         _,byname=decode_source(self.raw)
         self.assertTrue(verify_held_positions(self.ledger,byname))
