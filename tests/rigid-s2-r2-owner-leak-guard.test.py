@@ -21,10 +21,9 @@ class ProtectedSourceLeak(AssertionError):
 
 def signatures():
     return {
-        # Match the Owner R9 *branch-name shape*, not unrelated zone labels
-        # such as /GLRD-1000-CU-PI-P used by independent FBX tests.
-        "OWNER_BRANCH_2": b"/" + b"GL" + b'RD-1000-2"-',
-        "OWNER_BRANCH_6": b"/" + b"GL" + b'RD-1000-6"-',
+        # A full XML Branchname field, not incidental public BM2 strings
+        # in unrelated code tests or FBX zone labels.
+        "OWNER_BRANCH_XML": b"<Branchname>/" + b"GL" + b"RD-1000-",
         "OWNER_XML_SHA": ("5cf2bfbe4cbe88361" + "afcb3374c5230ee4" +
                           "badf42d9f503ec2c" + "b5b2f0b7414e00c").encode(),
         "OWNER_XML_SIZE": str(680000 + 7252).encode(),
