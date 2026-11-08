@@ -58,7 +58,7 @@ def derived_source():
     for i,(section,from_id,flange_id,to_id,pcom_id,flange_ref,x,kind) in enumerate(PAIR_ROWS):
         branch=ET.SubElement(pipe,'Branch')
         ET.SubElement(branch,'Branchname').text=(
-            f'/GLRD-1000-2"-{section}-93833-01/B1')
+            f'SYNTH-S1-CASE-{i:02d}')
         y,z=ROUTE_POS[kind]
         pos=[f'{x:.2f} {y[j]:.2f} {z[j]:.2f}' for j in range(5)]
         row_types=['VALV','PCOM','PCOM','FLAN','RIGID']
