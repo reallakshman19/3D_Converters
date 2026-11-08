@@ -10,6 +10,7 @@ from dataclasses import replace
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import sys
 import unittest
@@ -19,8 +20,9 @@ sys.path.insert(0, str(ROOT / "converters" / "scripts"))
 import xml_to_cii2019 as native
 from xml229_native_final_mass_binding import emitted_sections, _cii_elements
 
-SOURCE_HASH = "5cf2bfbe4cbe88361afcb3374c5230ee4badf42d9f503ec2cb5b2f0b7414e00c"
-FIXTURE = ROOT / "tests" / "fixtures" / "rigid-s2-r9-ledger.json"
+# Exact R9 budget is Owner-only. CI uses the independent S2-R2 synthetic path.
+SOURCE_HASH = os.environ.get("RIGID_S2_R9_SHA256", "")
+FIXTURE = Path(os.environ.get("RIGID_S2_R9_LEDGER", "/__OWNER_ONLY_R9_LEDGER__"))
 
 
 class S2NonreleaseError(ValueError):
@@ -35,6 +37,8 @@ def require(ok, code):
 
 
 def load_ledger():
+    if not (SOURCE_HASH and FIXTURE.is_file()):
+        raise unittest.SkipTest("EXACT_R9_SKIP: Owner XML and R9 source ledger absent; synthetic CI executes separately")
     d = json.loads(FIXTURE.read_text(encoding="utf-8"))
     require(d["sourceXmlSha256"] == SOURCE_HASH and
             d["releaseAuthorized"] is False and
@@ -46,11 +50,15 @@ def load_ledger():
 def source_has_hold_reason(source):
     reason = source.get("holdReason")
     rule = source.get("holdRuleFileLine")
+    expected = ("converters/scripts/xml229_native_final_mass_binding.py:"
+                "429-483 audit_finalized_physical_endpoints; 827-856"
+                if source["physicalFamily"] == "VALV" else
+                "converters/scripts/xml229_native_final_mass_binding.py:"
+                "827-856; 972-1044")
     return (isinstance(reason, str) and
             source["componentRef"] in reason and
             source["branch"] in reason and
-            isinstance(rule, str) and
-            rule.startswith("converters/scripts/xml229_native_final_mass_binding.py:") and
+            rule == expected and
             ("VALVE_BODY" in reason if source["physicalFamily"] == "VALV"
              else "PRODUCT_COLLAPSED" in reason if source["componentRef"].endswith("/26728")
              else "NO_UNIQUE_SOURCE_RIGID_OWNER" in reason))
