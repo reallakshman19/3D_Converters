@@ -21,7 +21,10 @@ class ProtectedSourceLeak(AssertionError):
 
 def signatures():
     return {
-        "OWNER_BRANCH": (b"GL" + b"RD" + b"-"),
+        # Match the Owner R9 *branch-name shape*, not unrelated zone labels
+        # such as /GLRD-1000-CU-PI-P used by independent FBX tests.
+        "OWNER_BRANCH_2": b"/" + b"GL" + b'RD-1000-2"-',
+        "OWNER_BRANCH_6": b"/" + b"GL" + b'RD-1000-6"-',
         "OWNER_XML_SHA": ("5cf2bfbe4cbe88361" + "afcb3374c5230ee4" +
                           "badf42d9f503ec2c" + "b5b2f0b7414e00c").encode(),
         "OWNER_XML_SIZE": str(680000 + 7252).encode(),
@@ -70,7 +73,7 @@ class OwnerSourceContentGuards(unittest.TestCase):
             check_bytes(OLD_PATH, old)
 
     def test_p2_readded_owner_branch_marker_rejected(self):
-        marker = b"<Branchname>/" + b"GL" + b"RD" + b"-secret</Branchname>"
+        marker = b"<Branchname>/" + b"GL" + b'RD-1000-2"-SYNTHETIC</Branchname>'
         with self.assertRaisesRegex(ProtectedSourceLeak, "OWNER_BRANCH"):
             check_bytes("reintroduced.xml", marker)
 
@@ -82,6 +85,8 @@ class OwnerSourceContentGuards(unittest.TestCase):
 
     def test_p2_synthetic_text_is_allowed(self):
         self.assertTrue(check_bytes("synthetic.xml", b"<Branchname>SYNTH-LAB</Branchname>"))
+        # Unrelated FBX test zone labels are not R9 XML branch names.
+        self.assertTrue(check_bytes("fbx-test.mjs", b"zoneLabel: '/GL" + b"RD-1000-CU-PI-P'"))
 
 
 if __name__ == "__main__":
