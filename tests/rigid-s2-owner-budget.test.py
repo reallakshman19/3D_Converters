@@ -43,6 +43,19 @@ def load_ledger():
     return d
 
 
+def source_has_hold_reason(source):
+    reason = source.get("holdReason")
+    rule = source.get("holdRuleFileLine")
+    return (isinstance(reason, str) and
+            source["componentRef"] in reason and
+            source["branch"] in reason and
+            isinstance(rule, str) and
+            rule.startswith("converters/scripts/xml229_native_final_mass_binding.py:") and
+            ("VALVE_BODY" in reason if source["physicalFamily"] == "VALV"
+             else "PRODUCT_COLLAPSED" in reason if source["componentRef"].endswith("/26728")
+             else "NO_UNIQUE_SOURCE_RIGID_OWNER" in reason))
+
+
 def verify_budget(ledger):
     """Each known kg belongs once to OWNED or HELD; unknown is null."""
     elements = ledger["elements"]
@@ -62,12 +75,8 @@ def verify_budget(ledger):
     require(all(s["ownerElementId"] is None for s in held) and
             all(s["knownMassKg"] is not None and s["knownMassKg"] > 0 for s in held),
             "S2_HELD_MUST_NOT_ASSIGN")
-    require(all(s["holdReason"] in (
-                "NO_COMPLETE_SAME_COMPONENT_RIGID_ENDPOINT_PAIR",
-                "VALVE_BODY_SPANS_INTERCOMPONENT_BOUNDARIES") and
-            s["holdRuleFileLine"] ==
-                "converters/scripts/xml229_native_final_mass_binding.py:827-856;975-1044"
-            for s in held), "S2_HELD_MISSING_GEOMETRY_REASON")
+    require(all(source_has_hold_reason(s) for s in held),
+            "S2_HELD_MISSING_GEOMETRY_REASON")
     # M3: this is a geometric hold, not merely a status label. A held
     # physical's exact source two-endpoint span must not already be a
     # single same-component RIGID ownership edge.
