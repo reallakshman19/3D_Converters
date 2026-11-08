@@ -17,7 +17,7 @@ MUTANTS=[
   "'SYNTH-LAB-PAIR':{(101,102):('OWNED',2.63),",
   "SyntheticNativeProofTests.test_p1_synthetic_fixture_covers_all_six_rules"),
  ("P2-owner-leak-content-guard",GUARD,
-  "if marker in data:", "if False:",
+  "if marker not in data:", "if True:",
   "OwnerSourceContentGuards.test_p2_readded_owner_branch_marker_rejected"),
  ("P3-held-CII-force-guard",SYNTH,
   'if kg is None:assert force==0.0, "SYNTH_UNASSIGNED_CII_FORCE"',
