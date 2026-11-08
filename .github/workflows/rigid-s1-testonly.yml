@@ -17,6 +17,9 @@ on:
       - 'tests/rigid-s2-owner-budget.test.py'
       - 'tests/rigid-s2-deletion-mutants.test.py'
       - 'tests/fixtures/rigid-s2-r9-ledger.json'
+      - 'tests/fixtures/rigid-s2-r1-derived-native-geometry.xml'
+      - 'tests/rigid-s2-r1-native-proof.test.py'
+      - 'tests/rigid-s2-r1-deletion-mutants.test.py'
       - '.github/workflows/rigid-s1-testonly.yml'
   workflow_dispatch:
 permissions:
@@ -50,16 +53,27 @@ jobs:
         run: python3 tests/rigid-s1-r2-guards.test.py -v
       - name: 25 R2 isolated delete-one source mutants (assertion failures only)
         run: python3 tests/rigid-s1-r2-deletion-mutants.test.py -v
-      - name: S2 R9 144 rigid / 154 source full budget and actual native test CII bytes
+      - name: S2 R9 144-element historical source projection and full mass budget
         run: python3 tests/rigid-s2-owner-budget.test.py -v
       - name: S2 16 isolated behavioral delete-one mutants
         run: python3 tests/rigid-s2-deletion-mutants.test.py -v
-      - name: S2 emit derived JSON ledger, actual 144-record CII and SHA256 (TEST ONLY)
+      - name: S2 historical ledger-only 144-record projection and SHA256 (NOT full native R9)
         run: python3 tests/rigid-s2-owner-budget.test.py --write-test-only-dir rigid-s2-evidence
       - uses: actions/upload-artifact@v4
         with:
           name: rigid-s2-full-budget-native-cii-nonrelease
           path: rigid-s2-evidence/
+          retention-days: 3
+      - name: S2-R1 actual product path stage + bind + native 143-RIGID CII + SHA sidecar
+        run: python3 tests/rigid-s2-r1-native-proof.test.py -v
+      - name: S2-R1 ten independent behavioral source-deletion mutants (N1-N4)
+        run: python3 tests/rigid-s2-r1-deletion-mutants.test.py -v
+      - name: S2-R1 emit 143 native RIGID test-only CII and pointer-status sidecar
+        run: python3 tests/rigid-s2-r1-native-proof.test.py --write-test-only-dir rigid-s2-r1-evidence
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rigid-s2-r1-product-native-143-nonrelease
+          path: rigid-s2-r1-evidence/
           retention-days: 3
       - name: Ten isolated source-code deletion mutants must turn the guard tests RED
         run: python3 tests/rigid-s1-r1-deletion-mutants.test.py -v
@@ -74,7 +88,7 @@ jobs:
           retention-days: 3
       - name: No test-only CII fixture in tracked production paths
         run: |
-          if git ls-files | grep -E '(S1_TEST_ONLY_NON_RELEASE\.cii|bm2-enriched-R9\.xml)'; then
+          if git ls-files | grep -E '(S1_TEST_ONLY_NON_RELEASE\.cii|S2_TEST_ONLY_NON_RELEASE\.cii|S2_R1_NATIVE_ACTUAL_TEST_ONLY\.cii|bm2-enriched-R9\.xml)'; then
             echo "S1 protected original and test CII must not be committed"
             exit 1
           fi
