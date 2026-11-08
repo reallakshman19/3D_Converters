@@ -1,8 +1,8 @@
 """RIGID S2-R1: real native staging/binding/parser/serializer, R9-anchored; NEVER RELEASE.
 
-CI uses a REDACTED test-only R9-derived geometry XML (no Owner metadata).
-Set RIGID_S2_R9_XML to the SHA-attested original Owner file for an independent
-offline replay. The original XML must never be committed to this repository.
+CI uses a separate SMALL, entirely synthetic S2-R2 fixture. This exact-R9
+proof is skipped unless the Owner locally supplies XML and JSON ledger through
+RIGID_S2_R9_XML and RIGID_S2_R9_LEDGER; neither may be committed.
 """
 import copy
 from collections import Counter
@@ -22,10 +22,17 @@ import xml229_native_final_mass_binding as binder
 import xml_to_cii2019 as native
 import xml_to_cii2019_patched as patched
 
-LEDGER_PATH=ROOT/"tests"/"fixtures"/"rigid-s2-r9-ledger.json"
-DERIVED_PATH=ROOT/"tests"/"fixtures"/"rigid-s2-r1-derived-native-geometry.xml"
-ORIGINAL_SHA="5cf2bfbe4cbe88361afcb3374c5230ee4badf42d9f503ec2cb5b2f0b7414e00c"
-DERIVED_SHA="3b4fc51aeffd930859c0624b00d62127da34cff3240c007317fff15c64d89636"
+# Owner-controlled metadata is provided only in the local replay environment.
+LEDGER_PATH=Path(os.environ.get("RIGID_S2_R9_LEDGER", "/__OWNER_LEDGER_NOT_PRESENT__"))
+ORIGINAL_SHA=os.environ.get("RIGID_S2_R9_SHA256", "")
+ORIGINAL_SIZE=int(os.environ.get("RIGID_S2_R9_BYTES", "0"))
+
+
+def require_owner_input():
+    if not (ORIGINAL_SHA and ORIGINAL_SIZE and
+            os.environ.get("RIGID_S2_R9_XML") and
+            LEDGER_PATH.is_file() and Path(os.environ["RIGID_S2_R9_XML"]).is_file()):
+        raise unittest.SkipTest("EXACT_R9_SKIP: Owner XML, exact hash/size and ledger only available offline")
 
 class S2R1Error(AssertionError): pass
 
@@ -33,6 +40,7 @@ def must(ok,code):
     if not ok: raise S2R1Error(code)
 
 def load_ledger():
+    require_owner_input()
     d=json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
     must(d["sourceXmlSha256"]==ORIGINAL_SHA and
          d["releaseAuthorized"] is False and
@@ -40,16 +48,12 @@ def load_ledger():
     return d
 
 def source_bytes():
-    original=os.environ.get("RIGID_S2_R9_XML")
-    if original:
-        data=Path(original).read_bytes()
-        must(len(data)==687252 and hashlib.sha256(data).hexdigest()==ORIGINAL_SHA,
-             "S2R1_PROTECTED_R9_HASH_DRIFT")
-        return data,"OWNER_R9_VERIFIED_OFFLINE"
-    data=DERIVED_PATH.read_bytes()
-    must(hashlib.sha256(data).hexdigest()==DERIVED_SHA,
-         "S2R1_DERIVED_GEOMETRY_HASH_DRIFT")
-    return data,"REDACTED_R9_DERIVED_CI"
+    require_owner_input()
+    data=Path(os.environ["RIGID_S2_R9_XML"]).read_bytes()
+    must(len(data)==ORIGINAL_SIZE and
+         hashlib.sha256(data).hexdigest()==ORIGINAL_SHA,
+         "S2R1_PROTECTED_R9_HASH_DRIFT")
+    return data,"OWNER_R9_VERIFIED_OFFLINE"
 
 def decode_source(raw):
     root=binder.parse_bytes(raw)
@@ -151,6 +155,13 @@ def verify_held_positions(ledger,byname):
                  s["branch"] in s["holdReason"] and
                  s["componentRef"] in s["holdReason"],
                  "S2R1_HELD_SOURCE_REASON_NOT_UNIQUE")
+        expected_rule = ("converters/scripts/xml229_native_final_mass_binding.py:"
+                         "429-483 audit_finalized_physical_endpoints; 827-856"
+                         if s["physicalFamily"] == "VALV" else
+                         "converters/scripts/xml229_native_final_mass_binding.py:"
+                         "827-856; 972-1044")
+        must(s["holdRuleFileLine"] == expected_rule,
+             "S2R2_HELD_RULE_EXACT_FILE_LINES")
     return True
 
 def native_r9_serialization(ledger,raw):
@@ -236,6 +247,19 @@ def verify_sidecar(cii,sidecar):
         if p["status"] in ("SUGGESTED","REVIEW","HELD"):
             must(p["ownerSourceId"] is None,
                  "S2R1_SIDECAR_UNAPPROVED_OWNER")
+        held = p.get("heldSources")
+        must(isinstance(held,list) and
+             all(isinstance(x,dict) and isinstance(x.get("sourceId"),str)
+                 and isinstance(x.get("kg"),(int,float)) and x["kg"]>0
+                 for x in held) and
+             (not held or p["status"] in ("REVIEW","HELD")),
+             "S2R2_HELD_SIDECAR_INVALID")
+    all_held=[x for p in sidecar["rigidPointers"].values()
+              for x in p["heldSources"]]
+    must(len(all_held)==32 and
+         len({x["sourceId"] for x in all_held})==32 and
+         sum(x["kg"] for x in all_held)==976,
+         "S2R2_HELD_32_SOURCES_976_KG_CENSUS")
     must(any(p["status"] in ("REVIEW","HELD")
              for p in sidecar["rigidPointers"].values()),
          "S2R1_NO_UNRESOLVED_RELEASE_PROHIBITED")
