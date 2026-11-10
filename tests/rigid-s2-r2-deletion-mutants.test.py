@@ -50,7 +50,8 @@ class S2R2MutationAudit(unittest.TestCase):
                                      f"unique mutation marker required: {label}")
                     path.write_text(content.replace(before,after,1),encoding="utf-8")
                     run=subprocess.run(
-                        [sys.executable,str(path),target,"-v"],
+                        [sys.executable,str(tests/(GUARD if filename==GUARD else SYNTH)),
+                         target,"-v"],
                         cwd=root,text=True,capture_output=True,timeout=75)
                     log=run.stdout+run.stderr
                     self.assertNotEqual(run.returncode,0,
