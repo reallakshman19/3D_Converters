@@ -33,6 +33,8 @@ class S2R1DeleteOneAudit(unittest.TestCase):
                     tests=root/"tests"
                     (tests/"fixtures").mkdir(parents=True)
                     shutil.copyfile(ROOT/"tests"/SOURCE,tests/SOURCE)
+                    shutil.copyfile(ROOT/"tests"/"rigid_s2_r3_geometry.py",
+                                    tests/"rigid_s2_r3_geometry.py")
                     path=tests/SOURCE
                     code=path.read_text(encoding="utf-8")
                     self.assertEqual(code.count(before),1,label)
