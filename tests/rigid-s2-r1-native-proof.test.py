@@ -21,6 +21,8 @@ sys.path.insert(0,str(ROOT/"converters"/"scripts"))
 import xml229_native_final_mass_binding as binder
 import xml_to_cii2019 as native
 import xml_to_cii2019_patched as patched
+from rigid_s2_r3_geometry import (product_merge_alias, held_source_mapping,
+                                  verify_held_source_mapping)
 
 # Owner-controlled metadata is provided only in the local replay environment.
 LEDGER_PATH=Path(os.environ.get("RIGID_S2_R9_LEDGER", "/__OWNER_LEDGER_NOT_PRESENT__"))
@@ -291,15 +293,7 @@ def verify_product_bytes(ledger,model,cii,basis,source_hash,byname=None):
             # Do not look up literal pairs: a short collapsed endpoint is
             # recognized by geometric start alignment and a 3.2mm span delta.
             extra.append((edge.branch_name,frm,to))
-            candidates=[]
-            for candidate in ledger["elements"]:
-                if candidate["branch"]!=edge.branch_name:continue
-                start_gap=math.dist(candidate["fromPositionMm"],edge.from_node.position)
-                length_gap=math.dist(edge.from_node.position,edge.to_node.position)-candidate["lengthMm"]
-                if start_gap<=.01 and 3.0<=length_gap<=3.4:
-                    candidates.append((candidate,length_gap))
-            must(len(candidates)==1,"S2R2_PRODUCT_MERGE_NOT_SOURCE_DERIVED")
-            item,merge_mm=candidates[0]
+            item,merge_mm=product_merge_alias(ledger["elements"],edge)
             must(item["elementId"] not in alias_ids,
                  "S2R2_PRODUCT_MERGE_DUPLICATE_ALIAS")
             alias_ids.add(item["elementId"])
@@ -334,30 +328,21 @@ def verify_product_bytes(ledger,model,cii,basis,source_hash,byname=None):
     # HELD source is a sidecar annotation, not an allocation. Prefer a source
     # tail match to product TO; collapsed-flange head may match product FROM.
     must(byname is not None,"S2R2_HELD_GEOMETRY_SOURCE_REQUIRED")
-    allocated=set()
+    held_locations=[]
     for source in (s for s in ledger["sources"] if s["status"]=="HELD"):
         ns=binder.nodes(byname[source["branch"]][1])
         a,z=[ns[j] for j in (source["sourceOrdinals"][0],
                              source["sourceOrdinals"][-1])]
         start,end=[tuple(map(float,binder.txt(n,"Position").split()))
                    for n in (a,z)]
-        candidates=[]
-        for index,edge in enumerate(model.edges):
-            if (index not in model.edge_to_rigid_index or
-                    edge.branch_name!=source["branch"]):continue
-            pointer=model.edge_to_rigid_index[index]
-            if side[str(pointer)]["status"] not in ("REVIEW","HELD"):continue
-            tail_dist=math.dist(end,edge.to_node.position)
-            head_dist=math.dist(start,edge.from_node.position)
-            if min(tail_dist,head_dist)<=.01:
-                candidates.append((0 if tail_dist<=.01 else 1,pointer))
-        must(bool(candidates),"S2R2_HELD_NOT_VISIBLE_IN_PRODUCT")
-        pointer=min(candidates)[1]
-        must(source["sourceId"] not in allocated,
-             "S2R2_HELD_DUPLICATE_SOURCE")
-        allocated.add(source["sourceId"])
-        side[str(pointer)]["heldSources"].append(
-            {"sourceId":source["sourceId"],"kg":source["knownMassKg"]})
+        held_locations.append({"sourceId":source["sourceId"],
+            "branch":source["branch"],"knownMassKg":source["knownMassKg"],
+            "firstPositionMm":start,"lastPositionMm":end})
+    anchored=held_source_mapping(held_locations,model,side)
+    for pointer,records in anchored.items():
+        side[pointer]["heldSources"].extend(records)
+    verify_held_source_mapping(held_locations,model,side)
+    allocated={x["sourceId"] for records in anchored.values() for x in records}
     receipt={"schema":"RigidS2R2.NonreleaseNativeCiiSidecar.v2",
       "sourceBasis":basis,"originalR9Sha256":ORIGINAL_SHA,
       "inputSourceSha256":source_hash,
@@ -449,6 +434,30 @@ class S2R1NativeR9Tests(unittest.TestCase):
         self.assertEqual({x["sourceId"] for _,x in annotated},
                          {s["sourceId"] for s in originals})
         self.assertTrue(all(p["status"] in ("REVIEW","HELD") for p,_ in annotated))
+
+    def test_q3_position_rule_rejects_same_branch_review_pointer_swap(self):
+        model,_,_=native_r9_serialization(self.ledger,self.raw)
+        _,byname=decode_source(self.raw)
+        held=[]
+        for source in (x for x in self.ledger["sources"] if x["status"]=="HELD"):
+            ns=binder.nodes(byname[source["branch"]][1])
+            a,z=[ns[k] for k in (source["sourceOrdinals"][0],
+                                 source["sourceOrdinals"][-1])]
+            held.append({"sourceId":source["sourceId"],"branch":source["branch"],
+                "knownMassKg":source["knownMassKg"],
+                "firstPositionMm":tuple(map(float,binder.txt(a,"Position").split())),
+                "lastPositionMm":tuple(map(float,binder.txt(z,"Position").split()))})
+        altered=copy.deepcopy(self.sidecar["rigidPointers"])
+        source_pointer=next(k for k,p in altered.items() if p["heldSources"])
+        start=altered[source_pointer]
+        alternate=next(k for k,p in altered.items()
+                       if k!=source_pointer and not p["heldSources"] and
+                       p["status"] in ("REVIEW","HELD") and
+                       model.edges[p["ciiElementIndex"]].branch_name==
+                       model.edges[start["ciiElementIndex"]].branch_name)
+        altered[alternate]["heldSources"].append(start["heldSources"].pop())
+        with self.assertRaisesRegex(AssertionError,"S2R3_HELD_POINTER_GEOMETRY_DRIFT"):
+            verify_held_source_mapping(held,model,altered)
 
     def test_p3_duplicate_held_source_annotation_refused(self):
         bad=copy.deepcopy(self.sidecar)
