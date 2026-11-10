@@ -96,6 +96,14 @@ jobs:
           fi
           python3 tests/rigid-s2-r2-owner-leak-guard.test.py --guard
           echo "NON_RELEASE_SOURCE_AND_CII_NOT_COMMITTED"
+      - name: Package only public S2-R3 test source for Owner-local verification
+        run: |
+          tar -czf s2r3-test-source.tgz tests/rigid-s2-r1-native-proof.test.py tests/rigid-s2-r1-deletion-mutants.test.py tests/rigid-s2-r2-synthetic.test.py tests/rigid-s2-r2-deletion-mutants.test.py tests/rigid-s2-r3-reviewer-mutants.test.py tests/rigid_s2_r3_geometry.py tests/rigid_s2_r3_synthetic_basis.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rigid-s2-r3-public-test-source-local-replay
+          path: s2r3-test-source.tgz
+          retention-days: 3
       - name: Package native Python source for offline exact-R9 test
         run: tar -czf rigid-s1-python-source-testonly.tgz -C converters scripts
       - uses: actions/upload-artifact@v4
