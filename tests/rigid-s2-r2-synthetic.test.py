@@ -199,6 +199,122 @@ class SyntheticNativeProofTests(unittest.TestCase):
                           if p['actualForceN']==0},{'REVIEW','HELD'})
 
 
+    def test_q1_source_xml_has_no_preassigned_mass(self):
+        raw=synthetic_xml()
+        root=ET.fromstring(raw)
+        self.assertTrue(all(binder.txt(n,'Weight')=='0'
+            for b in binder.branches(root) for n in binder.nodes(b)))
+        self.assertEqual(sum(x['weightKg'] for x in
+            derive_synthetic_basis(raw)['owners']),32.0)
+
+    def test_q1_length_40_has_different_suggestion(self):
+        raw=synthetic_xml(span_mm=40)
+        witness=derive_synthetic_basis(raw)
+        suggested=witness['suggestions'][0]
+        self.assertEqual(suggested['status'],'SUGGESTED')
+        self.assertEqual(suggested['weightKg'],5.50)
+        self.assertNotEqual(suggested['weightKg'],2.63)
+        model,cii=product(raw)
+        receipt=verify_synthetic(raw,model,cii)
+        self.assertAlmostEqual(sum(
+            x['actualForceN'] for x in receipt['rigidPointers'].values()
+            if x['status']=='SUGGESTED'),55.0)
+
+    def test_q1_missing_and_nan_master_are_review_null(self):
+        raw=synthetic_xml()
+        for rows in (
+            tuple(x for x in SYNTH_MASTERS if x['id']!='LAB-F50'),
+            tuple(dict(x,**{'RF/RTJ KG':float('nan')})
+                  if x['id']=='LAB-F50' else x for x in SYNTH_MASTERS)):
+            with self.subTest(rows=repr(rows)):
+                model,cii=product(raw,rows)
+                receipt=verify_synthetic(raw,model,cii,rows)
+                self.assertFalse(any(p['status']=='SUGGESTED' for p in
+                                     receipt['rigidPointers'].values()))
+                self.assertEqual(sum(p['weightKg'] is None for p in
+                    receipt['rigidPointers'].values() if p['actualForceN']==0),
+                    sum(p['actualForceN']==0 for p in
+                        receipt['rigidPointers'].values()))
+                self.assertEqual(len([p for p in receipt['rigidPointers'].values()
+                                      if p['status']=='OWNED']),1)
+
+    def test_q1_valve_held_known_mass(self):
+        raw=synthetic_xml()
+        model,cii=product(raw)
+        receipt=verify_synthetic(raw,model,cii)
+        held=[x for p in receipt['rigidPointers'].values()
+              for x in p['heldSources']]
+        self.assertEqual(len(held),2)
+        self.assertIn(365,[h['kg'] for h in held])
+        self.assertEqual(receipt['heldSourceKg'],394)
+
+    def test_q1_valve_type_tee_rejected(self):
+        with self.assertRaisesRegex(AssertionError,'S2R3_VALVE_TYPE_DRIFT'):
+            product(synthetic_xml(valve_type='TEE'))
+
+    @staticmethod
+    def fake_position_model():
+        def node(pos):
+            return SimpleNamespace(position=pos)
+        edges=[SimpleNamespace(branch_name='LAB-GEOM',
+               from_node=node((0,0,0)),to_node=node((10,0,0))),
+               SimpleNamespace(branch_name='LAB-GEOM',
+               from_node=node((20,0,0)),to_node=node((30,0,0)))]
+        return SimpleNamespace(edges=edges,edge_to_rigid_index={0:1,1:2}),{
+            '1':{'status':'REVIEW','heldSources':[]},
+            '2':{'status':'REVIEW','heldSources':[]}}
+
+    def test_q3_tail_has_priority_over_head(self):
+        model,side=self.fake_position_model()
+        self.assertEqual(preferred_held_pointer(
+            'LAB-GEOM',(20,0,0),(10,0,0),model,side),1)
+
+    def test_q3_head_fallback_accepted(self):
+        model,side=self.fake_position_model()
+        self.assertEqual(preferred_held_pointer(
+            'LAB-GEOM',(20,0,0),(999,0,0),model,side),2)
+
+    def test_q3_not_any_review_pointer_in_branch(self):
+        model,side=self.fake_position_model()
+        self.assertEqual(preferred_held_pointer(
+            'LAB-GEOM',(20,0,0),(30,0,0),model,side),2)
+
+    def test_q3_same_branch_wrong_pointer_is_rejected(self):
+        raw=synthetic_xml();basis=derive_synthetic_basis(raw)
+        model,cii=product(raw)
+        receipt=verify_synthetic(raw,model,cii)
+        side=copy.deepcopy(receipt['rigidPointers'])
+        valve=next(x for x in basis['held'] if x['kind']=='VALV')
+        original=next(k for k,p in side.items() if any(
+            h['sourceId']==valve['sourceId'] for h in p['heldSources']))
+        alternative=next(k for k,p in side.items()
+            if k!=original and model.edges[p['elementIndex']].branch_name==
+                valve['branch'] and p['status'] in ('REVIEW','HELD'))
+        moved=side[original]['heldSources'].pop()
+        side[alternative]['heldSources'].append(moved)
+        with self.assertRaisesRegex(AssertionError,
+                                    'S2R3_HELD_POINTER_GEOMETRY_DRIFT'):
+            verify_held_source_mapping(basis['held'],model,side)
+
+    def test_q4_three_merge_window_points(self):
+        owner=next(x for x in derive_synthetic_basis(synthetic_xml())['owners']
+                   if x['weightKg']==17)
+        def altered(gap):
+            to=list(owner['toPositionMm'])
+            to[0]+=gap
+            return SimpleNamespace(branch_name=owner['branch'],
+                from_node=SimpleNamespace(position=owner['fromPositionMm']),
+                to_node=SimpleNamespace(position=tuple(to)))
+        row,delta=product_merge_alias([owner],altered(3.2))
+        self.assertIs(row,owner)
+        self.assertAlmostEqual(delta,3.2)
+        for gap in (2.9,3.5):
+            with self.subTest(gap=gap):
+                with self.assertRaisesRegex(AssertionError,
+                          'S2R2_PRODUCT_MERGE_NOT_SOURCE_DERIVED'):
+                    product_merge_alias([owner],altered(gap))
+
+
 def write_artifacts(folder):
     raw=synthetic_xml();model,cii=product(raw)
     sidecar=verify_synthetic(raw,model,cii)
