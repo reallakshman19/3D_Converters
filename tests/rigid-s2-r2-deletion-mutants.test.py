@@ -12,20 +12,20 @@ GUARD="rigid-s2-r2-owner-leak-guard.test.py"
 
 # target file, source clause, source mutation, test class.method
 MUTANTS=[
- ("P1-unapproved-connection-label",SYNTH,
-  "'SYNTH-LAB-PAIR':{(101,102):('SUGGESTED',2.63),",
-  "'SYNTH-LAB-PAIR':{(101,102):('OWNED',2.63),",
+ ("P1-unapproved-connection-label","rigid_s2_r3_synthetic_basis.py",
+  'return source["status"],source["weightKg"],None',
+  'return "OWNED",source["weightKg"],None',
   "SyntheticNativeProofTests.test_p1_synthetic_fixture_covers_all_six_rules"),
  ("P2-owner-leak-content-guard",GUARD,
   "if marker not in data:", "if True:",
   "OwnerSourceContentGuards.test_p2_readded_owner_branch_marker_rejected"),
- ("P3-held-CII-force-guard",SYNTH,
-  'if kg is None:assert force==0.0, "SYNTH_UNASSIGNED_CII_FORCE"',
-  'if kg is None:assert True, "SYNTH_UNASSIGNED_CII_FORCE"',
+ ("P3-held-CII-force-guard","rigid_s2_r3_synthetic_basis.py",
+  'if kg is not None else force==0.0',
+  'if kg is not None else True',
   "SyntheticNativeProofTests.test_p3_held_source_force_tamper_must_be_rejected"),
  ("P4-canonical-junction-3p2mm",SYNTH,
-  "def synthetic_xml(short_gap=3.2):",
-  "def synthetic_xml(short_gap=9.2):",
+  'def synthetic_xml(short_gap=3.2, span_mm=19.1, valve_type="VALV"):',
+  'def synthetic_xml(short_gap=9.2, span_mm=19.1, valve_type="VALV"):',
   "SyntheticNativeProofTests.test_p1_synthetic_fixture_covers_all_six_rules"),
 ]
 
@@ -41,7 +41,8 @@ class S2R2MutationAudit(unittest.TestCase):
                     shutil.copytree(ROOT/"converters"/"scripts",scripts,
                                     ignore=shutil.ignore_patterns("__pycache__"))
                     tests=root/"tests";tests.mkdir()
-                    for source in (SYNTH,GUARD):
+                    for source in (SYNTH,GUARD,"rigid_s2_r3_synthetic_basis.py",
+                                   "rigid_s2_r3_geometry.py"):
                         shutil.copyfile(ROOT/"tests"/source,tests/source)
                     path=tests/filename
                     content=path.read_text(encoding="utf-8")
