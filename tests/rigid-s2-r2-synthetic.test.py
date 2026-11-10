@@ -189,7 +189,7 @@ class SyntheticNativeProofTests(unittest.TestCase):
         parts[0]="290"
         lines[index]=" ".join(parts)
         tampered="\n".join(lines)+"\n"
-        with self.assertRaisesRegex(AssertionError,"SYNTH_UNASSIGNED_CII_FORCE"):
+        with self.assertRaisesRegex(AssertionError,"S2R3_NATIVE_FORCE_SOURCE_DRIFT"):
             verify_synthetic(raw,model,tampered)
 
     def test_p3_held_and_review_never_claim_mass(self):
