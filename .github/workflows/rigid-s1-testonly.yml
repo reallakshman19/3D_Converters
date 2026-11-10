@@ -23,6 +23,9 @@ on:
       - 'tests/rigid-s2-r2-synthetic.test.py'
       - 'tests/rigid-s2-r2-owner-leak-guard.test.py'
       - 'tests/rigid-s2-r2-deletion-mutants.test.py'
+      - 'tests/rigid_s2_r3_geometry.py'
+      - 'tests/rigid_s2_r3_synthetic_basis.py'
+      - 'tests/rigid-s2-r3-reviewer-mutants.test.py'
       - '.github/workflows/rigid-s1-testonly.yml'
   workflow_dispatch:
 permissions:
@@ -60,18 +63,16 @@ jobs:
         run: python3 tests/rigid-s1-r2-guards.test.py -v
       - name: 25 R2 isolated delete-one source mutants (assertion failures only)
         run: python3 tests/rigid-s1-r2-deletion-mutants.test.py -v
-      - name: S2 R9 144-element historical source projection and full mass budget
-        run: python3 tests/rigid-s2-owner-budget.test.py -v
-      - name: S2 16 isolated behavioral delete-one mutants
-        run: python3 tests/rigid-s2-deletion-mutants.test.py -v
-      - name: S2-R1 actual product path stage + bind + native 143-RIGID CII + SHA sidecar
-        run: python3 tests/rigid-s2-r1-native-proof.test.py -v
-      - name: S2-R1 ten independent behavioral source-deletion mutants (N1-N4)
-        run: python3 tests/rigid-s2-r1-deletion-mutants.test.py -v
+      # S2 full Owner ledger + exact R9 proof/mutants are ONLY runnable with
+      # RIGID_S2_R9_XML, RIGID_S2_R9_LEDGER, RIGID_S2_R9_SHA256,
+      # RIGID_S2_R9_BYTES on an Owner-controlled local machine.
+      # Do NOT invoke skipped unittest suites as public CI passes.
       - name: Synthetic S2-R2 native product stages, force pointers, HELD and 3.2mm merge
         run: python3 tests/rigid-s2-r2-synthetic.test.py -v
       - name: Four S2-R2 isolated behavioral source mutants P1-P4
         run: python3 tests/rigid-s2-r2-deletion-mutants.test.py -v
+      - name: Seven S2-R3 X1 X2 X3 X6 X7 X8 X9 real synthetic behavior mutants
+        run: python3 tests/rigid-s2-r3-reviewer-mutants.test.py -v
       - name: Emit ONLY synthetic test-only CII and status sidecar plus SHA256
         run: python3 tests/rigid-s2-r2-synthetic.test.py --write-test-only-dir rigid-s2-r2-synthetic
       - uses: actions/upload-artifact@v4
@@ -79,8 +80,10 @@ jobs:
           name: rigid-s2-r2-synthetic-native-source-cii-sidecar-nonrelease
           path: rigid-s2-r2-synthetic/
           retention-days: 3
-      - name: Owner-only R9 bytes intentionally absent from CI
-        run: echo "EXACT_R9_SKIP - Owner XML and 144-edge source ledger must be supplied locally; never checkout or upload them in public CI"
+      - name: Owner input boundary notice (informational, never a test PASS)
+        run: |
+          echo "EXACT_R9_SKIP - no protected Owner XML or 144-edge ledger in public CI"
+          echo "OWNER_LOCAL_ONLY: export RIGID_S2_R9_XML, RIGID_S2_R9_LEDGER, RIGID_S2_R9_SHA256, RIGID_S2_R9_BYTES and run the exact-R9 unittest suites locally."
       - name: Ten isolated source-code deletion mutants must turn the guard tests RED
         run: python3 tests/rigid-s1-r1-deletion-mutants.test.py -v
       - name: R1 ordinary PCOM and Native Final compare byte-exact to pinned main
