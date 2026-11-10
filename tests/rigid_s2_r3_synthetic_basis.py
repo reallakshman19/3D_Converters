@@ -185,12 +185,24 @@ def annotate_synthetic_product(model, cii, derived, binder):
            "nodePair":[edge.from_node.node_number,edge.to_node.node_number],
            "ownerSourceId":owner,"heldSources":[]}
     require(len(side)==len(weights),"S2R3_RIGID_POINTER_CENSUS")
-    anchored=held_source_mapping(derived["held"],model,side)
+    # Source-derived OWNED mass is never lost if the parser cannot produce
+    # the 3.0..3.4mm alias. A missing owner becomes HELD on an unresolved
+    # position-matched pointer, with its original master kg and source ID.
+    emitted_owned = {p["ownerSourceId"] for p in side.values()
+                     if p["status"] == "OWNED"}
+    missing_owners = [dict(sourceId=o["ownerSourceId"], branch=o["branch"],
+                           firstPositionMm=o["fromPositionMm"],
+                           lastPositionMm=o["toPositionMm"],
+                           knownMassKg=o["weightKg"], kind="FLAN")
+                      for o in derived["owners"]
+                      if o["ownerSourceId"] not in emitted_owned]
+    held_locations = [*derived["held"], *missing_owners]
+    anchored=held_source_mapping(held_locations,model,side)
     for pointer,items in anchored.items():
         side[pointer]["heldSources"].extend(items)
         if side[pointer]["status"]=="REVIEW" and any(
-                x["kind"]=="FLAN" for x in derived["held"]
+                x["kind"]=="FLAN" for x in held_locations
                 if any(y["sourceId"]==x["sourceId"] for y in items)):
             side[pointer]["status"]="HELD"
-    verify_held_source_mapping(derived["held"],model,side)
+    verify_held_source_mapping(held_locations,model,side)
     return side
