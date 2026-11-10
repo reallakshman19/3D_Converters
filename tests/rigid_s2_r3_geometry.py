@@ -25,8 +25,9 @@ def product_merge_alias(source_elements, edge, *, tolerance_mm=0.01):
         if source["branch"] != edge.branch_name:
             continue
         start_gap = math.dist(source["fromPositionMm"], edge.from_node.position)
-        length_gap = (math.dist(edge.from_node.position, edge.to_node.position)
-                      - source["lengthMm"])
+        length_gap = round(
+            math.dist(edge.from_node.position, edge.to_node.position)
+            - source["lengthMm"], 6)  # inclusive 3.0 and 3.4 mm at numeric precision
         if start_gap <= tolerance_mm and 3.0 <= length_gap <= 3.4:
             candidates.append((source, length_gap))
     require(len(candidates) == 1, "S2R2_PRODUCT_MERGE_NOT_SOURCE_DERIVED")
