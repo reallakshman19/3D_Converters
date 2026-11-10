@@ -250,7 +250,7 @@ class SyntheticNativeProofTests(unittest.TestCase):
 
     def test_q1_valve_type_tee_rejected(self):
         with self.assertRaisesRegex(AssertionError,'S2R3_VALVE_TYPE_DRIFT'):
-            product(synthetic_xml(valve_type='TEE'))
+            derive_synthetic_basis(synthetic_xml(valve_type='TEE'))
 
     @staticmethod
     def fake_position_model():
