@@ -142,11 +142,19 @@ def verify_synthetic(raw,model,cii,master_rows=SYNTH_MASTERS):
         if e.branch_name.endswith('NONRIGID'):
             assert i not in model.edge_to_rigid_index, 'SYNTH_RIGID_FLAN_NOT_RIGID'
     held=[x for p in side.values() for x in p['heldSources']]
-    expected_held=[x for x in basis['held']]
-    assert (len(held)==len(expected_held) and
-            len({x['sourceId'] for x in held})==len(expected_held) and
-            sum(x['kg'] for x in held)==sum(x['knownMassKg'] for x in expected_held)), (
-                'S2R3_HELD_SOURCE_MASS_CENSUS')
+    # Independent original-source vs output bijection; a source must be
+    # exactly once OWNED or HELD with its original master kg, never omitted.
+    expected=[(x['ownerSourceId'],x['weightKg']) for x in basis['owners']]
+    expected += [(x['sourceId'],x['knownMassKg']) for x in basis['held']]
+    actual=[(p['ownerSourceId'],p['weightKg']) for p in side.values()
+            if p['status']=='OWNED']
+    actual += [(h['sourceId'],h['kg']) for h in held]
+    assert (len(expected)==len(set(x[0] for x in expected)) and
+            len(actual)==len(expected) and
+            sorted(actual)==sorted(expected) and
+            math.isclose(sum(x[1] for x in actual),
+                         sum(x[1] for x in expected),abs_tol=1e-9)), (
+                'S2R5_SOURCE_KG_EXACT_ONCE_CONSERVATION')
     assert all(p['status'] in ('HELD','REVIEW') and p['weightKg'] is None
                for p in side.values() if p['actualForceN']==0), (
                    'S2R3_UNRESOLVED_NOT_ZERO')
