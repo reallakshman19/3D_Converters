@@ -28,6 +28,8 @@ on:
       - 'tests/rigid-s2-r3-reviewer-mutants.test.py'
       - 'tests/rigid-s2-r4-guards.test.py'
       - 'tests/rigid-s2-r4-deletion-mutants.test.py'
+      - 'tests/rigid-s2-r5-guards.test.py'
+      - 'tests/rigid-s2-r5-deletion-mutants.test.py'
       - '.github/workflows/rigid-s1-testonly.yml'
   workflow_dispatch:
 permissions:
@@ -79,6 +81,10 @@ jobs:
         run: python3 tests/rigid-s2-r4-guards.test.py -v
       - name: S2-R4 nine T1 T2 T3 delete-one behavioral mutants GREEN to RED
         run: python3 tests/rigid-s2-r4-deletion-mutants.test.py -v
+      - name: S2-R5 Z1 Z2 strict physical owner and HELD kg conservation synthetic proofs
+        run: python3 tests/rigid-s2-r5-guards.test.py -v
+      - name: S2-R5 six Z1 Z2 source-guard deletions GREEN to RED
+        run: python3 tests/rigid-s2-r5-deletion-mutants.test.py -v
       - name: Emit ONLY synthetic test-only CII and status sidecar plus SHA256
         run: python3 tests/rigid-s2-r2-synthetic.test.py --write-test-only-dir rigid-s2-r2-synthetic
       - uses: actions/upload-artifact@v4
