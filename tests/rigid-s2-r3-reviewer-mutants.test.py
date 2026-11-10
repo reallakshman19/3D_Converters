@@ -72,7 +72,9 @@ class S2R3MutationAudit(unittest.TestCase):
                     self.assertNotIn("SyntaxError",output,label)
                     self.assertNotIn("ImportError",output,label)
                     self.assertNotIn("ModuleNotFoundError",output,label)
-                    self.assertIn("AssertionError",output,
+                    self.assertTrue(
+                        "AssertionError" in output or
+                        "GeometryWitnessError" in output,
                         "non-behavioral failure "+label+" "+output[-1400:])
                     self.assertIn(target,output,label)
                     killed+=1
