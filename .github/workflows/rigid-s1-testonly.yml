@@ -26,6 +26,8 @@ on:
       - 'tests/rigid_s2_r3_geometry.py'
       - 'tests/rigid_s2_r3_synthetic_basis.py'
       - 'tests/rigid-s2-r3-reviewer-mutants.test.py'
+      - 'tests/rigid-s2-r4-guards.test.py'
+      - 'tests/rigid-s2-r4-deletion-mutants.test.py'
       - '.github/workflows/rigid-s1-testonly.yml'
   workflow_dispatch:
 permissions:
@@ -73,6 +75,10 @@ jobs:
         run: python3 tests/rigid-s2-r2-deletion-mutants.test.py -v
       - name: Seven S2-R3 X1 X2 X3 X6 X7 X8 X9 real synthetic behavior mutants
         run: python3 tests/rigid-s2-r3-reviewer-mutants.test.py -v
+      - name: S2-R4 T1 T2 T3 synthetic 19.1mm flange, merge-identity and HELD decoy negative witnesses
+        run: python3 tests/rigid-s2-r4-guards.test.py -v
+      - name: S2-R4 nine T1 T2 T3 delete-one behavioral mutants GREEN to RED
+        run: python3 tests/rigid-s2-r4-deletion-mutants.test.py -v
       - name: Emit ONLY synthetic test-only CII and status sidecar plus SHA256
         run: python3 tests/rigid-s2-r2-synthetic.test.py --write-test-only-dir rigid-s2-r2-synthetic
       - uses: actions/upload-artifact@v4
