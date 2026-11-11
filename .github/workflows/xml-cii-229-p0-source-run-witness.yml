@@ -1,0 +1,46 @@
+name: XML229 P0 original source and Run evidence (test only)
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'scripts/xml-cii-229-p0-original-source-run-witness.mjs'
+      - '.github/workflows/xml-cii-229-p0-source-run-witness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-source-run-witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout the exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and direct-main starting source
+        run: |
+          node --check scripts/xml-cii-229-p0-original-source-run-witness.mjs
+          echo "P0_TEST_HEAD=$(git rev-parse HEAD)"
+      - name: Install real browser
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.52.0
+          npx playwright install --with-deps chromium
+      - name: Serve authored application and browser fixture
+        run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/xml229-p0-http.log 2>&1 &
+      - name: Reproduce original JSON source split and synthetic 28 Run decisions
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/xml-cii-229-p0-original-source-run-witness.mjs
+      - name: Save P0 receipt even when the expected behavior differs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xml229-p0-original-source-and-28-run
+          path: |
+            ValidationRecords/xml229-p0-original-source-run-witness.json
+            /tmp/xml229-p0-http.log
+          if-no-files-found: warn
+          retention-days: 30
