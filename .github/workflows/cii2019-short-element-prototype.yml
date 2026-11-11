@@ -1,0 +1,65 @@
+name: CII 2019 short-element prototype (non-release)
+on:
+  pull_request:
+    paths:
+      - 'converters/scripts/cii2019_short_simplify.py'
+      - 'converters/scripts/xml_to_cii2019_patched.py'
+      - 'docs/converters/scripts/xml_to_cii2019_patched.py'
+      - 'docs/converters/scripts/cii2019_short_simplify.py'
+      - 'tests/test_cii2019_short_simplify.py'
+      - 'tests/test_cii2019_served_path.py'
+      - 'docs/cii2019-short-element-simplification.md'
+      - '.github/workflows/cii2019-short-element-prototype.yml'
+  workflow_dispatch:
+jobs:
+  scoped-prototype:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Syntax check code
+        run: |
+          python -m py_compile converters/scripts/cii2019_short_simplify.py converters/scripts/xml_to_cii2019_patched.py converters/scripts/cii_syntax_check_2019.py
+          python -m py_compile docs/converters/scripts/cii2019_short_simplify.py docs/converters/scripts/xml_to_cii2019_patched.py docs/converters/scripts/cii_syntax_check_2019.py
+      - name: Consequential short-element fixtures, real writer and validator
+        run: python -m unittest discover -s tests -p test_cii2019_short_simplify.py -v
+      - name: Actual docs-served opt-in, default-OFF and fail-closed HOLD acceptance
+        run: python -m unittest discover -s tests -p test_cii2019_served_path.py -v
+      - name: Existing patched XML-to-CII regressions
+        run: python converters/scripts/test_xml_to_cii2019_patched_process.py
+      - name: Real-writer positive case and audit artifact (not an EF-05 witness)
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, sys
+          from pathlib import Path
+          sys.path[:0] = ["converters/scripts", "tests"]
+          from cii2019_short_simplify import process
+          from test_cii2019_short_simplify import emitted, node
+          d = Path("/tmp/cii-short-evidence")
+          d.mkdir(parents=True,exist_ok=True)
+          p = d / "writer-input.cii"
+          q = d / "simplified-output.cii"
+          r = d / "short-element-simplification-report.json"
+          p.write_text(emitted([[node(10,0),node(20,6),node(30,106)]]),encoding="utf-8")
+          code, evidence = process(p,q,r,mode="simplify")
+          print("CII_SHORT_EXECUTED_EVIDENCE:",json.dumps({
+              key:evidence.get(key) for key in [
+                  "status","input_cii_sha256","output_cii_sha256",
+                  "input_elements","output_elements","short_elements_le_6mm",
+                  "candidates","topology","element_mapping","node_mapping"
+              ]},sort_keys=True))
+          assert code == 0, evidence.get("failure")
+          assert evidence["input_elements"]==2 and evidence["output_elements"]==1
+          assert q.is_file()
+          PY
+      - name: Preserve executable candidate and machine-readable audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: cii2019-short-positive-scoped-witness
+          path: /tmp/cii-short-evidence/
+          if-no-files-found: error
