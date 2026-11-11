@@ -1,0 +1,129 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>XML229 A2 real served module Worker physical-source custody</title>
+<h1>Real GLRD physical-source Worker — browser-only qualification</h1>
+<pre id="result">RUNNING</pre>
+<script type="module">
+import {createPreviewBasis} from '../../docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-basis.js';
+import {digestUtf8} from '../../docs/contracts/gc-pw-v1/contract.mjs';
+const id='GLRD-1000-PI-01';
+function check(ok,reason){if(!ok)throw new Error(reason);}
+const children=(node,tag)=>[...(node?.childNodes||[])].filter(el=>
+ el.nodeType===1&&String(el.localName||el.nodeName).replace(/^.*:/,'')===tag);
+const runWorker=async ({xml,basisId,config,scope,physical,physicalMode})=>{
+ const url=new URL('../../docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-worker-entry.js',import.meta.url);
+ const worker=new Worker(url,{type:'module'}),start=performance.now(),events=[];
+ try {
+  const terminal=await new Promise((resolve,reject)=>{
+   const stop=setTimeout(()=>reject(new Error('real module Worker timeout')),60000);
+   worker.onerror=event=>{clearTimeout(stop);reject(new Error('module Worker error: '+event.message));};
+   worker.onmessage=event=>{
+    events.push(event.data);
+    if(event.data?.state==='source-physical-page'){
+     worker.postMessage({protocol:'xml-cii-preview-local/1',kind:'physical-page-ack',
+      requestId:event.data.requestId,basisId:event.data.basisId,
+      cursor:event.data.page.nextCursor??'END'});
+    }
+    if(['completed','failed'].includes(event.data?.state)){clearTimeout(stop);resolve(event.data);}
+   };
+   worker.postMessage({protocol:'xml-cii-preview-local/1',kind:'execute',
+    requestId:'xml229-a2-served-'+Math.random().toString(36).slice(2),
+    basisId,xmlText:xml,config,stagedJsonText:'',scope,sourcePhysicalAudit:physical,
+    sourcePhysicalAuditMode:physicalMode});
+  });
+  return {terminal,events,elapsedMs:Math.round(performance.now()-start)};
+ }finally{worker.terminate();}
+};
+try{
+ const reply=await fetch('../../Benchmarks/XML%20to%20CII%202019/GLRD-1000-PI-01.xml');
+ check(reply.ok,'GLRD fixture unavailable '+reply.status);
+ const bytes=await reply.arrayBuffer();
+ check(bytes.byteLength===627599,'original GLRD byte size');
+ const xml=new TextDecoder().decode(bytes);
+ const sourceSha=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)))
+  .map(v=>v.toString(16).padStart(2,'0')).join('');
+ check(sourceSha==='923a2b493483ecaaebe696f3d08a0b688f3ce3c9f456fb11b8e6a5889eea22ba',
+  'original GLRD SHA256');
+ const parsed=new DOMParser().parseFromString(xml,'application/xml');
+ const branches=children(parsed.documentElement,'Pipe').flatMap(p=>children(p,'Branch'));
+ const nodes=branches.flatMap(b=>children(b,'Node'));
+ check(branches.length===41&&nodes.length===1166,'independent browser original occurrence census');
+ const config={rating:{tokenDelimiter:'-'}};
+ const masters={weight:{datasetId:'browser-fixture',revision:1,
+  rows:[{weight:13,unit:'kg'}],mapping:{weight:'kg'}}};
+ const basis=await createPreviewBasis({
+  domainId:'xml-cii/2019',sources:[{sourceId:id,mediaType:'application/xml',text:xml}],
+  selection:[{sourceId:id,selectionRef:'all@generation:browser-original-glrd'}],
+  masters,config,overrides:{},stagedSource:null,sha256:digestUtf8});
+ const run=await runWorker({xml,basisId:basis.basisId,config,scope:{mode:'A',sourceId:id},physical:true});
+ check(run.terminal.state==='completed',
+   'real served Worker error '+JSON.stringify(run.terminal.error));
+ const data=run.terminal.result,audit=data.sourcePhysicalAudit;
+ check(data.engineeringAcceptance==='NOT_ASSESSED'&&data.fullFactPopulationAccepted===false,
+   'browser Worker incorrectly approved engineering');
+ check(audit?.engineeringReady===false&&audit?.sourceOnly===true,'physical source-only guard');
+ check(audit?.originalNodeCount===1166&&audit?.sourceFactCount===4664,'browser source count');
+ const facts=audit.pages.flatMap(p=>{
+  check(p.items.length>0&&p.items.length<=200&&!p.complete,'browser bounded page');
+  check(p.basisId===basis.basisId,'source-basis page identity');
+  return p.items;
+ });
+ check(facts.length===4664,'complete browser original source physical records');
+ const tagNames=['Position','OutsideDiameter','WallThickness','Weight'];
+ const valueCounts={Position:0,OutsideDiameter:0,WallThickness:0,Weight:0};
+ let index=0;
+ for(const node of nodes){
+  for(const tag of tagNames){
+   const fact=facts[index++],raw=String(children(node,tag)[0]?.textContent||'').trim();
+   check(fact?.extensions?.originalText===(raw||null),'browser original XML field text '+tag);
+   check(fact?.basisId===basis.basisId,'browser original SHA basis');
+   check(fact?.fieldId===('source.'+({
+    Position:'position.xyz',OutsideDiameter:'outsideDiameter.mm',
+    WallThickness:'wallThickness.mm',Weight:'weight.kg'})[tag]),'browser field key');
+   if(fact.value!==null)valueCounts[tag]++;
+  }
+ }
+ check(valueCounts.Position>0&&valueCounts.OutsideDiameter>0&&
+  valueCounts.WallThickness>0&&valueCounts.Weight>0,
+  'real GLRD positive source values missing '+JSON.stringify(valueCounts));
+ const scopeRun=await runWorker({xml,basisId:basis.basisId,config,
+  scope:{mode:'A',sourceId:id,selection:[{zone:'UNATTESTED-ZONE'}]},physical:true});
+ check(scopeRun.terminal.state==='failed'&&
+  scopeRun.terminal.error?.code==='SCOPED_ENGINEERING_PENDING','selected zone must fail closed');
+ const optOut=await runWorker({xml,basisId:basis.basisId,config,scope:{mode:'A',sourceId:id},physical:false});
+ check(optOut.terminal.state==='completed'&&optOut.terminal.result.sourcePhysicalAudit===undefined,
+  'non-opt-in original Worker behavior changed');
+ const paced=await runWorker({xml,basisId:basis.basisId,config,
+  scope:{mode:'A',sourceId:id},physical:false,physicalMode:'paced-pages'});
+ check(paced.terminal.state==='completed',JSON.stringify(paced.terminal.error));
+ const pageEvents=paced.events.filter(x=>x.state==='source-physical-page');
+ check(pageEvents.length===24,'real Chromium paced source packet count');
+ check(pageEvents.every(x=>x.page?.complete===false&&x.page.items.length<=200),
+  'ACK-paced transfer must retain bounded source-only pages');
+ const pacedRecords=pageEvents.flatMap(x=>x.page.items);
+ check(pacedRecords.length===4664,'paced browser source population');
+ check(paced.terminal.result.sourcePhysicalAudit===undefined,
+  'ACK-paced terminal must not materialize previous bulk payload');
+ check(paced.terminal.result.sourcePhysicalAuditStream?.pageCount===pageEvents.length,
+  'ACK-paced terminal receipt must match exact pages transferred');
+ check(paced.terminal.result.engineeringAcceptance==='NOT_ASSESSED'&&
+  paced.terminal.result.fullFactPopulationAccepted===false,
+  'ACK-paced transport cannot confer engineering authority');
+ for(let j=0;j<pacedRecords.length;j++){
+  check(JSON.stringify(pacedRecords[j])===JSON.stringify(facts[j]),
+   'ACK-paced original fact must agree with independently verified bulk source fact '+j);
+ }
+ const result={ok:true,originalSha256:sourceSha,originalBranches:branches.length,
+  originalNodes:nodes.length,sourcePhysicalFacts:facts.length,positiveFields:valueCounts,
+  basisId:basis.basisId,workerTimeMs:run.elapsedMs,
+  authority:data.engineeringAcceptance,engineeringReady:audit.engineeringReady,
+  selectedZoneGate:scopeRun.terminal.error.code,nonOptInPreserved:true,
+  pacedSourceFacts:pacedRecords.length,pacedPageCount:pageEvents.length,
+  pacedTransfer:'acknowledged',pacedEngineeringReady:false};
+ globalThis.__XML229_BROWSER_RESULT__=result;
+ document.querySelector('#result').textContent=JSON.stringify(result,null,2);
+}catch(error){
+ globalThis.__XML229_BROWSER_RESULT__={ok:false,error:String(error),stack:String(error?.stack||'')};
+ document.querySelector('#result').textContent=String(error?.stack||error);
+}finally{globalThis.__XML229_BROWSER_DONE__=true;}
+</script>
