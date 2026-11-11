@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "scope": "public-fixture-real-engine-no-masters",
+  "results": [
+    {
+      "path": "/topology-workspace.html",
+      "result": "Authoritative topology analysis complete. 190 plan entries. No Weight/O1/Final/native session was supplied or created.",
+      "sourceCount": 216,
+      "screenshot": "C:\\Users\\reall\\Documents\\antigravity\\radiant-brahmagupta\\3D_Converters\\ValidationRecords\\xml229-wp1-exact-head\\e88c2dc3812aadc6fefad95c2ac7e03bdeacaa42\\screenshots\\root-wp1.png",
+      "errorCount": 0
+    },
+    {
+      "path": "/docs/topology-workspace.html",
+      "result": "Authoritative topology analysis complete. 190 plan entries. No Weight/O1/Final/native session was supplied or created.",
+      "sourceCount": 216,
+      "screenshot": "C:\\Users\\reall\\Documents\\antigravity\\radiant-brahmagupta\\3D_Converters\\ValidationRecords\\xml229-wp1-exact-head\\e88c2dc3812aadc6fefad95c2ac7e03bdeacaa42\\screenshots\\docs-wp1.png",
+      "errorCount": 0
+    }
+  ]
+}

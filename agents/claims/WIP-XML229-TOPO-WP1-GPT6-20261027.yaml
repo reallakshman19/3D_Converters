@@ -1,0 +1,15 @@
+work_id: WIP-XML229-TOPO-WP1-GPT6-20261027
+owner: ChatGPT GPT-6 receiving agent
+state: REVIEW_DRAFT_HOLD
+classification: ENGINEERING_CRITICAL
+base: 0e14160cb985247d97ee6ae673387f061eeed1f7
+branch: feat/xml229-topology-workspace-wp1-20261027
+pr_number: 346
+report: agents/PR346_workreport.md
+scope: new standalone PSI116 topology loading, source-occurrence 5B projected canvas inspection, real topology-only analysis, root/docs mirrors, Node and browser tests
+protected: engine.js, topology-integration.js, XML229 orchestration, existing 5B panel, GC-PW, accepted Final, native writer, PSI116 solver, workflows, units
+coordination: PR329 COORDINATION_REQUIRED shared API and future orchestration; PR335 separate native scope
+validation: root/docs blob parity PASS; engine baseline PASS; WP1 Node tests PASS; Chromium browser journey PASS; standalone exact-head runner PASS (exit 0)
+merge_authority: OWNER_ONLY
+private_model: NOT_AVAILABLE
+exact_next_action: Owner performs local real-file trial on http://127.0.0.1:4173/topology-workspace.html; reconcile evidence; no merge without explicit Owner authorization
