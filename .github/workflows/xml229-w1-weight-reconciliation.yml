@@ -1,0 +1,36 @@
+name: XML229 W1 Source-bound weight reconciliation
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'converters/xml-cii2019-core/weight-reconciliation-read-model.js'
+      - 'docs/converters/xml-cii2019-core/weight-reconciliation-read-model.js'
+      - 'tests/xml-cii-229-w1-weight-reconciliation-read-model.test.mjs'
+      - '.github/workflows/xml229-w1-weight-reconciliation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  w1-model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Exact head
+        run: git rev-parse HEAD
+      - name: JS syntax and served mirror
+        run: |
+          node --check converters/xml-cii2019-core/weight-reconciliation-read-model.js
+          node --check tests/xml-cii-229-w1-weight-reconciliation-read-model.test.mjs
+          diff -u converters/xml-cii2019-core/weight-reconciliation-read-model.js docs/converters/xml-cii2019-core/weight-reconciliation-read-model.js
+      - name: Source identity, no authority promotion and GC-PW regressions
+        run: |
+          node --test tests/xml-cii-229-w1-weight-reconciliation-read-model.test.mjs tests/gc-pw-v1-contract.test.mjs
