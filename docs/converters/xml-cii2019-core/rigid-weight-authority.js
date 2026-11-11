@@ -204,11 +204,45 @@ export function buildXmlCiiValidatedRigidWeightLegacyView(config = {}, issues = 
   const validation = validateXmlCiiRigidWeightMatch1(base, issues);
   const legacy = positiveBucket(overrides[XML_CII_RIGID_WEIGHT_BUCKETS.legacy]);
 
-  // A stale/current Match-1 record means this component has entered the
-  // governed lifecycle. Never silently fall back to an older legacy override
-  // for the same key: doing so can hide a changed geometry/master basis and
-  // skip the required engineering review. Final remains higher authority
-  // because it is an explicit downstream acceptance.
+  // XML229: the blank-only Weight Match action persists a *legacy* numeric
+  // override plus basis-bound proposal metadata, not governed Match-1.
+  // At output time validate that fingerprint before projecting that value.
+  // Historic legacy manual overrides have no proposal metadata; preserve
+  // their existing compatibility contract rather than reclassifying them.
+  const proposalMeta = plainObject(overrides.rigidWeightProposalMeta);
+  const issueByKey = currentIssueMap(issues);
+  const staleLegacyProposals = {};
+  for (const [key, weightKg] of Object.entries(legacy)) {
+    if (!Object.hasOwn(proposalMeta, key)) continue;
+    const saved = plainObject(proposalMeta[key]);
+    const issue = issueByKey.get(key);
+    let reason = '';
+    let current = null;
+    if (saved.schema !== MATCH1_PROVENANCE_SCHEMA || !text(saved.fingerprint)
+      || !Object.keys(plainObject(saved.basis)).length) {
+      reason = 'invalid-proposal-provenance';
+    } else if (!issue) {
+      reason = 'component-not-found';
+    } else {
+      current = buildXmlCiiRigidWeightMatch1Provenance(issue, base, null, { weightKg });
+      if (positive(saved.acceptedWeightKg) !== weightKg) reason = 'accepted-weight-changed';
+      else if (saved.fingerprint !== fnv1a(stableStringify(saved.basis)))
+        reason = 'invalid-proposal-fingerprint';
+      else if (saved.fingerprint !== current.fingerprint) reason = 'basis-changed';
+    }
+    if (!reason) continue;
+    staleLegacyProposals[key] = {
+      reason, weightKg, savedFingerprint: text(saved.fingerprint),
+      ...(current ? {
+        currentFingerprint: current.fingerprint,
+        changedFields: changedBasisFields(saved.basis, current.basis),
+      } : {}),
+    };
+    delete legacy[key]; // Retain the original saved decision for human review.
+  }
+
+  // Stale governed Match-1 must not fall back to *any* older legacy value.
+  // Final remains higher authority because it is an explicit later review.
   for (const key of Object.keys(validation.stale)) delete legacy[key];
 
   const effective = {
@@ -226,7 +260,11 @@ export function buildXmlCiiValidatedRigidWeightLegacyView(config = {}, issues = 
     },
     validation: {
       ...validation,
-      suppressedLegacyKeys: Object.keys(validation.stale).filter((key) => positive(overrides[XML_CII_RIGID_WEIGHT_BUCKETS.legacy]?.[key]) !== null),
+      staleLegacyProposals,
+      suppressedLegacyKeys: [...new Set([
+        ...Object.keys(staleLegacyProposals),
+        ...Object.keys(validation.stale).filter((key) => positive(overrides[XML_CII_RIGID_WEIGHT_BUCKETS.legacy]?.[key]) !== null),
+      ])],
     },
   };
 }
