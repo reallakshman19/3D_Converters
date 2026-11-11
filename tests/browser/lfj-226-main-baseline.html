@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>#226 exact-main authored standalone large-JSON benchmark</title>
+<div id="app"></div>
+<script type="module">
+  import {renderXmlCii2019StandaloneTab} from '../../tabs/xml-cii-2019-standalone-tab.js';
+  const metrics={active:false,maxFrameGapMs:0,frameCount:0,last:0};
+  function tick(now){
+    if(metrics.active && metrics.last){
+      metrics.maxFrameGapMs=Math.max(metrics.maxFrameGapMs,now-metrics.last);
+      metrics.frameCount++;
+    }
+    metrics.last=now;
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  window.__lfj226Frame={
+    start(){metrics.active=true;metrics.maxFrameGapMs=0;metrics.frameCount=0;metrics.last=performance.now();},
+    async end(){
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      metrics.active=false;
+      return {maxFrameGapMs:Math.round(metrics.maxFrameGapMs*100)/100,frames:metrics.frameCount};
+    }
+  };
+  renderXmlCii2019StandaloneTab(document.querySelector('#app'));
+  window.__lfj226Mounted=true;
+</script>
