@@ -1,3 +1,6 @@
+import {projectXmlCiiFinalReviewRow} from '../../../converters/xml-cii2019-core/weight-final-review-reconciliation.js';
+import {renderVerifiedWeightReconciliationPanel} from './xml-cii-adapted-weight-shared-reconciliation-view.js';
+import {prepareVerifiedCanonicalFinalControls} from './xml-cii-adapted-weight-canonical-final-ui.js';
 import { resolveStandaloneWeightReviewRating, standaloneWeightReviewRatingInfo } from './xml-cii-adapted-weight-rating-authority.js';
 import { isXmlCiiDirectQualifiedCandidate } from '../../../converters/xml-cii2019-core/weight-facts-xml-cii-adapter.js';
 import { applyXmlCiiFlangeWeightFallbackToIssue } from '../../../converters/xml-cii2019-core/flange-weight-fallback.js';
@@ -51,6 +54,14 @@ export async function collectModeARigidWeightReviewIssues(state = {}, config = {
   });
 }
 
+function flattenedReviewRows(entries) {
+  const configs=new Map(entries.map(entry=>[entry.sourceId,entry.config||{}]));
+  return flattenModeARigidReviewEntries(entries).map(issue=>({
+    ...issue,
+    finalReview:projectXmlCiiFinalReviewRow(issue,configs.get(issue.sourceId)||{}),
+  }));
+}
+
 function ratingInfo(issue) {
   const info = standaloneWeightReviewRatingInfo(issue);
   const title = info.conflict
@@ -89,6 +100,26 @@ function candidateButtons(issue, rowIndex) {
 
 function rowMarkup(issue, rowIndex) {
   const best = issue.candidates?.[0] || null;
+  const review=issue.finalReview||projectXmlCiiFinalReviewRow(issue,{});
+  const proposalLabel=review.proposalStatus==='UNACCEPTED_DRAFT'
+    ?'Proposed, unaccepted'
+    :review.proposalStatus==='CONFLICTING_CANDIDATES'
+      ?'Competing proposals: choose deliberately'
+      :review.proposalStatus==='NO_PROPOSAL'
+        ?'No candidate':'Requires engineering review';
+  const proposalCell=`<td data-final-review-proposal-status="${attr(review.proposalStatus)}"
+    title="${attr('Candidate from Final local ranking; not verified against Weight Match Build. '+proposalLabel)}"
+    style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);min-width:128px;">
+    <input type="number" min="0" step="0.001" class="mc-mode-a-review-draft"
+      data-review-id="${attr(issue.reviewId)}" data-source-id="${attr(issue.sourceId)}"
+      data-issue-key="${attr(issue.key)}"
+      value="${attr(review.draftKg??'')}" placeholder="${attr(review.proposedKg??'—')}"
+      title="Draft only; edits never modify Final mass or saved Match-1."
+      style="width:90px;background:#374151;color:#d1d5db;border:1px dashed #9ca3af;opacity:.85;">
+    <small data-proposal-origin="final-local" style="display:block;color:#9ca3af;font-size:10px;">${esc(proposalLabel)} · Final-local</small>
+  </td>`;
+  const weightCell=(kg,label)=>`<td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);white-space:nowrap;"
+    title="${attr(label)}">${kg===null?'<span style="color:#64748b;">—</span>':esc(kg+' kg')}</td>`;
   const info = ratingInfo(issue);
   const badge = info.conflict
     ? '<span title="Rating conflict with DTXR" style="color:#fca5a5;font-weight:700;"> !</span>'
@@ -102,19 +133,22 @@ function rowMarkup(issue, rowIndex) {
     <td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);">${esc(issue.nodeNumberDisplay || issue.nodeNumber)}</td>
     <td title="${attr(issue.dtxrSourcePath || '')}" style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);min-width:180px;">${esc(issue.dtxr || 'Not found')}</td>
     <td title="${attr(issue.elementLengthSource || 'prepared component geometry')}" style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);white-space:nowrap;">${esc(issue.lengthMm == null ? '' : `${Number(issue.lengthMm).toFixed(1)} mm`)}</td>
+    ${weightCell(review.sourceKg,'Original source XML Weight (kg), not changed by proposed values')}
+    ${weightCell(review.match1Kg,review.match1Stale?'Match-1 stale — prior kg invalidated':'Previously accepted Match-1 (kg)')}
+    ${proposalCell}
     <td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);"><input type="number" min="0" step="0.001" class="mc-rigid-review-input" data-review-id="${attr(issue.reviewId)}" data-source-id="${attr(issue.sourceId)}" data-issue-key="${attr(issue.key)}" value="${attr(issue.acceptedWeight ?? '')}" placeholder="kg" style="width:78px;background:#101827;color:#fff;border:1px solid #31455f;border-radius:4px;padding:4px;"><small data-reviewed-weight-source style="display:block;color:#94a3b8;">${esc(issue.acceptedWeightSource || (best ? `Proposed · ${best.weightMethod || 'master'}` : 'Unresolved'))}</small></td>
     <td style="padding:7px;border-bottom:1px solid rgba(148,163,184,.1);min-width:300px;">${staleMatch1Notice(issue)}${candidateButtons(issue, rowIndex) || '<span style="color:#64748b;">No suggestion</span>'}</td>
   </tr>`;
 }
 
-function popupMarkup(rows, entries) {
+function popupMarkup(rows, entries, verifiedHtml='') {
   const sourceOptions = entries.map((entry) => `<option value="${attr(entry.sourceId)}">${esc(entry.fileName)}</option>`).join('');
   return `<div class="mc-rigid-review-dialog" role="dialog" aria-modal="true" aria-label="Consolidated rigid zero weight review" style="color:#e2e8f0;max-height:90vh;overflow:auto;background:#0f172a;border:1px solid #253a55;border-radius:8px;padding:18px;max-width:1380px;width:96%;">
     <div style="display:flex;justify-content:space-between;gap:16px;align-items:center;border-bottom:1px solid #253a55;padding-bottom:12px;margin-bottom:12px;">
       <div><div style="font-size:18px;font-weight:700;color:#9cc5ff;">Rigid Weights Need Review — Consolidated</div><div data-mode-a-rigid-summary style="font-size:12px;color:#94a3b8;margin-top:4px;">${rows.length} rigid node(s) across ${entries.length} XML file(s).</div></div>
       <button type="button" data-mode-a-rigid-cancel style="cursor:pointer;background:transparent;border:1px solid #475569;border-radius:6px;color:#94a3b8;padding:6px 12px;">Cancel Batch Run</button>
     </div>
-    <div style="background:#2a210b;border:1px solid #7c5a18;color:#ffe7a3;padding:9px;border-radius:6px;font-size:12px;margin-bottom:10px;">Saved/XML weights are kept; suggestions populate only missing weights. Apply accepts the displayed values without clicking each suggestion. Bulk suggestions fill blank fields; selecting a row suggestion explicitly replaces that row. Review proposed master, interpolated and empirical weights before applying. Values here and in enriched XML are kg. CII uses the selected Run option (kg → N multiplies by 10). Changes are saved only to their source XML.</div>
+    <div style="background:#2a210b;border:1px solid #7c5a18;color:#ffe7a3;padding:9px;border-radius:6px;font-size:12px;margin-bottom:10px;">This table separates original Source XML kg, accepted Match-1 kg, editable unaccepted proposed kg, and Final reviewed kg. Gray proposed drafts are evidence only: editing them never writes Final or Match-1. Final-local suggestions are NOT verified as the identical Weight Match snapshot until the shared source-bound producer is connected. Only the explicit Apply Weights action saves reviewed Final values. Inspect 166 vs 218 kg alternatives and stale Match-1 before accepting. CII kg → N follows selected Run option.</div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
       <input type="search" data-mode-a-rigid-search placeholder="Search source / branch / node..." style="min-width:250px;padding:6px;background:#0b1220;color:#e2e8f0;border:1px solid #475569;border-radius:5px;">
       <select data-mode-a-rigid-source style="padding:6px;background:#0b1220;color:#e2e8f0;border:1px solid #475569;border-radius:5px;"><option value="">All XML files</option>${sourceOptions}</select>
@@ -122,7 +156,8 @@ function popupMarkup(rows, entries) {
       <button type="button" data-mode-a-rigid-fill-exact style="cursor:pointer;background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:6px;padding:7px 12px;">Use All Exact Suggestions</button>
       <span data-mode-a-rigid-status style="font-size:12px;color:#94a3b8;"></span>
     </div>
-    <div style="overflow:auto;max-height:55vh;border:1px solid rgba(148,163,184,.15);border-radius:6px;"><table style="border-collapse:collapse;font-size:12px;width:100%;text-align:left;"><thead><tr style="background:rgba(30,41,59,.55);color:#fff;position:sticky;top:0;z-index:1;"><th style="padding:7px;">Source XML</th><th style="padding:7px;">Branch</th><th style="padding:7px;">Bore</th><th style="padding:7px;">Rating</th><th style="padding:7px;">Node</th><th style="padding:7px;">DTXR</th><th style="padding:7px;">Length</th><th style="padding:7px;">Manual Weight</th><th style="padding:7px;">Nearest Suggestions</th></tr></thead><tbody data-mode-a-rigid-body>${rows.map(rowMarkup).join('')}</tbody></table></div>
+    ${verifiedHtml}
+    <div style="overflow:auto;max-height:55vh;border:1px solid rgba(148,163,184,.15);border-radius:6px;"><table style="border-collapse:collapse;font-size:12px;width:100%;text-align:left;"><thead><tr style="background:rgba(30,41,59,.55);color:#fff;position:sticky;top:0;z-index:1;"><th style="padding:7px;">Source XML</th><th style="padding:7px;">Branch</th><th style="padding:7px;">Bore</th><th style="padding:7px;">Rating</th><th style="padding:7px;">Node</th><th style="padding:7px;">DTXR</th><th style="padding:7px;">Length</th><th style="padding:7px;">Source XML kg</th><th style="padding:7px;">Accepted Match-1 kg</th><th style="padding:7px;">Proposed draft kg</th><th style="padding:7px;">Final reviewed kg</th><th style="padding:7px;">Nearest Suggestions</th></tr></thead><tbody data-mode-a-rigid-body>${rows.map(rowMarkup).join('')}</tbody></table></div>
     <div style="display:flex;justify-content:flex-end;margin-top:14px;border-top:1px solid #253a55;padding-top:14px;"><button type="button" data-mode-a-rigid-apply style="cursor:pointer;background:#1e4ed8;border:none;color:#fff;border-radius:6px;padding:9px 18px;font-weight:700;">Apply Weights and Run All Models</button></div>
   </div>`;
 }
@@ -148,15 +183,42 @@ function bindCandidateButtons(overlay) {
   }));
 }
 
-export function openModeAConsolidatedRigidWeightReviewPopup(entries = []) {
+export function openModeAConsolidatedRigidWeightReviewPopup(entries = [],options={}) {
+  // Canonical session read model is injected by the independently attested
+  // integrator; do NOT join it to legacy issue rows by node number/ref/name.
+  const canonical=prepareVerifiedCanonicalFinalControls(options);
+  const verifiedHtml=canonical?.html||'';
   const workingEntries = entries.map((entry) => ({ ...entry, issues: [...(entry.issues || [])] }));
-  let rows = flattenModeARigidReviewEntries(workingEntries);
-  if (!rows.length) return Promise.resolve({ cancelled: false, updates: {} });
+  let rows = flattenedReviewRows(workingEntries);
+  // A verified original physical population MUST NOT be skipped because
+  // the old legacy popup produced zero issue.key rows. Show canonical read-only
+  // evidence and require explicit cancellation; never auto-continue Run.
+  if (!rows.length && !verifiedHtml) return Promise.resolve({ cancelled: false, updates: {} });
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
     overlay.className = 'model-converters-workflow-popup-overlay mc-rigid-review-overlay';
-    overlay.innerHTML = popupMarkup(rows, workingEntries);
+    overlay.innerHTML = popupMarkup(rows, workingEntries, verifiedHtml);
     document.body.appendChild(overlay);
+    canonical?.attach(overlay);
+    if (verifiedHtml) {
+      // No legacy-weight issue.key Apply may write a *verified* original
+      // physical session: canonical Final CAS must be used instead.
+      for(const selector of ['[data-mode-a-rigid-apply]',
+        '[data-mode-a-rigid-fill-exact]','[data-mode-a-rigid-refresh]']){
+        const button=overlay.querySelector(selector);
+        if(button){
+          button.disabled=true;
+          button.title='Verified GC-PW source basis: legacy Final writes are disabled. Use a canonical Final review command.';
+        }
+      }
+      const notice=overlay.querySelector('[data-mode-a-rigid-status]');
+      if(notice){
+        notice.textContent=canonical?.hasSession
+          ?'Verified original physical Final review is available using the Review Final buttons. Legacy batch Apply remains disabled; each canonical decision commits explicitly.'
+          :'Verified source evidence is read-only here. Legacy Final Apply is blocked until a completed source-bound review session is connected.';
+        notice.style.color='#fbbf24';
+      }
+    }
     const body = overlay.querySelector('[data-mode-a-rigid-body]');
     const status = overlay.querySelector('[data-mode-a-rigid-status]');
     const summary = overlay.querySelector('[data-mode-a-rigid-summary]');
@@ -172,7 +234,7 @@ export function openModeAConsolidatedRigidWeightReviewPopup(entries = []) {
       });
     };
     const draw = (preserve = new Map()) => {
-      rows = flattenModeARigidReviewEntries(workingEntries);
+      rows = flattenedReviewRows(workingEntries);
       if (body) body.innerHTML = rows.map(rowMarkup).join('');
       overlay.querySelectorAll('.mc-rigid-review-input').forEach((input) => { if (preserve.has(input.dataset.reviewId || '')) input.value = preserve.get(input.dataset.reviewId || ''); });
       if (summary) summary.textContent = `${rows.length} rigid node(s) across ${new Set(rows.map((row) => row.sourceId)).size} XML file(s).`;
@@ -180,6 +242,10 @@ export function openModeAConsolidatedRigidWeightReviewPopup(entries = []) {
       filter();
     };
     bindCandidateButtons(overlay);
+    overlay.addEventListener('change', event=>{
+      if(!event.target?.closest?.('.mc-mode-a-review-draft'))return;
+      setStatus('Proposed kg edited locally only — Match-1 and Final weights unchanged. Use explicit candidate/Final controls to accept.',false);
+    });
     search?.addEventListener('input', filter);
     source?.addEventListener('change', filter);
 
