@@ -51,14 +51,21 @@ export async function captureModeBStagedSources(entries){
     modeBStagedSourcesSha256:await digest(JSON.stringify(modeBStagedSources))};
 }
 
-function verifyModeBMetadata(data,config){
+function verifyModeBSourceCoverage(data,config){
   const rows=data.modeBStagedSources;
   const modeB=config.modeB;
-  if(modeB===undefined && (rows===undefined || (Array.isArray(rows) && !rows.length)))return;
+  if(modeB===undefined && (rows===undefined || (Array.isArray(rows) && !rows.length)))return false;
   if(modeB?.schema!=='xml-cii-mode-b-sources/v1' || !Array.isArray(modeB.sources) ||
     !modeB.sources.length || !Array.isArray(rows) || rows.length!==modeB.sources.length){
-    fail('Mode B staged-source evidence is missing or does not cover every configured source.');
+    stagedFail('MODE_B_STAGED_SOURCES_ABSENT','Mode B staged-source evidence is missing or does not cover every configured source.');
   }
+  return true;
+}
+
+function verifyModeBMetadata(data,config){
+  if(!verifyModeBSourceCoverage(data,config))return;
+  const rows=data.modeBStagedSources;
+  const modeB=config.modeB;
   if(data.stagedJsonByteLength!==0)fail('Mode B staged data must be captured per source.');
   const ids=new Set();
   for(const [index,row] of rows.entries()){
@@ -79,9 +86,15 @@ function verifyModeBMetadata(data,config){
 
 async function verifyModeBSession(rows,sessionEntries){
   const entries=Array.isArray(sessionEntries)?sessionEntries:[];
+  const knownIds=new Set((rows||[]).map(row=>row.sourceId));
+  for(const entry of entries){
+    if(!knownIds.has(entry?.sourceId))stagedFail('MODE_B_STAGED_SOURCE_UNKNOWN',String(entry?.sourceId));
+  }
   for(const row of rows||[]){
     const matches=entries.filter(entry=>entry?.sourceId===row.sourceId);
-    if(!matches.length || (matches.length===1 && typeof matches[0].stagedJsonText!=='string'))
+    if(!matches.length)stagedFail('MODE_B_STAGED_JSON_MISSING',row.sourceId+
+      '; check whether the session Mode B config changed after this Run');
+    if(matches.length===1 && typeof matches[0].stagedJsonText!=='string')
       stagedFail('MODE_B_STAGED_JSON_MISSING',row.sourceId);
     if(matches.length!==1 || !sameSource(row,matches[0]))
       stagedFail('MODE_B_STAGED_JSON_MISMATCH',row.sourceId);
@@ -209,7 +222,7 @@ export async function verifyFrozenCiiRunPackage(pkg,session={}){
     fail('One or more original byte payloads are missing.');
   verifyOptions(d.effectiveOptions);
   if(d.modeBStagedSources===undefined && pkg.hashes.modeBStagedSourcesSha256!==undefined){
-    fail('Mode B staged-source payload is missing.');
+    stagedFail('MODE_B_STAGED_SOURCES_ABSENT','Mode B staged-source payload is missing.');
   }
   let config;
   try {
@@ -217,6 +230,7 @@ export async function verifyFrozenCiiRunPackage(pkg,session={}){
     if(!config || typeof config!=='object' || Array.isArray(config))
       fail('Support configuration is not an object.');
   } catch { fail('Package configuration is invalid.'); }
+  verifyModeBSourceCoverage(d,config);
   const staged=await verifySingleStagedSession(d,config,pkg.hashes,session);
   const hashes=await computeHashes(d,staged);
   for(const [name,value]of Object.entries(hashes)){

@@ -90,13 +90,16 @@ test('X3 T6 source reassignment or reordering cannot pass a recomputed outer sea
 test('X3 T7 omission of source payload, seal, or a source row is refused', async () => {
   for (const mutate of [
     p => { delete p.payloads.modeBStagedSources; },
-    p => { delete p.hashes.modeBStagedSourcesSha256; },
     p => { delete p.payloads.modeBStagedSources; delete p.hashes.modeBStagedSourcesSha256; },
     p => replaceRows(p, records().slice(0, 1), true),
+    p => replaceRows(p, records().slice(0, 1)),
+    p => replaceRows(p, []),
   ]) {
     const pkg = await build(); mutate(pkg);
-    await assert.rejects(verify(pkg), refused);
+    await assert.rejects(verify(pkg), /MODE_B_STAGED_SOURCES_ABSENT/);
   }
+  const pkg = await build(); delete pkg.hashes.modeBStagedSourcesSha256;
+  await assert.rejects(verify(pkg), refused);
 });
 
 test('X3 T8 one source without staged JSON has an explicit empty-string digest', async () => {
@@ -124,11 +127,11 @@ test('X3 T10 non-Mode-B packages export no staged text; legacy load needs matchi
   await assert.rejects(verify(pkg, {stagedJsonText: '{}'}), /STAGED_JSON_MISMATCH/);
   assert.deepEqual(pkg.payloads.modeBStagedSources, []);
   assert.equal(pkg.hashes.modeBStagedSourcesSha256, seal([]));
-  assert.equal((await verify(pkg)).status, 'PASS_FROZEN_CONVERTER_BOUNDARY');
+  assert.equal((await verify(pkg, {stagedJsonText: texts[0]})).status, 'PASS_FROZEN_CONVERTER_BOUNDARY');
   delete pkg.payloads.modeBStagedSources; delete pkg.hashes.modeBStagedSourcesSha256;
   delete pkg.payloads.stagedJsonByteLength; pkg.payloads.stagedJsonText = texts[0];
   await assert.rejects(verify(pkg, {}), /STAGED_JSON_MISSING/);
-  assert.equal((await verify(pkg)).status, 'PASS_FROZEN_CONVERTER_BOUNDARY');
+  assert.equal((await verify(pkg, {stagedJsonText: texts[0]})).status, 'PASS_FROZEN_CONVERTER_BOUNDARY');
 });
 
 test('X3 T11 old Mode B run evidence containing only hashes cannot be exported as a complete seal', async () => {
@@ -193,4 +196,45 @@ test('X3 T15 session source identity, duplicate records, byte length and JSON va
   }
   const invalid = ['not JSON', texts[1]];
   await assert.rejects(verify(await build({stagedTexts: invalid}), session(invalid)), /MODE_B_STAGED_JSON_INVALID: 1:A/);
+});
+
+// Construct the pre-X3 export independently, using the original v1 fields and
+// five hashes. No revised builder or Mode B metadata is used in this fixture.
+function baseModeBPackage() {
+  const effectiveOptions = result().finalRigidReviewEvidence.effectiveOptions;
+  return {
+    schema: 'xml-cii2019-current-converter-run/v1',
+    evidenceClass: 'CURRENT_BROWSER_CONVERTER_BOUNDARY_NOT_HISTORICAL_REPLAY',
+    status: 'CURRENT_SOURCE_CII_CONFIG_HASH_VERIFIED_NO_PHYSICAL_MASS_APPROVAL',
+    currentRun: { elementCount: 2, rigidCount: 0, zeroOrNegativeRigidCount: 0, weightScale: 10 },
+    payloads: { engineInputXml: xml, originalCii: cii, stagedJsonText: '', supportConfigJson: config, effectiveOptions },
+    hashes: { engineInputXmlSha256: sha(xml), originalCiiSha256: sha(cii), supportConfigSha256: sha(config),
+      stagedJsonSha256: sha(''), effectiveOptionsSha256: sha(JSON.stringify(effectiveOptions)) },
+  };
+}
+
+test('X3 T16 pre-X3 Mode B package is refused with the named absent-sources code', async () => {
+  const pkg = baseModeBPackage();
+  await assert.rejects(verify(JSON.parse(JSON.stringify(pkg))), /MODE_B_STAGED_SOURCES_ABSENT/);
+});
+
+test('X3 T17 an extra session sourceId absent from the package is refused', async () => {
+  const pkg = await build();
+  const current = session();
+  current.modeBStagedSources.push({ sourceId: '3:C', fileName: 'C.xml', minNode: 200010, maxNode: 200020, stagedJsonText: '{}' });
+  await assert.rejects(verify(pkg, current), /MODE_B_STAGED_SOURCE_UNKNOWN: 3:C/);
+  const single = await build({modeB: false});
+  await assert.rejects(verify(single, session()), /MODE_B_STAGED_SOURCE_UNKNOWN: 1:A/);
+});
+
+test('X3 T18 dropped session sources after a config change give the missing-data hint', async () => {
+  const { modeBStagedSourcesForRun } = await import('../v045/tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js');
+  const pkg = await build();
+  const state = { supportConfigJson: config, modeBStagedSources: entries() };
+  assert.equal(modeBStagedSourcesForRun(state).length, 2);
+  const changed = JSON.parse(config); changed.modeB.sources[0].maxNode++;
+  const dropped = modeBStagedSourcesForRun({ ...state, supportConfigJson: JSON.stringify(changed) });
+  assert.deepEqual(dropped, []);
+  await assert.rejects(verify(pkg, {modeBStagedSources: dropped}),
+    /MODE_B_STAGED_JSON_MISSING: 1:A; check whether the session Mode B config changed after this Run/);
 });
