@@ -389,8 +389,10 @@ TABLE_DEFAULT_RULES = json.loads(r'''[
 ]''')
 _TABLE_SUPPORT_KINDS = ('REST', 'GUIDE', 'LINESTOP', 'LIMIT', 'ANCHOR', 'SPRING')
 _TABLE_MATCH_TYPES = ('startsWith', 'equals', 'contains', 'regex')
-_TABLE_FIELDS = ('DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'SPRE', 'SKEY', 'NAME',
-                 'CMPSUPTYPE', 'MDSSUPPTYPE', 'COMPONENTTYPE')
+# Only the member's own description and code fields: never SPRE/NAME catalogue
+# paths (a path like /MDS-Ancillaries/ANCI/... must not make a stop a REST).
+_TABLE_FIELDS = ('DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'CMPSUPTYPE', 'MDSSUPPTYPE',
+                 'SKEY', 'COMPONENTTYPE')
 _GENERATED_FIELDS = ('SUPPORTKIND', 'SUPPORTMAPPERKIND', 'SUPPORTTYPE')
 _DESCRIPTION_KEYS = ('DTXR', 'DESC', 'DESCRIPTION')
 
@@ -429,37 +431,6 @@ def _table_kind(kind):
     return value if value in _TABLE_SUPPORT_KINDS else 'REST'
 
 
-def table_rules(config):
-    """Enabled Step 7 rows in priority order (migrateSupportMappingConfig)."""
-    mapping = (config or {}).get('supportMapping')
-    try:
-        version = float(mapping.get('version')) if isinstance(mapping, dict) else 0
-    except (TypeError, ValueError):
-        version = 0
-    source = (mapping.get('rules') if isinstance(mapping.get('rules'), list) else []) \
-        if version >= 2 else TABLE_DEFAULT_RULES
-    by_id = {_owner_text(r.get('id')): r for r in source if isinstance(r, dict) and _owner_text(r.get('id'))}
-    required_ids = {r['id'] for r in TABLE_REQUIRED_RULES}
-    merged = [{**by_id.get(r['id'], {}), **r,
-               'enabled': False if by_id.get(r['id'], {}).get('enabled') is False else r['enabled']}
-              for r in TABLE_REQUIRED_RULES]
-    merged += [r for r in source if isinstance(r, dict) and _owner_text(r.get('id')) not in required_ids]
-    rows = []
-    for index, rule in enumerate(merged):
-        try:
-            priority = float(rule.get('priority'))
-            if not math.isfinite(priority):
-                raise ValueError
-        except (TypeError, ValueError):
-            priority = (index + 1) * 10
-        if rule.get('enabled') is False:
-            continue
-        rows.append({'priority': priority, 'field': _owner_text(rule.get('field') or '*') or '*',
-                     'match': _table_match(rule.get('match')), 'pattern': _owner_text(rule.get('pattern')),
-                     'kind': _table_kind(rule.get('kind'))})
-    return sorted(rows, key=lambda r: r['priority'])
-
-
 def _split_terms(value):
     return [t.strip() for t in re.split(r'[,;\n]+', str(value or '')) if t.strip()]
 
@@ -478,28 +449,6 @@ def _rule_values(evidence, rule):
     return [v for k, v in evidence.items() if k in wanted and str(v).strip()]
 
 
-def _rule_matches(rule, value):
-    raw = str(value)
-    upper = raw.upper()
-    patterns = [rule['pattern'].strip()] if rule['match'] == 'regex' else _split_terms(rule['pattern'])
-    for p in patterns:
-        if not p:
-            continue
-        if rule['match'] == 'startsWith' and upper.startswith(p.upper()):
-            return True
-        if rule['match'] == 'equals' and upper == p.upper():
-            return True
-        if rule['match'] == 'contains' and p.upper() in upper:
-            return True
-        if rule['match'] == 'regex':
-            try:
-                if re.search(p, raw, re.IGNORECASE):
-                    return True
-            except re.error:
-                pass
-    return False
-
-
 def _kind_from_text(value):
     t = str(value or '').upper()
     if re.search(r'\bDIRECTIONAL\s+ANCHOR\b|\bLINE\s*STOP\b|\bLINESTOP\b|\bLIMIT\s*STOP\b|\bAXIAL\s*STOP\b', t):
@@ -515,24 +464,117 @@ def _kind_from_text(value):
     return ''
 
 
-def table_support_kind(attrs, config):
+def _js_number(value):
+    """JavaScript Number(value) for a rule priority; None when not finite."""
+    if value is None:
+        return 0.0
+    if isinstance(value, bool):
+        return 1.0 if value else 0.0
+    if isinstance(value, (int, float)):
+        return float(value) if math.isfinite(value) else None
+    s = str(value).strip()
+    if s == '':
+        return 0.0
+    for prefix, base in (('0x', 16), ('0o', 8), ('0b', 2)):
+        if s.lower().startswith(prefix):
+            try:
+                return float(int(s[2:], base))
+            except ValueError:
+                return None
+    if re.fullmatch(r'[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?', s):
+        return float(s)
+    return None
+
+
+_STAGED_SOURCES = ('', 'ALL', 'STAGED-JSON', 'JSON')
+_REGEX_OUTSIDE_SUBSET = re.compile(r'\(\?(?![:=!]|<[=!])|\\[AZzGpPk]|\$\{|\(\?P')
+
+
+def table_rules(config):
+    """Enabled Step 7 rows for staged JSON, in priority order (as JS tableRules)."""
+    mapping = (config or {}).get('supportMapping')
+    version = _js_number(mapping.get('version')) if isinstance(mapping, dict) and 'version' in mapping else None
+    source = (mapping.get('rules') if isinstance(mapping.get('rules'), list) else []) \
+        if version is not None and version >= 2 else TABLE_DEFAULT_RULES
+    by_id = {_owner_text(r.get('id')): r for r in source if isinstance(r, dict) and _owner_text(r.get('id'))}
+    required_ids = {r['id'] for r in TABLE_REQUIRED_RULES}
+    merged = [{**by_id.get(r['id'], {}), **r,
+               'enabled': False if by_id.get(r['id'], {}).get('enabled') is False else r['enabled']}
+              for r in TABLE_REQUIRED_RULES]
+    merged += [r for r in source if not (isinstance(r, dict) and _owner_text(r.get('id')) in required_ids)]
+    rows = []
+    for index, rule in enumerate(merged):
+        rule = rule if isinstance(rule, dict) else {}
+        priority = _js_number(rule.get('priority')) if 'priority' in rule else None
+        if priority is None:
+            priority = float((index + 1) * 10)
+        if rule.get('enabled') is False:
+            continue
+        if _owner_text(rule.get('source') or 'all').upper() not in _STAGED_SOURCES:
+            continue
+        rows.append({'id': _owner_text(rule.get('id')) or 'support-rule-%d' % (index + 1),
+                     'priority': priority, 'field': _owner_text(rule.get('field') or '*') or '*',
+                     'match': _table_match(rule.get('match')), 'pattern': _owner_text(rule.get('pattern')),
+                     'kind': _table_kind(rule.get('kind'))})
+    return sorted(rows, key=lambda r: r['priority'])
+
+
+def _rule_regex(rule):
+    pattern = rule['pattern'].strip()
+    if len(pattern) > 512 or _REGEX_OUTSIDE_SUBSET.search(pattern):
+        raise ValueError('NATIVE_PREFINAL_RESTRAINT_CONFIG_INVALID')
+    try:
+        return re.compile(pattern, re.IGNORECASE)
+    except re.error:
+        raise ValueError('NATIVE_PREFINAL_RESTRAINT_CONFIG_INVALID') from None
+
+
+def _rule_matches(rule, value):
+    raw = str(value)
+    upper = raw.upper()
+    if rule['match'] == 'regex':
+        return rule['pattern'].strip() != '' and bool(_rule_regex(rule).search(raw))
+    for p in _split_terms(rule['pattern']):
+        up = p.upper()
+        if rule['match'] == 'startsWith' and upper.startswith(up):
+            return True
+        if rule['match'] == 'equals' and upper == up:
+            return True
+        if rule['match'] == 'contains' and up in upper:
+            return True
+    return False
+
+
+def table_support_kind(attrs, config, only_user_rows=False):
     f = _owner_fields(attrs)
     evidence = {k: f[k] for k in _TABLE_FIELDS if f.get(k)}
     if not any(evidence.get(k) for k in _DESCRIPTION_KEYS) and evidence.get('MDSDTXR'):
         evidence['DESCRIPTION'] = evidence['MDSDTXR']
-    if evidence.get('SKEY', '').upper() == 'CA100':
-        return 'REST'
-    for rule in table_rules(config):
-        if any(_rule_matches(rule, v) for v in _rule_values(evidence, rule)):
-            return rule['kind']
-    joined = ' '.join(str(v) for v in evidence.values())
-    from_text = _kind_from_text(joined)
-    if from_text:
-        return from_text
-    # Direction pass: only UP/DOWN decide without a pipe axis (none is captured).
-    if re.search(r'\bUP\b|\bDOWN\b', joined.upper()):
-        return 'REST'
-    return ''
+    first = None
+    rules = [r for r in table_rules(config)
+             if not only_user_rows or not re.match(r'^(?:builtin-|standalone-mds-)', r['id'])]
+    for rule in rules:
+        if first is not None and rule['priority'] != first['priority']:
+            break
+        if not any(_rule_matches(rule, v) for v in _rule_values(evidence, rule)):
+            continue
+        if first is None:
+            first = rule
+        elif rule['kind'] != first['kind']:
+            raise ValueError('NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+    if first is not None:
+        return first['kind']
+    if only_user_rows:
+        return ''
+    return _kind_from_text(' '.join(str(v) for v in evidence.values()))
+
+
+def node_type_user_row_conflict(attrs, config, node_type_kind,
+                                governed=('REST', 'GUIDE', 'LINESTOP')):
+    """A user-authored Step 7 row naming another governed kind than NODETYPE is refused."""
+    user_kind = table_support_kind(attrs, config or {}, only_user_rows=True)
+    if user_kind in governed and user_kind != node_type_kind:
+        raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT')
 
 
 def described_kinds(attrs):

@@ -124,11 +124,40 @@ function memberDescription(attrs, member) {
     .filter(Boolean).join(' ');
 }
 
+function assertTab7Compatible(attrs, member, config, pinnedKind) {
+    // Compare *added* Tab 7 aliases against explicit semantic intent OR an
+    // authored Tab 8 rule. Two independently edited high-confidence kinds
+    // must not silently override each other.
+    if (Array.isArray(config?.supportTypeMapper?.rows)) {
+      const rows = parseSupportTypeMapperConfig({supportConfig:config}).mapperRows;
+      const defaults = createDefaultSupportTypeMapperConfig();
+      const custom = rows.map(row => {
+        const original = defaults.find(base => base.kind === row.kind);
+        const baseline = new Set((original?.aliases || [])
+          .map(alias => text(alias).toUpperCase().replace(/[^A-Z0-9]/g,'')));
+        return {...row, aliases:row.aliases.filter(alias =>
+          !baseline.has(text(alias).toUpperCase().replace(/[^A-Z0-9]/g,'')))};
+      }).filter(row => row.aliases.length);
+      if (custom.length) {
+        const descText = [memberDescription(attrs, member),attrs.CMPSUPTYPE,attrs.MDSSUPPTYPE,attrs.SPRE]
+          .map(text).filter(Boolean).join(' ');
+        const newly = classifySupportText(descText,custom);
+        if (newly.status==='ambiguous' ||
+            (newly.status==='matched'&&newly.confidence!=='LOW'&&
+             newly.supportKind!==pinnedKind))
+          throw Object.assign(new Error('Edited Tab 7 keyword conflicts with source/Tab 8 kind'),
+            {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
+      }
+    }
+}
+
 function supportKindFromMember(member,config={}) {
   const attrs = memberAttributes(member);
   // Owner rule (12 Nov, RCA-04): source NODETYPE wins when present; otherwise
   // the Step 7 support table decides. The chain below is the fallback only.
   const decided = governedSupportKind({...safeObject(member?.capturedFields), ...attrs}, config);
+  // A Step 7 table answer must still agree with edited Tab 7 keywords.
+  if (decided.source === 'step7-support-table') assertTab7Compatible(attrs, member, config, decided.kind);
   if (decided.kind) return decided.kind;
   // An explicit source description wins over abbreviated MDS code aliases.
   // This mirrors the old confidence mapper, not its legacy axis defaults.
@@ -157,32 +186,7 @@ function supportKindFromMember(member,config={}) {
     throw Object.assign(new Error('Tab 8 rule resolves to unsupported governed kind'),
       {code:'PREFINAL_RESTRAINT_KIND_UNSUPPORTED'});
   const pinnedKind = semantic[0] || configured?.kind || '';
-  if (pinnedKind) {
-    // Compare *added* Tab 7 aliases against explicit semantic intent OR an
-    // authored Tab 8 rule. Two independently edited high-confidence kinds
-    // must not silently override each other.
-    if (Array.isArray(config?.supportTypeMapper?.rows)) {
-      const rows = parseSupportTypeMapperConfig({supportConfig:config}).mapperRows;
-      const defaults = createDefaultSupportTypeMapperConfig();
-      const custom = rows.map(row => {
-        const original = defaults.find(base => base.kind === row.kind);
-        const baseline = new Set((original?.aliases || [])
-          .map(alias => text(alias).toUpperCase().replace(/[^A-Z0-9]/g,'')));
-        return {...row, aliases:row.aliases.filter(alias =>
-          !baseline.has(text(alias).toUpperCase().replace(/[^A-Z0-9]/g,'')))};
-      }).filter(row => row.aliases.length);
-      if (custom.length) {
-        const descText = [memberDescription(attrs, member),attrs.CMPSUPTYPE,attrs.MDSSUPPTYPE,attrs.SPRE]
-          .map(text).filter(Boolean).join(' ');
-        const newly = classifySupportText(descText,custom);
-        if (newly.status==='ambiguous' ||
-            (newly.status==='matched'&&newly.confidence!=='LOW'&&
-             newly.supportKind!==pinnedKind))
-          throw Object.assign(new Error('Edited Tab 7 keyword conflicts with source/Tab 8 kind'),
-            {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
-      }
-    }
-  }
+  if (pinnedKind) assertTab7Compatible(attrs, member, config, pinnedKind);
   if (semantic.length) return semantic[0];
   if (configured) return configured.kind;
   // Use the user-authored Step 7 mapper rows, not a second hard-coded alias list.

@@ -139,3 +139,30 @@ test('review fixes: generated labels never beat a description; a refused member 
     assert.match(row.decisionReason, /PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT/, copy);
   }
 });
+
+test('round 3: catalogue paths never decide; refusals and parity for regex and priority', () => {
+  for (const [copy, rule] of Object.entries(COPIES)) {
+    // SPRE/NAME paths are not read by the table: /MDS-Ancillaries/ANCI/... is not a REST.
+    assert.notEqual(rule.governedSupportKind({ SPRE: '/MDS-Ancillaries/ANCI/ST501-80mm', MDSSUPPTYPE: 'ST501' }, {}).kind, 'REST', copy);
+    assert.equal(rule.governedSupportKind({ NAME: '/WP-1', MDSSUPPTYPE: 'GT1' }, {}).kind, 'GUIDE', copy);
+    const rows = (list) => ({ supportMapping: { version: 2, rules: list } });
+    assert.throws(() => rule.governedSupportKind({ MDSSUPPTYPE: 'ST1' }, rows([{ id: 'u', priority: 5, field: 'MDSSUPPTYPE', match: 'regex', pattern: '(?i)st1', kind: 'LINESTOP' }])),
+      /PREFINAL_RESTRAINT_CONFIG_INVALID/, copy);
+    assert.throws(() => rule.governedSupportKind({ MDSSUPPTYPE: 'ST1' }, rows([
+      { id: 'u', priority: 5, field: 'MDSSUPPTYPE', match: 'startsWith', pattern: 'ST', kind: 'LINESTOP' },
+      { id: 'v', priority: 5, field: 'MDSSUPPTYPE', match: 'startsWith', pattern: 'S', kind: 'GUIDE' }])), /PREFINAL_RESTRAINT_KIND_AMBIGUOUS/, copy);
+    assert.equal(rule.governedSupportKind({ MDSSUPPTYPE: 'ST1' }, rows([{ id: 'r', source: 'rvm', priority: 1, field: 'MDSSUPPTYPE', match: 'startsWith', pattern: 'ST', kind: 'REST' }])).kind === 'REST', false, copy);
+    assert.throws(() => rule.governedSupportKind({ NODETYPE: '9', DTXR: 'X' }, rows([{ id: 'u', priority: 1, field: 'DTXR', match: 'equals', pattern: 'X', kind: 'GUIDE' }])),
+      /PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT/, copy);
+  }
+  // Python gives the same answers, including JS Number() priorities ('' = 0, '0x5' = 5).
+  const configs = [
+    { supportMapping: { version: 2, rules: [{ id: 'p', priority: '', field: 'MDSSUPPTYPE', match: 'startsWith', pattern: 'ST', kind: 'LINESTOP' }] } },
+    { supportMapping: { version: 2, rules: [{ id: 'p', priority: '0x5', field: 'DTXR', match: 'contains', pattern: 'X', kind: 'GUIDE' }] } },
+  ];
+  const cases = [{ DTXR: 'GUIDE X', MDSSUPPTYPE: 'ST1' }, { DTXR: 'X', MDSSUPPTYPE: 'GT1' }, { SPRE: '/MDS-Ancillaries/ANCI/GT01', MDSSUPPTYPE: 'ST2' }];
+  const script = ['import sys, json', 'sys.path.insert(0, "converters/scripts")', 'import xml229_support_type_mapper as m',
+    'd = json.load(sys.stdin)', 'print(json.dumps([[m.owner_rule_kind(a, c)[0] for a in d["cases"]] for c in d["configs"]]))'].join('\n');
+  const py = JSON.parse(execFileSync('python', ['-c', script], { input: JSON.stringify({ cases, configs }), encoding: 'utf8' }));
+  assert.deepEqual(py, configs.map((c) => cases.map((a) => rootRule.governedSupportKind(a, c).kind)));
+});
