@@ -1,3 +1,4 @@
+import { assertModeBRunRestraints, assertModeBRunResult } from '../../../converters/xml-cii2019-core/xml-node-offset-combine.js';
 import { enrichInputXmlDocument } from './xml-cii-inputxml-enrichment.js';
 import { runXmlCii2019StandaloneEngineJob } from './xml-cii-workflow-engine-client.js';
 import { createWorkflowDiagnostics, normalizeWorkflowResult } from './xml-cii-workflow-types.js';
@@ -101,6 +102,7 @@ function blockedRunParityResult(job, parity) {
 
 export async function runXmlCii2019WorkflowService(job, runtime = {}) {
   const factedJob = applyEffectiveFactsToJob(job);
+  assertModeBRunRestraints(factedJob, factedJob.sourceText, 'Run combined source XML');
   if (factedJob.sourceKind === 'inputxml') {
     const enrichedResult = enrichInputXmlDocument(factedJob);
     const sif = applyStandaloneSifFacts(enrichedResult.enrichedText, 'inputxml', factedJob.sifFacts);
@@ -119,8 +121,10 @@ export async function runXmlCii2019WorkflowService(job, runtime = {}) {
     return blockedRunParityResult(factedJob, parity);
   }
 
+  assertModeBRunRestraints(factedJob, parity.xmlText, 'Run engine input XML');
   const engineJob = { ...factedJob, sourceText: parity.xmlText };
   const result = await runXmlCii2019StandaloneEngineJob(engineJob, runtime);
+  assertModeBRunResult(factedJob, result, engineJob.sourceText);
   if (Array.isArray(result?.logs) && parity.logs.length) result.logs = [...parity.logs, ...result.logs];
   const normalized = normalizeXmlEngineResult(result);
   // Non-published, run-pinned review evidence: exact XML handed to the engine,

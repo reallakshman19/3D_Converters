@@ -4,6 +4,7 @@
 // source's pipes: two sources can share coordinates (a copy is the extreme
 // case). Each source is closed on its own sub-document, and only the
 // restraints the closure appended are copied back, node for node.
+import { assertModeBClosedNodeRestraints } from '../../../converters/xml-cii2019-core/mode-b-restraint-conservation.js';
 import { closeGovernedMdsPositionRestraintsXml } from './xml-cii-mds-restraint-closure.js';
 
 const text = (value) => (value === undefined || value === null ? '' : String(value));
@@ -89,6 +90,7 @@ export function closeModeBSourceRestraintsXml(xmlText, sources, config = {}, clo
           ? document.importNode(restraint, true) : restraint.cloneNode(true));
       }
     });
+    combinedNodes.forEach((node, index) => assertModeBClosedNodeRestraints(closedNodes[index], node, entry.sourceId));
     mergeStats(stats, result.stats);
     changed = true;
   }

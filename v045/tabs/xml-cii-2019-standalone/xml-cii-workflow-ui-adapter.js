@@ -124,6 +124,7 @@ export async function buildXmlCiiWorkflowJobFromUiState(state) {
     supportMapperRules: state.supportTypeMapperResult?.finalRules || state.supportTypeMapperConfig || [],
     sifFacts: state.previewDiagnosticsAuditReport?.sifFacts || state.resolverJsonTraceResult?.sifFacts || [],
     branchSelection: branchScope.manifest,
+    ...(state.modeBManifest ? { modeBManifest: state.modeBManifest } : {}),
     modeBStagedSources: modeBStagedSourcesForRun(state),
   };
 }
