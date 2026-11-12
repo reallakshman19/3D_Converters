@@ -1,0 +1,313 @@
+{
+ "format": "topofix.benchmarks",
+ "version": 1,
+ "pinnedAt": "2026-11-12",
+ "repos": {
+  "XCU": {
+   "name": "reallakshman19/XML_Compare_Utilities",
+   "commit": "f36cd500"
+  },
+  "3DC": {
+   "name": "reallakshman19/3D_Converters",
+   "commit": "a3feec30c"
+  }
+ },
+ "note": "Counts read from the files on 2026-11-12. Owner-only inputs (staged JSON, masters, __local_inputs) are never listed here. nodenameRows/rigidRows count non-blank rows. Only X-S1, X-S2, X-S3C, X-T, X-TEXP are CII v14; all other CII files are v11.",
+ "files": [
+  {
+   "id": "X-SRC",
+   "repo": "XCU",
+   "path": "Benchmark/CIICompare/BM_CII_SOURCE.CII",
+   "bytes": 65045,
+   "sha256": "705e999fcc45ede68902aecccd71c17366d1da8785d68196e5e6cb39f5e181a0",
+   "kind": "cii",
+   "ciiVersion": 11,
+   "elements": 40,
+   "rigidRows": 15,
+   "nodenameRows": 4,
+   "restrantRows": 168
+  },
+  {
+   "id": "X-T1",
+   "repo": "XCU",
+   "path": "Benchmark/CIICompare/BM_CII_TARGET1.CII",
+   "bytes": 64462,
+   "sha256": "aa84f8a70bbf7b41bfdbf69c664ca10b0f068cec5a40f670b8dff7581a237110",
+   "kind": "cii",
+   "ciiVersion": 11,
+   "elements": 40,
+   "rigidRows": 15,
+   "nodenameRows": 2,
+   "restrantRows": 168
+  },
+  {
+   "id": "X-T2",
+   "repo": "XCU",
+   "path": "Benchmark/CIICompare/BM_CII_TARGET2.CII",
+   "bytes": 64682,
+   "sha256": "bc8c14edcfecaa530886e7e04806237fa41e6830fb74ac6a1b210978d22760b3",
+   "kind": "cii",
+   "ciiVersion": 11,
+   "elements": 40,
+   "rigidRows": 15,
+   "nodenameRows": 6,
+   "restrantRows": 168
+  },
+  {
+   "id": "X-S3",
+   "repo": "XCU",
+   "path": "Benchmark/CIICompare/SOURCE 3.CII",
+   "bytes": 393008,
+   "sha256": "2df8fe72fb8b8134925671dfdade3e7e72dd4075b40854cd480fe93546b097e3",
+   "kind": "cii",
+   "ciiVersion": 11,
+   "elements": 219,
+   "rigidRows": 20,
+   "nodenameRows": 186,
+   "restrantRows": 3168
+  },
+  {
+   "id": "X-T31",
+   "repo": "XCU",
+   "path": "Benchmark/CIICompare/TARGET 3-1.CII",
+   "bytes": 400175,
+   "sha256": "eed76397b0bfe032d1d1aa1e6f81e113743664c1cc0394c27a9070defbbb4440",
+   "kind": "cii",
+   "ciiVersion": 11,
+   "elements": 223,
+   "rigidRows": 20,
+   "nodenameRows": 190,
+   "restrantRows": 3240
+  },
+  {
+   "id": "X-S1",
+   "repo": "XCU",
+   "path": "Benchmark/S1.CII",
+   "bytes": 108330,
+   "sha256": "9a9cb14db4c13f5aac41cc74a60e7e528722eb5003d09f07192762ab6bfb1a2b",
+   "kind": "cii",
+   "ciiVersion": 14,
+   "elements": 56,
+   "rigidRows": 1,
+   "nodenameRows": 49,
+   "restrantRows": 936
+  },
+  {
+   "id": "X-S2",
+   "repo": "XCU",
+   "path": "Benchmark/S2.CII",
+   "bytes": 90961,
+   "sha256": "7ec48b76b65eedfd5ecc9c8e8feca1a45dd8c83721a68b53aa0db3363e6d27fd",
+   "kind": "cii",
+   "ciiVersion": 14,
+   "elements": 46,
+   "rigidRows": 1,
+   "nodenameRows": 42,
+   "restrantRows": 816
+  },
+  {
+   "id": "X-S3C",
+   "repo": "XCU",
+   "path": "Benchmark/S3.CII",
+   "bytes": 90942,
+   "sha256": "c2143b31c482158ac5514d2709406c14a9179e656277c654e932bb845d090caa",
+   "kind": "cii",
+   "ciiVersion": 14,
+   "elements": 45,
+   "rigidRows": 1,
+   "nodenameRows": 40
+  },
+  {
+   "id": "X-T",
+   "repo": "XCU",
+   "path": "Benchmark/T.CII",
+   "bytes": 2866002,
+   "sha256": "abfa3ffc9281fe75d4170b2d885d554cb1f120dadedae7c7ab609548b63cc060",
+   "kind": "cii",
+   "ciiVersion": 14,
+   "elements": 1614,
+   "rigidRows": 124,
+   "nodenameRows": 1265,
+   "restrantRows": 24672
+  },
+  {
+   "id": "X-TEXP",
+   "repo": "XCU",
+   "path": "Benchmark/TEXPECTED-PARTIALLLYDONE.CII",
+   "bytes": 2866022,
+   "sha256": "bb7c43ab883de3deeae6f73ec37538d977d395dacb9631e3501878d5459162c9",
+   "kind": "cii",
+   "ciiVersion": 14,
+   "elements": 1614,
+   "rigidRows": 124,
+   "nodenameRows": 1266,
+   "restrantRows": 24672
+  },
+  {
+   "id": "X-F05",
+   "repo": "XCU",
+   "path": "prototypes/ciifr-map/tests/fixtures/S1-F05.xml",
+   "bytes": 882735,
+   "sha256": "1154c980d08344b1f803cda3bd9884b169753148b150641a745c9bfcb15de995",
+   "kind": "inputxml",
+   "pipingElements": 56
+  },
+  {
+   "id": "C-BMX",
+   "repo": "3DC",
+   "path": "Benchmarks/INPUT XML to CII 2019/BM_CII/BM_CII_INPUT.XML",
+   "bytes": 77451,
+   "sha256": "a27d1122228f7e5f8a4335100107f5accd0d12cd43e0aec4995f07ada27debd1",
+   "kind": "inputxml",
+   "pipingElements": 40
+  },
+  {
+   "id": "C-BMC",
+   "repo": "3DC",
+   "path": "Benchmarks/INPUT XML to CII 2019/BM_CII/BM_CII_INPUT_inputxml_to_cii2019_workflow.cii",
+   "bytes": 65871,
+   "sha256": "cc1caa9f278de601cd3c7f502b97b76e99556ad717daad552f905521c38f9c6e",
+   "kind": "cii",
+   "ciiVersion": 11,
+   "elements": 40,
+   "rigidRows": 15,
+   "nodenameRows": 2,
+   "restrantRows": 192
+  },
+  {
+   "id": "C-7X",
+   "repo": "3DC",
+   "path": "Benchmarks/INPUT XML to CII 2019/7/AML-78-SYS_007_08-03-2024_INPUT.XML",
+   "bytes": 201761,
+   "sha256": "a60e21af075e647e554f802d506f709e32eebb0b349f55cb5d65a22b2e908027",
+   "kind": "inputxml",
+   "pipingElements": 108
+  },
+  {
+   "id": "C-7C",
+   "repo": "3DC",
+   "path": "Benchmarks/INPUT XML to CII 2019/7/AML-78-SYS_007_08-03-2024_INPUT_inputxml_to_cii2019_workflow.cii",
+   "bytes": 162038,
+   "sha256": "9b8120cb32c481d40cd9f3e000ca8f35aba92ce56aac97a5bbaa353501f707b1",
+   "kind": "cii",
+   "ciiVersion": 11,
+   "elements": 108,
+   "rigidRows": 27,
+   "nodenameRows": 61,
+   "restrantRows": 624
+  },
+  {
+   "id": "C-R1X",
+   "repo": "3DC",
+   "path": "Benchmarks/XML to CII 2019/Sample 1.1/RMS-BLOW-1.xml",
+   "bytes": 137941,
+   "sha256": "8f616417c382f89d451028c71fab5fb4e9bbc2addfe09246a3ee9549c1019261",
+   "kind": "psi116",
+   "branches": 6,
+   "nodes": 260,
+   "rigid2": 12
+  },
+  {
+   "id": "C-R1C",
+   "repo": "3DC",
+   "path": "Benchmarks/XML to CII 2019/Sample 1.1/RMS-BLOW-1.cii",
+   "bytes": 245732,
+   "sha256": "97908bbb6b55720262de3c35d998ee3f9d2b9da873cfffdd3dc44e26b80adb9f",
+   "kind": "cii",
+   "ciiVersion": 11,
+   "elements": 92,
+   "rigidRows": 11,
+   "nodenameRows": 67,
+   "restrantRows": 432
+  },
+  {
+   "id": "C-R2X",
+   "repo": "3DC",
+   "path": "Benchmarks/XML to CII 2019/Sample 1.2/RMS-BLOW-2.xml",
+   "bytes": 163490,
+   "sha256": "6d2ddf66c7f5e06f20604979b2301bb4e3792cf60efb5fc3271446f7617df599",
+   "kind": "psi116",
+   "branches": 8,
+   "nodes": 311,
+   "rigid2": 14
+  },
+  {
+   "id": "C-R2C",
+   "repo": "3DC",
+   "path": "Benchmarks/XML to CII 2019/Sample 1.2/RMS-BLOW-2.cii",
+   "bytes": 279596,
+   "sha256": "d9b774db8a64fe9f627944bbcacf99b1f9cb720621c39d02bca360283b012174",
+   "kind": "cii",
+   "ciiVersion": 11,
+   "elements": 120,
+   "rigidRows": 13,
+   "nodenameRows": 81,
+   "restrantRows": 96
+  },
+  {
+   "id": "C-TRX",
+   "repo": "3DC",
+   "path": "Benchmarks/XML to CII 2019/Sample 1.3/TEST-RMS.xml",
+   "bytes": 403747,
+   "sha256": "bc0419e52a3bc2e5b835f08f236bf279f6ea7e405f59604a53299a627ad36b99",
+   "kind": "psi116",
+   "branches": 14,
+   "nodes": 777,
+   "rigid2": 38
+  },
+  {
+   "id": "C-TRC",
+   "repo": "3DC",
+   "path": "Benchmarks/XML to CII 2019/Sample 1.3/TEST-RMS.cii",
+   "bytes": 679947,
+   "sha256": "e35292155ae7f0e52966887c45392803fcc826e614883ae529c6ee84574ee28d",
+   "kind": "cii",
+   "ciiVersion": 11,
+   "elements": 284,
+   "rigidRows": 38,
+   "nodenameRows": 205,
+   "restrantRows": 552
+  },
+  {
+   "id": "C-GL",
+   "repo": "3DC",
+   "path": "Benchmarks/XML to CII 2019/GLRD-1000-PI-01.xml",
+   "bytes": 627599,
+   "sha256": "923a2b493483ecaaebe696f3d08a0b688f3ce3c9f456fb11b8e6a5889eea22ba",
+   "kind": "psi116",
+   "branches": 41,
+   "nodes": 1166,
+   "rigid2": 65
+  },
+  {
+   "id": "C-BM2",
+   "repo": "3DC",
+   "path": "Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml",
+   "bytes": 629889,
+   "sha256": "6bcc477860fdbe9a80159839bf476a8c1e6ce7a966587a25bc62498709843151",
+   "kind": "psi116",
+   "branches": 31,
+   "nodes": 1196,
+   "rigid2": 54
+  },
+  {
+   "id": "C-PSI",
+   "repo": "3DC",
+   "path": "Benchmarks/XML-CII-2019/revamped/GLRD-1000-PSI-02.xml",
+   "bytes": 643002,
+   "sha256": "164163380dccffb8f9d6bd7853eabd36eea89e508da2215443e81969144d4a45",
+   "kind": "psi116",
+   "branches": 30,
+   "nodes": 1224,
+   "rigid2": 54
+  },
+  {
+   "id": "C-XSD",
+   "repo": "3DC",
+   "path": "Benchmarks/XML to CII 2019/PSI116.xsd",
+   "bytes": 10738,
+   "sha256": "ce0f3f9047ecd60ecff8a7033a9f2cbf263b488a28687b6105aaf87442250501",
+   "kind": "xsd"
+  }
+ ]
+}

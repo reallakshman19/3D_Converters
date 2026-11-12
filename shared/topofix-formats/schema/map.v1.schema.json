@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "topofix.map.v1",
+  "title": "TopoFix Map file v1",
+  "description": "Structure only. Cross-item rules R3, R5, R8 (partly) and R10 are enforced by validate.mjs.",
+  "type": "object",
+  "required": ["format", "version", "createdAt", "source", "target", "method", "pairs"],
+  "additionalProperties": false,
+  "properties": {
+    "format": { "const": "topofix.map" },
+    "version": { "const": 1 },
+    "createdAt": { "type": "string", "minLength": 1 },
+    "source": { "$ref": "#/$defs/fileRef" },
+    "target": { "$ref": "#/$defs/fileRef" },
+    "method": { "enum": ["geometry-pair", "node-number", "name", "manual"] },
+    "pairs": { "type": "array", "items": { "$ref": "#/$defs/pair" } }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "fileRef": {
+      "type": "object", "required": ["kind", "fileName", "sha256"], "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["cii", "xml"] },
+        "fileName": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "ref": {
+      "oneOf": [
+        { "type": "object", "required": ["kind", "elementIndex", "fromNode", "toNode"], "additionalProperties": false,
+          "properties": { "kind": { "const": "cii" }, "elementIndex": { "type": "integer", "minimum": 0 },
+            "fromNode": { "type": "string", "minLength": 1 }, "toNode": { "type": "string", "minLength": 1 } } },
+        { "type": "object", "required": ["kind", "node"], "additionalProperties": false,
+          "properties": { "kind": { "const": "cii-node" }, "node": { "type": "string", "minLength": 1 } } },
+        { "type": "object", "required": ["kind", "branchOrdinal", "branchName", "nodeOrdinal", "nodeNumber", "componentRefNo"], "additionalProperties": false,
+          "properties": { "kind": { "const": "xml" }, "branchOrdinal": { "type": "integer", "minimum": 0 },
+            "branchName": { "type": "string" }, "nodeOrdinal": { "type": "integer", "minimum": 0 },
+            "nodeNumber": { "type": "string" }, "componentRefNo": { "type": "string" } } }
+      ]
+    },
+    "pair": {
+      "type": "object", "required": ["pairId", "source", "target", "status", "evidence"], "additionalProperties": false,
+      "properties": {
+        "pairId": { "type": "string", "minLength": 1 },
+        "source": { "$ref": "#/$defs/ref" },
+        "target": { "$ref": "#/$defs/ref" },
+        "status": { "enum": ["approved", "candidate", "rejected"] },
+        "evidence": { "type": "object", "required": ["rule", "detail"], "additionalProperties": false,
+          "properties": { "rule": { "type": "string", "minLength": 1 }, "detail": { "type": "string", "minLength": 1 } } },
+        "approvedBy": { "type": "string", "minLength": 1 },
+        "approvedAt": { "type": "string", "minLength": 1 }
+      },
+      "if": { "properties": { "status": { "const": "approved" } } },
+      "then": { "required": ["approvedBy", "approvedAt"] }
+    }
+  }
+}

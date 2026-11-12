@@ -1,0 +1,113 @@
+{
+ "X-F05": {
+  "elements": 8813,
+  "counts": {
+   "PIPINGELEMENT": 56
+  },
+  "leafDigest": "70f3dd96acf26dfbeede81e7df9f46d73c70587e0ad80be046f9276a9c4626ed",
+  "attrDigest": "66e9f2d8d8343e6e4f28a994ab1d245461814b73d2d2a758ad1cba47b005c950",
+  "root": "CAESARII"
+ },
+ "C-BMX": {
+  "elements": 163,
+  "counts": {
+   "PIPINGELEMENT": 40
+  },
+  "leafDigest": "0e8b7ec59b3b273e296c67acbbf7958650fcdc1e42a15beaec35dc5472aa4e3f",
+  "attrDigest": "f8663cdf545b261725d54021db595a363c6e8985d4a18a3f09fa8b33670d3d88",
+  "root": "CAESARII"
+ },
+ "C-7X": {
+  "elements": 415,
+  "counts": {
+   "PIPINGELEMENT": 108
+  },
+  "leafDigest": "37a666b525d0606e9a065a02603b7c7bb9be0b85fd934578b8d2df6a17f381ee",
+  "attrDigest": "8f0af1128b03d611eb2e63550786f30471bea12c2165ab4d1063109677a2bd0f",
+  "root": "CAESARII"
+ },
+ "C-R1X": {
+  "elements": 4201,
+  "counts": {
+   "Branch": 6,
+   "Node": 260,
+   "Weight": 260
+  },
+  "leafDigest": "fb03dc2d5c330ca31748e515f259894d0035aa219a9c9b4a8ce8692beef87e93",
+  "attrDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "root": "PipeStressExport",
+  "psiRows": 260,
+  "psiDigest": "670161d43da8e9dc24697bfbd73b82862c8cd9fe1e93e686ca808db9c63fa035",
+  "rigid2": 12
+ },
+ "C-R2X": {
+  "elements": 4951,
+  "counts": {
+   "Branch": 8,
+   "Node": 311,
+   "Weight": 311
+  },
+  "leafDigest": "7fcb0c9bc333a8adc0c825edc6c4fb67a8d50776f93650903cf2a841a7a481ac",
+  "attrDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "root": "PipeStressExport",
+  "psiRows": 311,
+  "psiDigest": "ce100a1faa8ba878498d5af5a18c55d7ab68dbcd5ac900496833e6e4c5b863dd",
+  "rigid2": 14
+ },
+ "C-TRX": {
+  "elements": 12269,
+  "counts": {
+   "Branch": 14,
+   "Node": 777,
+   "Weight": 777
+  },
+  "leafDigest": "818b54ede9e5f8ae753f340a6b22954fbbd263412909c25c7f3cb326093677a0",
+  "attrDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "root": "PipeStressExport",
+  "psiRows": 777,
+  "psiDigest": "529974b4c947318029cbfcb4cc8826cd7025ca8113fa8fec859467df35020b6f",
+  "rigid2": 38
+ },
+ "C-GL": {
+  "elements": 19108,
+  "counts": {
+   "Branch": 41,
+   "Node": 1166,
+   "Weight": 1166
+  },
+  "leafDigest": "68e70d08a272042fcc851e4cffe15cc1e0e299e7bfe3c7ce50f8a65fe4da9945",
+  "attrDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "root": "PipeStressExport",
+  "psiRows": 1166,
+  "psiDigest": "4d0955ecb4c57a59b262dce3a394867cdab19a9864af4784b21bcba9adf84619",
+  "rigid2": 65
+ },
+ "C-BM2": {
+  "elements": 19098,
+  "counts": {
+   "Branch": 31,
+   "Node": 1196,
+   "Weight": 1196
+  },
+  "leafDigest": "496de4f8e2e7e6f980a83eb5369b084c30b592121faec9d89d03b3c61a735d6b",
+  "attrDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "root": "PipeStressExport",
+  "psiRows": 1196,
+  "psiDigest": "48f7806d1963eeacee04c4ae6db06d66d42ce3211d9d8ac7a397da16913cd5c2",
+  "rigid2": 54
+ },
+ "C-PSI": {
+  "elements": 19479,
+  "counts": {
+   "Branch": 30,
+   "Node": 1224,
+   "Weight": 1224
+  },
+  "leafDigest": "b8f3685a873cc6bb42981a10a7603a9987d0e49647ed35d1f0f6ff0c725cc1d4",
+  "attrDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "root": "PipeStressExport",
+  "psiRows": 1224,
+  "psiDigest": "8b3a7420a6978f20f9eccf9caf6a21641efb9d488034cd2a06662205591724d6",
+  "rigid2": 54
+ }
+}
