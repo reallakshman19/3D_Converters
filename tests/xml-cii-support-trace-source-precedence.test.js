@@ -39,9 +39,10 @@ const fixture = createStaticEsmFixture(root, {
   assert.deepEqual(actual.map(r => [r.occurrenceName, r.supportKind, r.confidence]), [
     ['/S-REST', 'REST', 'HIGH'], ['/S-GUIDE', 'GUIDE', 'HIGH'], ['/S-STOP', 'LINESTOP', 'HIGH'],
   ]);
-  assert.ok(actual[2].suppressedCandidates.some(c => c.startsWith('GUIDE:GT:LOW:')));
+  // Owner rule (12 Nov): NODETYPE first, then the Step 7 support table.
+  assert.equal(actual[0].matchMode, 'source-nodetype');
+  assert.equal(actual[2].matchMode, 'step7-support-table');
   assert.match(actual[2].evidenceText, /CMPSUPGAP=25MM GAP/);
-  assert.match(actual[2].decisionReason, /MDSDTXR fallback/);
   assert.equal(rows([{ ...stop, DTXR: 'REST' }])[0].supportKind, 'REST');
   assert.equal(rows([{ NAME: '/CONFLICT', DTXR: 'GUIDE and LINE STOP' }])[0].status, 'ambiguous');
   assert.equal(rows([{ NAME: '/LOW', MDSSUPPTYPE: 'ST501' }])[0].confidence, 'LOW');

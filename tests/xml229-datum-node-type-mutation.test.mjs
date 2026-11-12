@@ -73,14 +73,13 @@ test('UI exposes Datum and existing tolerance as independent controls',()=>{
     assert.ok(ui.includes(key)&&events.includes(key),key);
 });
 
-test('conflicting co-positioned NODETYPE mutations require review',async()=>{
+test('co-positioned members with different NODETYPEs keep both source kinds (Owner rule)',async()=>{
   const source=JSON.parse(staged);
   source[0].children.push({...source[0].children[0],attributes:{
     ...source[0].children[0].attributes,NODETYPE:'8',
   }});
-  await assert.rejects(
-    prepareXml229PrefinalRestraints({xmlText:XML,stagedJsonText:JSON.stringify(source),config:config()}),
-    {code:'PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'});
+  const prepared=await prepareXml229PrefinalRestraints({xmlText:XML,stagedJsonText:JSON.stringify(source),config:config()});
+  assert.deepEqual(rows(prepared.document).map(r=>r.Type).sort(),['+Y','GUI']);
 });
 
 test('emitted native CII obeys configured NODETYPE 17 -> 14 and gap zero',async()=>{

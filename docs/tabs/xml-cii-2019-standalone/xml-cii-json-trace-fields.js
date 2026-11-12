@@ -29,7 +29,7 @@ const PRIMARY_FIELD_ORDER = Object.freeze(['DTXR', 'DESC', 'DESCRIPTION', 'MDSDT
 // Bounded source-only evidence survives stripRawMember independently of user
 // display-field selections. Never feed derived labels back into this projection.
 const SUPPORT_EVIDENCE_FIELDS = Object.freeze([
-  'DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'NAME', 'SPRE', 'CMPSUPTYPE',
+  'DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'NAME', 'SPRE', 'SKEY', 'CMPSUPTYPE',
   'MDSSUPPTYPE', 'SUPPORT_KIND', 'SUPPORT_TYPE', 'SUPPORT_MAPPER_KIND',
   'NODETYPE', 'NODEGAP', 'CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS',
 ]);

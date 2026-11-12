@@ -3,6 +3,7 @@ import {
   restraintEntriesFromSupportKind,
 } from '../../converters/xml-cii2019-core/support-mapping.js';
 import { migrateSupportMappingConfig } from '../../converters/xml-cii2019-core/support-mapping-config.js';
+import { governedSupportKind, SUPPORT_KIND_EVIDENCE_FIELDS } from '../../converters/xml-cii2019-core/support-kind-precedence.js';
 import {mutateRestraintType} from '../../converters/xml-cii2019-core/restraint-type-mutation.js';
 import {classifySupportText,parseSupportTypeMapperConfig,createDefaultSupportTypeMapperConfig}
   from './xml-cii-support-type-mapper.js';
@@ -125,6 +126,10 @@ function memberDescription(attrs, member) {
 
 function supportKindFromMember(member,config={}) {
   const attrs = memberAttributes(member);
+  // Owner rule (12 Nov, RCA-04): source NODETYPE wins when present; otherwise
+  // the Step 7 support table decides. The chain below is the fallback only.
+  const decided = governedSupportKind({...safeObject(member?.capturedFields), ...attrs}, config);
+  if (decided.kind) return decided.kind;
   // An explicit source description wins over abbreviated MDS code aliases.
   // This mirrors the old confidence mapper, not its legacy axis defaults.
   // When the staged member has no DTXR/DESC text, its MDS description
@@ -368,7 +373,7 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
 
   const rawLedger = buildStandaloneDtxrResolutionLedger(source, stagedJsonText, config);
   const traceConfig = {
-    captureFields: ['DTXR', 'SPRE', 'SPREF', 'MDSSUPPTYPE', 'NAME', 'CMPSUPGAP'],
+    captureFields: [...new Set(['DTXR', 'SPRE', 'SPREF', 'MDSSUPPTYPE', 'NAME', 'CMPSUPGAP', ...SUPPORT_KIND_EVIDENCE_FIELDS])],
   };
   const ledger = decorateJsonTraceLedger(rawLedger, traceConfig);
   const byIndex = new Map((ledger.records || []).map((record) => [Number(record.xmlIndex), record]));

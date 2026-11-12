@@ -1,3 +1,4 @@
+import { governedSupportKind } from '../../converters/xml-cii2019-core/support-kind-precedence.js';
 const KINDS = Object.freeze(['REST', 'GUIDE', 'LINESTOP', 'ANCHOR']);
 
 const DEFAULT_ROWS = Object.freeze([
@@ -130,7 +131,28 @@ function structuredMemberEvidence(member = {}) {
   };
 }
 
-function classifyStructuredMember(fields, mapperRows) {
+// Owner rule (12 Nov, RCA-04), the same one the Run restraint closure uses:
+// source NODETYPE wins when present; otherwise the Step 7 support table.
+// The alias classification below is only the fallback.
+function ownerRuleResult(fields, mapperRows, supportConfig) {
+  const decided = governedSupportKind(fields, supportConfig);
+  if (!decided.kind) return null;
+  const row = mapperRows.find((entry) => entry.kind === decided.kind) || defaultRow(decided.kind);
+  const byNodeType = decided.source === 'NODETYPE';
+  return {
+    status: 'matched', supportKind: decided.kind, ciiKind: row.ciiKind, ciiPreview: row.ciiPreview,
+    confidence: 'HIGH', confidenceScore: 1,
+    matchedAlias: byNodeType ? 'NODETYPE ' + text(fields.NODETYPE) : 'Step 7 support table',
+    matchMode: byNodeType ? 'source-nodetype' : 'step7-support-table',
+    candidates: [], suppressedCandidates: [], matches: [],
+    decisionReason: byNodeType ? 'Source NODETYPE wins (Owner rule).'
+      : 'Step 7 support table (Use JSON/support mapper for restraints).',
+  };
+}
+
+function classifyStructuredMember(fields, mapperRows, supportConfig = {}) {
+  const owner = ownerRuleResult(fields, mapperRows, supportConfig);
+  if (owner) return owner;
   const primary = ['DTXR', 'DESC', 'DESCRIPTION'].map(key => text(fields[key])).filter(Boolean);
   const description = primary.join(' ') || text(fields.MDSDTXR);
   const codes = [fields.MDSSUPPTYPE, fields.CMPSUPTYPE].map(text).filter(Boolean);
@@ -314,9 +336,9 @@ function candidateLabel(entry) {
   return `${entry.kind}:${entry.alias}:${entry.confidence}:${entry.score.toFixed(2)}`;
 }
 
-function previewRow(evidence, index, mapperRows) {
+function previewRow(evidence, index, mapperRows, supportConfig = {}) {
   const result = evidence.sourceFields
-    ? classifyStructuredMember(evidence.sourceFields, mapperRows)
+    ? classifyStructuredMember(evidence.sourceFields, mapperRows, supportConfig)
     : classifySupportText(evidence.text, mapperRows);
   return {
     rowId: `preview-${index + 1}`,
@@ -394,7 +416,8 @@ export function runStandaloneSupportTypeMapper(input = {}) {
   const parsed = parseSupportTypeMapperConfig(input);
   const mapperRows = array(input.mapperRows).length ? input.mapperRows.map(normalizeMapperRow) : parsed.mapperRows;
   const testRows = evidenceRows(input);
-  const previewRows = testRows.map((row, index) => previewRow(row, index, mapperRows));
+  const supportConfig = Object.keys(object(input.supportConfig)).length ? input.supportConfig : parseJson(input.supportConfigJson);
+  const previewRows = testRows.map((row, index) => previewRow(row, index, mapperRows, object(supportConfig)));
   const diagnostics = [...parsed.diagnostics, ...previewDiagnostics(previewRows)];
   return {
     schema: 'xml-cii-support-type-mapper-audit/v2',
