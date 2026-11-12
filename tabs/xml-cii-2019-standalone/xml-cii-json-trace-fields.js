@@ -13,9 +13,26 @@ export const DEFAULT_JSON_TRACE_CAPTURE_FIELDS = Object.freeze([
   { name: 'CMPSUPREFN', enabled: true },
   { name: 'PREV-NAME', enabled: true },
   { name: 'OWNER', enabled: true },
+  { name: 'DESC', enabled: true },
+  { name: 'DESCRIPTION', enabled: true },
+  { name: 'MDSDTXR', enabled: true },
+  { name: 'CMPSUPTYPE', enabled: true },
+  { name: 'NODETYPE', enabled: true },
+  { name: 'NODEGAP', enabled: true },
+  { name: 'SUPPORT_KIND', enabled: true },
+  { name: 'SUPPORT_TYPE', enabled: true },
+  { name: 'SUPPORT_MAPPER_KIND', enabled: true },
 ]);
 
-const PRIMARY_FIELD_ORDER = Object.freeze(['DTXR', 'SPRE', 'SPREF', 'DTXR_PS', 'DTXR_POS']);
+const PRIMARY_FIELD_ORDER = Object.freeze(['DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'SPRE', 'SPREF', 'DTXR_PS', 'DTXR_POS']);
+
+// Bounded source-only evidence survives stripRawMember independently of user
+// display-field selections. Never feed derived labels back into this projection.
+const SUPPORT_EVIDENCE_FIELDS = Object.freeze([
+  'DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'NAME', 'SPRE', 'CMPSUPTYPE',
+  'MDSSUPPTYPE', 'SUPPORT_KIND', 'SUPPORT_TYPE', 'SUPPORT_MAPPER_KIND',
+  'NODETYPE', 'NODEGAP', 'CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS',
+]);
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
@@ -116,6 +133,9 @@ export function decorateJsonTraceMember(member = {}, config = {}) {
     name: text(member.name || semantic.objectName),
     cmpSupGap: text(member.cmpSupGap || semantic.supportGap),
     capturedFields: captureConfiguredJsonTraceFields(raw, config),
+    // Explicit source profiles retain their existing profile-governed behavior.
+    supportEvidence: sourceSchemaEnabled(config) ? {} :
+      captureConfiguredJsonTraceFields(raw, { captureFields: SUPPORT_EVIDENCE_FIELDS }),
     semanticFields: semantic,
   };
 }

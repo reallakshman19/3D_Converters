@@ -95,6 +95,8 @@ function evidenceLine(line, index) {
 }
 
 function splitOccurrenceSegments(row) {
+  // Structured members already represent one physical source occurrence.
+  if (row.sourceFields) return [{ ...row, segmentIndex: 1 }];
   // Only "|" delimits separately authored source occurrences.
   const parts = text(row.text).split('|').map(text).filter(Boolean);
   // This exact compound label means one axial stop, not an added anchor.
@@ -115,6 +117,38 @@ function splitOccurrenceSegments(row) {
   });
 }
 
+function structuredMemberEvidence(member = {}) {
+  const fields = object(member.supportEvidence);
+  const hasEvidence = ['DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'MDSSUPPTYPE',
+    'CMPSUPTYPE', 'SPRE', 'SUPPORT_KIND', 'SUPPORT_TYPE', 'SUPPORT_MAPPER_KIND']
+    .some(key => text(fields[key]));
+  if (!hasEvidence) return null;
+  return {
+    sourceFields: fields,
+    occurrenceName: text(fields.NAME || member.name),
+    text: Object.entries(fields).map(([key, value]) => key + '=' + text(value)).join(', '),
+  };
+}
+
+function classifyStructuredMember(fields, mapperRows) {
+  const primary = ['DTXR', 'DESC', 'DESCRIPTION'].map(key => text(fields[key])).filter(Boolean);
+  const description = primary.join(' ') || text(fields.MDSDTXR);
+  const codes = [fields.MDSSUPPTYPE, fields.CMPSUPTYPE].map(text).filter(Boolean);
+  const lowCodes = codes.filter(code => /^(?:GT|ST|PG|LS)[A-Z0-9_-]*$/i.test(code));
+  const explicit = classifySupportText(description, mapperRows);
+  if (explicit.status === 'ambiguous' || (explicit.status === 'matched' && explicit.confidence !== 'LOW')) {
+    const result = classifySupportText([description, ...lowCodes].join(' '), mapperRows);
+    return { ...result, decisionReason: (primary.length ? 'Primary source description. ' : 'MDSDTXR fallback description. ') + (result.decisionReason || '') };
+  }
+  const canonical = [...new Set(['SUPPORT_KIND', 'SUPPORT_TYPE', 'SUPPORT_MAPPER_KIND']
+    .map(key => text(fields[key]).toUpperCase().replace(/\s+/g, '')).filter(kind => KINDS.includes(kind)))];
+  if (canonical.length) {
+    const result = classifySupportText(canonical.join(' and '), mapperRows);
+    return { ...result, decisionReason: 'Canonical staged support fallback. ' + (result.decisionReason || '') };
+  }
+  return classifySupportText([description, ...codes, fields.SPRE].map(text).filter(Boolean).join(' '), mapperRows);
+}
+
 function resolverTraceEvidenceRows(input = {}) {
   const trace = object(input.resolverJsonTraceResult || input.resolverJsonTraceJsonResult);
   const rows = [];
@@ -132,11 +166,19 @@ function resolverTraceEvidenceRows(input = {}) {
     const node = text(fact.xmlNodeNumber || fact.nodeNumber || fact.nodeKey || '?');
     const branch = text(fact.xmlBranch || fact.branchName);
     const baseSource = `resolver-json-trace${branch ? `:${branch}` : ''}:node=${node}`;
-    push(`${baseSource}:effective`, fact.effectiveDtxr);
-    push(`${baseSource}:DTXR_POS`, fact.dtxrPosValue);
-    push(`${baseSource}:DTXR_PS`, fact.dtxrPsValue);
-    for (const [memberIndex, member] of array(fact.positionMembers).entries()) {
-      push(`${baseSource}:member-${memberIndex + 1}`, member?.labeled || member?.description || member?.dtxr || member?.rawText);
+    const members = array(fact.positionMembers);
+    const structured = members.map(structuredMemberEvidence);
+    // Aggregated derived labels can contradict source descriptions and duplicate
+    // physical occurrences. Keep aggregate compatibility for legacy trace results.
+    if (!structured.some(Boolean)) {
+      push(`${baseSource}:effective`, fact.effectiveDtxr);
+      push(`${baseSource}:DTXR_POS`, fact.dtxrPosValue);
+      push(`${baseSource}:DTXR_PS`, fact.dtxrPsValue);
+    }
+    for (const [memberIndex, member] of members.entries()) {
+      const source = `${baseSource}:member-${memberIndex + 1}`;
+      if (structured[memberIndex]) rows.push({ source, ...structured[memberIndex] });
+      else push(source, member?.labeled || member?.description || member?.dtxr || member?.rawText);
     }
   }
   return rows;
@@ -273,7 +315,9 @@ function candidateLabel(entry) {
 }
 
 function previewRow(evidence, index, mapperRows) {
-  const result = classifySupportText(evidence.text, mapperRows);
+  const result = evidence.sourceFields
+    ? classifyStructuredMember(evidence.sourceFields, mapperRows)
+    : classifySupportText(evidence.text, mapperRows);
   return {
     rowId: `preview-${index + 1}`,
     source: evidence.source,
