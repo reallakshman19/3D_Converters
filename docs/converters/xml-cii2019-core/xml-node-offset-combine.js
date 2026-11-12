@@ -89,6 +89,18 @@ export function modeBSupportConfigBlock(manifest) {
   return { schema: 'xml-cii-mode-b-sources/v1', offsetStep: manifest.offsetStep, sources };
 }
 
+// Each source's own staged JSON, with the same ids and node ranges as
+// modeBSupportConfigBlock, so the Run can close restraints per source (RCA-01).
+// stagedTexts follows manifest.sourceOrder.
+export function modeBStagedSourcesFromManifest(manifest, stagedTexts = []) {
+  const block = modeBSupportConfigBlock(manifest);
+  return manifest.sourceOrder.map((row, index) => {
+    const range = block.sources.find((entry) => entry.sourceId === `${index + 1}:${row.sourceId || row.fileName}`);
+    return range ? { sourceId: range.sourceId, fileName: row.fileName, minNode: range.minNode,
+      maxNode: range.maxNode, stagedJsonText: String(stagedTexts[index] || '') } : null;
+  }).filter(Boolean);
+}
+
 function requireCompatibleHeaders(parsed) {
   const header = JSON.stringify(parsed[0].header);
   for (const entry of parsed) {

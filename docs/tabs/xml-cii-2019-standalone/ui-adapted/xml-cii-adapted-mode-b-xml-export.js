@@ -1,4 +1,4 @@
-import { combineXmlWithNodeOffsets } from '../../../converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261001-weight-output-2';
+import { combineXmlWithNodeOffsets } from '../../../converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261112-modeb-isolation-1';
 import { createElement } from './xml-cii-adapted-dom.js';
 import { modeAExecutionRows, modeARawState } from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-2';
 import { xmlCiiProcessingMode, selectXmlCiiProcessingMode, loadXmlCiiSingleSource } from './xml-cii-adapted-processing-mode.js?v=20261112-modeb-isolation-1';
@@ -72,7 +72,8 @@ function renderCombineControls(panel, stateRef, render) {
   use.addEventListener('click', () => {
     if (!result) return;
     const file = new File([result.xmlText], 'Mode-B-combined.xml', { type: 'application/xml' });
-    loadXmlCiiSingleSource(stateRef, file, result.xmlText, render, 'xml', { modeBManifest: result.manifest });
+    loadXmlCiiSingleSource(stateRef, file, result.xmlText, render, 'xml',
+      { modeBManifest: result.manifest, modeBStagedTexts: result.stagedTexts });
   });
 }
 
@@ -83,9 +84,11 @@ function bindCombineAction(build, stateRef, basis, offset, status, table, clear,
       const sources = modeAExecutionRows(stateRef).map((entry) => {
         const xmlText = basis.value === 'enriched' ? entry.state.result?.enrichedText : entry.state.sourceText;
         if (!xmlText) throw new Error(`${entry.source.fileName}: no current enriched output; run this source first or choose Source XML.`);
-        return { sourceId: entry.source.sourceId, fileName: entry.source.fileName, xmlText, basis: basis.value };
+        return { sourceId: entry.source.sourceId, fileName: entry.source.fileName, xmlText, basis: basis.value,
+          stagedJsonText: entry.state.stagedJsonText || '' };
       });
-      const result = combineXmlWithNodeOffsets(sources, { offsetStep: Number(offset.value) });
+      const result = { ...combineXmlWithNodeOffsets(sources, { offsetStep: Number(offset.value) }),
+        stagedTexts: sources.map((source) => source.stagedJsonText) };
       status.textContent = `Combined ${result.manifest.sourceCount} XML files. Header from ${result.manifest.headerSource}. Ready to save.`;
       table.textContent = result.manifest.sourceOrder.map((row) => `${row.fileName}: offset +${row.offset} · ${row.positiveIdCount} positive IDs · ${row.basis}`).join('\n');
       release(result);
