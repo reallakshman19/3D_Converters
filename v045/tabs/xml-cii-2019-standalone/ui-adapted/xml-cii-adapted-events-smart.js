@@ -4,7 +4,7 @@ import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
 import { bindAdaptedWorkflowEvents as bindBaseAdaptedWorkflowEvents } from './xml-cii-adapted-events.js?v=20260804-mds-position-restraints-1';
 import { installRigidSmartFillDashboard } from '../../../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-rigid-smart-fill-ui.js?v=20261001-single-weight-owners-1';
-import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow-atta-default.js?v=20260804-mds-position-restraints-1';
+import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261113-x4-1';
 
 installRigidSmartFillDashboard();
 

@@ -15,7 +15,7 @@ import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-suppor
 import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js';
 import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20260713-config-tabs-p7';
 import { appendBendRadiusConfigToggle } from './xml-cii-adapted-bend-radius-toggle.js';
-import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js';
+import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js?v=20261113-x4-1';
 
 export function renderActivePhase(root, stateRef, render) {
   const state = stateRef.current;

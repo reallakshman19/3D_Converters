@@ -1,5 +1,5 @@
-import { renderModeBXmlExport } from './xml-cii-adapted-mode-b-xml-export.js?v=20261001-single-weight-owners-1';
-import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261001-single-weight-owners-1';
+import { renderModeBXmlExport } from './xml-cii-adapted-mode-b-xml-export.js?v=20261113-x4-1';
+import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261113-x4-1';
 import { renderActivePhase as renderBranchScopedPhase } from './xml-cii-adapted-phase-panels-branch-scope.js?v=20261001-single-weight-owners-1';
 import { renderActivePhase as renderSmartPhase } from './xml-cii-adapted-phase-panels-smart.js?v=20261007-c05-6-2-consumer-authority-1';
 import { renderModeABatchResults, renderModeASourceInventory } from './xml-cii-adapted-mode-a-panel.js?v=20261001-weight-output-2';

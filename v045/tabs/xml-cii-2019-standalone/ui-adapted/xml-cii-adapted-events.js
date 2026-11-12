@@ -5,7 +5,7 @@ import { buildStandalonePreviewDiagnosticsAudit } from '../../../../tabs/xml-cii
 import { runStandaloneWeightMatch } from '../xml-cii-weight-match.js';
 import { runStandaloneSupportTypeMapper } from '../xml-cii-support-type-mapper.js';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
-import { readTextFile } from '../xml-cii-workflow-ui-adapter.js';
+import { readTextFile } from '../xml-cii-workflow-ui-adapter.js?v=20261113-x4-1';
 import { downloadTextFile } from '../../../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js';
 import { applyPreviewDiagnosticsAuditReport, applyStandaloneManualElementSideloadResult, applyStandaloneOutputRunReadiness, applyStandaloneRegexTesterResult, applyStandaloneResolverJsonTraceResult, applyStandaloneSupportTypeMapperResult, applyStandaloneWeightMatchResult, clearWorkflowResult, patchResolverJsonTraceConfig, resetWorkflowState, updateManualElementSideloadConfig, updateRegexTesterConfig, updateResolverJsonTraceConfig, updateSupportTypeMapperConfig, updateSupportTypeMapperTestInput, updateWeightMatchOverrides, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js';
 import { detectXmlCiiWorkflowSourceKind, maskedFileName } from '../../../../tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js';

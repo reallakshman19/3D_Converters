@@ -2,6 +2,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { assertModeBRestraintsConserved } from '../converters/xml-cii2019-core/mode-b-restraint-conservation.js';
+import { closeGovernedAttaDefaultRestraintsXml } from '../v045/converters/xml-cii2019-core/atta-default-restraint-closure.js';
 import { installWeightBasisXmlDom } from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
 import { combineXmlWithNodeOffsets } from '../converters/xml-cii2019-core/xml-node-offset-combine.js';
 import { singleXmlCiiSourceState } from '../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-processing-mode.js';
@@ -38,8 +42,8 @@ const sources = () => [
   { sourceId: 'B', fileName: 'B.xml', xmlText: xml(node(10, rB), node(20), node(-1, rHelper)) },
 ];
 const copies = [['root', rootJob, rootRun], ['v045', liveJob, liveRun]];
-function setup(outputMode = 'both') {
-  const combined = combineXmlWithNodeOffsets(sources(), { offsetStep: 100000 });
+function setup(outputMode = 'both', inputs = sources()) {
+  const combined = combineXmlWithNodeOffsets(inputs, { offsetStep: 100000 });
   const state = singleXmlCiiSourceState({ supportConfigJson: '{}', options: { outputMode } }, null,
     combined.xmlText, 'xml', { modeBManifest: combined.manifest });
   return { ...combined, state };
@@ -185,4 +189,152 @@ test('X4 refuses relocation between distinct negative helpers with identical Nod
   const move = (x) => x.replace(node(-1, rHelper) + node(-1).replace('0 0 0', '9 0 0'),
     node(-1) + node(-1, rHelper).replace('0 0 0', '9 0 0'));
   refusal(await liveRun(job, runtime(move)));
+});
+
+// Review round 1: exercise the actual governed closure, not a mock replacement.
+test('X4 R1.1 Mode B ATTA zero-information LIM replaced by governed REST', async () => {
+  const inputs = sources();
+  inputs[0].xmlText = xml(node(10, '<Restraint><Type>LIM</Type></Restraint>').replace('ANCI', 'ATTA'), node(20));
+  const { state, manifest } = setup('both', inputs);
+  assert.equal(manifest.sourceOrder[0].restraintInventory.length, 0);
+  const job = await liveJob(state);
+  const result = await liveRun(job, runtime(undefined, (x) => {
+    const closed = closeGovernedAttaDefaultRestraintsXml(x);
+    assert.equal(closed.stats.zeroInformationLimitPlaceholdersReplaced, 1);
+    return closed.xmlText;
+  }));
+  assert.equal(result.ok, true, result.error);
+  assert.match(result.enrichedText, /<Type>\+Y<\/Type>/);
+  assert.doesNotMatch(result.enrichedText, /<Type>LIM<\/Type><\/Restraint>/);
+});
+
+test('X4 R1.1 per-source closure copies replacement instead of retaining placeholder', () => {
+  const inputs = sources();
+  inputs[0].xmlText = xml(node(10, '<Restraint><Type>LIM</Type></Restraint>').replace('ANCI', 'ATTA'), node(20));
+  const { manifest, xmlText } = setup('both', inputs);
+  const staged = modeBStagedSourcesFromManifest(manifest, ['{}', '{}']);
+  const result = closeModeBSourceRestraintsXml(xmlText, staged, {}, (x) => closeGovernedAttaDefaultRestraintsXml(x));
+  assert.equal(result.changed, true);
+  assert.match(result.xmlText, /<Type>\+Y<\/Type>/);
+  assert.doesNotMatch(result.xmlText, /<Type>LIM<\/Type><\/Restraint>/);
+});
+
+test('X4 R1.2 blank, missing and zero Gap and missing direction cosines are equal', async () => {
+  const forms = ['<Restraint><Type>GUI</Type><Gap></Gap></Restraint>',
+    '<Restraint><Type>GUI</Type></Restraint>', restraint('GUI', '0', 0, 0, 0)];
+  for (const before of forms) {
+    const inputs = sources();
+    inputs[1].xmlText = xml(node(10, before), node(20));
+    const { xmlText, manifest, state } = setup('both', inputs);
+    for (const after of forms) {
+      // DOM serialization may self-close a blank field.
+      const combined = xmlText.replace(/<Restraint><Type>GUI<\/Type>[\s\S]*?<\/Restraint>/, after);
+      assertModeBRestraintsConserved(combined, manifest);
+      const job = await liveJob(state);
+      const result = await liveRun(job, runtime(() => combined));
+      assert.equal(result.ok, true, result.error);
+    }
+  }
+});
+
+test('X4 R1.3 combine rejects extra identical or cross-source copied restraint', () => {
+  const { xmlText, manifest } = setup();
+  for (const bad of [xmlText.replace(rB, rB + rB), xmlText.replace(rB, rB + rA),
+    xmlText.replace(node(100020), node(100020, rA))]) {
+    assert.notEqual(bad, xmlText);
+    assert.throws(() => assertModeBRestraintsConserved(bad, manifest), { code: 'MODE_B_RESTRAINT_NOT_CONSERVED' });
+  }
+  const originalImport = Object.getPrototypeOf(doc).importNode;
+  try {
+    Object.getPrototypeOf(doc).importNode = (n, deep) => {
+      const clone = originalImport(n, deep);
+      const first = clone.getElementsByTagName('Restraint')[0];
+      if (first) first.parentNode.appendChild(first.cloneNode(true));
+      return clone;
+    };
+    assert.throws(() => combineXmlWithNodeOffsets(sources()), { code: 'MODE_B_RESTRAINT_NOT_CONSERVED' });
+  } finally { Object.getPrototypeOf(doc).importNode = originalImport; }
+});
+
+for (const [copy, build, run] of copies) {
+  test(`${copy}: X4 R1.3 Run rejects duplicate of existing restraint, allows closure at empty node`, async () => {
+    const job = await build(setup().state);
+    refusal(await run(job, runtime((x) => x.replace(rB, rB + rB))));
+    refusal(await run({ ...job, sourceText: job.sourceText.replace(rB, rB + rA) }, runtime()));
+    const result = await run(job, runtime((x) => x.replace(node(100020), node(100020, rA))));
+    assert.equal(result.ok, true, result.error);
+    assert.match(result.enrichedText, /<NodeNumber>100020<\/NodeNumber>[\s\S]*?<Type>\+Y<\/Type>/);
+  });
+}
+
+test('v045: X4 R1.3 Run parity rejects duplicate before engine and result rejects duplicate of new closure restraint', async () => {
+  const job = await liveJob(setup().state);
+  let called = false;
+  refusal(await liveRun(job, { ...runtime(undefined, (x) => x.replace(rB, rB + rB)),
+    engineRunner: async () => { called = true; return { ok: true }; } }));
+  assert.equal(called, false);
+  const added = restraint('LIM', '8', 0, 0, -1);
+  const add = (x) => x.replace(node(100020), node(100020, added));
+  refusal(await liveRun(job, runtime((x) => x.replace(added, added + added), add)));
+});
+
+test('X4 R1.4 unit directions compare within 1e-6, not by rounded bucket', async () => {
+  const { xmlText, manifest, state } = setup();
+  const job = await liveJob(state);
+  for (const equal of [restraint('+Y', '2', 0, 2, 0), restraint('+Y', '2', 0, 0.9999999999, 0),
+    restraint('+Y', '2', 0.0000005, 1, 0)]) {
+    const after = xmlText.replaceAll(rA, equal);
+    assertModeBRestraintsConserved(after, manifest);
+    const result = await liveRun(job, runtime(() => after));
+    assert.equal(result.ok, true, result.error);
+  }
+  for (const different of [restraint('+Y', '2', 0.000002, 1, 0), restraint('+Y', '2', 0, -1, 0),
+    restraint('+Y', '2', 0, 0, 0)]) {
+    const after = xmlText.replaceAll(rA, different);
+    assert.throws(() => assertModeBRestraintsConserved(after, manifest), { code: 'MODE_B_RESTRAINT_NOT_CONSERVED' });
+    refusal(await liveRun(job, runtime(() => after)));
+  }
+  // Two nearby but different directions need a one-to-one matching, even if
+  // a greedy first choice would consume the only match for another occurrence.
+  const inputs = sources();
+  const near = (x) => restraint('+Y', '2', x, 1, 0);
+  inputs[0].xmlText = xml(node(10, near(0) + near(0.0000015)), node(20));
+  const combined = setup('both', inputs);
+  const reordered = combined.xmlText.replace(near(0) + near(0.0000015), near(0.00000075) + near(-0.0000005));
+  assert.notEqual(reordered, combined.xmlText);
+  assertModeBRestraintsConserved(reordered, combined.manifest);
+});
+
+
+test('X4 R1.5 every production X4 import is versioned and docs mirrors match', () => {
+  const repo = new URL('../', import.meta.url);
+  const direct = new Set(['mode-b-restraint-conservation.js', 'xml-node-offset-combine.js',
+    'xml-cii-workflow-service.js', 'xml-cii-workflow-types.js', 'xml-cii-workflow-ui-adapter.js',
+    'xml-cii-mode-b-restraint-closure.js']);
+  const references = /(['"])((?:\.{1,2}\/)[^'"\s?#]+\.(?:m?js))(\?v=[^'"\s]+)?\1/g;
+  const checked = new Set();
+  function walk(directory) {
+    for (const entry of readdirSync(new URL(directory + '/', repo), { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory() && !['backup', 'node_modules', '.bak'].includes(entry.name)) walk(path);
+      else if (entry.isFile() && /\.(?:m?js|html)$/.test(entry.name)) {
+        const content = readFileSync(new URL(path, repo));
+        for (const match of content.toString().matchAll(references)) {
+          if (!direct.has(match[2].split('/').at(-1))) continue;
+          assert.equal(match[3], '?v=20261113-x4-1', `${path}: ${match[2]}`);
+          checked.add(path);
+        }
+        const mirror = new URL('docs/' + path, repo);
+        if (existsSync(mirror) && (checked.has(path) || direct.has(entry.name))) {
+          assert.deepEqual(readFileSync(mirror), content, `${path}: docs mirror differs`);
+        }
+      }
+    }
+  }
+  for (const directory of ['converters', 'tabs', 'v045']) walk(directory);
+  for (const path of ['tabs/xml-cii-2019-standalone/xml-cii-workflow-api-atta-default.js',
+    'v045/tabs/xml-cii-2019-standalone/xml-cii-workflow-api-atta-default.js',
+    'v045/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-mds-restraints.js']) {
+    assert.ok(checked.has(path), path);
+  }
 });

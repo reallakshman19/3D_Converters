@@ -1,4 +1,4 @@
-import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20260813-mode-a-full-propagation-2';
+import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261113-x4-1';
 import {
   activateModeASource,
   buildModeABatchManifest,

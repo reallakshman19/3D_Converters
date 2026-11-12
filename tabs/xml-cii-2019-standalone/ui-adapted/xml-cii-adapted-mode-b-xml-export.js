@@ -1,7 +1,7 @@
-import { combineXmlWithNodeOffsets } from '../../../converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261112-modeb-isolation-1';
+import { combineXmlWithNodeOffsets } from '../../../converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261113-x4-1';
 import { createElement } from './xml-cii-adapted-dom.js';
 import { modeAExecutionRows, modeARawState } from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-2';
-import { xmlCiiProcessingMode, selectXmlCiiProcessingMode, loadXmlCiiSingleSource } from './xml-cii-adapted-processing-mode.js?v=20261112-modeb-isolation-1';
+import { xmlCiiProcessingMode, selectXmlCiiProcessingMode, loadXmlCiiSingleSource } from './xml-cii-adapted-processing-mode.js?v=20261113-x4-1';
 
 function download(value, filename, type) {
   const url = URL.createObjectURL(new Blob([value], { type }));

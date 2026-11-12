@@ -11,7 +11,7 @@ import {
 import { createXmlCiiModeAStateRef } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-2';
 import { xmlCiiBranchScopeFromState } from '../xml-cii-branch-scope.js?v=20260930-issue781-branch-scope-1';
 import { normalizeModeABatchState } from '../xml-cii-mode-a-batch.js?v=20260930-issue781-branch-scope-1';
-import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261001-single-weight-owners-1';
+import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261113-x4-1';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
 

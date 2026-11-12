@@ -5,7 +5,7 @@ import {
 } from './xml-cii-standalone-run-parity-atta-default.js?v=20260804-mds-position-restraints-1';
 import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js?v=20260804-mds-position-restraints-1';
 import { closeGovernedMdsPositionRestraintsXml } from './xml-cii-mds-restraint-closure.js?v=20260804-mds-position-restraints-1';
-import { closeModeBSourceRestraintsXml } from './xml-cii-mode-b-restraint-closure.js?v=20261112-modeb-isolation-1';
+import { closeModeBSourceRestraintsXml } from './xml-cii-mode-b-restraint-closure.js?v=20261113-x4-1';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);

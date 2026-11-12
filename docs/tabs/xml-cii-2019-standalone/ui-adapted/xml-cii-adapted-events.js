@@ -5,12 +5,12 @@ import { buildStandalonePreviewDiagnosticsAudit } from '../xml-cii-preview-diagn
 import { runStandaloneWeightMatch } from '../xml-cii-weight-match.js';
 import { runStandaloneSupportTypeMapper } from '../xml-cii-support-type-mapper.js';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
-import { readTextFile } from '../xml-cii-workflow-ui-adapter.js?v=20261001-weight-output-2';
+import { readTextFile } from '../xml-cii-workflow-ui-adapter.js?v=20261113-x4-1';
 import { downloadTextFile } from './xml-cii-adapted-dom.js';
 import { applyPreviewDiagnosticsAuditReport, applyStandaloneManualElementSideloadResult, applyStandaloneOutputRunReadiness, applyStandaloneRegexTesterResult, applyStandaloneResolverJsonTraceResult, applyStandaloneSupportTypeMapperResult, applyStandaloneWeightMatchResult, clearWorkflowResult, patchResolverJsonTraceConfig, resetWorkflowState, updateManualElementSideloadConfig, updateRegexTesterConfig, updateResolverJsonTraceConfig, updateSupportTypeMapperConfig, updateSupportTypeMapperTestInput, updateWeightMatchOverrides, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { detectXmlCiiWorkflowSourceKind, maskedFileName } from '../xml-cii-workflow-source-detect.js';
 import { bindImportMastersEvents, clearMasterContextFromUi, loadImportMastersFromUi } from './xml-cii-adapted-master-events.js?v=20261006-c05-5-5-persistence-retry-1';
-import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow.js?v=20261008-p0-mode-b-parity-1';
+import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow.js?v=20261113-x4-1';
 import { bindTraceTableEvents } from './xml-cii-adapted-table-trace-events.js?v=20261001-weight-output-2';
 import { compareTraceResultsByComponentRef } from '../xml-cii-table-trace-source.js';
 import {

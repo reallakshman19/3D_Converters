@@ -1,6 +1,6 @@
 import { detectXmlCiiWorkflowSourceKind, workflowOutputKindForSource } from '../../../tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js';
-import { normalizeWorkflowJob, normalizeWorkflowResult } from './xml-cii-workflow-types.js';
-import { runXmlCii2019WorkflowService } from './xml-cii-workflow-service.js';
+import { normalizeWorkflowJob, normalizeWorkflowResult } from './xml-cii-workflow-types.js?v=20261113-x4-1';
+import { runXmlCii2019WorkflowService } from './xml-cii-workflow-service.js?v=20261113-x4-1';
 
 export async function runXmlCii2019Workflow(job, runtime = {}) {
   const normalized = normalizeWorkflowJob(job);
@@ -44,4 +44,4 @@ export async function runXmlCii2019Workflow(job, runtime = {}) {
 }
 
 export { detectXmlCiiWorkflowSourceKind } from '../../../tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js';
-export { DEFAULT_XML_CII_WORKFLOW_OPTIONS, normalizeWorkflowJob, normalizeWorkflowOptions, validateSupportConfigJson } from './xml-cii-workflow-types.js';
+export { DEFAULT_XML_CII_WORKFLOW_OPTIONS, normalizeWorkflowJob, normalizeWorkflowOptions, validateSupportConfigJson } from './xml-cii-workflow-types.js?v=20261113-x4-1';

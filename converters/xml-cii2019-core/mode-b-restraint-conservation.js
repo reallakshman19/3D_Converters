@@ -1,3 +1,5 @@
+import { isZeroInformationLimitRestraintElement } from './atta-default-restraint-closure.js?v=20260803-atta-default-rest-closure-1';
+
 // X4: Compare the original PSI116 restraints to the combined XML. Positive
 // IDs are shared within a source and translated only by the offset manifest.
 // Nonpositive helper IDs are not unique; use their source-local occurrence.
@@ -5,7 +7,9 @@ const name = (node) => String(node?.localName || node?.nodeName || '').replace(/
 const children = (node, tag) => [...(node?.childNodes || [])].filter((child) => child.nodeType === 1 && name(child) === tag);
 const value = (node, tag) => children(node, tag)[0]?.textContent?.trim() ?? null;
 const DIRECTIONS = ['DirectionCosineX', 'DirectionCosineY', 'DirectionCosineZ'];
-const restraintSignatures = (node) => children(node, 'Restraint').map(signature);
+const restraintSignatures = (node) => children(node, 'Restraint')
+  .filter((restraint) => !isZeroInformationLimitRestraintElement(restraint)).map(signature);
+const DIRECTION_TOLERANCE = 1e-6;
 const identityFields = ['ComponentRefNo', 'Endpoint', 'Position', 'ComponentType'];
 const helperIdentity = (node, branch) => [value(branch, 'Branchname'), ...identityFields.map((field) => value(node, field))];
 
@@ -15,7 +19,7 @@ export function modeBRestraintRefusal(detail) {
 }
 
 function number(raw, field) {
-  if (raw === null) return null;
+  if (raw === null || raw === '') return 0;
   if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw) || !Number.isFinite(Number(raw))) throw modeBRestraintRefusal(`invalid ${field}: ${raw}`);
   return Number(raw);
 }
@@ -32,7 +36,23 @@ function signature(restraint) {
   const type = value(restraint, 'Type');
   if (!type) throw modeBRestraintRefusal('a restraint has no Type.');
   return [type.toUpperCase(), number(value(restraint, 'Gap'), 'Gap'),
-    ...DIRECTIONS.map((field) => number(value(restraint, field), field))];
+    ...unitDirection(DIRECTIONS.map((field) => number(value(restraint, field), field)))];
+}
+
+// Scale first to avoid overflow/underflow when normalising finite cosines.
+function unitDirection(direction) {
+  const scale = Math.max(...direction.map(Math.abs));
+  if (scale === 0) return [0, 0, 0];
+  const scaled = direction.map((n) => n / scale);
+  const length = Math.hypot(...scaled);
+  return scaled.map((n) => n / length);
+}
+
+function sameSignature(a, b) {
+  if (a[0] !== b[0] || a[1] !== b[1]) return false;
+  const aZero = a.slice(2).every((n) => n === 0);
+  const bZero = b.slice(2).every((n) => n === 0);
+  return aZero === bZero && Math.hypot(...a.slice(2).map((n, i) => n - b[i + 2])) <= DIRECTION_TOLERANCE;
 }
 
 function nodesInPipe(pipe) {
@@ -61,7 +81,7 @@ function parseCombined(xmlText) {
 }
 
 function manifestMaps(manifest) {
-  if (manifest?.schema !== 'xml-node-offset-combine/v1' || manifest.restraintInventoryVersion !== 1
+  if (manifest?.schema !== 'xml-node-offset-combine/v1' || manifest.restraintInventoryVersion !== 2
       || !Array.isArray(manifest.sourceOrder) || manifest.sourceOrder.length < 2
       || manifest.sourceOrder.length !== manifest.sourceCount) {
     throw modeBRestraintRefusal('pre-combination restraint inventory is missing; combine the sources again.');
@@ -92,12 +112,9 @@ function key(number, pipeOrdinal, branchOrdinal, nodeOrdinal, identity) {
 }
 
 function addRestraints(inventory, nodeKey, restraints) {
-  let counts = inventory.get(nodeKey);
-  if (!counts) { counts = new Map(); inventory.set(nodeKey, counts); }
-  for (const restraint of restraints) {
-    const token = JSON.stringify(restraint);
-    counts.set(token, (counts.get(token) || 0) + 1);
-  }
+  let entries = inventory.get(nodeKey);
+  if (!entries) { entries = []; inventory.set(nodeKey, entries); }
+  entries.push(...restraints);
 }
 
 function indexPipe(pipe, source, owners, pipeOrdinal) {
@@ -143,7 +160,7 @@ function expectedInventory({ source, numbers, index }) {
         || pipeOrdinal >= source.pipeCount || (sourceNumber <= 0 && (!Array.isArray(identity) || identity.length !== 5
           || !identity.every((v) => v === null || typeof v === 'string')))
         || !Array.isArray(restraints) || !restraints.length || !restraints.every((r) => Array.isArray(r) && r.length === 5
-          && typeof r[0] === 'string' && r[0] && r.slice(1).every((n) => n === null || Number.isFinite(n)))) {
+          && typeof r[0] === 'string' && r[0] && r.slice(1).every(Number.isFinite))) {
       throw modeBRestraintRefusal(`source ${index + 1}: invalid restraint inventory row.`);
     }
     const mapped = sourceNumber > 0 ? numbers.get(sourceNumber) : sourceNumber;
@@ -153,20 +170,41 @@ function expectedInventory({ source, numbers, index }) {
   return expected;
 }
 
-function compareSource(entry, stage, expected = expectedInventory(entry)) {
-  for (const [nodeKey, counts] of expected) {
-    const actual = entry.actual.get(nodeKey);
-    for (const [signature, count] of counts) {
-      const found = actual?.get(signature) || 0;
-      if (found < count) {
-        throw modeBRestraintRefusal(`${stage}: source ${entry.index + 1} (${entry.source.fileName}), combined node ${nodeKey}: expected ${count} restraint(s) ${signature}, found ${found}.`);
-      }
+// Match occurrences one-to-one (not rounded signature buckets). Augmenting
+// paths avoid a false loss when several directions overlap within tolerance.
+function compareNode(expected, actual, label, allowAdditions) {
+  const matched = new Array(actual.length).fill(-1);
+  function match(i, seen) {
+    for (let j = 0; j < actual.length; j += 1) {
+      if (seen.has(j) || !sameSignature(expected[i], actual[j])) continue;
+      seen.add(j);
+      if (matched[j] === -1 || match(matched[j], seen)) { matched[j] = i; return true; }
+    }
+    return false;
+  }
+  for (let i = 0; i < expected.length; i += 1) {
+    if (!match(i, new Set())) {
+      throw modeBRestraintRefusal(`${label}: missing restraint occurrence ${JSON.stringify(expected[i])}.`);
+    }
+  }
+  for (let j = 0; j < actual.length; j += 1) {
+    if (matched[j] !== -1) continue;
+    if (!allowAdditions || expected.some((sig) => sameSignature(sig, actual[j]))) {
+      throw modeBRestraintRefusal(`${label}: unexpected restraint occurrence ${JSON.stringify(actual[j])}.`);
     }
   }
 }
 
-export function assertModeBRestraintsConserved(xmlText, manifest, stage = 'combined XML') {
-  for (const source of indexCombined(xmlText, manifest)) compareSource(source, stage);
+function compareSource(entry, stage, expected = expectedInventory(entry), allowAdditions = false) {
+  const nodes = new Set([...expected.keys(), ...entry.actual.keys()]);
+  for (const nodeKey of nodes) {
+    compareNode(expected.get(nodeKey) || [], entry.actual.get(nodeKey) || [],
+      `${stage}: source ${entry.index + 1} (${entry.source.fileName}), combined node ${nodeKey}`, allowAdditions);
+  }
+}
+
+export function assertModeBRestraintsConserved(xmlText, manifest, stage = 'combined XML', { allowAdditions = false } = {}) {
+  for (const source of indexCombined(xmlText, manifest)) compareSource(source, stage, undefined, allowAdditions);
 }
 
 // Also retain new restraints added during per-source Run enrichment. The
@@ -174,7 +212,7 @@ export function assertModeBRestraintsConserved(xmlText, manifest, stage = 'combi
 export function assertModeBRunXmlRestraintsPreserved(before, after, manifest) {
   const expected = indexCombined(before, manifest);
   const actual = indexCombined(after, manifest);
-  for (const source of actual) compareSource(source, 'Run enriched XML', expected[source.index].actual);
+  for (const source of actual) compareSource(source, 'Run enriched XML', expected[source.index].actual, true);
 }
 
 // The X1 closure has already isolated the source by the manifest-derived
@@ -182,18 +220,12 @@ export function assertModeBRunXmlRestraintsPreserved(before, after, manifest) {
 // retained and every closed restraint reached the combined node.
 export function assertModeBClosedNodeRestraints(closed, combined, sourceId) {
   const restraints = restraintSignatures(closed);
-  if (!restraints.length) return;
+  if (!restraints.length && !restraintSignatures(combined).length) return;
   const label = `source ${sourceId}, closure node ${value(closed, 'NodeNumber')}`;
   const n = nodeNumber(closed);
   if (n !== nodeNumber(combined) || (n <= 0 && JSON.stringify(helperIdentity(closed, closed.parentNode))
       !== JSON.stringify(helperIdentity(combined, combined.parentNode)))) {
     throw modeBRestraintRefusal(`${label}: closure node map drift.`);
   }
-  const expected = new Map();
-  const actual = new Map();
-  addRestraints(expected, label, restraints);
-  addRestraints(actual, label, restraintSignatures(combined));
-  for (const [sig, count] of expected.get(label)) {
-    if ((actual.get(label).get(sig) || 0) < count) throw modeBRestraintRefusal(`${label}: closed restraint ${sig} was not copied back.`);
-  }
+  compareNode(restraints, restraintSignatures(combined), label, false);
 }

@@ -1,4 +1,4 @@
-import { captureModeBSourceRestraints, assertModeBRestraintsConserved, assertModeBRunXmlRestraintsPreserved, modeBRestraintRefusal } from './mode-b-restraint-conservation.js';
+import { captureModeBSourceRestraints, assertModeBRestraintsConserved, assertModeBRunXmlRestraintsPreserved, modeBRestraintRefusal } from './mode-b-restraint-conservation.js?v=20261113-x4-1';
 
 const name = (node) => String(node?.localName || node?.nodeName || '').replace(/^.*:/, '');
 const text = (node) => String(node?.textContent || '').trim();
@@ -70,7 +70,7 @@ export function combineXmlWithNodeOffsets(sources, { offsetStep = 100000 } = {})
       pipeCount: entry.pipes.length, numberMap, restraintInventory: captureModeBSourceRestraints(entry.root) });
   }
   const result = { xmlText: new XMLSerializer().serializeToString(output),
-    manifest: { restraintInventoryVersion: 1, schema: 'xml-node-offset-combine/v1', offsetStep: step, headerSource: sources[0].fileName,
+    manifest: { restraintInventoryVersion: 2, schema: 'xml-node-offset-combine/v1', offsetStep: step, headerSource: sources[0].fileName,
       sourceCount: records.length, sourceOrder: records, automaticCrossSourceJoins: 0 } };
   assertModeBRestraintsConserved(result.xmlText, result.manifest);
   return result;
@@ -116,7 +116,7 @@ function requireCompatibleHeaders(parsed) {
 
 // The Run receives the same manifest held in Single state. A configured Mode B
 // run without that independently captured baseline cannot release output.
-export function assertModeBRunRestraints(job, xmlText, stage) {
+export function assertModeBRunRestraints(job, xmlText, stage, options) {
   const block = JSON.parse(job.supportConfigJson || '{}')?.modeB;
   const manifest = job.modeBManifest;
   if (!block && !manifest) return;
@@ -129,7 +129,7 @@ export function assertModeBRunRestraints(job, xmlText, stage) {
       || expected.sources.some((row, i) => Object.keys(row).some((key) => row[key] !== block.sources[i]?.[key]))) {
     throw modeBRestraintRefusal('Mode B Run source config does not match the node-offset manifest.');
   }
-  assertModeBRestraintsConserved(xmlText, manifest, stage);
+  assertModeBRestraintsConserved(xmlText, manifest, stage, options);
 }
 
 export function assertModeBRunResult(job, result, engineInputXml = job.sourceText) {
@@ -137,6 +137,6 @@ export function assertModeBRunResult(job, result, engineInputXml = job.sourceTex
   // CII-only runs do not emit XML. Verify the exact combined XML supplied
   // to the converter; this is not a CII record-level validation.
   const after = result.enrichedText || (job.options?.outputMode === 'cii-only' ? engineInputXml : '');
-  assertModeBRunRestraints(job, after, 'Run combined XML result');
+  assertModeBRunRestraints(job, after, 'Run combined XML result', { allowAdditions: true });
   assertModeBRunXmlRestraintsPreserved(engineInputXml, after, job.modeBManifest);
 }

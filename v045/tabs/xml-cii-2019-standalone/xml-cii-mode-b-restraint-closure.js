@@ -4,7 +4,8 @@
 // source's pipes: two sources can share coordinates (a copy is the extreme
 // case). Each source is closed on its own sub-document, and only the
 // restraints the closure appended are copied back, node for node.
-import { assertModeBClosedNodeRestraints } from '../../../converters/xml-cii2019-core/mode-b-restraint-conservation.js';
+import { assertModeBClosedNodeRestraints } from '../../../converters/xml-cii2019-core/mode-b-restraint-conservation.js?v=20261113-x4-1';
+import { isZeroInformationLimitRestraintElement } from '../../converters/xml-cii2019-core/atta-default-restraint-closure.js?v=20260803-atta-default-rest-closure-1';
 import { closeGovernedMdsPositionRestraintsXml } from './xml-cii-mds-restraint-closure.js';
 
 const text = (value) => (value === undefined || value === null ? '' : String(value));
@@ -84,8 +85,15 @@ export function closeModeBSourceRestraintsXml(xmlText, sources, config = {}, clo
       throw refuse('MODE_B_SOURCE_NODE_MAP_DRIFT', `source ${entry.sourceId}: closure changed the node count.`);
     }
     combinedNodes.forEach((node, index) => {
-      const before = byName(node, 'Restraint').length;
-      for (const restraint of byName(closedNodes[index], 'Restraint').slice(before)) {
+      const original = byName(node, 'Restraint');
+      const closed = byName(closedNodes[index], 'Restraint');
+      const placeholders = original.filter(isZeroInformationLimitRestraintElement);
+      const closedPlaceholders = closed.filter(isZeroInformationLimitRestraintElement);
+      for (const placeholder of placeholders.slice(closedPlaceholders.length)) node.removeChild(placeholder);
+      const before = original.length - placeholders.length;
+      const added = [...closed.filter((r) => !isZeroInformationLimitRestraintElement(r)).slice(before),
+        ...closedPlaceholders.slice(placeholders.length)];
+      for (const restraint of added) {
         node.appendChild(typeof document.importNode === 'function'
           ? document.importNode(restraint, true) : restraint.cloneNode(true));
       }
