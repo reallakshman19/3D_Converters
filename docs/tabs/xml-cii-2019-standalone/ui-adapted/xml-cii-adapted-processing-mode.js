@@ -8,7 +8,9 @@ export function xmlCiiProcessingMode(state = {}) {
 
 export function selectXmlCiiProcessingMode(stateRef, mode, render) {
   const rawRef = stateRef.modeABaseRef || stateRef;
-  replaceModeAState(rawRef, { ...rawRef.current, xmlProcessingMode: mode,
+  // Mode B fields describe one combined Single document only.
+  const combined = mode === 'single' ? {} : { modeBManifest: null, modeBStagedSources: null };
+  replaceModeAState(rawRef, { ...rawRef.current, ...combined, xmlProcessingMode: mode,
     activePhaseId: 'source', activeSubTabId: 'loader' });
   render();
 }

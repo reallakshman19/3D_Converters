@@ -87,6 +87,20 @@ function branchScopeFromState(state, sourceText, stagedJsonText) {
   });
 }
 
+// Mode B staged sources go to the Run only when this run's support config
+// holds the modeB block with the same source ids and node ranges. A stale
+// value left in state (e.g. after switching to Mode A) is never sent.
+export function modeBStagedSourcesForRun(state = {}) {
+  const staged = Array.isArray(state.modeBStagedSources) ? state.modeBStagedSources : [];
+  if (!staged.length) return [];
+  let block = null;
+  try { block = JSON.parse(state.supportConfigJson || '{}')?.modeB || null; } catch { block = null; }
+  const ranges = Array.isArray(block?.sources) ? block.sources : [];
+  const key = (entry) => `${entry?.sourceId}|${Number(entry?.minNode)}|${Number(entry?.maxNode)}`;
+  const configured = new Set(ranges.map(key));
+  return staged.every((entry) => configured.has(key(entry))) ? staged : [];
+}
+
 export async function buildXmlCiiWorkflowJobFromUiState(state) {
   const [sourceFileText, stagedFileText] = await Promise.all([
     readTextFile(state.sourceFile),
@@ -110,7 +124,7 @@ export async function buildXmlCiiWorkflowJobFromUiState(state) {
     supportMapperRules: state.supportTypeMapperResult?.finalRules || state.supportTypeMapperConfig || [],
     sifFacts: state.previewDiagnosticsAuditReport?.sifFacts || state.resolverJsonTraceResult?.sifFacts || [],
     branchSelection: branchScope.manifest,
-    modeBStagedSources: Array.isArray(state.modeBStagedSources) ? state.modeBStagedSources : [],
+    modeBStagedSources: modeBStagedSourcesForRun(state),
   };
 }
 

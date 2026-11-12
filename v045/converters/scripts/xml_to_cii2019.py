@@ -763,9 +763,15 @@ def _merge_coincident_orphan_nodes(
         # Mode B every node has source "" and this is just {main}. Islands
         # other than the overall main are still searched, so a cross-source
         # join the single-model rule would have made is reported as blocked.
+        # An island's source comes from its resolved nodes (not just its root).
+        island_source: dict[int, str] = {}
+        for number in positions:
+            root = find(number)
+            if island_source.get(root, MODE_B_UNRESOLVED_SOURCE) == MODE_B_UNRESOLVED_SOURCE:
+                island_source[root] = source_of[number]
         largest: dict[str, int] = {}
         for root, size in sizes.items():
-            key = source_of[root]
+            key = island_source[root]
             if key not in largest or size > sizes[largest[key]]:
                 largest[key] = root
         mains = set(largest.values())

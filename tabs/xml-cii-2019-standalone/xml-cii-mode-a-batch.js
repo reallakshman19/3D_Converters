@@ -120,6 +120,9 @@ export function buildModeAExecutionState(baseState = {}, source = {}) {
   const next = core.buildModeAExecutionState(normalized, source);
   return {
     ...next,
+    // Mode B fields describe one combined Single document only.
+    modeBManifest: null,
+    modeBStagedSources: null,
     supportConfigJson: composeModeASupportConfig(
       modeASharedSupportConfig(normalized),
       source.supportConfigJson || '{}',

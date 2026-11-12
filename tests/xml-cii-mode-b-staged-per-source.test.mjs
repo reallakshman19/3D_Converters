@@ -87,3 +87,23 @@ test('a source without staged JSON is skipped and reported; mixed ownership is r
   const mixed = `<PipeStressExport><Pipe><Branch>${node(10)}${node(100010)}</Branch></Pipe></PipeStressExport>`;
   assert.throws(() => closeModeBSourceRestraintsXml(mixed, sources, {}, () => ({})), /MODE_B_SOURCE_OWNERSHIP_UNRESOLVED/);
 });
+
+test('review fix: stale Mode B staged sources never reach a Run without the matching modeB config', async () => {
+  const { modeBStagedSourcesForRun } = await import('../v045/tabs/xml-cii-2019-standalone/xml-cii-workflow-ui-adapter.js');
+  const { buildModeAExecutionState } = await import('../v045/tabs/xml-cii-2019-standalone/xml-cii-mode-a-batch.js');
+  const { selectXmlCiiProcessingMode } = await import('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-processing-mode.js');
+  const single = singleXmlCiiSourceState({ supportConfigJson: '{}' }, { name: 'c.xml' }, COMBINED, 'xml',
+    { modeBManifest: manifest, modeBStagedTexts: ['A', 'B'] });
+  assert.equal(modeBStagedSourcesForRun(single).length, 2);
+  // Same state but a config without the matching modeB block (e.g. Mode A): nothing is sent.
+  assert.deepEqual(modeBStagedSourcesForRun({ ...single, supportConfigJson: '{}' }), []);
+  const other = JSON.parse(single.supportConfigJson); other.modeB.sources[0].maxNode = 99;
+  assert.deepEqual(modeBStagedSourcesForRun({ ...single, supportConfigJson: JSON.stringify(other) }), []);
+  // Mode switch and the Mode A per-source state clear the fields.
+  const ref = { current: single };
+  selectXmlCiiProcessingMode(ref, 'mode-a', () => {});
+  assert.equal(ref.current.modeBStagedSources, null);
+  assert.equal(ref.current.modeBManifest, null);
+  const run = buildModeAExecutionState(single, { sourceId: 'C', fileName: 'C.xml', sourceText: '<x/>', stagedJsonText: '{}' });
+  assert.equal(run.modeBStagedSources, null);
+});
