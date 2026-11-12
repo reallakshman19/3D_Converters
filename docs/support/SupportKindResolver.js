@@ -35,11 +35,12 @@ export const DEFAULT_RULES = [
   { id: 'builtin-rest',      field: 'CMPSUPTYPE',                      pattern: 'REST',      match: 'equals',     kind: 'REST',     label: 'REST -> REST' },
   { id: 'builtin-gt5-cmp',   field: 'CMPSUPTYPE',                      pattern: 'GT5',       match: 'startsWith', kind: 'GUIDE',    label: 'CMPSUPTYPE GT5* -> GUIDE' },
   { id: 'builtin-gt5-mds',   field: 'MDSSUPPTYPE',                     pattern: 'GT5',       match: 'startsWith', kind: 'GUIDE',    label: 'MDSSUPPTYPE GT5* -> GUIDE' },
-  { id: 'builtin-gt5-text',  field: 'SPRE,SKEY,NAME,DESCRIPTION,DESC', pattern: 'GT5',       match: 'contains',   kind: 'GUIDE',    label: 'Text contains GT5 -> GUIDE' },
   { id: 'builtin-gt-mds',          field: 'MDSSUPPTYPE',                     pattern: 'GT',        match: 'startsWith', kind: 'GUIDE',    label: 'GT* -> GUIDE' },
   { id: 'builtin-bt',              field: 'MDSSUPPTYPE',                     pattern: 'BT',        match: 'startsWith', kind: 'REST',     label: 'BT* -> REST' },
   { id: 'builtin-an',              field: 'MDSSUPPTYPE',                     pattern: 'AN',        match: 'startsWith', kind: 'ANCHOR',   label: 'AN* -> ANCHOR' },
   { id: 'builtin-pipe-rest',       field: 'MDSSUPPTYPE',                     pattern: 'PIPE-REST', match: 'equals',     kind: 'REST',     label: 'PIPE-REST -> REST' },
+  // Free-text GT5 is weaker than every support-code row above (review 12 Nov):
+  { id: 'builtin-gt5-text',  field: 'SPRE,SKEY,NAME,DESCRIPTION,DESC', pattern: 'GT5',       match: 'contains',   kind: 'GUIDE',    label: 'Text contains GT5 -> GUIDE' },
   // AVEVA MDS/SPRECON piping-spec codes (SPRE field) — covers GT01/GT02=GUIDE, ST06=LINESTOP, AT0x/PIPE-REST=REST
   { id: 'builtin-spre-guide',      field: 'SPRE',                            pattern: 'GT01,GT02,GT03,GT04', match: 'contains', kind: 'GUIDE',    label: 'SPRE GT01/GT02/GT03/GT04 -> GUIDE' },
   { id: 'builtin-spre-linestop',   field: 'SPRE',                            pattern: 'ST06,ST07,ST08',      match: 'contains', kind: 'LINESTOP', label: 'SPRE ST06/ST07/ST08 -> LINESTOP' },
