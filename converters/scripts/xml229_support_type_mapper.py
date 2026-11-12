@@ -311,24 +311,24 @@ TABLE_DEFAULT_RULES = json.loads(r'''[
   "field": "CMPSUPTYPE",
   "pattern": "GT5",
   "match": "startsWith",
-  "kind": "REST",
-  "label": "CMPSUPTYPE GT5* -> REST"
+  "kind": "GUIDE",
+  "label": "CMPSUPTYPE GT5* -> GUIDE"
  },
  {
   "id": "builtin-gt5-mds",
   "field": "MDSSUPPTYPE",
   "pattern": "GT5",
   "match": "startsWith",
-  "kind": "REST",
-  "label": "MDSSUPPTYPE GT5* -> REST"
+  "kind": "GUIDE",
+  "label": "MDSSUPPTYPE GT5* -> GUIDE"
  },
  {
   "id": "builtin-gt5-text",
   "field": "SPRE,SKEY,NAME,DESCRIPTION,DESC",
   "pattern": "GT5",
   "match": "contains",
-  "kind": "REST",
-  "label": "Text contains GT5 -> REST"
+  "kind": "GUIDE",
+  "label": "Text contains GT5 -> GUIDE"
  },
  {
   "id": "builtin-gt-mds",

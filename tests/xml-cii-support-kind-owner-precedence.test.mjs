@@ -40,7 +40,7 @@ test('without NODETYPE the Step 7 table decides; generated REST is weakest', () 
   for (const [copy, rule] of Object.entries(COPIES)) {
     const table = (attrs) => rule.governedSupportKind(attrs, {});
     assert.deepEqual(table({ MDSSUPPTYPE: 'GT1', SUPPORT_KIND: 'REST' }), { kind: 'GUIDE', source: 'step7-support-table' }, copy);
-    assert.equal(table({ MDSSUPPTYPE: 'GT571', SUPPORT_KIND: 'REST' }).kind, 'REST', copy); // table row GT5* -> REST
+    assert.equal(table({ MDSSUPPTYPE: 'GT571', SUPPORT_KIND: 'REST' }).kind, 'GUIDE', copy); // Owner 12 Nov: GT5* -> GUIDE beats the generated REST label
     // MDSDTXR stands in as the description and the table's stop rule wins.
     assert.equal(table({ MDSSUPPTYPE: 'GT575', SUPPORT_KIND: 'REST', MDSDTXR: 'LINE STOP ON BARE PIPE' }).kind, 'LINESTOP', copy);
     assert.equal(table({ SUPPORT_KIND: 'REST' }).kind, 'REST', copy);

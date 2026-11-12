@@ -18,6 +18,7 @@ export const DEFAULT_KIND_MAP = {
 // Ordered by precedence. CA codes are checked first, then CMPSUPTYPE
 // support-intent rules, then MDSSUPPTYPE subtype rules. This matters for
 // real RVM data where PG-* guide supports also carry MDSSUPPTYPE=GT5xx.
+// Owner rule (12 Nov): GT5* codes are GUIDE.
 export const DEFAULT_RULES = [
   // Custom text patterns for specific support mapping (Higher precedence)
   { id: 'builtin-user-rest',       field: 'SPRE,SKEY,NAME,DESCRIPTION,DESC,CMPSUPTYPE', pattern: 'REST,SHOE,BP,BEARING PLATE,WP,WEAR PAD,ANCI', match: 'contains', kind: 'REST', label: 'REST/SHOE/BP/WP/ANCI -> REST' },
@@ -32,9 +33,9 @@ export const DEFAULT_RULES = [
   { id: 'builtin-bp',        field: 'CMPSUPTYPE',                      pattern: 'BP-',       match: 'startsWith', kind: 'REST',     label: 'BP-* -> REST' },
   { id: 'builtin-g',         field: 'CMPSUPTYPE',                      pattern: 'G-',        match: 'startsWith', kind: 'GUIDE',    label: 'G-* -> GUIDE' },
   { id: 'builtin-rest',      field: 'CMPSUPTYPE',                      pattern: 'REST',      match: 'equals',     kind: 'REST',     label: 'REST -> REST' },
-  { id: 'builtin-gt5-cmp',   field: 'CMPSUPTYPE',                      pattern: 'GT5',       match: 'startsWith', kind: 'REST',     label: 'CMPSUPTYPE GT5* -> REST' },
-  { id: 'builtin-gt5-mds',   field: 'MDSSUPPTYPE',                     pattern: 'GT5',       match: 'startsWith', kind: 'REST',     label: 'MDSSUPPTYPE GT5* -> REST' },
-  { id: 'builtin-gt5-text',  field: 'SPRE,SKEY,NAME,DESCRIPTION,DESC', pattern: 'GT5',       match: 'contains',   kind: 'REST',     label: 'Text contains GT5 -> REST' },
+  { id: 'builtin-gt5-cmp',   field: 'CMPSUPTYPE',                      pattern: 'GT5',       match: 'startsWith', kind: 'GUIDE',    label: 'CMPSUPTYPE GT5* -> GUIDE' },
+  { id: 'builtin-gt5-mds',   field: 'MDSSUPPTYPE',                     pattern: 'GT5',       match: 'startsWith', kind: 'GUIDE',    label: 'MDSSUPPTYPE GT5* -> GUIDE' },
+  { id: 'builtin-gt5-text',  field: 'SPRE,SKEY,NAME,DESCRIPTION,DESC', pattern: 'GT5',       match: 'contains',   kind: 'GUIDE',    label: 'Text contains GT5 -> GUIDE' },
   { id: 'builtin-gt-mds',          field: 'MDSSUPPTYPE',                     pattern: 'GT',        match: 'startsWith', kind: 'GUIDE',    label: 'GT* -> GUIDE' },
   { id: 'builtin-bt',              field: 'MDSSUPPTYPE',                     pattern: 'BT',        match: 'startsWith', kind: 'REST',     label: 'BT* -> REST' },
   { id: 'builtin-an',              field: 'MDSSUPPTYPE',                     pattern: 'AN',        match: 'startsWith', kind: 'ANCHOR',   label: 'AN* -> ANCHOR' },
