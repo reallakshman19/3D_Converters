@@ -12,7 +12,7 @@ import { createHash } from 'node:crypto';
 const KIT = dirname(fileURLToPath(import.meta.url));
 const PROTOS = resolve(KIT, '..');
 const SHARED = resolve(PROTOS, '..', 'shared', 'topofix-formats');
-export const KIT_RUNTIME = ['core.mjs', 'node.mjs', 'cii14.mjs'];
+export const KIT_RUNTIME = ['core.mjs', 'node.mjs', 'cii14.mjs', 'xmlspan.mjs'];
 
 const [id, title, ...rest] = process.argv.slice(2);
 const pi = rest.indexOf('--prefix');

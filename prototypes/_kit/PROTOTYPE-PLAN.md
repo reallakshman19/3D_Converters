@@ -112,7 +112,15 @@ Owner demo: the exact clicks or command lines the Owner runs, and what they shou
 - You get at most **2 review rounds**. If a reviewer fails round 2, stop.
 - If the card cannot be built without weakening a check, stop and report it. Do not weaken the check.
 
-### 1.10 Plain words
+### 1.10 Changing CII or XML bytes (all edit cards)
+- Never parse a file and write it back out. Find the value's byte span with the kit (`kit/cii14.mjs` for CII v14, `kit/xmlspan.mjs` for PSI116 and InputXML), and replace only those bytes.
+- Address an edit by structure (element, rigid pointer, or branchOrdinal + nodeOrdinal), and check the ref's names and the exact old token before resolving it to bytes. A stale file or a different old token is refused.
+- Write the new value in the same form as the old token: the same 13-character CII field and number style, or escaped XML text with the surrounding whitespace kept.
+- After every edit, re-read and diff: `fieldDiff` (CII) or `xmlDiff` (XML) must list exactly the planned values. Anything else that changed is a refusal.
+- Value edits never add or remove records. Structure changes are a separate operation with its own recipe.
+- In XML, edit the value where it is defined, not where it is displayed. Refuse an inherited value.
+
+### 1.11 Plain words
 Write README and refusal messages so a piping engineer can read them: short sentences and real terms (node, element, rigid, weight, restraint). No internal jargon.
 
 ---
@@ -188,6 +196,8 @@ node shared/topofix-formats/validate.mjs <file>      # prints OK, or one "Rn  me
 - Every card starts with `node prototypes/_kit/new-card.mjs <pNN-name> "<title>" --prefix <CODE>`. That gives the Part 1.2 layout, the kit helpers (`refuse`, `attempt`, `readBenchmark`, `timeMedian`, `writeResult`) and `BENCHMARKS.json`.
 - Before each push the coder runs `node ../_kit/card-check.mjs .`, and adds `--final` before asking for review. The runner and reviewer run the same command.
 - It is copied into each repo together with K1, so the same Owner word covers both.
+
+- `kit/xmlspan.mjs`: a byte-offset scanner for PSI116 and InputXML, with `psi116Index`, `locatePsi116`, `inputXmlIndex`, `replaceSpans` and the `xmlDiff` re-check. 20 tests; 9 public XML files match Python ElementTree exactly.
 
 ### K2. Benchmark list (pinned; every card points here)
 Sizes are in bytes. The counts were read from the files on 12 Nov 2026. Use the sha256 to check each file before using it.
@@ -576,7 +586,7 @@ The output is the same Map file, with `source.kind: xml` and `target.kind: cii`.
 **Build:**
 1. Two kinds of XML input:
    - **InputXML** (the RichInputXML F05 profile; file X-F05, made from the same public S1 original as X-S1). Read it with the existing ciifr-map XML reader, copied into `vendor/`.
-   - **PSI116 is deferred.** Every public PSI116 benchmark (C-R1X, C-R2X, C-TRX, C-GL, C-BM2) has only a v11 CII or none. Start this part when the Owner pins a v14 CII of C-R1X, re-saved from CAESAR II 14.
+   - **PSI116** (C-R1X, C-R2X, C-TRX, C-GL, C-BM2, C-PSI). Read it with `kit/xmlspan.mjs` `psi116Index`, which uses step-10 numbering and matches Python ElementTree on all six files. Do not write another reader. **The CII side is deferred:** every public PSI116 benchmark has only a v11 CII or none. The XML input is the same for v11 and v14; when a v11 CII is the only reference, 3D_Converters converts v11↔v14 (Owner, 12 Nov). Start the CII side when a v14 CII of C-R1X is pinned.
 2. Same-run mode: element *k* of the InputXML pairs with element *k* of the CII when FROM/TO and positions agree within 0.01 mm. Any disagreement stops the mode with `MATCH_SAME_RUN_BROKEN`, naming the element; then the user switches to geometry mode.
 3. Geometry mode: for PSI116, pair XML nodes with CII nodes by position (the P1.1 fit), with the rule `same-position` or `nearest-within-tolerance`.
 4. The PSI116 converter renumbers nodes, so node numbers are evidence only, never the rule.
