@@ -4,6 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { resolveKindPure, DEFAULT_RULES } from '../support/SupportKindResolver.js';
 
 const CASES = [
@@ -17,6 +18,9 @@ const CASES = [
   [{ NAME: '/SL-GT5-1', MDSSUPPTYPE: 'AN1' }, 'ANCHOR'],
   [{ SPRE: '/MDS/GT575-80-PMP', MDSSUPPTYPE: 'PIPE-REST' }, 'REST'],
   [{ NAME: '/SL-GT5-2', MDSSUPPTYPE: 'BT2' }, 'REST'],
+  // Codes beat free text in descriptions and SKEY too.
+  [{ DESC: 'GT500 support', MDSSUPPTYPE: 'AN1' }, 'ANCHOR'],
+  [{ SKEY: 'GT5X', MDSSUPPTYPE: 'BT1' }, 'REST'],
 ];
 
 test('shared resolver (RVM viewer, PCF, interchange): GT5 is GUIDE, text GT5 is weakest', () => {
@@ -25,7 +29,8 @@ test('shared resolver (RVM viewer, PCF, interchange): GT5 is GUIDE, text GT5 is 
 
 test('the Python default table is the same rows in the same order', () => {
   const py = execFileSync('python', ['-c',
-    'import sys,json;sys.path.insert(0,"converters/scripts");import xml229_support_type_mapper as m;print(json.dumps(m.TABLE_DEFAULT_RULES))'],
+    'import sys,json;sys.path.insert(0,sys.argv[1]);import xml229_support_type_mapper as m;print(json.dumps(m.TABLE_DEFAULT_RULES))',
+    fileURLToPath(new URL('../converters/scripts', import.meta.url))],
   { encoding: 'utf8' });
   const keep = (r) => ({ id: r.id, field: r.field, pattern: r.pattern, match: r.match, kind: r.kind, label: r.label });
   assert.deepEqual(JSON.parse(py).map(keep), DEFAULT_RULES.map(keep));
