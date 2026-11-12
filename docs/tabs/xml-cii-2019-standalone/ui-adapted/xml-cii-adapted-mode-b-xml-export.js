@@ -1,7 +1,7 @@
 import { combineXmlWithNodeOffsets } from '../../../converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261001-weight-output-2';
 import { createElement } from './xml-cii-adapted-dom.js';
 import { modeAExecutionRows, modeARawState } from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-2';
-import { xmlCiiProcessingMode, selectXmlCiiProcessingMode, loadXmlCiiSingleSource } from './xml-cii-adapted-processing-mode.js?v=20261001-single-weight-owners-1';
+import { xmlCiiProcessingMode, selectXmlCiiProcessingMode, loadXmlCiiSingleSource } from './xml-cii-adapted-processing-mode.js?v=20261112-modeb-isolation-1';
 
 function download(value, filename, type) {
   const url = URL.createObjectURL(new Blob([value], { type }));
@@ -72,7 +72,7 @@ function renderCombineControls(panel, stateRef, render) {
   use.addEventListener('click', () => {
     if (!result) return;
     const file = new File([result.xmlText], 'Mode-B-combined.xml', { type: 'application/xml' });
-    loadXmlCiiSingleSource(stateRef, file, result.xmlText, render, 'xml');
+    loadXmlCiiSingleSource(stateRef, file, result.xmlText, render, 'xml', { modeBManifest: result.manifest });
   });
 }
 

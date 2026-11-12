@@ -110,6 +110,8 @@ class XmlBranch:
     temperatures: tuple[float, ...]
     pressures: tuple[float, ...]
     nodes: list[XmlNode]
+    # Mode B source id ("" when the run is not Mode B); see MODE_B_SOURCES.
+    mode_b_source: str = ""
 
 
 @dataclass(frozen=True)
@@ -610,6 +612,7 @@ def _parse_xml_document(path: Path) -> XmlDocument:
                     temperatures=branch_temperatures,
                     pressures=branch_pressures,
                     nodes=parsed_nodes,
+                    mode_b_source=_mode_b_branch_source(branch_element, namespace, {}),
                 )
             )
 
@@ -633,6 +636,73 @@ def _parse_xml_document(path: Path) -> XmlDocument:
 SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM: Final[float] = 6.0
 DROPPED_SHORT_ELEMENT_NODES: list[str] = []
 COINCIDENT_ORPHAN_NODE_TOLERANCE_MM: Final[float] = 6.0
+# Mode B (one XML combined from several sources with node offsets): the
+# node-number range each source owns, set from the support config "modeB"
+# block (built from the node-offset manifest). Empty means not Mode B.
+# Independent sources must never be joined to each other, even where their
+# nodes are coincident (Owner, 12 Nov: RCA-03).
+MODE_B_SOURCES: list[dict[str, Any]] = []
+MODE_B_UNRESOLVED_SOURCE: Final[str] = "\x00unresolved"
+COINCIDENT_ISLAND_JOINS_BLOCKED: list[str] = []
+
+
+def configure_mode_b_sources(mode_b: Any) -> None:
+    """Set the Mode B source ranges; a malformed block refuses the run."""
+    MODE_B_SOURCES.clear()
+    if mode_b in (None, {}, []):
+        return
+    sources = mode_b.get("sources") if isinstance(mode_b, dict) else None
+    if not isinstance(sources, list) or not sources:
+        raise ValueError("MODE_B_CONFIG_INVALID: modeB needs a non-empty 'sources' list.")
+    ranges: list[dict[str, Any]] = []
+    for index, source in enumerate(sources):
+        if not isinstance(source, dict):
+            raise ValueError(f"MODE_B_CONFIG_INVALID: modeB source {index} is not an object.")
+        source_id = str(source.get("sourceId") or source.get("fileName") or "").strip()
+        try:
+            low, high = int(source["minNode"]), int(source["maxNode"])
+        except (KeyError, TypeError, ValueError):
+            raise ValueError(f"MODE_B_CONFIG_INVALID: modeB source {index} needs integer minNode/maxNode.") from None
+        if not source_id or low <= 0 or high < low:
+            raise ValueError(f"MODE_B_CONFIG_INVALID: modeB source {index} has no id or a bad node range.")
+        ranges.append({"sourceId": source_id, "minNode": low, "maxNode": high})
+    ordered = sorted(ranges, key=lambda entry: entry["minNode"])
+    for left, right in zip(ordered, ordered[1:]):
+        if right["minNode"] <= left["maxNode"]:
+            raise ValueError("MODE_B_CONFIG_INVALID: modeB node ranges overlap.")
+    if len({entry["sourceId"] for entry in ranges}) != len(ranges):
+        raise ValueError("MODE_B_CONFIG_INVALID: modeB source ids repeat.")
+    MODE_B_SOURCES.extend(ranges)
+
+
+def _mode_b_source_of_number(number: int) -> str:
+    for source in MODE_B_SOURCES:
+        if source["minNode"] <= number <= source["maxNode"]:
+            return source["sourceId"]
+    return MODE_B_UNRESOLVED_SOURCE
+
+
+def _mode_b_branch_source(branch_element: ET.Element, namespace: str,
+                          source_numbers: dict[int, int]) -> str:
+    """The one Mode B source owning every positive node of this branch.
+
+    Read from the XML node numbers as written (before any renumbering), so a
+    generated number cannot move a branch to another source. A branch whose
+    nodes fall in no range, or in two ranges, is unresolved and never joined.
+    """
+    if not MODE_B_SOURCES:
+        return ""
+    owners: set[str] = set()
+    for node_element in branch_element.findall(_q(namespace, "Node")):
+        text = _child_text(node_element, namespace, "NodeNumber")
+        try:
+            number = int(str(text).strip())
+        except (TypeError, ValueError):
+            continue
+        number = source_numbers.get(id(node_element), number)
+        if number > 0:
+            owners.add(_mode_b_source_of_number(number))
+    return owners.pop() if len(owners) == 1 else MODE_B_UNRESOLVED_SOURCE
 MERGED_COINCIDENT_ORPHAN_NODES: list[str] = []
 
 
@@ -653,6 +723,8 @@ def _merge_coincident_orphan_nodes(
     """
     # One list per parse: the browser keeps this module loaded across runs.
     MERGED_COINCIDENT_ORPHAN_NODES.clear()
+    COINCIDENT_ISLAND_JOINS_BLOCKED.clear()
+    blocked_pairs: set[tuple[int, int]] = set()
     if tolerance_mm <= 0:
         return branches
     cell = float(tolerance_mm)
@@ -666,10 +738,14 @@ def _merge_coincident_orphan_nodes(
             return number
 
         positions: dict[int, tuple[float, float, float]] = {}
+        # Mode B: a node number seen in branches of two sources is unresolved.
+        source_of: dict[int, str] = {}
         for branch in branches:
             for node in branch.nodes:
                 find(node.node_number)
                 positions.setdefault(node.node_number, node.position)
+                if source_of.setdefault(node.node_number, branch.mode_b_source) != branch.mode_b_source:
+                    source_of[node.node_number] = MODE_B_UNRESOLVED_SOURCE
             for a, b in zip(branch.nodes, branch.nodes[1:]):
                 root_a, root_b = find(a.node_number), find(b.node_number)
                 if root_a != root_b:
@@ -682,6 +758,17 @@ def _merge_coincident_orphan_nodes(
         if len(sizes) < 2:
             return branches
         main = max(sizes, key=lambda root: sizes[root])
+        # The largest island of each source is that source's main model, so
+        # each Mode B source joins exactly as it would on its own. Without
+        # Mode B every node has source "" and this is just {main}. Islands
+        # other than the overall main are still searched, so a cross-source
+        # join the single-model rule would have made is reported as blocked.
+        largest: dict[str, int] = {}
+        for root, size in sizes.items():
+            key = source_of[root]
+            if key not in largest or size > sizes[largest[key]]:
+                largest[key] = root
+        mains = set(largest.values())
         grid: dict[tuple[int, int, int], list[int]] = {}
         for number, position in positions.items():
             key = tuple(math.floor(position[i] / cell) for i in range(3))
@@ -691,6 +778,7 @@ def _merge_coincident_orphan_nodes(
             own = find(number)
             if own == main:
                 continue
+            searching = own not in mains
             base_key = tuple(math.floor(position[i] / cell) for i in range(3))
             hits = set()
             for dx in (-1, 0, 1):
@@ -700,7 +788,17 @@ def _merge_coincident_orphan_nodes(
                             q = positions[other]
                             if find(other) != own and all(
                                     abs(position[i] - q[i]) <= tolerance_mm for i in range(3)):
-                                hits.add(other)
+                                if (source_of[other] == source_of[number]
+                                        and source_of[number] != MODE_B_UNRESOLVED_SOURCE):
+                                    if searching:
+                                        hits.add(other)
+                                elif (number, other) not in blocked_pairs:
+                                    blocked_pairs.add((number, other))
+                                    COINCIDENT_ISLAND_JOINS_BLOCKED.append(
+                                        f"COINCIDENT_ISLAND_JOIN_BLOCKED_CROSS_SOURCE NodeNumber {number} "
+                                        f"(source {_mode_b_label(source_of[number])}) is within "
+                                        f"+-{tolerance_mm}mm of NodeNumber {other} "
+                                        f"(source {_mode_b_label(source_of[other])}); not joined")
             if len(hits) == 1:
                 target = hits.pop()
                 gap = max(abs(position[i] - positions[target][i]) for i in range(3))
@@ -727,6 +825,10 @@ def _merge_coincident_orphan_nodes(
             f"{gap:.3f}mm (tolerance +-{tolerance_mm}mm)"
         )
     return branches
+
+
+def _mode_b_label(source: str) -> str:
+    return "unresolved" if source == MODE_B_UNRESOLVED_SOURCE else source
 
 
 def _merge_restraint_specs(
@@ -1915,6 +2017,8 @@ def main() -> None:
         print(f"Joined {len(MERGED_COINCIDENT_ORPHAN_NODES)} unconnected island node(s):")
         for entry in MERGED_COINCIDENT_ORPHAN_NODES:
             print(f"  - {entry}")
+    for entry in COINCIDENT_ISLAND_JOINS_BLOCKED:
+        print(entry)
 
 
 if __name__ == "__main__":

@@ -72,6 +72,23 @@ export function combineXmlWithNodeOffsets(sources, { offsetStep = 100000 } = {})
       sourceCount: records.length, sourceOrder: records, automaticCrossSourceJoins: 0 } };
 }
 
+// The support-config block the converter reads to keep Mode B sources apart:
+// each source owns the output node numbers it was given, and the island join
+// never connects two sources (RCA-03). Ids are made unique by file position.
+export function modeBSupportConfigBlock(manifest) {
+  if (manifest?.schema !== 'xml-node-offset-combine/v1' || !Array.isArray(manifest.sourceOrder)) {
+    throw new Error('MODE_B_MANIFEST_REQUIRED: a node-offset manifest is required.');
+  }
+  const sources = manifest.sourceOrder.map((row, index) => {
+    const numbers = (row.numberMap || []).map((entry) => Number(entry.outputNumber));
+    if (!numbers.length) return null;
+    if (!numbers.every(Number.isSafeInteger)) throw new Error(`${row.fileName}: invalid node map.`);
+    return { sourceId: `${index + 1}:${row.sourceId || row.fileName}`, fileName: row.fileName,
+      offset: row.offset, minNode: Math.min(...numbers), maxNode: Math.max(...numbers) };
+  }).filter(Boolean);
+  return { schema: 'xml-cii-mode-b-sources/v1', offsetStep: manifest.offsetStep, sources };
+}
+
 function requireCompatibleHeaders(parsed) {
   const header = JSON.stringify(parsed[0].header);
   for (const entry of parsed) {
