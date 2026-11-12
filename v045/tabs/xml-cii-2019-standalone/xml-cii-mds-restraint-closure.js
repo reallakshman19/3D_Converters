@@ -3,6 +3,7 @@ import {
   restraintEntriesFromSupportKind,
 } from '../../converters/xml-cii2019-core/support-mapping.js';
 import { migrateSupportMappingConfig } from '../../converters/xml-cii2019-core/support-mapping-config.js';
+import { governedSupportKind, SUPPORT_KIND_EVIDENCE_FIELDS } from '../../converters/xml-cii2019-core/support-kind-precedence.js';
 import { buildStandaloneDtxrResolutionLedger } from './xml-cii-trace-resolution-ledger.js';
 import { decorateJsonTraceLedger } from './xml-cii-json-trace-fields.js';
 
@@ -52,9 +53,12 @@ function memberAttributes(member) {
   return safeObject(member?.raw?.attributes || member?.attributes || member?.capturedFields);
 }
 
-function supportKindFromMember(member) {
+function supportKindFromMember(member, config = {}) {
   const captured = safeObject(member?.capturedFields);
   const attrs = memberAttributes(member);
+  // Owner rule (RCA-04): NODETYPE first, then the Step 7 support table.
+  const decided = governedSupportKind({ ...captured, ...attrs }, config);
+  if (decided.kind) return decided.kind;
   const code = text(captured.MDSSUPPTYPE || attrs.MDSSUPPTYPE).toUpperCase();
   if (code.startsWith('GT')) return 'GUIDE';
   if (code.startsWith('ST')) return 'LINESTOP';
@@ -72,12 +76,15 @@ function supportKindFromMember(member) {
   return '';
 }
 
-function evidenceByKind(record) {
+function evidenceByKind(record, config = {}) {
   const result = new Map();
   for (const member of Array.isArray(record?.positionMembers) ? record.positionMembers : []) {
-    const kind = supportKindFromMember(member);
+    const kind = supportKindFromMember(member, config);
     if (kind && !result.has(kind)) result.set(kind, memberAttributes(member));
   }
+  // Aggregated derived kinds are generated labels: they only stand in when no
+  // source member resolved a kind, and never add a second kind (RCA-04).
+  if (result.size) return result;
   for (const kind of Array.isArray(record?.derivedSupportTypes) ? record.derivedSupportTypes : []) {
     const normalized = text(kind).toUpperCase().replace(/\s+/g, '');
     if (GOVERNED_KINDS.includes(normalized) && !result.has(normalized)) result.set(normalized, {});
@@ -140,7 +147,7 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
 
   const rawLedger = buildStandaloneDtxrResolutionLedger(source, stagedJsonText, config);
   const traceConfig = {
-    captureFields: ['DTXR', 'SPRE', 'SPREF', 'MDSSUPPTYPE', 'NAME', 'CMPSUPGAP'],
+    captureFields: [...new Set(['DTXR', 'SPRE', 'SPREF', 'MDSSUPPTYPE', 'NAME', 'CMPSUPGAP', ...SUPPORT_KIND_EVIDENCE_FIELDS])],
   };
   const ledger = decorateJsonTraceLedger(rawLedger, traceConfig);
   const byIndex = new Map((ledger.records || []).map((record) => [Number(record.xmlIndex), record]));
@@ -157,7 +164,7 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
       if (!CARRIER_TYPES.has(componentType)) continue;
       const record = byIndex.get(xmlIndex);
       if (!record || !String(record.status || '').startsWith('RESOLVED_')) continue;
-      const evidence = evidenceByKind(record);
+      const evidence = evidenceByKind(record, config);
       if (!evidence.size) continue;
 
       const present = existingTypes(node);

@@ -7,9 +7,26 @@ export const DEFAULT_JSON_TRACE_CAPTURE_FIELDS = Object.freeze([
   { name: 'MDSSUPPTYPE', enabled: true },
   { name: 'NAME', enabled: true },
   { name: 'CMPSUPGAP', enabled: true },
+  { name: 'DESC', enabled: true },
+  { name: 'DESCRIPTION', enabled: true },
+  { name: 'MDSDTXR', enabled: true },
+  { name: 'CMPSUPTYPE', enabled: true },
+  { name: 'NODETYPE', enabled: true },
+  { name: 'NODEGAP', enabled: true },
+  { name: 'SUPPORT_KIND', enabled: true },
+  { name: 'SUPPORT_TYPE', enabled: true },
+  { name: 'SUPPORT_MAPPER_KIND', enabled: true },
 ]);
 
-const PRIMARY_FIELD_ORDER = Object.freeze(['DTXR', 'SPRE', 'SPREF', 'DTXR_PS', 'DTXR_POS']);
+const PRIMARY_FIELD_ORDER = Object.freeze(['DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'SPRE', 'SPREF', 'DTXR_PS', 'DTXR_POS']);
+
+// Bounded source-only evidence survives stripRawMember independently of user
+// display-field selections (PR 408). Never feed derived labels back into it.
+const SUPPORT_EVIDENCE_FIELDS = Object.freeze([
+  'DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'NAME', 'SPRE', 'SKEY', 'CMPSUPTYPE',
+  'MDSSUPPTYPE', 'SUPPORT_KIND', 'SUPPORT_TYPE', 'SUPPORT_MAPPER_KIND',
+  'NODETYPE', 'NODEGAP', 'CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS',
+]);
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value).trim();
@@ -91,6 +108,7 @@ export function decorateJsonTraceMember(member = {}, config = {}) {
   return {
     ...member,
     capturedFields: captureConfiguredJsonTraceFields(member.raw || member, config),
+    supportEvidence: captureConfiguredJsonTraceFields(member.raw || member, { captureFields: SUPPORT_EVIDENCE_FIELDS }),
   };
 }
 

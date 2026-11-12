@@ -3,7 +3,7 @@
 This deliberately does not copy restraint values out of the Worker snapshot.
 The caller retains the whole-XML comparison after replaying this bounded stage.
 """
-from xml229_support_type_mapper import (mapped_support_kind, configured_support_rule,
+from xml229_support_type_mapper import (owner_rule_kind, node_type_user_row_conflict, mapped_support_kind, configured_support_rule,
                                          configured_mapper_semantic_conflict)
 from decimal import Decimal, InvalidOperation
 import hashlib
@@ -70,60 +70,73 @@ def kinds(entries, require, config=None):
     out = {}
     for e in entries:
         a = e['attrs']
-        # The historical qualified mapper lets explicit engineering meaning
-        # outrank abbreviated GT/ST. Do not copy its legacy DOF/axis defaults.
-        # No DTXR/DESC text: the MDS description (MDSDTXR) is the explicit
-        # engineering meaning (e.g. LINE STOP); a staged SUPPORT_KIND label
-        # must not override it. Mirrors xml-cii-mds-restraint-closure.js.
-        # e['desc'] is a derived trace label (often the SPRE path), so it
-        # never suppresses the MDSDTXR fallback.
-        source = [v for v in (text(a.get(k)) for k in ('DTXR', 'DESC', 'DESCRIPTION')) if v]
-        desc = ' '.join(v for v in (source or [text(a.get('MDSDTXR'))]) + [text(e['desc'])]
-                        if v).upper()
-        semantic = [
-            k for k, pat in (
-                ('LINESTOP', r'\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b'),
-                ('GUIDE', r'\bGUIDE\b'),
-                ('REST', r'\b(?:PIPE[- ]?REST|REST)\b|\bSHOE\b'))
-            if re.search(pat, desc)
-        ]
-        if 'REST' in semantic and 'LINESTOP' in semantic and \
-                re.search(r'\bSHOE\b', desc) and \
-                not re.search(r'\b(?:PIPE[- ]?REST|REST)\b', desc):
-            semantic.remove('REST')
-        if 'REST' in semantic and 'GUIDE' in semantic and \
-                re.search(r'\bSHOE\b', desc) and \
-                not re.search(r'\b(?:PIPE[- ]?REST|REST)\b', desc):
-            semantic.remove('REST')
-        require(len(set(semantic)) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
-        canonical = {
-            text(a.get(k)).upper().replace(' ', '') for k in
-            ('SUPPORT_KIND', 'SUPPORT_MAPPER_KIND', 'SUPPORT_TYPE')
-            if text(a.get(k)).upper().replace(' ', '') in ('REST', 'GUIDE', 'LINESTOP')
-        }
-        require(len(canonical) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
-        custom_kind = configured_support_rule(a, e['desc'], config, require)
-        if custom_kind and semantic:
-            require(custom_kind == semantic[0],
-                    'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
-        if custom_kind:
-            require(custom_kind in ('REST','GUIDE','LINESTOP'),
-                    'NATIVE_PREFINAL_RESTRAINT_KIND_UNSUPPORTED')
-        if semantic or custom_kind:
-            configured_mapper_semantic_conflict(a, e['desc'], config,
-                                                 semantic[0] if semantic else custom_kind, require)
-        mapped_kind, score = ('', 0) if semantic or custom_kind else mapped_support_kind(
-            a, e['desc'], config, require)
-        code = text(a.get('MDSSUPPTYPE')).upper()
-        kind = (semantic[0] if semantic
-                else custom_kind if custom_kind
-                else mapped_kind if score >= .65 and mapped_kind in ('REST','GUIDE','LINESTOP')
-                else next(iter(canonical)) if canonical
-                else mapped_kind if mapped_kind in ('REST','GUIDE','LINESTOP')
-                else 'GUIDE' if code.startswith('GT') else 'LINESTOP' if code.startswith('ST')
-                else 'REST' if code == 'PIPE-REST' or code.startswith('AT') or
-                re.search(r'\b(?:PIPE[- ]?REST|REST|SHOE)\b',
-                          text(a.get('SPRE')).upper()) else '')
+        # Owner rule (12 Nov, RCA-04): the source NODETYPE (after the 8 Config
+        # mutation) wins when present: 14 -> REST, 8 -> GUIDE, 9 -> LINESTOP.
+        node_type_kind = {'+Y': 'REST', 'GUI': 'GUIDE', 'LIM': 'LINESTOP'}.get(
+            node_type_mutation(a, config), '')
+        if node_type_kind:
+            node_type_user_row_conflict(a, config, node_type_kind)
+        table_kind = '' if node_type_kind else owner_rule_kind(a, config)[0]
+        if table_kind:
+            # A Step 7 table answer must still agree with edited Tab 7 keywords.
+            configured_mapper_semantic_conflict(a, e['desc'], config, table_kind, require)
+        if node_type_kind or table_kind:
+            kind = node_type_kind or table_kind
+        else:
+            # The historical qualified mapper lets explicit engineering meaning
+            # outrank abbreviated GT/ST. Do not copy its legacy DOF/axis defaults.
+            # No DTXR/DESC text: the MDS description (MDSDTXR) is the explicit
+            # engineering meaning (e.g. LINE STOP); a staged SUPPORT_KIND label
+            # must not override it. Mirrors xml-cii-mds-restraint-closure.js.
+            # e['desc'] is a derived trace label (often the SPRE path), so it
+            # never suppresses the MDSDTXR fallback.
+            source = [v for v in (text(a.get(k)) for k in ('DTXR', 'DESC', 'DESCRIPTION')) if v]
+            desc = ' '.join(v for v in (source or [text(a.get('MDSDTXR'))]) + [text(e['desc'])]
+                            if v).upper()
+            semantic = [
+                k for k, pat in (
+                    ('LINESTOP', r'\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b'),
+                    ('GUIDE', r'\bGUIDE\b'),
+                    ('REST', r'\b(?:PIPE[- ]?REST|REST)\b|\bSHOE\b'))
+                if re.search(pat, desc)
+            ]
+            if 'REST' in semantic and 'LINESTOP' in semantic and \
+                    re.search(r'\bSHOE\b', desc) and \
+                    not re.search(r'\b(?:PIPE[- ]?REST|REST)\b', desc):
+                semantic.remove('REST')
+            if 'REST' in semantic and 'GUIDE' in semantic and \
+                    re.search(r'\bSHOE\b', desc) and \
+                    not re.search(r'\b(?:PIPE[- ]?REST|REST)\b', desc):
+                semantic.remove('REST')
+            require(len(set(semantic)) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+            canonical = {
+                text(a.get(k)).upper().replace(' ', '') for k in
+                ('SUPPORT_KIND', 'SUPPORT_MAPPER_KIND', 'SUPPORT_TYPE')
+                if text(a.get(k)).upper().replace(' ', '') in ('REST', 'GUIDE', 'LINESTOP')
+            }
+            require(len(canonical) <= 1, 'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+            custom_kind = configured_support_rule(a, e['desc'], config, require)
+            if custom_kind and semantic:
+                require(custom_kind == semantic[0],
+                        'NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+            if custom_kind:
+                require(custom_kind in ('REST','GUIDE','LINESTOP'),
+                        'NATIVE_PREFINAL_RESTRAINT_KIND_UNSUPPORTED')
+            if semantic or custom_kind:
+                configured_mapper_semantic_conflict(a, e['desc'], config,
+                                                     semantic[0] if semantic else custom_kind, require)
+            mapped_kind, score = ('', 0) if semantic or custom_kind else mapped_support_kind(
+                a, e['desc'], config, require)
+            code = text(a.get('MDSSUPPTYPE')).upper()
+            kind = (semantic[0] if semantic
+                    else custom_kind if custom_kind
+                    else mapped_kind if score >= .65 and mapped_kind in ('REST','GUIDE','LINESTOP')
+                    else next(iter(canonical)) if canonical
+                    else mapped_kind if mapped_kind in ('REST','GUIDE','LINESTOP')
+                    else 'GUIDE' if code.startswith('GT') else 'LINESTOP' if code.startswith('ST')
+                    else 'REST' if code == 'PIPE-REST' or code.startswith('AT') or
+                    re.search(r'\b(?:PIPE[- ]?REST|REST|SHOE)\b',
+                              text(a.get('SPRE')).upper()) else '')
         if not kind:
             continue
         raw = source_gap(a)
@@ -253,10 +266,16 @@ def node_type_mutation(attrs, config):
                 ('1', '2'), ('2', '3'), ('3', '5'), ('18', '15')]
     if rules.get('enabled') is not False:
         rows = rules.get('rows')
-        selected = [(row.get('from'), row.get('to')) for row in rows
-                    if isinstance(row, dict)] if isinstance(rows, list) else defaults
-        for source, target in selected:
+        selected = [(row.get('from'), row.get('to'), row.get('label')) for row in rows
+                    if isinstance(row, dict)] if isinstance(rows, list) else \
+            [(source, target, '') for source, target in defaults]
+        for source, target, label in selected:
             if text(source) == str(value):
+                # Owner rule: NODETYPE decides the kind, so a saved row whose
+                # label contradicts its target (legacy "LIM 7 -> 8") is refused.
+                expected = {'+Y': '14', 'GUI': '8', 'LIM': '9'}.get(text(label).upper())
+                if expected and text(target) != expected:
+                    raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT')
                 if not re.fullmatch(r'[0-9]+', text(target)) or not 1 <= int(target) <= 62:
                     raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_INVALID')
                 value = int(target)

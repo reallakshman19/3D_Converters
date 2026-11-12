@@ -1,5 +1,5 @@
 {
-  "lastId": 1277,
+  "lastId": 1281,
   "entries": [
     {
       "id": 1,
@@ -8939,6 +8939,34 @@
       "file": "tests/xml-cii-issue-776-deployment-parity.test.mjs",
       "context": "P0 Owner conditional merge: protected #776 deployment cache successor still asserted prior 20261007 tag; guarded update to exact 20261008 P0 standalone entrypoint",
       "backupFile": "13400_issue980_issue776_deployment_parity_expected_release.bak"
+    },
+    {
+      "id": 1278,
+      "timestamp": "2026-11-12 15:04:08",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js",
+      "context": "WIP-restraint-trace-20261112: preserve original source bytes before audit fix",
+      "backupFile": "1278_tabs_xml_cii_2019_standalone_xml_cii_json_trace_fields_js.bak"
+    },
+    {
+      "id": 1279,
+      "timestamp": "2026-11-12 15:04:08",
+      "file": "tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js",
+      "context": "WIP-restraint-trace-20261112: preserve original source bytes before audit fix",
+      "backupFile": "1279_tabs_xml_cii_2019_standalone_xml_cii_support_type_mapper_js.bak"
+    },
+    {
+      "id": 1280,
+      "timestamp": "2026-11-12 15:04:08",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js",
+      "context": "WIP-restraint-trace-20261112: preserve original source bytes before audit fix",
+      "backupFile": "1280_docs_tabs_xml_cii_2019_standalone_xml_cii_json_trace_fields_js.bak"
+    },
+    {
+      "id": 1281,
+      "timestamp": "2026-11-12 15:04:08",
+      "file": "docs/tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js",
+      "context": "WIP-restraint-trace-20261112: preserve original source bytes before audit fix",
+      "backupFile": "1281_docs_tabs_xml_cii_2019_standalone_xml_cii_support_type_mapper_js.bak"
     }
   ]
 }

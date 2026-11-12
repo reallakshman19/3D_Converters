@@ -191,8 +191,10 @@ test('new Tab 7 REST keyword is honored at the same original node', async () => 
   staged[0].children[0].children[0].attributes.DTXR='CRADLE RETAINER STYLE-314';
   staged[0].children[0].children[0].attributes.NODETYPE='17';
   const baseline=await configDriven(staged);
-  assert.equal(restraints(baseline.document,40).find(r=>r.type==='+Y')?.gap,7,
-    'before Tab 7 edit only the ordinary ATTA default-gap REST is available');
+  // Owner rule (12 Nov): NODETYPE 17 (-> 14) makes this member a REST, so its
+  // own 5.5 mm source gap is kept even before the Tab 7 edit.
+  assert.equal(restraints(baseline.document,40).find(r=>r.type==='+Y')?.gap,5.5,
+    'NODETYPE decides REST and keeps the source gap');
   const mapper={rows:[
     {kind:'REST',aliases:['Cradle Retainer'],ciiKind:'REST_STYLE_CII_SUPPORT'},
     {kind:'GUIDE',aliases:['Guide'],ciiKind:'GUIDE_STYLE_CII_SUPPORT'},
