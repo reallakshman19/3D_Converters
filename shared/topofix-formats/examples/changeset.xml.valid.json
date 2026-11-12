@@ -1,0 +1,68 @@
+{
+  "format": "topofix.changeset",
+  "version": 1,
+  "createdAt": "2026-01-06T09:30:00Z",
+  "base": {
+    "kind": "xml",
+    "fileName": "demo-model.xml",
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "mapFile": {
+    "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "changes": [
+    {
+      "changeId": "X1",
+      "target": {
+        "kind": "xml",
+        "branchOrdinal": 0,
+        "branchName": "DEMO-BR-1",
+        "nodeOrdinal": 0,
+        "nodeNumber": "10",
+        "componentRefNo": "CR-001"
+      },
+      "field": "Node/Weight",
+      "unit": "SOURCE_WEIGHT_KG",
+      "oldToken": "12.5",
+      "newValue": "14.2",
+      "evidence": {
+        "source": "map",
+        "pairId": "P1",
+        "detail": "Weight from paired reference node"
+      },
+      "approval": {
+        "approved": true,
+        "by": "demo.engineer",
+        "at": "2026-01-06T11:00:00Z",
+        "ownerApproved": true
+      }
+    },
+    {
+      "changeId": "X2",
+      "target": {
+        "kind": "xml",
+        "branchOrdinal": 0,
+        "branchName": "DEMO-BR-1",
+        "nodeOrdinal": 1,
+        "nodeNumber": "20",
+        "componentRefNo": "CR-002"
+      },
+      "field": "Node/Weight",
+      "unit": "SOURCE_WEIGHT_KG",
+      "oldToken": "3.0",
+      "newValue": "0",
+      "evidence": {
+        "source": "map",
+        "pairId": "P2",
+        "detail": "Owner confirms zero"
+      },
+      "approval": {
+        "approved": true,
+        "by": "demo.engineer",
+        "at": "2026-01-06T11:05:00Z",
+        "zeroConfirmed": true,
+        "ownerApproved": true
+      }
+    }
+  ]
+}

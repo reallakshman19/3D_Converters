@@ -1,0 +1,80 @@
+{
+  "format": "topofix.changeset",
+  "version": 1,
+  "createdAt": "2026-01-06T09:00:00Z",
+  "base": {
+    "kind": "cii",
+    "fileName": "demo-reference.cii",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "changes": [
+    {
+      "changeId": "C1",
+      "target": {
+        "kind": "xml",
+        "branchOrdinal": 0,
+        "branchName": "B",
+        "nodeOrdinal": 0,
+        "nodeNumber": "1",
+        "componentRefNo": "R"
+      },
+      "field": "DIAMETER",
+      "unit": "mm",
+      "oldToken": "219.1",
+      "newValue": "168.3",
+      "span": {
+        "start": 100,
+        "end": 105
+      },
+      "evidence": {
+        "source": "manual",
+        "detail": "Per demo line list"
+      },
+      "approval": {
+        "approved": true,
+        "by": "demo.engineer",
+        "at": "2026-01-06T10:00:00Z"
+      }
+    },
+    {
+      "changeId": "C2",
+      "target": {
+        "kind": "cii-node",
+        "node": "20"
+      },
+      "field": "WEIGHT",
+      "unit": "kg",
+      "oldToken": "12.5",
+      "newValue": 0,
+      "evidence": {
+        "source": "reference-cii",
+        "detail": "Zero weight confirmed by owner"
+      },
+      "approval": {
+        "approved": true,
+        "by": "demo.engineer",
+        "at": "2026-01-06T10:05:00Z",
+        "zeroConfirmed": true
+      }
+    },
+    {
+      "changeId": "C3",
+      "target": {
+        "kind": "cii",
+        "elementIndex": 1,
+        "fromNode": "20",
+        "toNode": "30"
+      },
+      "field": "DIAMETER",
+      "oldToken": "219.1",
+      "newValue": "168.3",
+      "evidence": {
+        "source": "master",
+        "detail": "Master list row 7"
+      },
+      "approval": {
+        "approved": false
+      }
+    }
+  ]
+}

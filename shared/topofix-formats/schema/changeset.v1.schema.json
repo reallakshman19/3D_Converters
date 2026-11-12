@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "topofix.changeset.v1",
+  "title": "TopoFix Change set v1",
+  "description": "Structure only. Cross-item rules R3, R6, R7, R9, R11, R12, R13 (and R8 for approval.by/at) are enforced by validate.mjs.",
+  "type": "object",
+  "required": ["format", "version", "createdAt", "base", "changes"],
+  "additionalProperties": false,
+  "properties": {
+    "format": { "const": "topofix.changeset" },
+    "version": { "const": 1 },
+    "createdAt": { "type": "string", "minLength": 1 },
+    "base": {
+      "type": "object", "required": ["kind", "fileName", "sha256"], "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["cii", "xml"] },
+        "fileName": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "mapFile": {
+      "type": "object", "required": ["sha256"], "additionalProperties": false,
+      "properties": { "sha256": { "$ref": "#/$defs/sha256" } }
+    },
+    "changes": { "type": "array", "items": { "$ref": "#/$defs/change" } }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "ref": {
+      "oneOf": [
+        { "type": "object", "required": ["kind", "elementIndex", "fromNode", "toNode"], "additionalProperties": false,
+          "properties": { "kind": { "const": "cii" }, "elementIndex": { "type": "integer", "minimum": 0 },
+            "fromNode": { "type": "string", "minLength": 1 }, "toNode": { "type": "string", "minLength": 1 } } },
+        { "type": "object", "required": ["kind", "node"], "additionalProperties": false,
+          "properties": { "kind": { "const": "cii-node" }, "node": { "type": "string", "minLength": 1 } } },
+        { "type": "object", "required": ["kind", "branchOrdinal", "branchName", "nodeOrdinal", "nodeNumber", "componentRefNo"], "additionalProperties": false,
+          "properties": { "kind": { "const": "xml" }, "branchOrdinal": { "type": "integer", "minimum": 0 },
+            "branchName": { "type": "string" }, "nodeOrdinal": { "type": "integer", "minimum": 0 },
+            "nodeNumber": { "type": "string" }, "componentRefNo": { "type": "string" } } }
+      ]
+    },
+    "change": {
+      "type": "object", "required": ["changeId", "target", "field", "oldToken", "newValue", "evidence", "approval"], "additionalProperties": false,
+      "properties": {
+        "changeId": { "type": "string", "minLength": 1 },
+        "target": { "$ref": "#/$defs/ref" },
+        "field": { "type": "string", "minLength": 1 },
+        "unit": { "type": "string" },
+        "oldToken": { "type": "string" },
+        "newValue": { "type": ["string", "number"] },
+        "span": {
+          "description": "Hint only: character offsets in the base file. The target ref stays the authority.",
+          "type": "object", "required": ["start", "end"], "additionalProperties": false,
+          "properties": { "start": { "type": "integer", "minimum": 0 }, "end": { "type": "integer", "minimum": 1 } }
+        },
+        "evidence": {
+          "type": "object", "required": ["source", "detail"], "additionalProperties": false,
+          "properties": {
+            "source": { "enum": ["map", "reference-cii", "master", "manual"] },
+            "pairId": { "type": "string", "minLength": 1 },
+            "detail": { "type": "string", "minLength": 1 }
+          },
+          "if": { "properties": { "source": { "const": "map" } } },
+          "then": { "required": ["pairId"] }
+        },
+        "approval": {
+          "type": "object", "required": ["approved"], "additionalProperties": false,
+          "properties": {
+            "approved": { "type": "boolean" },
+            "by": { "type": "string", "minLength": 1 },
+            "at": { "type": "string", "minLength": 1 },
+            "zeroConfirmed": { "type": "boolean" },
+            "ownerApproved": { "type": "boolean" }
+          },
+          "if": { "properties": { "approved": { "const": true } } },
+          "then": { "required": ["by", "at"] }
+        }
+      }
+    }
+  }
+}

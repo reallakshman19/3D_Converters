@@ -1,0 +1,108 @@
+{
+  "format": "topofix.map",
+  "version": 1,
+  "createdAt": "2026-01-05T09:00:00Z",
+  "source": {
+    "kind": "cii",
+    "fileName": "demo-reference.cii",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "target": {
+    "kind": "xml",
+    "fileName": "demo-model.xml",
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "method": "node-number",
+  "pairs": [
+    {
+      "pairId": "P1",
+      "source": {
+        "kind": "cii",
+        "elementIndex": 0,
+        "fromNode": "10",
+        "toNode": "20"
+      },
+      "target": {
+        "kind": "xml",
+        "branchOrdinal": 0,
+        "branchName": "DEMO-BR-1",
+        "nodeOrdinal": 0,
+        "nodeNumber": "10",
+        "componentRefNo": "CR-001"
+      },
+      "status": "approved",
+      "evidence": {
+        "rule": "node-number-match",
+        "detail": "Node 10 matches in both files"
+      },
+      "approvedBy": "demo.engineer",
+      "approvedAt": "2026-01-05T10:00:00Z"
+    },
+    {
+      "pairId": "P1",
+      "source": {
+        "kind": "cii",
+        "elementIndex": 1,
+        "fromNode": "20",
+        "toNode": "30"
+      },
+      "target": {
+        "kind": "xml",
+        "branchOrdinal": 0,
+        "branchName": "DEMO-BR-1",
+        "nodeOrdinal": 1,
+        "nodeNumber": "20",
+        "componentRefNo": "CR-002"
+      },
+      "status": "approved",
+      "evidence": {
+        "rule": "node-number-match",
+        "detail": "Node 20 matches"
+      },
+      "approvedBy": "demo.engineer",
+      "approvedAt": "2026-01-05T10:00:00Z"
+    },
+    {
+      "pairId": "P3",
+      "source": {
+        "kind": "cii-node",
+        "node": "30"
+      },
+      "target": {
+        "kind": "xml",
+        "branchOrdinal": 0,
+        "branchName": "DEMO-BR-1",
+        "nodeOrdinal": 2,
+        "nodeNumber": "30",
+        "componentRefNo": "CR-003"
+      },
+      "status": "candidate",
+      "evidence": {
+        "rule": "geometry-near",
+        "detail": "Within 5 mm, not yet reviewed"
+      }
+    },
+    {
+      "pairId": "P4",
+      "source": {
+        "kind": "cii",
+        "elementIndex": 2,
+        "fromNode": "30",
+        "toNode": "40"
+      },
+      "target": {
+        "kind": "xml",
+        "branchOrdinal": 1,
+        "branchName": "DEMO-BR-2",
+        "nodeOrdinal": 0,
+        "nodeNumber": "40",
+        "componentRefNo": "CR-004"
+      },
+      "status": "rejected",
+      "evidence": {
+        "rule": "node-number-match",
+        "detail": "Different branch, rejected"
+      }
+    }
+  ]
+}
