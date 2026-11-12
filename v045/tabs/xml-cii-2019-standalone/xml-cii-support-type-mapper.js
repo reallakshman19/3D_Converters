@@ -123,7 +123,14 @@ function structuredMemberEvidence(member = {}) {
 // source NODETYPE wins when present; otherwise the Step 7 support table.
 // The alias classification below is only the fallback.
 function ownerRuleResult(fields, mapperRows, supportConfig) {
-  const decided = governedSupportKind(fields, supportConfig);
+  let decided;
+  try { decided = governedSupportKind(fields, supportConfig); } catch (error) {
+    // A refused member (e.g. a contradictory 8 Config row) is shown with its
+    // code on its own row; the Run refuses the same member.
+    return { status: 'refused', supportKind: '', ciiKind: '', ciiPreview: '', confidence: 'NONE', confidenceScore: 0,
+      matchedAlias: '', matchMode: 'refused', candidates: [], suppressedCandidates: [], matches: [],
+      decisionReason: `${error?.code || 'REFUSED'}: ${error?.message || error}` };
+  }
   if (!decided.kind) return null;
   const row = mapperRows.find((entry) => entry.kind === decided.kind) || defaultRow(decided.kind);
   const byNodeType = decided.source === 'NODETYPE';

@@ -1,23 +1,43 @@
 import { mutateRestraintType } from './restraint-type-mutation.js';
-import { resolveXmlCiiSupportDescriptor } from './support-mapping.js';
+import { migrateSupportMappingConfig, supportRulesFromMapping } from './support-mapping-config.js';
+import { resolveKindDescriptor } from '../../support/SupportKindResolver.js';
 
 // Owner rule (12 Nov, RCA-04): which kind a staged support member is.
 // 1. Source NODETYPE wins when present (after the 8 Config type mutation):
 //    14 -> REST (+Y), 8 -> GUIDE (GUI), 9 -> LINESTOP (LIM).
-// 2. Otherwise the Step 7 table ("Use JSON/support mapper for restraints")
-//    decides. Its rules run without the generated SUPPORT_KIND/TYPE labels,
-//    and a generated REST is its weakest evidence.
-// MDSDTXR stands in as the description when DTXR/DESC/DESCRIPTION are blank.
+// 2. Otherwise the Step 7 support table ("Use JSON/support mapper for
+//    restraints"): its enabled rows in priority order, then the resolver's
+//    built-in text pass, over the source evidence fields only. Generated
+//    labels (SUPPORT_KIND / SUPPORT_MAPPER_KIND / SUPPORT_TYPE) never take part
+//    in the table; they are the weakest evidence, used only when nothing else
+//    decides. MDSDTXR stands in as the description when DTXR/DESC/DESCRIPTION
+//    are blank.
+// 3. A description that names two kinds, or one kind the table contradicts,
+//    is not decided here: the caller's fail-closed checks handle it.
+// Python mirror: converters/scripts/xml229_support_type_mapper.py owner_rule_kind().
 const KIND_BY_CAESAR_CODE = Object.freeze({ 14: 'REST', 8: 'GUIDE', 9: 'LINESTOP' });
-const DESCRIPTION_KEYS = Object.freeze(['DTXR', 'DESC', 'DESCRIPTION']);
+const CODE_BY_LABEL = Object.freeze({ '+Y': 14, GUI: 8, LIM: 9 });
 const GOVERNED = Object.freeze(['REST', 'GUIDE', 'LINESTOP']);
+const DESCRIPTION_KEYS = Object.freeze(['DTXR', 'DESC', 'DESCRIPTION']);
+const TABLE_FIELDS = Object.freeze(['DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'SPRE', 'SKEY', 'NAME',
+  'CMPSUPTYPE', 'MDSSUPPTYPE', 'COMPONENTTYPE']);
+const GENERATED_FIELDS = Object.freeze(['SUPPORTKIND', 'SUPPORTMAPPERKIND', 'SUPPORTTYPE']);
 
 const text = (value) => (value === undefined || value === null ? '' : String(value).trim());
+const fieldKey = (key) => text(key).toUpperCase().replace(/[^A-Z0-9]/g, '');
 
-const CODE_BY_LABEL = Object.freeze({ '+Y': 14, GUI: 8, LIM: 9 });
+function fields(attrs = {}) {
+  const out = {};
+  for (const [key, value] of Object.entries(attrs || {})) {
+    if (value !== null && typeof value === 'object') continue;
+    const name = fieldKey(key);
+    if (!(name in out) && text(value)) out[name] = text(value);
+  }
+  return out;
+}
 
 export function nodeTypeSupportKind(attrs = {}, config = {}) {
-  const raw = text(attrs?.NODETYPE);
+  const raw = text(fields(attrs).NODETYPE);
   if (!raw) return '';
   const mutation = config?.inputXmlRestraintTypeMutation || config?.restraintTypeMutation || {};
   // A saved 8 Config row whose label contradicts its target code (e.g. a
@@ -34,9 +54,10 @@ export function nodeTypeSupportKind(attrs = {}, config = {}) {
 }
 
 // Kinds the source description itself names (same patterns as the Run closure).
-function describedKinds(evidence) {
-  const primary = DESCRIPTION_KEYS.map((key) => text(evidence[key])).filter(Boolean);
-  const desc = (primary.length ? primary.join(' ') : text(evidence.MDSDTXR)).toUpperCase();
+export function describedKinds(attrs = {}) {
+  const f = fields(attrs);
+  const primary = DESCRIPTION_KEYS.map((key) => text(f[key])).filter(Boolean);
+  const desc = (primary.length ? primary.join(' ') : text(f.MDSDTXR)).toUpperCase();
   const stop = /\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b/.test(desc);
   const guide = /\bGUIDE\b/.test(desc);
   const rest = /\b(?:PIPE[- ]?REST|REST)\b/.test(desc) || (!stop && !guide && /\bSHOE\b/.test(desc));
@@ -44,21 +65,35 @@ function describedKinds(evidence) {
 }
 
 export function tableSupportKind(attrs = {}, config = {}) {
-  const evidence = { ...(attrs || {}) };
-  if (!DESCRIPTION_KEYS.some((key) => text(evidence[key])) && text(evidence.MDSDTXR)) {
-    evidence.DESCRIPTION = text(evidence.MDSDTXR);
+  const f = fields(attrs);
+  const evidence = {};
+  for (const key of TABLE_FIELDS) if (f[key]) evidence[key] = f[key];
+  if (!DESCRIPTION_KEYS.some((key) => evidence[key]) && evidence.MDSDTXR) evidence.DESCRIPTION = evidence.MDSDTXR;
+  const rules = supportRulesFromMapping(migrateSupportMappingConfig(config || {}));
+  return resolveKindDescriptor(evidence, { userRules: rules, defaultRules: [], kindMap: {}, defaultKind: '' }).primaryKind || '';
+}
+
+export function generatedSupportKind(attrs = {}) {
+  const f = fields(attrs);
+  for (const key of GENERATED_FIELDS) {
+    const kind = text(f[key]).toUpperCase().replace(/\s+/g, '');
+    if (kind) return kind;
   }
-  return resolveXmlCiiSupportDescriptor(evidence, config || {}).primaryKind || '';
+  return '';
 }
 
 export function governedSupportKind(attrs = {}, config = {}, governed = GOVERNED) {
   const byNodeType = nodeTypeSupportKind(attrs, config);
   if (byNodeType && governed.includes(byNodeType)) return { kind: byNodeType, source: 'NODETYPE' };
-  // A description naming two kinds stays a review case (fail closed); the
-  // table's priority order must not pick one silently.
-  if (describedKinds(attrs || {}).length > 1) return { kind: '', source: 'description-conflict' };
+  const described = describedKinds(attrs);
+  if (described.length > 1) return { kind: '', source: 'description-conflict' };
   const byTable = tableSupportKind(attrs, config);
-  if (governed.includes(byTable)) return { kind: byTable, source: 'step7-support-table' };
+  if (byTable) {
+    if (described.length === 1 && byTable !== described[0]) return { kind: '', source: 'description-conflict' };
+    return governed.includes(byTable) ? { kind: byTable, source: 'step7-support-table' } : { kind: '', source: 'step7-not-governed' };
+  }
+  const generated = generatedSupportKind(attrs);
+  if (governed.includes(generated)) return { kind: generated, source: 'generated-label' };
   return { kind: '', source: '' };
 }
 

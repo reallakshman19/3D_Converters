@@ -3,7 +3,7 @@
 This deliberately does not copy restraint values out of the Worker snapshot.
 The caller retains the whole-XML comparison after replaying this bounded stage.
 """
-from xml229_support_type_mapper import (mapped_support_kind, configured_support_rule,
+from xml229_support_type_mapper import (owner_rule_kind, mapped_support_kind, configured_support_rule,
                                          configured_mapper_semantic_conflict)
 from decimal import Decimal, InvalidOperation
 import hashlib
@@ -74,8 +74,9 @@ def kinds(entries, require, config=None):
         # mutation) wins when present: 14 -> REST, 8 -> GUIDE, 9 -> LINESTOP.
         node_type_kind = {'+Y': 'REST', 'GUI': 'GUIDE', 'LIM': 'LINESTOP'}.get(
             node_type_mutation(a, config), '')
-        if node_type_kind:
-            kind = node_type_kind
+        table_kind = '' if node_type_kind else owner_rule_kind(a, config)[0]
+        if node_type_kind or table_kind:
+            kind = node_type_kind or table_kind
         else:
             # The historical qualified mapper lets explicit engineering meaning
             # outrank abbreviated GT/ST. Do not copy its legacy DOF/axis defaults.

@@ -13,6 +13,7 @@ import { runStandaloneSupportTypeMapper as rootMapper } from '../tabs/xml-cii-20
 import { runStandaloneSupportTypeMapper as v045Mapper } from '../v045/tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js';
 import { decorateJsonTraceMember as v045Decorate } from '../v045/tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js';
 import { mutateRestraintType as v045Mutate } from '../v045/converters/xml-cii2019-core/restraint-type-mutation.js';
+import { migrateSupportMappingConfig, supportRulesFromMapping } from '../converters/xml-cii2019-core/support-mapping-config.js';
 
 const COPIES = { root: rootRule, v045: v045Rule };
 
@@ -85,4 +86,56 @@ test('Python native kinds(): NODETYPE wins', () => {
   ].join('\n');
   const output = execFileSync('python', ['-c', script], { encoding: 'utf8' }).trim().split('\n').pop();
   assert.deepEqual(JSON.parse(output), ['GUIDE', 'LINESTOP']);
+});
+
+test('Python mirror equals JS: same table rows and the same kind on 300 random members', () => {
+  const pool = {
+    DTXR: ['', 'PIPE REST', 'GUIDE', 'LINE STOP', 'SHOE', 'GUIDE and LINE STOP', 'WEAR PAD'],
+    MDSDTXR: ['', 'LINE STOP ON BARE PIPE', 'PIPE SHOE', 'GUIDE WITH SHOE'],
+    MDSSUPPTYPE: ['', 'GT1', 'GT571', 'ST572', 'AT01', 'BT2', 'AN3', 'PIPE-REST'],
+    CMPSUPTYPE: ['', 'PG-1', 'LS-2', 'BP-3', 'REST', 'GT500'],
+    SPRE: ['', 'GT01', 'ST06', 'AT05', '/SPEC/X'],
+    SKEY: ['', 'CA150', 'CA100'],
+    NAME: ['', '/PS-1', '/PS-REST-2'],
+    SUPPORT_KIND: ['', 'REST', 'GUIDE', 'LINESTOP', 'ANCHOR'],
+  };
+  let seed = 7;
+  const pick = (list) => { seed = (seed * 1103515245 + 12345) % 2147483648; return list[seed % list.length]; };
+  const cases = Array.from({ length: 300 }, () => Object.fromEntries(Object.entries(pool)
+    .map(([key, values]) => [key, pick(values)]).filter(([, value]) => value)));
+  const custom = { supportMapping: { version: 2, rules: [
+    { id: 'user-st', priority: 5, field: 'MDSSUPPTYPE', match: 'startsWith', pattern: 'ST', kind: 'LINESTOP' },
+    { id: 'builtin-user-guide', enabled: false },
+  ] } };
+  const script = [
+    'import sys, json', 'sys.path.insert(0, "converters/scripts")',
+    'import xml229_support_type_mapper as m',
+    'data = json.load(sys.stdin)',
+    'out = {"rows": [m.table_rules(c) for c in data["configs"]],',
+    '       "kinds": [[m.owner_rule_kind(a, c)[0] for a in data["cases"]] for c in data["configs"]]}',
+    'print(json.dumps(out))',
+  ].join('\n');
+  const configs = [{}, custom];
+  const py = JSON.parse(execFileSync('python', ['-c', script], { input: JSON.stringify({ cases, configs }), encoding: 'utf8' }));
+  configs.forEach((config, index) => {
+    const jsRows = supportRulesFromMapping(migrateSupportMappingConfig(config)).map((r) => [r.field, r.match, r.pattern, r.kind]);
+    assert.deepEqual(py.rows[index].map((r) => [r.field, r.match, r.pattern, r.kind]), jsRows, `rows ${index}`);
+    const jsKinds = cases.map((attrs) => rootRule.governedSupportKind(attrs, config).kind);
+    assert.deepEqual(py.kinds[index], jsKinds, `kinds ${index}`);
+  });
+});
+
+test('review fixes: generated labels never beat a description; a refused member shows its code in Step 7', () => {
+  for (const [copy, rule] of Object.entries(COPIES)) {
+    assert.equal(rule.governedSupportKind({ DTXR: 'GUIDE', SUPPORT_KIND: 'LINESTOP' }, {}).kind, 'GUIDE', copy);
+    assert.equal(rule.governedSupportKind({ MDSSUPPTYPE: 'GT1', SUPPORT_KIND: 'REST' }, {}).kind, 'GUIDE', copy);
+    assert.equal(rule.governedSupportKind({ SUPPORT_KIND: 'GUIDE' }, {}).source, 'generated-label', copy);
+  }
+  const config = { inputXmlRestraintTypeMutation: { enabled: true, rows: [{ label: 'LIM', from: '7', to: '8' }] } };
+  const trace = { resolvedFacts: [{ xmlNodeNumber: '1', positionMembers: [{ supportEvidence: { NODETYPE: '7', NAME: '/PS-1' } }] }] };
+  for (const [copy, mapper] of Object.entries({ root: rootMapper, v045: v045Mapper })) {
+    const row = mapper({ resolverJsonTraceResult: trace, supportConfig: config }).previewRows[0];
+    assert.equal(row.status, 'refused', copy);
+    assert.match(row.decisionReason, /PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT/, copy);
+  }
 });
