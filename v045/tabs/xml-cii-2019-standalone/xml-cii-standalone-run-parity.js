@@ -1,0 +1,325 @@
+// Standalone XML→CII run parity
+// -----------------------------
+// The parent Model Converters workflow enriches the XML in the browser
+// (process data, staged-support restraints with CMPSUPGAP gaps, DTXR
+// annotations, weight master matches, valve/flange split renumbering) BEFORE
+// the Python conversion runs. This module reuses that enrichment authority and
+// now emits deterministic evidence proving that the exact XML sent to Python
+// contains the Preview and Weight Match facts that were selected.
+
+import { enrichStandaloneDtxrAnnotations } from './xml-cii-standalone-dtxr-enrichment.js';
+import { synchronizeXmlCiiNodeBoreWithOutsideDiameter } from '../../converters/xml-cii2019-core/node-bore-od-authority.js';
+import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js';
+import { findExactClassWall, nodeBoreMm } from './ui-adapted/xml-cii-adapted-preview-wall-evidence.js';
+import { xmlCiiClassSizeKey } from '../../converters/xml-cii2019-core/branch-process-resolver.js';
+
+const PARITY_MODULE_URL = new URL(
+  '../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js',
+  import.meta.url,
+);
+
+function text(value) { return value === undefined || value === null ? '' : String(value); }
+
+function parseConfig(raw) {
+  try {
+    const value = JSON.parse(text(raw) || '{}');
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  } catch { return {}; }
+}
+
+function localName(node) { return text(node?.localName || node?.nodeName).replace(/^.*:/, ''); }
+function elementChildren(parent) {
+  return [...(parent?.childNodes || parent?.children || [])]
+    .filter((node) => node?.nodeType === undefined || node.nodeType === 1);
+}
+function childrenByName(parent, name) { return elementChildren(parent).filter((node) => localName(node) === name); }
+function firstChild(parent, name) { return childrenByName(parent, name)[0] || null; }
+function childText(parent, name) { return text(firstChild(parent, name)?.textContent).trim(); }
+
+function ensureChild(document, parent, name) {
+  let element = firstChild(parent, name);
+  if (element) return element;
+  element = parent?.namespaceURI && typeof document.createElementNS === 'function'
+    ? document.createElementNS(parent.namespaceURI, name)
+    : document.createElement(name);
+  parent.appendChild(element);
+  return element;
+}
+
+function setChildText(document, parent, name, value) {
+  const clean = text(value).trim();
+  if (!clean) return false;
+  ensureChild(document, parent, name).textContent = clean;
+  return true;
+}
+
+function numeric(value) {
+  const n = Number(text(value).replace(/[^0-9.+-eE]/g, ''));
+  return Number.isFinite(n) ? n : null;
+}
+
+function recordExpected(entries, {
+  scope,
+  branchName,
+  nodeNumber = '',
+  nodeOrdinal,
+  path,
+  field,
+  value,
+  kind = 'text',
+  source = 'preview',
+}) {
+  const expected = text(value).trim();
+  if (!expected) return;
+  entries.push({
+    scope, branchName, nodeNumber, path, field, expected, kind, source,
+    // Node numbers repeat inside a branch (-1); the source position is exact.
+    ...(Number.isSafeInteger(nodeOrdinal) ? { nodeOrdinal } : {}),
+  });
+}
+
+const WEIGHT_BEARING_TYPES = new Set(['FLAN', 'VALV', 'RIGID', 'INST']);
+
+function mappedNodeWeights(nodeRows, config) {
+  const weights = new Map();
+  for (const nr of nodeRows || []) {
+    if (!WEIGHT_BEARING_TYPES.has(text(nr.componentType).toUpperCase())) continue;
+    const override = Number(config?.overrides?.rigidWeight?.[nr.key]);
+    const auto = nr.weightMatch && !nr.weightMatch.zeroFallback ? Number(nr.weightMatch.weight) : NaN;
+    const weight = Number.isFinite(override) && override > 0 ? override : (Number.isFinite(auto) && auto > 0 ? auto : null);
+    if (weight !== null) weights.set(`${text(nr.branchName)}|${text(nr.nodeNumber)}`, weight);
+  }
+  return weights;
+}
+
+// v0.55 (Owner 11 Nov): a mixed-diameter branch must not give every node the
+// first node's wall. Each node's own size picks: a manual class+size override,
+// else the branch value when the node is the branch's own size, else the
+// piping-class master row for that size. No row for that size: do not write.
+export function nodeWallThicknessForSize(row, node, config) {
+  const nodeBore = nodeBoreMm(node);
+  const branchBore = Number(row?.sizeMm);
+  if (!Number.isFinite(nodeBore) || nodeBore <= 0) return { value: row?.wallThickness, source: 'branch' };
+  const pipingClass = text(row?.pipingClass || row?.pipingClassDerived);
+  const key = xmlCiiClassSizeKey(pipingClass, nodeBore);
+  const overrides = config?.overrides?.wallThickness || {};
+  if (key && numeric(overrides[key]) !== null && numeric(overrides[key]) > 0) {
+    return { value: overrides[key], source: 'class-size-override', key };
+  }
+  if (Number.isFinite(branchBore) && Math.round(branchBore) === Math.round(nodeBore)) {
+    return { value: row?.wallThickness, source: 'branch' };
+  }
+  const classWall = findExactClassWall(config, pipingClass, nodeBore);
+  if (classWall) return { value: String(classWall.wallThicknessMm), source: 'piping-class-master-node-size', key };
+  return { value: null, source: 'no-class-row-for-node-size', key };
+}
+
+async function applyStandaloneProcessParity(xmlText, config, stagedJsonText, diagnostics) {
+  const result = { xmlText, branchRows: [], nodeRows: [], expectedEntries: [], appliedFields: 0 };
+  if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
+    throw new Error('DOMParser/XMLSerializer is unavailable for standalone run parity enrichment.');
+  }
+  const { xmlCiiDryRunPreview } = await import('./ui-adapted/xml-cii-adapted-preview-dryrun.js');
+  const preview = xmlCiiDryRunPreview(xmlText, config, stagedJsonText || '');
+  result.branchRows = Array.isArray(preview?.branchRows) ? preview.branchRows : [];
+  result.nodeRows = Array.isArray(preview?.nodeRows) ? preview.nodeRows : [];
+  if (!result.branchRows.length) return result;
+
+  const nodeWeights = mappedNodeWeights(result.nodeRows, config);
+  const byBranch = new Map(result.branchRows.map((row) => [text(row.branchName), row]));
+  const document = new DOMParser().parseFromString(xmlText, 'application/xml');
+  if (document.getElementsByTagName('parsererror').length) throw new Error('Standalone run parity could not parse the enriched XML.');
+
+  for (const branch of [...document.getElementsByTagName('Branch')]) {
+    const branchName = childText(branch, 'Branchname');
+    const row = byBranch.get(branchName);
+    if (!row) continue;
+    const pressure = ensureChild(document, branch, 'Pressure');
+    const temperature = ensureChild(document, branch, 'Temperature');
+
+    const branchWrites = [
+      { owner: pressure, name: 'Pressure1', path: ['Pressure', 'Pressure1'], field: 'p1', value: row.p1, kind: 'number' },
+      { owner: pressure, name: 'HydroPressure', path: ['Pressure', 'HydroPressure'], field: 'hydroPressure', value: row.hydroPressure, kind: 'number' },
+      { owner: temperature, name: 'Temperature1', path: ['Temperature', 'Temperature1'], field: 't1', value: row.t1, kind: 'number' },
+      { owner: temperature, name: 'Temperature2', path: ['Temperature', 'Temperature2'], field: 't2', value: row.t2, kind: 'number' },
+      { owner: temperature, name: 'Temperature3', path: ['Temperature', 'Temperature3'], field: 't3', value: row.t3, kind: 'number' },
+      { owner: branch, name: 'FluidDensity', path: ['FluidDensity'], field: 'density', value: row.density, kind: 'number' },
+      { owner: branch, name: 'MaterialNumber', path: ['MaterialNumber'], field: 'materialCode', value: row.materialCode, kind: 'text' },
+    ];
+
+    for (const write of branchWrites) {
+      const valid = write.kind === 'number' ? numeric(write.value) !== null : text(write.value).trim() !== '';
+      if (!valid || !setChildText(document, write.owner, write.name, write.value)) continue;
+      result.appliedFields += 1;
+      recordExpected(result.expectedEntries, {
+        scope: 'branch', branchName, path: write.path, field: write.field,
+        value: write.value, kind: write.kind, source: 'standalone-preview',
+      });
+    }
+
+    for (const [nodeOrdinal, node] of childrenByName(branch, 'Node').entries()) {
+      const nodeNumber = childText(node, 'NodeNumber');
+      const nodeWall = nodeWallThicknessForSize(row, node, config);
+      if (nodeWall.source !== 'branch') {
+        result.nodeWallBySize = result.nodeWallBySize || [];
+        result.nodeWallBySize.push({ branchName, nodeNumber, ...nodeWall });
+      }
+      const nodeWrites = [
+        { name: 'PipingClass', field: 'pipingClass', value: row.pipingClass, kind: 'text' },
+        { name: 'Rating', field: 'rating', value: row.rating, kind: 'text' },
+        { name: 'MaterialName', field: 'material', value: row.material, kind: 'text' },
+        { name: 'MaterialCode', field: 'materialCode', value: row.materialCode, kind: 'text' },
+        { name: 'WallThickness', field: 'wallThickness', value: nodeWall.value, kind: 'number' },
+        { name: 'CorrosionAllowance', field: 'corrosion', value: row.corrosion, kind: 'number' },
+      ];
+      for (const write of nodeWrites) {
+        const valid = write.kind === 'number' ? numeric(write.value) !== null : text(write.value).trim() !== '';
+        if (!valid || !setChildText(document, node, write.name, write.value)) continue;
+        result.appliedFields += 1;
+        recordExpected(result.expectedEntries, {
+          scope: 'node', branchName, nodeNumber, nodeOrdinal, path: [write.name], field: write.field,
+          value: write.value, kind: write.kind, source: 'standalone-preview',
+        });
+      }
+
+      const mapped = nodeWeights.get(`${branchName}|${nodeNumber}`);
+      const existingWeight = numeric(childText(node, 'Weight'));
+      if (mapped !== undefined && (existingWeight === null || existingWeight === 0) && setChildText(document, node, 'Weight', mapped)) {
+        result.appliedFields += 1;
+        recordExpected(result.expectedEntries, {
+          scope: 'node', branchName, nodeNumber, nodeOrdinal, path: ['Weight'], field: 'weight',
+          value: mapped, kind: 'number', source: 'weight-match',
+        });
+      }
+    }
+  }
+
+  if (result.nodeWallBySize?.length) {
+    const missing = result.nodeWallBySize.filter((item) => item.value === null);
+    diagnostics.push({
+      type: 'standalone-node-wall-by-size',
+      severity: missing.length ? 'warning' : 'info',
+      count: result.nodeWallBySize.length,
+      missing: missing.length,
+      message: `${result.nodeWallBySize.length} node(s) on mixed-diameter branches use the wall for their own size`
+        + (missing.length ? `; ${missing.length} have no piping-class row for their size and keep the source wall.` : '.'),
+    });
+  }
+  if (!result.appliedFields) return result;
+  diagnostics.push({
+    type: 'standalone-process-parity-applied',
+    fields: result.appliedFields,
+    message: 'Branch process and node facts were synchronised from the standalone Preview and Weight Match authorities.',
+  });
+  result.xmlText = new XMLSerializer().serializeToString(document);
+  return result;
+}
+
+const WEIGHT_MATCH_MODULE_URL = new URL(
+  '../model-converters/converters/xmltocii2019_helper/weight-match-renderer.js',
+  import.meta.url,
+);
+
+export async function loadParentWeightMatchModules() {
+  const [renderer, parity] = await Promise.all([
+    import(WEIGHT_MATCH_MODULE_URL.href),
+    import(PARITY_MODULE_URL.href),
+  ]);
+  return { bindXmlCiiWeightMatchPhase: renderer.bindXmlCiiWeightMatchPhase, enrichXmlForCii2019: parity.enrichXmlForCii2019 };
+}
+
+export function standaloneParityOptions(supportConfigJson, options = {}) {
+  const config = parseConfig(supportConfigJson);
+  const split = options.splitCondensedValveFlange !== undefined
+    ? options.splitCondensedValveFlange !== false
+    : (config.splitCondensedValveFlange !== false);
+  return {
+    supportConfigJson: text(supportConfigJson) || '{}',
+    splitCondensedValveFlange: split,
+    split_condensed_valve_flange: split,
+    condenseRigidXsd: config.condenseRigidXsd === true || config.condense_rigid_xsd === true,
+  };
+}
+
+export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
+  const sourceText = text(job?.sourceText);
+  const out = {
+    xmlText: sourceText,
+    applied: false,
+    diagnostics: [],
+    stats: {},
+    logs: [],
+    error: null,
+    evidence: null,
+    branchRows: [],
+    nodeRows: [],
+    expectedEntries: [],
+  };
+  if (!sourceText.trim()) {
+    out.error = 'Standalone run parity requires non-empty XML source text.';
+    out.logs.push(`Standalone run parity blocked: ${out.error}`);
+    return out;
+  }
+  if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
+    out.error = 'DOMParser/XMLSerializer is unavailable for standalone run parity.';
+    out.logs.push(`Standalone run parity blocked: ${out.error}`);
+    return out;
+  }
+
+  try {
+    const parity = await import(PARITY_MODULE_URL.href);
+    const options = { ...standaloneParityOptions(job.supportConfigJson, job.options || {}), ...extraOptions };
+    const enriched = await parity.enrichXmlForCii2019(sourceText, text(job.stagedJsonText), options);
+    const config = parseConfig(options.supportConfigJson);
+    const dtxr = enrichStandaloneDtxrAnnotations(enriched.xmlText || sourceText, text(job.stagedJsonText), config);
+    out.diagnostics = [
+      ...(Array.isArray(enriched.diagnostics) ? enriched.diagnostics : []),
+      ...(Array.isArray(dtxr.diagnostics) ? dtxr.diagnostics : []),
+    ];
+    out.stats = {
+      ...(enriched.stats && typeof enriched.stats === 'object' ? enriched.stats : {}),
+      ...(dtxr.stats && typeof dtxr.stats === 'object' ? dtxr.stats : {}),
+    };
+
+    const process = await applyStandaloneProcessParity(
+      dtxr.text || enriched.xmlText || sourceText,
+      config,
+      text(job.stagedJsonText),
+      out.diagnostics,
+    );
+    // Standalone does not use the parent runner's post-OD authority pass.
+    // Freeze local DN by each effective node OD before CII engine-input custody.
+    const boreAuthority=synchronizeXmlCiiNodeBoreWithOutsideDiameter(process.xmlText);
+    out.xmlText=boreAuthority.xmlText;
+    out.stats={...out.stats,...boreAuthority.stats};
+    out.diagnostics.push(...boreAuthority.diagnostics);
+    out.branchRows = process.branchRows;
+    out.nodeRows = process.nodeRows;
+    out.expectedEntries = process.expectedEntries;
+    out.evidence = createStandaloneRunParityEvidence({
+      xmlText: out.xmlText,
+      expectedEntries: out.expectedEntries,
+      branchRows: out.branchRows,
+      nodeRows: out.nodeRows,
+    });
+    out.stats.parityComparisons = out.evidence.comparisons;
+    out.stats.parityMismatches = out.evidence.mismatchCount;
+
+    if (!out.evidence.ok) {
+      out.error = `Standalone run parity blocked ${out.evidence.mismatchCount} authority mismatch(es).`;
+      out.logs.push(`${out.error} Engine input was not released.`);
+      return out;
+    }
+
+    out.applied = true;
+    out.logs.push(
+      `Standalone run parity PASS (${out.evidence.status}): ${out.evidence.comparisons} comparison(s), input ${out.evidence.engineInputDigest}.`,
+    );
+    out.logs.push(`Standalone run parity applied: ${out.stats.weightAnnotations || 0} weight annotation(s), ${out.stats.processAnnotations || 0} process annotation(s), ${out.stats.stagedSupportsMapped || 0} staged support(s), ${out.stats.dtxrPosAnnotations || 0} DTXR_POS annotation(s), ${out.stats.dtxrPsAnnotations || 0} DTXR_PS annotation(s), ${out.stats.splitCondensedRigidNodes || 0} renumbered node(s).`);
+  } catch (error) {
+    out.error = text(error?.message || error);
+    out.applied = false;
+    out.logs.push(`Standalone run parity blocked: ${out.error}`);
+  }
+  return out;
+}

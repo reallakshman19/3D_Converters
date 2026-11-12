@@ -495,7 +495,8 @@ def main() -> None:
     if xml229_native_owners is not None:
         from xml229_native_final_mass_binding import assert_native_model_geometry_unchanged
         _mark_native_failure_stage('MODEL_GEOMETRY_CHECK')
-        assert_native_model_geometry_unchanged(staged_original, document, model)
+        assert_native_model_geometry_unchanged(staged_original, document, model,
+            island_joins=base.COINCIDENT_ISLAND_JOINS)
     _mark_native_failure_stage('RIGID_WEIGHT_OWNER_CHECK')
     require_rigid_weight_owners(input_xml, model)
     temperature_map, pressure_map = patched._branch_case_maps(document)
@@ -537,6 +538,8 @@ def main() -> None:
         f"use_restraint_type_based_on_json={args.use_restraint_type_based_on_json}; "
         f"split_condensed_valve_flange={support_config.get('splitCondensedValveFlange')}"
     )
+    for entry in base.MERGED_COINCIDENT_ORPHAN_NODES:
+        print(f"COINCIDENT_ISLAND_NODE_JOINED {entry}")
 
 
 install_runtime_custody_patch()

@@ -15,6 +15,8 @@ import { hydratePersistedMasterDatasets } from '../workers/master-dataset-startu
 import { disposeAdaptedGeometryPreviews } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
 import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261001-single-weight-owners-1';
 import { installLfjO1SourceIntake } from './xml-cii-adapted-lfj-o1-intake.js';
+import { uninstallNativeRunDelegation } from './xml-cii-adapted-events-mode-a.js?v=20261008-p0-mode-b-parity-1';
+import { isV045Phase, v055MasterGate, v045ViewRef, renderV045ActivePhase, bindV045WorkflowEvents, installV045WorkspaceHooks, pruneSupersededRestoreFailures } from './xml-cii-v055-seam.js?v=20261111-v055-2';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
 installRigidReviewActionsEnhancement();
@@ -36,6 +38,9 @@ export function renderXmlCiiAdaptedWorkflowShell(container, initialState) {
   const stateRef = createXmlCiiModeAStateRef(baseRef);
   const render = () => {
     ensureXmlCiiBranchSelectionInRef(stateRef);
+    // v0.55: a fresh import replaces a failed startup restore of that master.
+    const pruned = pruneSupersededRestoreFailures(stateRef.current);
+    if (pruned !== stateRef.current) stateRef.current = pruned;
     activeWorkflowState = stateRef.current;
     const scrollStates = [];
     container.querySelectorAll('.xml-cii-main-workspace, .model-converters-left, .xml-cii-standalone-output pre, .xml-cii-standalone-card pre').forEach((el, idx) => {
@@ -77,13 +82,31 @@ function renderWorkflow(container, stateRef, render) {
     main.style.minWidth = '0';
     main.style.flex = '1';
   }
-  renderActivePhase(main, effectiveRef, render);
-  installModeAConsolidatedPreviewEasyUiFromWorkspace(main, effectiveRef);
-  installModeAConsolidatedWeightEasyUiFromWorkspace(main, effectiveRef);
-  installModeACompactMultiUi(main, stateRef.current);
+  // v0.55: steps 6-10 come from v0.45 (xml-cii-v055-seam.js); steps 1-5 stay 3D_Converters.
+  const v045Phase = isV045Phase(stateRef.current?.activePhaseId);
+  const v045Ref = v045Phase ? v045ViewRef(effectiveRef, stateRef.current) : null;
+  if (v045Phase) {
+    const masterGate = v055MasterGate(stateRef, render);
+    if (masterGate) main.appendChild(masterGate);
+    else {
+      renderV045ActivePhase(main, v045Ref, render);
+      installV045WorkspaceHooks(main, v045Ref, v045Ref.current);
+    }
+  } else {
+    renderActivePhase(main, effectiveRef, render);
+    installModeAConsolidatedPreviewEasyUiFromWorkspace(main, effectiveRef);
+    installModeAConsolidatedWeightEasyUiFromWorkspace(main, effectiveRef);
+    installModeACompactMultiUi(main, stateRef.current);
+  }
   workspace.appendChild(main);
   root.appendChild(workspace);
   container.appendChild(root);
   installLfjO1SourceIntake(container, stateRef);
-  bindAdaptedWorkflowEvents(container, effectiveRef, render);
+  if (v045Phase) {
+    // The 3D_Converters capture-phase Run listener must not answer a v0.45 Run button.
+    uninstallNativeRunDelegation(container);
+    bindV045WorkflowEvents(container, v045Ref, render);
+  } else {
+    bindAdaptedWorkflowEvents(container, effectiveRef, render);
+  }
 }

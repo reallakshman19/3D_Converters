@@ -61,9 +61,7 @@ function prepareInputs(dialog) {
     const key = input.getAttribute('data-rigid-review-key') || '';
     const stored = values[key];
     if (stored) input.value = stored.value;
-    else if (input.dataset.rigidReviewPrefilled === 'true' && numeric(input.value) > 0) {
-      values[key] = { value: input.value, source: 'suggestion' };
-    } else if (tr.querySelector('[data-rigid-review-candidate]') && numeric(input.value) > 0) {
+    else if (tr.querySelector('[data-rigid-review-candidate]') && numeric(input.value) > 0) {
       input.dataset.rigidSmartBaseSuggestion = input.value; input.value = '';
     }
     if (!input.dataset.rigidSmartBound) {
@@ -227,8 +225,19 @@ function openPolicy(dialog) {
   document.body.appendChild(panel);
 }
 
+/**
+ * Smart Fill acts only on the unresolved-weight *application* dialog.
+ * Final CII and source-inventory read-only dialogs share a visual CSS class
+ * but have no fill/apply controls and must never gain a BLOCKED receipt.
+ */
+export function isRigidSmartFillReviewDialog(dialog) {
+  return Boolean(dialog?.querySelector?.('[data-rigid-review-apply]')
+    && dialog?.querySelector?.('.mc-rigid-review-input')
+    && dialog?.querySelector?.('.mc-rigid-review-rating-input'));
+}
+
 function renderDialog(dialog) {
-  if (!dialog?.isConnected) return;
+  if (!dialog?.isConnected || !isRigidSmartFillReviewDialog(dialog)) return;
   prepareInputs(dialog);
   const rows = readRows(dialog); const policy = readPolicy();
   const receipt = buildRigidSmartFillPreflight({ rows, policy });

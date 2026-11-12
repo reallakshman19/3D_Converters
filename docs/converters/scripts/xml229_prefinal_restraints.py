@@ -72,8 +72,14 @@ def kinds(entries, require, config=None):
         a = e['attrs']
         # The historical qualified mapper lets explicit engineering meaning
         # outrank abbreviated GT/ST. Do not copy its legacy DOF/axis defaults.
-        desc = ' '.join([text(a.get(k)) for k in ('DTXR', 'DESC', 'DESCRIPTION')] +
-                        [text(e['desc'])]).upper()
+        # No DTXR/DESC text: the MDS description (MDSDTXR) is the explicit
+        # engineering meaning (e.g. LINE STOP); a staged SUPPORT_KIND label
+        # must not override it. Mirrors xml-cii-mds-restraint-closure.js.
+        # e['desc'] is a derived trace label (often the SPRE path), so it
+        # never suppresses the MDSDTXR fallback.
+        source = [v for v in (text(a.get(k)) for k in ('DTXR', 'DESC', 'DESCRIPTION')) if v]
+        desc = ' '.join(v for v in (source or [text(a.get('MDSDTXR'))]) + [text(e['desc'])]
+                        if v).upper()
         semantic = [
             k for k, pat in (
                 ('LINESTOP', r'\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b'),

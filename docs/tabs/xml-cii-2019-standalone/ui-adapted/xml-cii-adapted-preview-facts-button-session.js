@@ -10,6 +10,7 @@ import {assertBasisDigest,assertContentDigest,digestUtf8,digestCanonical,canonic
   from '../../../contracts/gc-pw-v1/contract.mjs';
 
 import {executeXml229OriginalPreview} from '../integration/xml229-preview-original-blob-execution.mjs';
+import { recordPreviewFailure } from './xml-cii-adapted-preview-failure-notice.js';
 
 const jobs=new WeakMap();
 const esc=(v)=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
@@ -351,10 +352,12 @@ export async function runPreviewButtonSession({
     installActualPreviewSourceFactPanel(host,sourcePages);
     host.__xmlCiiPreviewOriginalOccurrences=result.sourceOccurrences;
     host.dataset.mcPreviewBasisId=basis.basisId;
+    recordPreviewFailure(null);
     return rendered;
   }catch(error) {
     if(!current())return null;
     const code=String(error?.code||'PREVIEW_BUILD_FAILED');
+    recordPreviewFailure({code,message:String(error?.message||error)});
     notice(host,{title:'Preview failed',code,
       message:String(error?.message||error),retry});
     return null;

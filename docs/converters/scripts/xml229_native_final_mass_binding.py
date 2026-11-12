@@ -145,7 +145,40 @@ def assert_preaccepted_geometry_unchanged(original_path, engine_input_path):
     return True
 
 
-def assert_native_model_geometry_unchanged(original_path, document, model):
+def _undo_recorded_island_joins(document, model_numbers, joins):
+    """Return model node labels as they were before coincident-island joins.
+
+    A join (Owner decision, 12 Nov) renames an unconnected island node to the
+    single node of another island within +-tolerance on every axis. It is the
+    only merge accepted after weights: each one must be recorded, exact and
+    within tolerance, and the remaining labels must still be a bijection.
+    """
+    labels = [list(row) for row in model_numbers]
+    for join in reversed(list(joins or [])):
+        require(isinstance(join, dict) and join.get("positions"),
+                "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+        tol = float(join.get("tolerance", 0))
+        require(0 < tol <= 6.0 and float(join.get("gap", tol + 1)) <= tol,
+                "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+        new, old = str(join["new"]), str(join["old"])
+        moved_at = {tuple(p) for p in join["positions"]}
+        anchor = next(((bi, ni) for bi, row in enumerate(labels)
+                       for ni, label in enumerate(row)
+                       if label == new and (bi, ni) not in moved_at), None)
+        require(anchor is not None, "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+        target = document.branches[anchor[0]].nodes[anchor[1]].position
+        for bi, ni in join["positions"]:
+            require(0 <= bi < len(labels) and 0 <= ni < len(labels[bi]) and
+                    labels[bi][ni] == new,
+                    "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+            moved = document.branches[bi].nodes[ni].position
+            require(all(abs(moved[i] - target[i]) <= tol for i in range(3)),
+                    "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
+            labels[bi][ni] = old
+    return labels
+
+
+def assert_native_model_geometry_unchanged(original_path, document, model, island_joins=None):
     """The parsed native graph must also match the preapproved XML geometry.
 
     The engine parser may collapse small segments or exclude invalid node
@@ -175,7 +208,8 @@ def assert_native_model_geometry_unchanged(original_path, document, model):
                          tuple(new.position), txt(old, "ElementLengthMm"))
             require(old_shape == new_shape,
                     "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
-    _assert_preserved_node_connectivity(source_numbers, model_numbers)
+    _assert_preserved_node_connectivity(
+        source_numbers, _undo_recorded_island_joins(document, model_numbers, island_joins))
     require(len(model.edges) == expected_edges,
             "NATIVE_GEOMETRY_CHANGED_AFTER_WEIGHT_ACCEPTANCE")
     # Native graph edges must remain in the same per-branch source order.

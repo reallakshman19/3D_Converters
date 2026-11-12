@@ -119,10 +119,14 @@ def configured_mapper_semantic_conflict(attrs, description, config, semantic, re
     rows = (config.get('supportTypeMapper') or {}).get('rows')
     if not isinstance(rows, list) or not semantic:
         return
+    # Same description rule as kinds() and the JS closure: MDSDTXR stands in
+    # when DTXR/DESC/DESCRIPTION are all blank.
+    primary = [attrs.get('DTXR'), attrs.get('DESC'), attrs.get('DESCRIPTION')]
+    if not any(str(v or '').strip() for v in primary):
+        primary = [attrs.get('MDSDTXR')]
     source = ' '.join(str(v) for v in
-        [attrs.get('DTXR'),attrs.get('DESC'),attrs.get('DESCRIPTION'),
-         description,attrs.get('CMPSUPTYPE'),attrs.get('MDSSUPPTYPE'),
-         attrs.get('SPRE')] if v).upper()
+        primary + [description, attrs.get('CMPSUPTYPE'), attrs.get('MDSSUPPTYPE'),
+                   attrs.get('SPRE')] if v).upper()
     for row in rows:
         if not isinstance(row, dict):
             continue

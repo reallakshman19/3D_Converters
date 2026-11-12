@@ -58,7 +58,7 @@ function renderConfidencePolicy(parent) {
   section.appendChild(createElement('h3', 'Confidence / precedence policy'));
   section.appendChild(createElement(
     'p',
-    'Confidence is derived from the evidence, not manually assigned. Explicit semantics such as GUIDE, LINE STOP, AXIAL STOP, DIRECTIONAL ANCHOR and PIPE REST/REST are HIGH. Short/prefix codes such as GT, ST, PG and LS are LOW fallbacks. A stronger decision suppresses lower-confidence competing kinds for the same support occurrence; equal-strength conflicts remain review-required.',
+    'Confidence is derived from the evidence, not manually assigned. Explicit semantics such as GUIDE, LINE STOP, AXIAL STOP, DIRECTIONAL ANCHOR and PIPE REST/REST are HIGH. Short/prefix codes such as GT, ST, PG and LS are LOW fallbacks. A stronger decision suppresses lower-confidence competing kinds for the same support occurrence; equal-strength conflicts remain review-required. An explicit description (DTXR, or MDSDTXR when DTXR is blank) outranks a staged SUPPORT_KIND label.',
     'xml-cii-phase-help'
   ));
   parent.appendChild(section);

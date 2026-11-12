@@ -263,6 +263,11 @@ function installNativeRunDelegation(container,stateRef,render){
   container.addEventListener('click',handle,true);
   nativeRunDelegates.set(container,handle);
 }
+export function uninstallNativeRunDelegation(container){
+  const previous=nativeRunDelegates.get(container);
+  if(previous)container.removeEventListener('click',previous,true);
+  nativeRunDelegates.delete(container);
+}
 
 export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   const rawRef = modeARawRef(stateRef);

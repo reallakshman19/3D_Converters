@@ -781,6 +781,27 @@ def _apply_source_material_rating(branch: ET.Element, namespace: str,
     return changed
 
 
+def _staged_member_kind_entry(member: dict[str, Any]) -> dict[str, Any]:
+    """One staged support member as a kinds() entry.
+
+    A member with no DTXR/DESC text but an MDS description (MDSDTXR) is
+    classified from MDSDTXR alone; a derived label is never backfilled over
+    it (Owner case PS-4102: LINE STOP with shoe was read as REST).
+    """
+    attrs = dict(member.get("sourceAttrs") or {})
+    mds_only = bool(str(attrs.get("MDSDTXR") or "").strip()) and not any(
+        str(attrs.get(key) or "").strip() for key in ("DTXR", "DESC", "DESCRIPTION"))
+    if not attrs.get("DTXR") and not mds_only:
+        attrs["DTXR"] = member.get("dtxr", "")
+    if not any(attrs.get(key) is not None for key in
+               ("CMPSUPGAP", "CMPSUPGAP_POS", "CMPSUPGAP_PS", "NODEGAP")):
+        gap = _parse_cmpsupgap_from_dtxr_entry(member.get("dtxr", ""))
+        if gap is not None:
+            attrs["CMPSUPGAP"] = str(gap)
+    return {"attrs": attrs, "desc": "" if mds_only else attrs.get("DTXR", ""),
+            "type": member.get("sourceType") or "SUPPORT"}
+
+
 def _apply_staged_position_restraints(node: ET.Element, namespace: str,
                                        support_config: dict[str, Any],
                                        branch_name: str) -> bool:
@@ -819,16 +840,7 @@ def _apply_staged_position_restraints(node: ET.Element, namespace: str,
         component_type = str(member.get("sourceType") or "").upper()
         if component_type and component_type not in ("SUPPORT", "ATTA", "ANCI"):
             continue
-        attrs = dict(member.get("sourceAttrs") or {})
-        if not attrs.get("DTXR"):
-            attrs["DTXR"] = member.get("dtxr", "")
-        if not any(attrs.get(key) is not None for key in
-                   ("CMPSUPGAP", "CMPSUPGAP_POS", "CMPSUPGAP_PS", "NODEGAP")):
-            gap = _parse_cmpsupgap_from_dtxr_entry(member.get("dtxr", ""))
-            if gap is not None:
-                attrs["CMPSUPGAP"] = str(gap)
-        entries.append({"attrs": attrs, "desc": attrs.get("DTXR", ""),
-                        "type": member.get("sourceType") or "SUPPORT"})
+        entries.append(_staged_member_kind_entry(member))
 
     matched = classify_source_kinds(entries, require, support_config)
     if not matched:

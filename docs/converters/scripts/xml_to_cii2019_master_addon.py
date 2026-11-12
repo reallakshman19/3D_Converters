@@ -507,7 +507,7 @@ def build_dtxr_pos_entries(staged_json: Any, offset_option: dict[str, Any] | Non
         fields = ("DTXR", "NAME", "MDSSUPPTYPE", "SPRE", "CMPSUPTYPE",
                   "NODETYPE", "CMPSUPGAP", "CMPSUPGAP_POS", "CMPSUPGAP_PS",
                   "NODEGAP", "DESCRIPTION", "DESC", "OWNER", "SUPPORT_KIND",
-                  "SUPPORT_TYPE", "SUPPORT_MAPPER_KIND")
+                  "SUPPORT_TYPE", "SUPPORT_MAPPER_KIND", "MDSDTXR")
         source_fields = {key: attrs[key] for key in fields
                          if key in attrs and attrs[key] is not None}
         entries.append({"dtxr": _staged_gap_annotation(dtxr, attrs),

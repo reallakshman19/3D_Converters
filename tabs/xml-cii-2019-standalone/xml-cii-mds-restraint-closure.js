@@ -115,12 +115,22 @@ function configuredSupportRuleDecision(attrs, member, config) {
   return first;
 }
 
+function memberDescription(attrs, member) {
+  // member.description is a derived trace label (often the SPRE path), not a
+  // source description, so it never suppresses the MDSDTXR fallback.
+  const source = [attrs.DTXR, attrs.DESC, attrs.DESCRIPTION].map(text).filter(Boolean);
+  return [...(source.length ? source : [text(attrs.MDSDTXR)]), text(member?.description)]
+    .filter(Boolean).join(' ');
+}
+
 function supportKindFromMember(member,config={}) {
   const attrs = memberAttributes(member);
   // An explicit source description wins over abbreviated MDS code aliases.
   // This mirrors the old confidence mapper, not its legacy axis defaults.
-  const desc = [attrs.DTXR, attrs.DESC, attrs.DESCRIPTION, member?.description]
-    .map(text).filter(Boolean).join(' ').toUpperCase();
+  // When the staged member has no DTXR/DESC text, its MDS description
+  // (MDSDTXR, e.g. "LINE STOP ON BARE PIPE WITH WEAR PAD") is the explicit
+  // engineering meaning; a stage-assigned SUPPORT_KIND must not override it.
+  const desc = memberDescription(attrs, member).toUpperCase();
   const semantic = [
     /\b(?:PIPE\s*STOP|LINE\s*STOP|LINESTOP|LIMIT\s*STOP|AXIAL\s*STOP|DIRECTIONAL\s+ANCHOR)\b/.test(desc) && 'LINESTOP',
     /\bGUIDE\b/.test(desc) && 'GUIDE',
@@ -157,8 +167,7 @@ function supportKindFromMember(member,config={}) {
           !baseline.has(text(alias).toUpperCase().replace(/[^A-Z0-9]/g,'')))};
       }).filter(row => row.aliases.length);
       if (custom.length) {
-        const descText = [attrs.DTXR,attrs.DESC,attrs.DESCRIPTION,
-          member?.description,attrs.CMPSUPTYPE,attrs.MDSSUPPTYPE,attrs.SPRE]
+        const descText = [memberDescription(attrs, member),attrs.CMPSUPTYPE,attrs.MDSSUPPTYPE,attrs.SPRE]
           .map(text).filter(Boolean).join(' ');
         const newly = classifySupportText(descText,custom);
         if (newly.status==='ambiguous' ||
@@ -275,8 +284,11 @@ function evidenceByKind(record, config = {}, requireUnambiguous = false) {
     }
     if(requireUnambiguous&&previous&&sourceGapText(previous)&&raw&&
        supportGapNumber(previous)!==numeric)
-      throw Object.assign(new Error('Conflicting JSON gaps for the same support kind'),
-        {code:'PREFINAL_RESTRAINT_GAP_AMBIGUOUS'});
+      throw Object.assign(new Error('Conflicting JSON gaps for the same support kind '+kind+': '+
+        sourceGapText(previous)+' vs '+raw+(text(previous.NAME)||text(attrs.NAME)
+          ?' (members '+[text(previous.NAME)||'?',text(attrs.NAME)||'?'].join(' / ')+')':'')),
+        {code:'PREFINAL_RESTRAINT_GAP_AMBIGUOUS',supportKind:kind,
+          gaps:[sourceGapText(previous),raw],members:[text(previous.NAME),text(attrs.NAME)]});
     if(requireUnambiguous&&previous&&text(previous.NODETYPE)&&text(attrs.NODETYPE)&&
        sourceNodeType(previous,config)!==sourceNodeType(attrs,config)){
       const earlierHardware=isRestHardwareMember(previous,kind);
@@ -376,7 +388,17 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
         throw Object.assign(new Error('Ambiguous source support match'),
           {code:'PREFINAL_RESTRAINT_MATCH_AMBIGUOUS'});
       if (!record || !String(record.status || '').startsWith('RESOLVED_')) continue;
-      const evidence = evidenceByKind(record,config,runtime.requireUnambiguous===true);
+      let evidence;
+      try { evidence = evidenceByKind(record,config,runtime.requireUnambiguous===true); }
+      catch (error) {
+        // Name the XML node so the conflict can be found in the JSON Trace.
+        const where = ' at XML Node '+(childText(node,'NodeNumber')||'?')+' ('+componentType+', '+
+          (childText(node,'ComponentRefNo')||'no ref')+') in branch '+
+          (childText(branch,'Branchname')||'?');
+        throw Object.assign(new Error(String(error?.message||error)+where),{...error,
+          code:error?.code,xmlIndex,nodeNumber:childText(node,'NodeNumber'),
+          componentRefNo:childText(node,'ComponentRefNo'),branchName:childText(branch,'Branchname')});
+      }
       if (!evidence.size) continue;
       for (const [kind, attrs] of evidence) {
         const authored = text(attrs.CMPSUPGAP);

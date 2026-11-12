@@ -645,12 +645,120 @@ def _parse_xml_document(path: Path, *, preserve_rigid_weight_owners: bool = Fals
     if not preserve_finalized_geometry:
         branches = _drop_short_element_nodes(
             branches, preserve_rigid_weight_owners=preserve_rigid_weight_owners)
+    # Owner decision (12 Nov): join coincident islands on the governed Final
+    # path too. Each join is recorded in COINCIDENT_ISLAND_JOINS so the Final
+    # geometry check can verify it explicitly instead of seeing a merge.
+    branches = _merge_coincident_orphan_nodes(branches)
 
     return XmlDocument(metadata=metadata, branches=branches)
 
 
 SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM: Final[float] = 6.0
 DROPPED_SHORT_ELEMENT_NODES: list[str] = []
+COINCIDENT_ORPHAN_NODE_TOLERANCE_MM: Final[float] = 6.0
+MERGED_COINCIDENT_ORPHAN_NODES: list[str] = []
+# Structured record of each join, in order: old/new number, max per-axis gap
+# and every (branch index, node index) that carried the old number.
+COINCIDENT_ISLAND_JOINS: list[dict[str, Any]] = []
+
+
+def _merge_coincident_orphan_nodes(
+    branches: list[XmlBranch], tolerance_mm: float = COINCIDENT_ORPHAN_NODE_TOLERANCE_MM
+) -> list[XmlBranch]:
+    """Join disconnected islands whose node sits on another island's node.
+
+    A rigid split or a dropped gasket can leave one branch starting at, e.g.,
+    NodeNumber 760 while the physically identical point elsewhere is 759, so
+    the CII has an extra unconnected island (an extra COORDS entry). The
+    largest island is the main model. For a node of any other island, find a
+    node of a different island within +-tolerance_mm on every axis (nodes
+    only, never elements). Rename only when exactly one node number qualifies;
+    ambiguous cases stay unchanged. Restraint specs of both nodes are merged
+    (as _drop_short_element_nodes does) so the joined node keeps every
+    support. Repeat until no island can be joined.
+    """
+    # One list per parse: the browser keeps this module loaded across runs.
+    MERGED_COINCIDENT_ORPHAN_NODES.clear()
+    COINCIDENT_ISLAND_JOINS.clear()
+    if tolerance_mm <= 0:
+        return branches
+    cell = float(tolerance_mm)
+    for _ in range(sum(len(branch.nodes) for branch in branches) + 1):
+        parent: dict[int, int] = {}
+
+        def find(number: int) -> int:
+            while parent.setdefault(number, number) != number:
+                parent[number] = parent[parent[number]]
+                number = parent[number]
+            return number
+
+        positions: dict[int, tuple[float, float, float]] = {}
+        for branch in branches:
+            for node in branch.nodes:
+                find(node.node_number)
+                positions.setdefault(node.node_number, node.position)
+            for a, b in zip(branch.nodes, branch.nodes[1:]):
+                root_a, root_b = find(a.node_number), find(b.node_number)
+                if root_a != root_b:
+                    parent[root_a] = root_b
+        if not positions:
+            return branches
+        sizes: dict[int, int] = {}
+        for number in positions:
+            sizes[find(number)] = sizes.get(find(number), 0) + 1
+        if len(sizes) < 2:
+            return branches
+        main = max(sizes, key=lambda root: sizes[root])
+        grid: dict[tuple[int, int, int], list[int]] = {}
+        for number, position in positions.items():
+            key = tuple(math.floor(position[i] / cell) for i in range(3))
+            grid.setdefault(key, []).append(number)
+        rename: tuple[int, int, float] | None = None
+        for number, position in positions.items():
+            own = find(number)
+            if own == main:
+                continue
+            base_key = tuple(math.floor(position[i] / cell) for i in range(3))
+            hits = set()
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    for dz in (-1, 0, 1):
+                        for other in grid.get((base_key[0] + dx, base_key[1] + dy, base_key[2] + dz), ()):
+                            q = positions[other]
+                            if find(other) != own and all(
+                                    abs(position[i] - q[i]) <= tolerance_mm for i in range(3)):
+                                hits.add(other)
+            if len(hits) == 1:
+                target = hits.pop()
+                gap = max(abs(position[i] - positions[target][i]) for i in range(3))
+                rename = (number, target, gap)
+                break
+        if rename is None:
+            return branches
+        old, new, gap = rename
+        merged_specs: tuple[RestraintSpec, ...] = ()
+        for branch in branches:
+            for node in branch.nodes:
+                if node.node_number in (new, old):
+                    merged_specs = _merge_restraint_specs(merged_specs, node.restraint_specs)
+        COINCIDENT_ISLAND_JOINS.append({
+            "old": old, "new": new, "gap": gap, "tolerance": tolerance_mm,
+            "positions": [(bi, ni) for bi, branch in enumerate(branches)
+                          for ni, node in enumerate(branch.nodes) if node.node_number == old],
+        })
+        branches = [
+            replace(branch, nodes=[
+                replace(node, node_number=new, restraint_specs=merged_specs)
+                if node.node_number in (old, new) else node
+                for node in branch.nodes
+            ]) if any(node.node_number in (old, new) for node in branch.nodes) else branch
+            for branch in branches
+        ]
+        MERGED_COINCIDENT_ORPHAN_NODES.append(
+            f"NodeNumber {old} renamed to {new}: unconnected island node within "
+            f"{gap:.3f}mm (tolerance +-{tolerance_mm}mm)"
+        )
+    return branches
 
 
 def _merge_restraint_specs(
