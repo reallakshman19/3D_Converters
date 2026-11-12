@@ -131,6 +131,10 @@ export async function runXmlCii2019WorkflowService(job, runtime = {}) {
       sourceKind: 'xml',
       engineInputText: parity.xmlText,
       stagedJsonText: factedJob.stagedJsonText || '',
+      // Mode B: which staged JSON closed which source (review MED 6).
+      modeBStagedSources: await Promise.all((Array.isArray(factedJob.modeBStagedSources) ? factedJob.modeBStagedSources : [])
+        .map(async (entry) => ({ sourceId: entry.sourceId, fileName: entry.fileName, minNode: entry.minNode,
+          maxNode: entry.maxNode, stagedJsonSha256: await ciiSha256(entry.stagedJsonText || '') }))),
       supportConfigJson: factedJob.supportConfigJson,
       weightScale: factedJob.options?.kgToNewton === false ? 1 : 10,
       engineInputDigest: parity.evidence.engineInputDigest,

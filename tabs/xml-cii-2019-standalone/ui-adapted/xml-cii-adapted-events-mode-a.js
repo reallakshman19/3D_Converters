@@ -12,7 +12,7 @@ import { modeABatchArtifactValue } from './xml-cii-adapted-mode-a-panel.js?v=202
 import { runModeABatchFromUi } from './xml-cii-adapted-run-workflow-mode-a.js?v=20261001-single-weight-owners-1';
 import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261008-p0-mode-b-parity-1';
 import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js?v=20260813-mode-a-full-propagation-2';
-import { xmlCiiProcessingMode, loadXmlCiiSingleSource } from './xml-cii-adapted-processing-mode.js?v=20261001-single-weight-owners-1';
+import { xmlCiiProcessingMode, loadXmlCiiSingleSource } from './xml-cii-adapted-processing-mode.js?v=20261112-modeb-isolation-1';
 import {
   buildModeADiagnosticsAggregate,
   createModeABatchSharedRef,

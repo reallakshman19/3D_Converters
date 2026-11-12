@@ -221,6 +221,8 @@ def main() -> None:
     )
     for entry in base.MERGED_COINCIDENT_ORPHAN_NODES:
         print(f"COINCIDENT_ISLAND_NODE_JOINED {entry}")
+    for entry in base.COINCIDENT_ISLAND_JOINS_BLOCKED:
+        print(entry)
 
 
 install_runtime_custody_patch()

@@ -42,6 +42,8 @@ export function composeModeASupportConfig(sharedJson = '{}', sourceJson = '{}') 
 export function commonModeASupportConfig(sourceJson = '{}') {
   const config = clone(parseJson(sourceJson));
   delete config.overrides;
+  // Mode B source ranges describe one combined XML only (RCA-03).
+  delete config.modeB;
   if (config.linelist && typeof config.linelist === 'object') delete config.linelist.branchLineKeyMap;
   if (config.weight && typeof config.weight === 'object') delete config.weight.finalizedMatches;
   return JSON.stringify(config, null, 2);
@@ -118,6 +120,9 @@ export function buildModeAExecutionState(baseState = {}, source = {}) {
   const next = core.buildModeAExecutionState(normalized, source);
   return {
     ...next,
+    // Mode B fields describe one combined Single document only.
+    modeBManifest: null,
+    modeBStagedSources: null,
     supportConfigJson: composeModeASupportConfig(
       modeASharedSupportConfig(normalized),
       source.supportConfigJson || '{}',

@@ -5,6 +5,7 @@ import {
 } from './xml-cii-standalone-run-parity-atta-default.js?v=20260804-mds-position-restraints-1';
 import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js?v=20260804-mds-position-restraints-1';
 import { closeGovernedMdsPositionRestraintsXml } from './xml-cii-mds-restraint-closure.js?v=20260804-mds-position-restraints-1';
+import { closeModeBSourceRestraintsXml } from './xml-cii-mode-b-restraint-closure.js?v=20261112-modeb-isolation-1';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -36,11 +37,15 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
   const out = await enrichStandaloneXmlForRunBase(job, extraOptions);
   if (!out?.xmlText || out.error || out.applied !== true) return out;
 
-  const closure = closeGovernedMdsPositionRestraintsXml(
-    out.xmlText,
-    text(job?.stagedJsonText),
-    effectiveConfig(job, extraOptions),
-  );
+  // Mode B: each source's staged JSON closes only that source's pipes.
+  const modeBSources = Array.isArray(job?.modeBStagedSources) ? job.modeBStagedSources : [];
+  const closure = modeBSources.length
+    ? closeModeBSourceRestraintsXml(out.xmlText, modeBSources, effectiveConfig(job, extraOptions))
+    : closeGovernedMdsPositionRestraintsXml(
+      out.xmlText,
+      text(job?.stagedJsonText),
+      effectiveConfig(job, extraOptions),
+    );
   out.diagnostics = [
     ...(Array.isArray(out.diagnostics) ? out.diagnostics : []),
     ...(Array.isArray(closure.diagnostics) ? closure.diagnostics : []),

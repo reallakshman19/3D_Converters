@@ -131,6 +131,9 @@ def _load_support_config(raw_json: str | None) -> dict[str, Any]:
     cfg["useFrictionSentinelForNonYSupports"] = _truthy(cfg.get("useFrictionSentinelForNonYSupports") if cfg.get("useFrictionSentinelForNonYSupports") is not None else True)
     cfg["convertDensityKgM3ToKgCm3"] = _truthy(cfg.get("convertDensityKgM3ToKgCm3") if cfg.get("convertDensityKgM3ToKgCm3") is not None else True)
     cfg["disableCiiSupportTagPopulation"] = _truthy(cfg.get("disableCiiSupportTagPopulation", False))
+    # Mode B source ranges (or none) for this run's island join; reset on every
+    # load because the browser keeps the module between runs.
+    base.configure_mode_b_sources(cfg.get("modeB"))
     return cfg
 
 

@@ -120,6 +120,22 @@ function validateTopologyOptions(sourceKind, options) {
   return '';
 }
 
+function modeBStagedSourcesValue(value) {
+  if (value == null) return { ok: true, value: [] };
+  if (!Array.isArray(value)) return { ok: false, error: 'modeBStagedSources must be an array.' };
+  const out = [];
+  for (const entry of value) {
+    const minNode = Number(entry?.minNode), maxNode = Number(entry?.maxNode);
+    if (!entry || typeof entry !== 'object' || !String(entry.sourceId || '').trim()
+        || !Number.isSafeInteger(minNode) || !Number.isSafeInteger(maxNode) || minNode <= 0 || maxNode < minNode) {
+      return { ok: false, error: 'modeBStagedSources entries need sourceId, minNode and maxNode.' };
+    }
+    out.push({ sourceId: String(entry.sourceId), fileName: String(entry.fileName || ''), minNode, maxNode,
+      stagedJsonText: String(entry.stagedJsonText ?? '') });
+  }
+  return { ok: true, value: out };
+}
+
 export function normalizeWorkflowJob(job = {}) {
   if (!job || typeof job !== 'object') return { ok: false, error: 'Workflow job must be an object.' };
   const sourceText = String(job.sourceText ?? '');
@@ -129,6 +145,8 @@ export function normalizeWorkflowJob(job = {}) {
   const supportValidation = validateSupportConfigJson(job.supportConfigJson ?? '{}');
   if (!supportValidation.ok) return supportValidation;
   const options = normalizeWorkflowOptions(job.options);
+  const modeBStaged = modeBStagedSourcesValue(job.modeBStagedSources);
+  if (!modeBStaged.ok) return modeBStaged;
   const topologyError = validateTopologyOptions(sourceKind, options);
   if (topologyError) return { ok: false, error: topologyError };
   return { ok: true, job: {
@@ -144,6 +162,7 @@ export function normalizeWorkflowJob(job = {}) {
     weightOverrides: job.weightOverrides && typeof job.weightOverrides === 'object' && !Array.isArray(job.weightOverrides) ? job.weightOverrides : {},
     supportMapperRules: objectArrayValue(job.supportMapperRules),
     sifFacts: objectArrayValue(job.sifFacts),
+    modeBStagedSources: modeBStaged.value,
   } };
 }
 
