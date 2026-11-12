@@ -1,6 +1,7 @@
-# WIP-restraint-trace-20261112 — XML/CII source evidence audit
+# PR408 — XML/CII source evidence audit
 
 - Classification: ENGINEERING_CRITICAL; bounded audit/projection correction only. Native writer, closure, node topology, gap, direction and runtime routing unchanged.
+- PR: https://github.com/reallakshman19/3D_Converters/pull/408 (draft, held). Implementation checkpoint: ad629b296039499559d5598d990783e724ac2a3e.
 - Base: 121b9e372157c140a1e2f0380ff7d68dc7b1437e; branch: fix/xml-cii-restraint-trace-precedence-20261112. Backup checkpoint: 41b1f4303581cb21e375ef9cff953188018865bc. Original source/doc blobs preserved under .backups and log by Git object API equivalent of backup utility (local checkout/network unavailable).
 - Mission: Section 3 source evidence survives raw stripping; Section 7 uses per-member explicit DTXR/DESC/DESCRIPTION then MDSDTXR fallback, suppresses weak GT/ST/PG/LS evidence, isolates same-position supports.
 - Authority: no invented restraints; preserve authored source descriptions, names, gap and NODETYPE evidence; no change to native type codes or source matching. Existing strict source-schema mode retained. Aggregate-only legacy trace remains compatible. Existing native closure independently validates contradictions.
