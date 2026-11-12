@@ -6,6 +6,7 @@ import { classifyFinalRigidWeightError, configuredFinalRigidErrorThreshold, form
 import { parseFinalCiiRigidInventory } from '../xml-cii-final-rigid-inventory.js';
 import { buildFrozenCiiRunPackage, verifyFrozenCiiRunPackage }
   from '../xml-cii-frozen-run-package.js';
+import { modeBStagedSourcesForRun } from '../xml-cii-workflow-ui-adapter.js';
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;')
   .replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -297,7 +298,10 @@ export function openFinalRigidWeightReview(result, options = {}) {
         options.getCurrentResult()!==result)
         throw Error('Run changed after the Final Weight Review opened.');
       const bundle=await buildFrozenCiiRunPackage(result,inventory);
-      await verifyFrozenCiiRunPackage(bundle);
+      await verifyFrozenCiiRunPackage(bundle, {
+        modeBStagedSources: options.getModeBStagedSources?.(),
+        stagedJsonText: result.finalRigidReviewEvidence?.stagedJsonText,
+      });
       if(!overlay.isConnected ||
         (typeof options.getCurrentResult==='function' &&
           options.getCurrentResult()!==result))
@@ -310,7 +314,7 @@ export function openFinalRigidWeightReview(result, options = {}) {
       document.body.appendChild(anchor);anchor.click();anchor.remove();
       setTimeout(()=>URL.revokeObjectURL(url),0);
       packageStatus.textContent='VERIFIED CURRENT RUN EXPORTED: '+bundle.currentRun.elementCount+
-        ' ELEMENTs / '+bundle.currentRun.rigidCount+' RIGIDs. Original raw upload and external master binaries are NOT in this package.';
+        ' ELEMENTs / '+bundle.currentRun.rigidCount+' RIGIDs. Original raw upload, external master binaries and staged JSON text are NOT in this package.';
     }catch(error){
       packageStatus.textContent='FROZEN RUN EXPORT REFUSED: '+(error?.message||error)+
         '. Original CII and source review remain unchanged.';
@@ -461,7 +465,8 @@ export function openFinalRigidWeightReview(result, options = {}) {
   return true;
 }
 
-export function createFinalRigidWeightReviewButton(state, getCurrentResult = () => state.result) {
+export function createFinalRigidWeightReviewButton(state, getCurrentResult = () => state.result,
+  getCurrentState = () => state) {
   const available = finalRigidReviewAvailable(state);
   const button = document.createElement('button');
   button.type = 'button';
@@ -475,6 +480,7 @@ export function createFinalRigidWeightReviewButton(state, getCurrentResult = () 
   button.addEventListener('click', () => openFinalRigidWeightReview(state.result, {
     errorThresholdPct: configuredFinalRigidErrorThreshold(state.supportConfigJson),
     getCurrentResult,
+    getModeBStagedSources: () => modeBStagedSourcesForRun(getCurrentState()),
   }));
   return button;
 }

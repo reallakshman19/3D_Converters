@@ -4,6 +4,7 @@ import { createWorkflowDiagnostics, normalizeWorkflowResult } from './xml-cii-wo
 import { applyStandaloneSifFacts } from '../../../tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js';
 import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity.js';
 import { ciiSha256 } from './xml-cii-final-property-reader.js';
+import { captureModeBStagedSources } from './xml-cii-frozen-run-package.js';
 
 function parseSupportConfig(raw) {
   try {
@@ -131,10 +132,8 @@ export async function runXmlCii2019WorkflowService(job, runtime = {}) {
       sourceKind: 'xml',
       engineInputText: parity.xmlText,
       stagedJsonText: factedJob.stagedJsonText || '',
-      // Mode B: which staged JSON closed which source (review MED 6).
-      modeBStagedSources: await Promise.all((Array.isArray(factedJob.modeBStagedSources) ? factedJob.modeBStagedSources : [])
-        .map(async (entry) => ({ sourceId: entry.sourceId, fileName: entry.fileName, minNode: entry.minNode,
-          maxNode: entry.maxNode, stagedJsonSha256: await ciiSha256(entry.stagedJsonText || '') }))),
+      // X3: retain only per-source staged byte lengths, hashes and their run-time seal.
+      ...await captureModeBStagedSources(factedJob.modeBStagedSources),
       supportConfigJson: factedJob.supportConfigJson,
       weightScale: factedJob.options?.kgToNewton === false ? 1 : 10,
       engineInputDigest: parity.evidence.engineInputDigest,
