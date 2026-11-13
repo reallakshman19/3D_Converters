@@ -3,9 +3,9 @@ import {digestUtf8} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {runXmlCii2019StandaloneEngineJob} from '../xml-cii-workflow-engine-client.js';
 import {detectXmlCiiWorkflowSourceKind} from '../xml-cii-workflow-source-detect.js';
 import {updateWorkflowState,updateWorkflowOptions} from './xml-cii-adapted-state.js';
-import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js?v=20261113-x5a-1';
-import {assertXml229P4OriginalFullSelection} from './xml-cii-adapted-p4-verified-weight-panel.js?v=20261113-x5a-1';
-import {startXml229TopologyFreshReview} from './xml229-topology-fresh-review.mjs?v=20261113-x5a-1';
+import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js?v=20261113-x5a-2';
+import {assertXml229P4OriginalFullSelection} from './xml-cii-adapted-p4-verified-weight-panel.js?v=20261113-x5a-2';
+import {startXml229TopologyFreshReview} from './xml229-topology-fresh-review.mjs?v=20261113-x5a-2';
 
 const reviews=new WeakMap();
 const failures=new WeakMap();

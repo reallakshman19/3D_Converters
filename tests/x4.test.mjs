@@ -312,8 +312,8 @@ test('X4 R1.5 every production X4 import is versioned and docs mirrors match', (
   // X5a superseded the combiner and workflow service; other X4 modules did not change.
   const direct = new Map([
     ['mode-b-restraint-conservation.js', '?v=20261113-x4-1'],
-    ['xml-node-offset-combine.js', '?v=20261113-x5a-1'],
-    ['xml-cii-workflow-service.js', '?v=20261113-x5a-1'],
+    ['xml-node-offset-combine.js', '?v=20261113-x5a-2'],
+    ['xml-cii-workflow-service.js', '?v=20261113-x5a-2'],
     ['xml-cii-workflow-types.js', '?v=20261113-x4-1'],
     ['xml-cii-workflow-ui-adapter.js', '?v=20261113-x4-1'],
     ['xml-cii-mode-b-restraint-closure.js', '?v=20261113-x4-1'],

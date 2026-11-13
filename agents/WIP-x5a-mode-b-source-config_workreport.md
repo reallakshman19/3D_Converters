@@ -1,8 +1,8 @@
 # X5a — Mode B source configuration capture (Rule 8 work report)
 
-Branch: `fix/x5a-20261113`  
-Base: `4e95b2ed7241e5b253bb9860bd31663158a69ba9` (explicit card base; not the subsequently advanced main).  
-Classification: engineering-critical conversion workflow custody; disclosure only, no engineering remapping.  
+Branch: `fix/x5a-20261113`
+Base: `4e95b2ed7241e5b253bb9860bd31663158a69ba9` (explicit card base; not the subsequently advanced main).
+Classification: engineering-critical conversion workflow custody; disclosure only, no engineering remapping.
 Status: implementation and local verification complete; independent Oracle/browser review pending.
 
 ## Scope and decisions
@@ -43,3 +43,20 @@ T5 uses an independent expected combined XML literal, legacy-manifest equivalent
 The SHA is stable evidence, not a signature or externally authenticated seal; a modified manifest can recompute it. No load-time hash verification is added in X5a. Only the requested three keys are retained; the separately transported manual restraint facts are not captured or applied by this card. Manifest export contains the requested configuration values and should be handled as source-sensitive engineering data. Raw staged JSON and master rows are not separately captured. Counts do not imply valid or applied engineering edits.
 
 EXACT_NEXT_ACTION: Oracle reviews this single commit, runs the full pinned checkout and browser notice/Run verification, then decides acceptance. Resolve inherited regression failures separately. No main push, PR, merge, force push, deployment, or X5b/X5c changes.
+
+## Review follow-up (fresh Opus 87/100; parent 187b2b80)
+
+- Override disclosure now reports both the number of top-level groups (`overrides`) and the sum of their immediate keys (`overrideEntries`), not a recursive count of fields inside an entry. The UI and structured Run warning use the identical counts. T7 proves a 500-entry group plus one empty group reports 500 entries and two groups.
+- Capture and restored-manifest validation require overrides to be an object of objects, branchLineKeyMap an object and finalizedMatches an array. Missing capture keys default to empty containers; explicit invalid containers (including null, arrays in override groups and scalar groups) refuse. DECISION: explicit `overrides: []` is rejected, not normalized. composeModeASupportConfig copies an explicitly supplied array but does not generate it for absent overrides. The combine refusal and restored-manifest notice explain that empty overrides must use {} rather than []. T8 covers the rejected shapes.
+- Recompute canonical SHA-256 from the three captured keys before counting, including empty configurations. Versioned manifests with missing sourceConfig records, invalid shapes or mismatching digests are flagged MODE_B_SOURCE_CONFIG_INVALID. The restored-state notice displays the named refusal rather than bogus counts; root and v045 Run refuse before invoking the engine. T9 tests both Run paths, tampered content, invalid containers, missing rows and an empty-config digest mismatch. Legacy X4 manifests without any X5a fields remain accepted under the existing X4 checks.
+- A notice immediately beside Save Node Offset Map warns that the downloaded manifest contains the user's override, line-map and finalized weight values and should be shared only with authorized recipients.
+- Trailing whitespace removed from this report. The earlier count-only and no-load-verification descriptions above are historical and superseded by this review follow-up. The SHA remains unsigned and self-contained: a party editing the manifest can recompute it. No external authenticity claim.
+- Bump the existing X5a reverse import chain to 20261113-x5a-2, including both existing deployment mirrors and the previous review's v045 output-review chain. X4 direct modules not changed by X5a retain their single X4 key. Static tests assert the current exact keys; no additional file exclusions. Existing two divergent deployment modules retain their differences. No code remaps or applies captured values.
+
+Fresh requested suites:
+```sh
+node --test tests/x5a.test.mjs tests/x4.test.mjs tests/xml-cii-mode-b-preview-occurrence.test.mjs
+```
+PASS 59/59 (X5a 9, X4 44, preview-occurrence 6). Native CII and combined XML/effective config byte equality remain tested by T5. Both import/mirror checks pass. Tested production/test inventory: 142 changed paths, fingerprint 3df8ba79, matched remote tree exactly before adding this report. No deletion. Browser rendering remains Oracle's responsibility. The earlier X4 R1.5 inherited import failure was repaired in 187b2b80; the broader X3 fixture suite was not rerun for this narrow review.
+
+EXACT_NEXT_ACTION: Oracle reviews this follow-up commit on the same branch. No main push, PR, merge, force push, deployment or X5b/X5c changes.

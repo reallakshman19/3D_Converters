@@ -45,8 +45,8 @@ const sources = (a = configA, b = configB) => [
 ];
 const combine = (inputs = sources()) => combiner.combineXmlWithNodeOffsets(inputs);
 const counts = [
-  { sourceId: 'A', fileName: 'A.xml', sourceOrdinal: 1, overrides: 2, branchLineKeyMap: 1, finalizedMatches: 1 },
-  { sourceId: 'B', fileName: 'B.xml', sourceOrdinal: 2, overrides: 1, branchLineKeyMap: 2, finalizedMatches: 2 },
+  { sourceId: 'A', fileName: 'A.xml', sourceOrdinal: 1, overrides: 2, overrideEntries: 3, branchLineKeyMap: 1, finalizedMatches: 1 },
+  { sourceId: 'B', fileName: 'B.xml', sourceOrdinal: 2, overrides: 1, overrideEntries: 1, branchLineKeyMap: 2, finalizedMatches: 2 },
 ];
 const code = 'MODE_B_SOURCE_CONFIG_NOT_APPLIED';
 const copies = [['root', rootJob, rootRun], ['v045', liveJob, liveRun]];
@@ -109,8 +109,8 @@ test('X5a T3 nonempty config gives visible notice and exact per-source Run warni
   const notice = { hidden: true, textContent: '' };
   ui.updateModeBSourceConfigNotice(notice, combined.manifest);
   assert.equal(notice.hidden, false);
-  assert.match(notice.textContent, /A\.xml \(A\): overrides=2, branchLineKeyMap=1, finalizedMatches=1/);
-  assert.match(notice.textContent, /B\.xml \(B\): overrides=1, branchLineKeyMap=2, finalizedMatches=2/);
+  assert.match(notice.textContent, /A\.xml \(A\): overrides=2 groups, overrideEntries=3, branchLineKeyMap=1, finalizedMatches=1/);
+  assert.match(notice.textContent, /B\.xml \(B\): overrides=1 groups, overrideEntries=1, branchLineKeyMap=2, finalizedMatches=2/);
   const state = stateFor(combined);
   const effective = JSON.parse(state.supportConfigJson);
   assert.equal(effective.overrides, undefined);
@@ -134,6 +134,64 @@ test('X5a T4 legacy X4 manifest without sourceConfig still runs with no new warn
     assert.equal(result.ok, true, result.error);
     assert.equal(result.diagnostics.modeBSourceConfigNotApplied, undefined);
   }
+});
+
+test('X5a T7 counts all entries in large override groups, in notice and Run', async () => {
+  const combined = combine(sources({ overrides: { rigidWeight: Object.fromEntries(Array.from({ length: 500 }, (_, i) => [`node-${i}`, i + 1])), rating: {} } }, {}));
+  const notice = { hidden: true, textContent: '' };
+  ui.updateModeBSourceConfigNotice(notice, combined.manifest);
+  assert.equal(notice.hidden, false);
+  assert.match(notice.textContent, /overrides=2 groups, overrideEntries=500/);
+  for (const [, build, run] of copies) {
+    const result = await run(await build(stateFor(combined)), runtime());
+    assert.equal(result.ok, true, result.error);
+    const warning = result.diagnostics.modeBSourceConfigNotApplied;
+    assert.equal(warning.sources[0].overrides, 2);
+    assert.equal(warning.sources[0].overrideEntries, 500);
+    assert.equal(warning.sources[1].overrideEntries, 0);
+    assert.equal(warning.message, notice.textContent);
+  }
+});
+
+test('X5a T8 invalid capture containers refuse, including explicit empty array', () => {
+  for (const cfg of [{ overrides: [] }, { overrides: { rigidWeight: 'bad' } }, { overrides: { rigidWeight: [] } },
+    { overrides: null }, { linelist: { branchLineKeyMap: 'bad' } }, { weight: { finalizedMatches: {} } }]) {
+    assert.throws(() => combine(sources(cfg)), { code: 'MODE_B_SOURCE_CONFIG_INVALID' });
+  }
+  assert.throws(() => combine(sources({ overrides: [] })), /use \{\}, not \[\], for empty overrides/);
+});
+
+test('X5a T9 restored or tampered manifests flag invalid types and digest before Run', async () => {
+  const change = [
+    row => { row.sourceConfig.overrides = 'bad'; },
+    row => { row.sourceConfig.overrides.rigidWeight = []; },
+    row => { row.sourceConfig.branchLineKeyMap = 'bad'; },
+    row => { row.sourceConfig.finalizedMatches = 'bad'; },
+    row => { row.sourceConfig.sha256 = '0'.repeat(64); },
+    row => { row.sourceConfig.overrides.rigidWeight['/INVENTED-A::10'] = 999; },
+    row => { delete row.sourceConfig; },
+  ];
+  for (const mutate of change) {
+    const combined = JSON.parse(JSON.stringify(combine()));
+    mutate(combined.manifest.sourceOrder[0]);
+    const notice = { hidden: true, textContent: '' };
+    ui.updateModeBSourceConfigNotice(notice, combined.manifest);
+    assert.equal(notice.hidden, false);
+    assert.match(notice.textContent, /^MODE_B_SOURCE_CONFIG_INVALID:/);
+    assert.doesNotMatch(notice.textContent, /overrideEntries=/);
+    for (const [, build, run] of copies) {
+      let engineCalled = false;
+      const result = await run(await build(stateFor(combined)), runtime(async () => { engineCalled = true; return { ok: true }; }));
+      assert.equal(result.ok, false);
+      assert.match(result.error, /^MODE_B_SOURCE_CONFIG_INVALID:/);
+      assert.equal(engineCalled, false);
+    }
+  }
+  const empty = combine(sources({}, {}));
+  empty.manifest.sourceOrder[0].sourceConfig.sha256 = '0'.repeat(64);
+  const notice = { hidden: true, textContent: '' };
+  ui.updateModeBSourceConfigNotice(notice, empty.manifest);
+  assert.match(notice.textContent, /^MODE_B_SOURCE_CONFIG_INVALID:/);
 });
 
 const repo = new URL('../', import.meta.url);
@@ -176,8 +234,8 @@ test('X5a T6 all production importers in the X5a chain are versioned and docs mi
   // Preserve X4's direct-import contract in the broader X5a graph check too.
   const x4Direct = new Map([
     ['mode-b-restraint-conservation.js', '?v=20261113-x4-1'],
-    ['xml-node-offset-combine.js', '?v=20261113-x5a-1'],
-    ['xml-cii-workflow-service.js', '?v=20261113-x5a-1'],
+    ['xml-node-offset-combine.js', '?v=20261113-x5a-2'],
+    ['xml-cii-workflow-service.js', '?v=20261113-x5a-2'],
     ['xml-cii-workflow-types.js', '?v=20261113-x4-1'],
     ['xml-cii-workflow-ui-adapter.js', '?v=20261113-x4-1'],
     ['xml-cii-mode-b-restraint-closure.js', '?v=20261113-x4-1'],
@@ -205,7 +263,7 @@ test('X5a T6 all production importers in the X5a chain are versioned and docs mi
   for (const [path, matches] of refs) for (const m of matches) {
     const directVersion = x4Direct.get(posix.basename(m.target));
     if (directVersion) assert.equal(m.version, directVersion, `${path}: ${m.target}`);
-    if (changed.has(m.target)) assert.equal(m.version, '?v=20261113-x5a-1', `${path}: ${m.target}`);
+    if (changed.has(m.target)) assert.equal(m.version, '?v=20261113-x5a-2', `${path}: ${m.target}`);
   }
   const divergentAtBase = new Set(['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a.js', 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js']);
   for (const path of changed) {

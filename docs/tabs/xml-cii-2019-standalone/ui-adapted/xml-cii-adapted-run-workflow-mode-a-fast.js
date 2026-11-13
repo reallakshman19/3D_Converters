@@ -1,4 +1,4 @@
-import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261113-x5a-1';
+import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261113-x5a-2';
 import {hasOriginalJsonSourceOnlyRunHold} from '../xml-cii-output-run-readiness.js';
 import {
   activateModeASource,

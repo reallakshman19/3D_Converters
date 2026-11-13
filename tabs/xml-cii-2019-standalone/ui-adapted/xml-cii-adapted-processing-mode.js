@@ -1,4 +1,4 @@
-import { modeBSupportConfigBlock, modeBStagedSourcesFromManifest } from '../../../converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261113-x5a-1';
+import { modeBSupportConfigBlock, modeBStagedSourcesFromManifest } from '../../../converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261113-x5a-2';
 import { commonModeASupportConfig } from '../xml-cii-mode-a-batch.js?v=20260930-issue781-branch-scope-1';
 import { clearModeASourceCaches, replaceModeAState } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-2';
 

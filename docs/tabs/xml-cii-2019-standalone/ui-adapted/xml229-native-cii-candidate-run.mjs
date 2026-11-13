@@ -8,7 +8,7 @@ import {readTextFile,enrichSupportConfigJson,workflowOptionsFromState,sourceName
 import {runXmlCii2019StandaloneEngineJob}
  from '../xml-cii-workflow-engine-client.js';
 import {resolveXml229NativeCandidateSource} from './xml229-native-source-custody.mjs';
-import {getXml229NativeJsonReattachment} from './xml229-native-json-reattach.mjs?v=20261113-x5a-1';
+import {getXml229NativeJsonReattachment} from './xml229-native-json-reattach.mjs?v=20261113-x5a-2';
 import {reconcileXml229ActualCiiAgainstFinal}
  from '../../../converters/xml-cii2019-core/xml229-native-cii-independent-reconciliation.mjs';
 import {requireXml229NativeOwnerPreflight} from './xml229-native-owner-preflight.mjs';

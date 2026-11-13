@@ -8,13 +8,13 @@ import {openIndexedPageRecordStore} from '../../../lfj/storage/browser/indexed-p
 import {createLfjSourceProgress,advanceLfjSourceProgress,mountLfjSourceProgress,updateLfjSourceProgress} from './xml-cii-adapted-lfj-o1-progress.js';
 import {SOURCE_WORKER_SCHEMA,O1_SOURCE_MAX_BYTES} from '../../../lfj/ports/source-worker-port.mjs';
 import {startLfjO1Domain,exportLfjO1Csv,mountLfjO1DomainUi,revokeLfjO1Domain} from './xml-cii-adapted-lfj-o1-domain-ui.js';
-import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js?v=20261113-x5a-1';
+import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js?v=20261113-x5a-2';
 import {detectXmlCiiWorkflowSourceKind} from '../xml-cii-workflow-source-detect.js';
 import {refreshResolverHierarchyScopeControl} from './xml-cii-adapted-resolver-scope.js';
 import {
   createXml229StagedSourceIntent,advanceXml229StagedSourceReceipt,
 } from '../integration/xml229-staged-source-receipt.mjs';
-import {refreshXml229StagedSourceBadge} from './xml-cii-adapted-phase-panels.js?v=20261113-x5a-1';
+import {refreshXml229StagedSourceBadge} from './xml-cii-adapted-phase-panels.js?v=20261113-x5a-2';
 
 const sessions=new WeakMap();
 const SCOPE_SCHEMA='LFJ.O1.HierarchyScopes.v1';

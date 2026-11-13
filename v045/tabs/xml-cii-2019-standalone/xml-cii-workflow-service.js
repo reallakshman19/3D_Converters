@@ -1,5 +1,5 @@
-import { withModeBSourceConfigWarning } from '../../../converters/xml-cii2019-core/mode-b-source-config.js?v=20261113-x5a-1';
-import { assertModeBRunRestraints, assertModeBRunResult } from '../../../converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261113-x5a-1';
+import { modeBSourceConfigWarning, withModeBSourceConfigWarning } from '../../../converters/xml-cii2019-core/mode-b-source-config.js?v=20261113-x5a-2';
+import { assertModeBRunRestraints, assertModeBRunResult } from '../../../converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261113-x5a-2';
 import { enrichInputXmlDocument } from './xml-cii-inputxml-enrichment.js';
 import { runXmlCii2019StandaloneEngineJob } from './xml-cii-workflow-engine-client.js';
 import { createWorkflowDiagnostics, normalizeWorkflowResult } from './xml-cii-workflow-types.js?v=20261113-x4-1';
@@ -161,6 +161,7 @@ async function runWorkflow(job, runtime) {
 }
 
 export async function runXmlCii2019WorkflowService(job, runtime = {}) {
+  modeBSourceConfigWarning(job.modeBManifest);
   const result = await runWorkflow(job, runtime);
   return withModeBSourceConfigWarning(result, job.modeBManifest);
 }

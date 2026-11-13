@@ -1,7 +1,7 @@
-import { renderModeBXmlExport } from './xml-cii-adapted-mode-b-xml-export.js?v=20261113-x5a-1';
-import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261113-x5a-1';
-import { renderActivePhase as renderBranchScopedPhase } from './xml-cii-adapted-phase-panels-branch-scope.js?v=20261113-x5a-1';
-import { renderActivePhase as renderSmartPhase } from './xml-cii-adapted-phase-panels-smart.js?v=20261113-x5a-1';
+import { renderModeBXmlExport } from './xml-cii-adapted-mode-b-xml-export.js?v=20261113-x5a-2';
+import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261113-x5a-2';
+import { renderActivePhase as renderBranchScopedPhase } from './xml-cii-adapted-phase-panels-branch-scope.js?v=20261113-x5a-2';
+import { renderActivePhase as renderSmartPhase } from './xml-cii-adapted-phase-panels-smart.js?v=20261113-x5a-2';
 import { renderModeABatchResults, renderModeASourceInventory } from './xml-cii-adapted-mode-a-panel.js?v=20261001-weight-output-2';
 import { createElement } from './xml-cii-adapted-dom.js?v=20260813-mode-a-full-propagation-2';
 import { getAdaptedWorkflowPhase } from './xml-cii-adapted-phase-registry.js?v=20260813-mode-a-full-propagation-2';
@@ -11,8 +11,8 @@ import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolv
 import {
   renderStandaloneDiagnosticsReportPanel,
   renderStandalonePreviewReportPanel,
-} from './xml-cii-adapted-preview-diagnostics-audit-v7.js?v=20261113-x5a-1';
-import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js?v=20261113-x5a-1';
+} from './xml-cii-adapted-preview-diagnostics-audit-v7.js?v=20261113-x5a-2';
+import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js?v=20261113-x5a-2';
 import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propagation-audit.js?v=20261001-weight-output-2';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js?v=20260813-mode-a-full-propagation-2';
 import {

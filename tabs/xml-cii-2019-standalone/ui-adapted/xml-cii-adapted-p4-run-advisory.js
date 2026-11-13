@@ -3,7 +3,7 @@
  * inside the existing P4 Worker-held GC-PW source session.
  */
 import {getXml229CurrentWorkerHeldReview}
- from './xml-cii-adapted-p4-verified-weight-panel.js?v=20261113-x5a-1';
+ from './xml-cii-adapted-p4-verified-weight-panel.js?v=20261113-x5a-2';
 export function installXml229P4RunAdvisory(parent,stateRef,{resolveReview=()=>
  getXml229CurrentWorkerHeldReview(stateRef)}={}){
  if(!parent)return;

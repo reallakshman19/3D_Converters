@@ -1,4 +1,4 @@
-import { captureModeBSourceConfig } from './mode-b-source-config.js?v=20261113-x5a-1';
+import { captureModeBSourceConfig } from './mode-b-source-config.js?v=20261113-x5a-2';
 import { captureModeBSourceRestraints, assertModeBRestraintsConserved, assertModeBRunXmlRestraintsPreserved, modeBRestraintRefusal } from './mode-b-restraint-conservation.js?v=20261113-x4-1';
 
 const name = (node) => String(node?.localName || node?.nodeName || '').replace(/^.*:/, '');

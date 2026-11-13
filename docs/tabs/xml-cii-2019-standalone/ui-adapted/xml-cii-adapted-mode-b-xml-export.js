@@ -1,8 +1,8 @@
-import { modeBSourceConfigWarning } from '../../../converters/xml-cii2019-core/mode-b-source-config.js?v=20261113-x5a-1';
-import { combineXmlWithNodeOffsets } from '../../../converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261113-x5a-1';
+import { modeBSourceConfigWarning } from '../../../converters/xml-cii2019-core/mode-b-source-config.js?v=20261113-x5a-2';
+import { combineXmlWithNodeOffsets } from '../../../converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261113-x5a-2';
 import { createElement } from './xml-cii-adapted-dom.js';
 import { modeAExecutionRows, modeARawState } from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-2';
-import { xmlCiiProcessingMode, selectXmlCiiProcessingMode, loadXmlCiiSingleSource } from './xml-cii-adapted-processing-mode.js?v=20261113-x5a-1';
+import { xmlCiiProcessingMode, selectXmlCiiProcessingMode, loadXmlCiiSingleSource } from './xml-cii-adapted-processing-mode.js?v=20261113-x5a-2';
 
 function download(value, filename, type) {
   const url = URL.createObjectURL(new Blob([value], { type }));
@@ -65,7 +65,8 @@ function renderCombineControls(panel, stateRef, render) {
   const status = createElement('div', 'Choose the XML basis and combine to inspect source offsets.', 'model-converters-workflow-detail-note');
   status.dataset.modeBStatus = 'true';
   const table = createElement('pre'); table.dataset.modeBOffsets = 'true';
-  panel.append(basisLabel, offsetLabel, build, save, manifest, use, status, table);
+  const privacy = createElement('span', 'The downloaded map contains your override, line-map and finalized weight values. Share it only with authorized recipients.', 'model-converters-workflow-detail-note');
+  panel.append(basisLabel, offsetLabel, build, save, manifest, privacy, use, status, table);
   const notice = createModeBSourceConfigNotice(panel);
   let result = null;
   const clear = () => { result = null; save.disabled = true; manifest.disabled = true; use.disabled = true; table.textContent = ''; updateModeBSourceConfigNotice(notice, null); };
@@ -119,7 +120,13 @@ function createModeBSourceConfigNotice(panel) {
 }
 
 export function updateModeBSourceConfigNotice(notice, manifest) {
-  const warning = modeBSourceConfigWarning(manifest);
-  notice.textContent = warning?.message || '';
-  notice.hidden = !warning;
+  try {
+    const warning = modeBSourceConfigWarning(manifest);
+    notice.textContent = warning?.message || '';
+    notice.hidden = !warning;
+  } catch (error) {
+    if (error?.code !== 'MODE_B_SOURCE_CONFIG_INVALID') throw error;
+    notice.textContent = error.message;
+    notice.hidden = false;
+  }
 }

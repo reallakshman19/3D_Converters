@@ -2,9 +2,9 @@ import { detectXmlCiiWorkflowSourceKind } from '../../../../tabs/xml-cii-2019-st
 import { openStandaloneAllRigidWeightInventory } from './xml-cii-adapted-all-rigid-weight-inventory.js';
 import { xmlCiiEnrichedConfigFromState } from './xml-cii-adapted-state.js';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
-import { bindAdaptedWorkflowEvents as bindBaseAdaptedWorkflowEvents } from './xml-cii-adapted-events.js?v=20261113-x5a-1';
+import { bindAdaptedWorkflowEvents as bindBaseAdaptedWorkflowEvents } from './xml-cii-adapted-events.js?v=20261113-x5a-2';
 import { installRigidSmartFillDashboard } from '../../../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-rigid-smart-fill-ui.js?v=20261001-single-weight-owners-1';
-import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261113-x5a-1';
+import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261113-x5a-2';
 
 installRigidSmartFillDashboard();
 

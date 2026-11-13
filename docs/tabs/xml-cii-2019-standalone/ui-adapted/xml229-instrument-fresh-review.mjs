@@ -7,9 +7,9 @@ const key=r=>JSON.stringify([r.branchOccurrenceIndex,r.sourceNodeOrdinal]);
 
 async function productionPorts(){
  const [panel,intake,state,mode,authority,scope,caches]=await Promise.all([
-  import('./xml-cii-adapted-p4-verified-weight-panel.js?v=20261113-x5a-1'),
-  import('./xml-cii-adapted-lfj-o1-intake.js?v=20261113-x5a-1'),import('./xml-cii-adapted-state.js'),
-  import('./xml-cii-adapted-processing-mode.js?v=20261113-x5a-1'),
+  import('./xml-cii-adapted-p4-verified-weight-panel.js?v=20261113-x5a-2'),
+  import('./xml-cii-adapted-lfj-o1-intake.js?v=20261113-x5a-2'),import('./xml-cii-adapted-state.js'),
+  import('./xml-cii-adapted-processing-mode.js?v=20261113-x5a-2'),
   import('../integration/xml229-engineering-basis-authority.mjs'),
   import('../xml-cii-branch-scope.js'),import('./xml-cii-adapted-mode-a-state.js'),
  ]);

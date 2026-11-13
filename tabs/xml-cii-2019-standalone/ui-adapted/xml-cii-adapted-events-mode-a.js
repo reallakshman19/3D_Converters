@@ -1,4 +1,4 @@
-import { bindAdaptedWorkflowEvents as bindSmartWorkflowEvents } from './xml-cii-adapted-events-smart.js?v=20261113-x5a-1';
+import { bindAdaptedWorkflowEvents as bindSmartWorkflowEvents } from './xml-cii-adapted-events-smart.js?v=20261113-x5a-2';
 import { downloadTextFile } from './xml-cii-adapted-dom.js?v=20260813-mode-a-full-propagation-2';
 import { activateModeASource, normalizeModeABatchState } from '../xml-cii-mode-a-batch.js?v=20260813-mode-a-full-propagation-2';
 import {
@@ -9,10 +9,10 @@ import {
   updateModeASource,
 } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-2';
 import { modeABatchArtifactValue } from './xml-cii-adapted-mode-a-panel.js?v=20261001-weight-output-2';
-import { runModeABatchFromUi } from './xml-cii-adapted-run-workflow-mode-a.js?v=20261113-x5a-1';
-import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261113-x5a-1';
+import { runModeABatchFromUi } from './xml-cii-adapted-run-workflow-mode-a.js?v=20261113-x5a-2';
+import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261113-x5a-2';
 import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js?v=20260813-mode-a-full-propagation-2';
-import { xmlCiiProcessingMode, loadXmlCiiSingleSource } from './xml-cii-adapted-processing-mode.js?v=20261113-x5a-1';
+import { xmlCiiProcessingMode, loadXmlCiiSingleSource } from './xml-cii-adapted-processing-mode.js?v=20261113-x5a-2';
 import {
   buildModeADiagnosticsAggregate,
   createModeABatchSharedRef,
