@@ -1,6 +1,6 @@
 /** Second Run-stage Weight dialog. Zero is a displayed default, never an implicit Final. */
 import {commitXml229SelectedAppliedWeight} from './xml229-p4-applied-weight-owner-selection.mjs';
-import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
+import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js?v=20261113-x5a-1';
 import {hasXml229GovernedNativeHold,isXml229XmlOnlyApproved} from '../integration/xml229-output-participation.mjs';
 import {hasXml229PreviewJsonSource} from './xml229-preview-json-source.mjs';
 import {isXml229VerifiedReviewCompletionForInput} from '../integration/xml229-live-preview-restoration.mjs';

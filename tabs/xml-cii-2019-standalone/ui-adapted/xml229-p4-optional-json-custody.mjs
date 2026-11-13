@@ -1,7 +1,7 @@
 /** Resolve optional input custody without fabricating a JSON receipt or widening Mode B. */
 import {digestUtf8} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {hasXml229PreviewJsonSource} from './xml229-preview-json-source.mjs';
-import {resolveXml229CurrentPreviewBlob} from './xml-cii-adapted-lfj-o1-intake.js';
+import {resolveXml229CurrentPreviewBlob} from './xml-cii-adapted-lfj-o1-intake.js?v=20261113-x5a-1';
 const deny=(code,message)=>{throw Object.assign(new Error(message),{code});};
 export async function resolveXml229OptionalReviewCustody(raw,view,baseRef){
   if(raw?.xmlProcessingMode==='mode-b')deny('ORIGINAL_MODE_B_SCOPE_NOT_SUPPORTED',

@@ -11,7 +11,7 @@ import { installPreviewB313WallUpdateAuditController } from './xml-cii-adapted-p
 import { installPreviewB313AutoBasisPanel } from './xml-cii-adapted-preview-b313-auto-basis.js?v=20261001-weight-output-2';
 import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20261001-weight-output-2';
 import {openXml229P4VerifiedSession,getXml229CurrentWorkerHeldReview}
- from './xml-cii-adapted-p4-verified-weight-panel.js';
+ from './xml-cii-adapted-p4-verified-weight-panel.js?v=20261113-x5a-1';
 import {readXml229LivePreviewForCurrentInput}
  from '../integration/xml229-live-preview-restoration.mjs';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
@@ -21,7 +21,7 @@ import {
   xmlCiiEnrichedConfigFromState,
 } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 
-import {resolveXml229CurrentPreviewBlob} from './xml-cii-adapted-lfj-o1-intake.js';
+import {resolveXml229CurrentPreviewBlob} from './xml-cii-adapted-lfj-o1-intake.js?v=20261113-x5a-1';
 import {hasXml229PreviewJsonSource} from './xml229-preview-json-source.mjs';
 import {xmlCiiBranchScopeFromState} from '../xml-cii-branch-scope.js';
 

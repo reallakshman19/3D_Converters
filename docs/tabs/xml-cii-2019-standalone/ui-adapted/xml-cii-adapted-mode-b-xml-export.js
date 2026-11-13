@@ -1,7 +1,8 @@
-import { combineXmlWithNodeOffsets } from '../../../converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261113-x4-1';
+import { modeBSourceConfigWarning } from '../../../converters/xml-cii2019-core/mode-b-source-config.js?v=20261113-x5a-1';
+import { combineXmlWithNodeOffsets } from '../../../converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261113-x5a-1';
 import { createElement } from './xml-cii-adapted-dom.js';
 import { modeAExecutionRows, modeARawState } from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-2';
-import { xmlCiiProcessingMode, selectXmlCiiProcessingMode, loadXmlCiiSingleSource } from './xml-cii-adapted-processing-mode.js?v=20261113-x4-1';
+import { xmlCiiProcessingMode, selectXmlCiiProcessingMode, loadXmlCiiSingleSource } from './xml-cii-adapted-processing-mode.js?v=20261113-x5a-1';
 
 function download(value, filename, type) {
   const url = URL.createObjectURL(new Blob([value], { type }));
@@ -36,6 +37,10 @@ export function renderModeBXmlExport(parent, stateRef, render) {
   parent.appendChild(panel);
   if (mode !== 'mode-b') {
     panel.appendChild(createElement('p', mode === 'single' ? 'Load one XML and run one model.' : 'Load multiple XMLs and run each as a separate model.'));
+    if (mode === 'single') {
+      const notice = createModeBSourceConfigNotice(panel);
+      updateModeBSourceConfigNotice(notice, state.modeBManifest);
+    }
     return;
   }
   panel.appendChild(createElement('p', 'Mode B prepares one combined XML. Use it in Single mode to preview, review weights and run conversion.'));
@@ -61,11 +66,13 @@ function renderCombineControls(panel, stateRef, render) {
   status.dataset.modeBStatus = 'true';
   const table = createElement('pre'); table.dataset.modeBOffsets = 'true';
   panel.append(basisLabel, offsetLabel, build, save, manifest, use, status, table);
+  const notice = createModeBSourceConfigNotice(panel);
   let result = null;
-  const clear = () => { result = null; save.disabled = true; manifest.disabled = true; use.disabled = true; table.textContent = ''; };
+  const clear = () => { result = null; save.disabled = true; manifest.disabled = true; use.disabled = true; table.textContent = ''; updateModeBSourceConfigNotice(notice, null); };
   basis.addEventListener('change', clear); offset.addEventListener('input', clear);
   bindCombineAction(build, stateRef, basis, offset, status, table, clear, (next) => {
     result = next; save.disabled = false; manifest.disabled = false; use.disabled = false;
+    updateModeBSourceConfigNotice(notice, result.manifest);
   });
   save.addEventListener('click', () => { if (result) download(result.xmlText, 'Mode-B-combined.xml', 'application/xml'); });
   manifest.addEventListener('click', () => { if (result) download(JSON.stringify(result.manifest, null, 2), 'Mode-B-node-offset-map.json', 'application/json'); });
@@ -81,12 +88,7 @@ function bindCombineAction(build, stateRef, basis, offset, status, table, clear,
   build.addEventListener('click', () => {
     clear();
     try {
-      const sources = modeAExecutionRows(stateRef).map((entry) => {
-        const xmlText = basis.value === 'enriched' ? entry.state.result?.enrichedText : entry.state.sourceText;
-        if (!xmlText) throw new Error(`${entry.source.fileName}: no current enriched output; run this source first or choose Source XML.`);
-        return { sourceId: entry.source.sourceId, fileName: entry.source.fileName, xmlText, basis: basis.value,
-          stagedJsonText: entry.state.stagedJsonText || '' };
-      });
+      const sources = modeBCombineSources(stateRef, basis.value);
       const result = { ...combineXmlWithNodeOffsets(sources, { offsetStep: Number(offset.value) }),
         stagedTexts: sources.map((source) => source.stagedJsonText) };
       status.textContent = `Combined ${result.manifest.sourceCount} XML files. Header from ${result.manifest.headerSource}. Ready to save.`;
@@ -94,4 +96,30 @@ function bindCombineAction(build, stateRef, basis, offset, status, table, clear,
       release(result);
     } catch (error) { status.textContent = `Cannot combine XML: ${error.message}`; }
   });
+}
+
+// Snapshot the enabled execution rows, not the shared/current source config.
+export function modeBCombineSources(stateRef, basis) {
+  return modeAExecutionRows(stateRef).map((entry) => {
+    const xmlText = basis === 'enriched' ? entry.state.result?.enrichedText : entry.state.sourceText;
+    if (!xmlText) throw new Error(`${entry.source.fileName}: no current enriched output; run this source first or choose Source XML.`);
+    return { sourceId: entry.source.sourceId, fileName: entry.source.fileName, xmlText, basis,
+      stagedJsonText: entry.state.stagedJsonText || '', supportConfigJson: entry.state.supportConfigJson || '{}' };
+  });
+}
+
+function createModeBSourceConfigNotice(panel) {
+  const notice = createElement('div', '', 'model-converters-workflow-detail-note');
+  notice.dataset.modeBSourceConfigNotice = 'true';
+  notice.setAttribute('role', 'status');
+  Object.assign(notice.style, { color: '#fbbf24', whiteSpace: 'pre-wrap' });
+  notice.hidden = true;
+  panel.appendChild(notice);
+  return notice;
+}
+
+export function updateModeBSourceConfigNotice(notice, manifest) {
+  const warning = modeBSourceConfigWarning(manifest);
+  notice.textContent = warning?.message || '';
+  notice.hidden = !warning;
 }

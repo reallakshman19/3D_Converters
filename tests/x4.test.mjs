@@ -321,7 +321,9 @@ test('X4 R1.5 every production X4 import is versioned and docs mirrors match', (
         const content = readFileSync(new URL(path, repo));
         for (const match of content.toString().matchAll(references)) {
           if (!direct.has(match[2].split('/').at(-1))) continue;
-          assert.equal(match[3], '?v=20261113-x4-1', `${path}: ${match[2]}`);
+          const version = ['xml-node-offset-combine.js', 'xml-cii-workflow-service.js'].includes(match[2].split('/').at(-1))
+            ? '?v=20261113-x5a-1' : '?v=20261113-x4-1';
+          assert.equal(match[3], version, `${path}: ${match[2]}`);
           checked.add(path);
         }
         const mirror = new URL('docs/' + path, repo);

@@ -1,6 +1,6 @@
 /** Run-stage automatic unresolved Final review offer, never automatic acceptance. */
-import {openXml229RunUnresolvedMassPopup} from './xml229-run-unresolved-mass-popup.mjs';
-import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js';
+import {openXml229RunUnresolvedMassPopup} from './xml229-run-unresolved-mass-popup.mjs?v=20261113-x5a-1';
+import {getXml229CurrentWorkerHeldReview} from './xml-cii-adapted-p4-verified-weight-panel.js?v=20261113-x5a-1';
 
 // One automatic offer per source-verified Worker across Run re-renders.
 const offered=new WeakSet();

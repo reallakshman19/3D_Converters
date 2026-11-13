@@ -3,7 +3,7 @@ import {installXml229TopoFixFreshStartControl} from './xml229-topofix-fresh-work
 import {canXml229AutoCommitSuggestedFinal} from '../integration/xml229-topofix-fresh-worker-handoff.mjs';
 import {xml229P4ConfigEquivalent as configEquivalent} from './xml229-p4-config-equivalence.mjs';
 import {renderXml229VerifiedPanelShell} from './xml229-p4-panel-shell.mjs';
-import {resolveXml229OptionalReviewCustody} from './xml229-p4-optional-json-custody.mjs';
+import {resolveXml229OptionalReviewCustody} from './xml229-p4-optional-json-custody.mjs?v=20261113-x5a-1';
 import {xmlCiiEnrichedConfigFromState} from './xml-cii-adapted-state.js';
 import {materializeXmlCiiDatasetBackedConfig} from '../xml-cii-dataset-backed-config.js';
 import {resolveXml229FourMasterCustody} from '../integration/xml229-four-master-custody.mjs';

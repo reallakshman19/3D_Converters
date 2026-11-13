@@ -3,7 +3,7 @@
  */
 import {digestUtf8} from '../../../contracts/gc-pw-v1/contract.mjs';
 import {getXml229CurrentWorkerHeldReview}
- from './xml-cii-adapted-p4-verified-weight-panel.js';
+ from './xml-cii-adapted-p4-verified-weight-panel.js?v=20261113-x5a-1';
 
 const bound=new WeakMap();
 const fail=code=>{const e=new Error(code);e.code=code;throw e;};

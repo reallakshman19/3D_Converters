@@ -5,7 +5,7 @@
  */
 import {getXml229CurrentWorkerHeldReview,openXml229P4VerifiedSession,
  resolveXml229P4ProductionInputs}
- from './xml-cii-adapted-p4-verified-weight-panel.js';
+ from './xml-cii-adapted-p4-verified-weight-panel.js?v=20261113-x5a-1';
 
 export function installXml229P4PreviewBridge(container,stateRef,{
  resolveInputs=()=>resolveXml229P4ProductionInputs(stateRef),

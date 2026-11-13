@@ -1,3 +1,4 @@
+import { captureModeBSourceConfig } from './mode-b-source-config.js?v=20261113-x5a-1';
 import { captureModeBSourceRestraints, assertModeBRestraintsConserved, assertModeBRunXmlRestraintsPreserved, modeBRestraintRefusal } from './mode-b-restraint-conservation.js?v=20261113-x4-1';
 
 const name = (node) => String(node?.localName || node?.nodeName || '').replace(/^.*:/, '');
@@ -67,10 +68,11 @@ export function combineXmlWithNodeOffsets(sources, { offsetStep = 100000 } = {})
     previousMaximum = Math.max(previousMaximum, plan.outputMaximum);
     records.push({ sourceId: entry.source.sourceId || '', fileName: entry.source.fileName,
       basis: entry.source.basis || 'source', offset: plan.offset, positiveIdCount: entry.positive.size,
-      pipeCount: entry.pipes.length, numberMap, restraintInventory: captureModeBSourceRestraints(entry.root) });
+      pipeCount: entry.pipes.length, numberMap, restraintInventory: captureModeBSourceRestraints(entry.root),
+      sourceConfig: captureModeBSourceConfig(entry.source.supportConfigJson, entry.source.fileName) });
   }
   const result = { xmlText: new XMLSerializer().serializeToString(output),
-    manifest: { restraintInventoryVersion: 2, schema: 'xml-node-offset-combine/v1', offsetStep: step, headerSource: sources[0].fileName,
+    manifest: { restraintInventoryVersion: 2, sourceConfigVersion: 1, schema: 'xml-node-offset-combine/v1', offsetStep: step, headerSource: sources[0].fileName,
       sourceCount: records.length, sourceOrder: records, automaticCrossSourceJoins: 0 } };
   assertModeBRestraintsConserved(result.xmlText, result.manifest);
   return result;

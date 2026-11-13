@@ -1,6 +1,6 @@
 /** Single-source Run review routing only; never releases native CII or writes legacy kg maps. */
-import {getXml229CurrentWorkerHeldReview,openXml229P4VerifiedSession} from './xml-cii-adapted-p4-verified-weight-panel.js';
-import {openXml229RunUnresolvedMassPopup} from './xml229-run-unresolved-mass-popup.mjs';
+import {getXml229CurrentWorkerHeldReview,openXml229P4VerifiedSession} from './xml-cii-adapted-p4-verified-weight-panel.js?v=20261113-x5a-1';
+import {openXml229RunUnresolvedMassPopup} from './xml229-run-unresolved-mass-popup.mjs?v=20261113-x5a-1';
 import {isXml229XmlOnlyApproved} from '../integration/xml229-output-participation.mjs';
 import {isXml229VerifiedReviewCompletionForInput} from '../integration/xml229-live-preview-restoration.mjs';
 export async function handleXml229CurrentRunReview(stateRef,render,ports={}){

@@ -1,5 +1,5 @@
 import { createElement } from '../../../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js';
-import { validateSupportConfigJson } from '../xml-cii-workflow-api.js';
+import { validateSupportConfigJson } from '../xml-cii-workflow-api.js?v=20261113-x5a-1';
 import { saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js';
 import { DEFAULT_RESTRAINT_TYPE_MUTATION_ROWS, RESTRAINT_TYPE_MUTATION_INFO, normalizeRestraintTypeMutationRows } from '../../../converters/xml-cii2019-core/restraint-type-mutation.js';
 import { isXmlMaskEnabled, setXmlMaskEnabled } from '../../../../tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js';

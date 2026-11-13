@@ -15,7 +15,7 @@ import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js'
 import { materializeMasterDatasetRows, prepareMasterDatasetWeightBasis, rankMasterDatasetWeightIssues } from './xml-cii-adapted-master-dataset-runtime.js?v=20261007-c05-6-2-consumer-authority-1';
 import { installWeightMatchAuthorityPresentation } from './xml-cii-adapted-weight-match-authority-ui.js?v=20261001-single-weight-owners-1';
 import { readXmlCiiPreviewRatingSnapshot } from '../../../converters/xml-cii2019-core/preview-rating-snapshot.js';
-import {installXml229WorkerHeldWeightPanel} from './xml-cii-adapted-p4-verified-weight-panel.js';
+import {installXml229WorkerHeldWeightPanel} from './xml-cii-adapted-p4-verified-weight-panel.js?v=20261113-x5a-1';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);

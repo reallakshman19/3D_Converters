@@ -1,4 +1,4 @@
-import { validateSupportConfigJson } from '../xml-cii-workflow-api.js';
+import { validateSupportConfigJson } from '../xml-cii-workflow-api.js?v=20261113-x5a-1';
 import { createElement, appendLabeledControl, createOption } from '../../../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js';
 import { getAdaptedWorkflowPhase } from './xml-cii-adapted-phase-registry.js';
 import { renderInputXmlControls, renderSourceControls, renderSourceTextControl, renderStagedJsonControl } from './xml-cii-adapted-controls.js';
@@ -13,7 +13,7 @@ import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propaga
 import { renderUnifiedPhase6WeightReview } from './xml-cii-adapted-phase6-unified-review.js?v=20261111-v045-phase6-r1';
 import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-support-type-mapper.js';
 import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js';
-import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20260713-config-tabs-p7';
+import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20261113-x5a-1';
 import { appendBendRadiusConfigToggle } from './xml-cii-adapted-bend-radius-toggle.js';
 import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js?v=20261113-x4-1';
 

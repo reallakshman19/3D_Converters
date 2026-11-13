@@ -1,4 +1,5 @@
-import { assertModeBRunRestraints, assertModeBRunResult } from '../../converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261113-x4-1';
+import { withModeBSourceConfigWarning } from '../../converters/xml-cii2019-core/mode-b-source-config.js?v=20261113-x5a-1';
+import { assertModeBRunRestraints, assertModeBRunResult } from '../../converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261113-x5a-1';
 import { enrichInputXmlDocument } from './xml-cii-inputxml-enrichment.js';
 import { runXmlCii2019StandaloneEngineJob } from './xml-cii-workflow-engine-client.js?v=20261001-single-weight-owners-1';
 import { createWorkflowDiagnostics, normalizeWorkflowResult } from './xml-cii-workflow-types.js?v=20261113-x4-1';
@@ -141,7 +142,7 @@ async function runBaseXmlWithoutEnrichment(job,runtime,reason,formatAudit=null) 
   return normalized;
 }
 
-export async function runXmlCii2019WorkflowService(job, runtime = {}) {
+async function runWorkflow(job, runtime) {
   const factedJob = applyEffectiveFactsToJob(job);
   assertModeBRunRestraints(factedJob, factedJob.sourceText, 'Run combined source XML');
   if (factedJob.sourceKind === 'inputxml') {
@@ -193,4 +194,9 @@ export async function runXmlCii2019WorkflowService(job, runtime = {}) {
     normalized.diagnostics.converterInputDigest = parity.evidence.engineInputDigest;
   }
   return normalized;
+}
+
+export async function runXmlCii2019WorkflowService(job, runtime = {}) {
+  const result = await runWorkflow(job, runtime);
+  return withModeBSourceConfigWarning(result, job.modeBManifest);
 }
