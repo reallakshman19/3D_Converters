@@ -1,8 +1,8 @@
 import { clearElement, createElement } from './xml-cii-adapted-dom.js?v=20260813-mode-a-full-propagation-2';
 import { XML_CII_WORKFLOW_PHASES } from './xml-cii-adapted-phase-registry.js?v=20260813-mode-a-full-propagation-2';
 import { createXmlCiiAdaptedWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
-import { renderActivePhase } from './xml-cii-adapted-phase-panels-mode-a.js?v=20261001-single-weight-owners-1';
-import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-mode-a.js?v=20261001-single-weight-owners-1';
+import { renderActivePhase } from './xml-cii-adapted-phase-panels-mode-a.js?v=20261113-x4-1';
+import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-mode-a.js?v=20261113-x4-1';
 import { detectXmlCiiWorkflowSourceKind } from '../xml-cii-workflow-source-detect.js?v=20260813-mode-a-full-propagation-2';
 import {
   createXmlCiiBranchScopedStateRef,

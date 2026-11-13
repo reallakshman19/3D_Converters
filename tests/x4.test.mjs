@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { posix } from 'node:path';
 import { assertModeBRestraintsConserved } from '../converters/xml-cii2019-core/mode-b-restraint-conservation.js';
 import { closeGovernedAttaDefaultRestraintsXml } from '../v045/converters/xml-cii2019-core/atta-default-restraint-closure.js';
 import { installWeightBasisXmlDom } from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
@@ -315,7 +315,7 @@ test('X4 R1.5 every production X4 import is versioned and docs mirrors match', (
   const checked = new Set();
   function walk(directory) {
     for (const entry of readdirSync(new URL(directory + '/', repo), { withFileTypes: true })) {
-      const path = join(directory, entry.name);
+      const path = posix.join(directory, entry.name);
       if (entry.isDirectory() && !['backup', 'node_modules', '.bak'].includes(entry.name)) walk(path);
       else if (entry.isFile() && /\.(?:m?js|html)$/.test(entry.name)) {
         const content = readFileSync(new URL(path, repo));
@@ -337,4 +337,42 @@ test('X4 R1.5 every production X4 import is versioned and docs mirrors match', (
     'v045/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-mds-restraints.js']) {
     assert.ok(checked.has(path), path);
   }
+});
+
+// R2 N3: Run parity fills a zero-information LIM placeholder next to a real
+// LIM on the same node; the filled copy duplicates the real one.
+const realLim = '<Restraint><Type>LIM</Type><Stiffness>1.75E12</Stiffness><Gap>0</Gap></Restraint>';
+const placeholderLim = '<Restraint><Type>LIM</Type></Restraint>';
+const n3Sources = () => [
+  { sourceId: 'A', fileName: 'A.xml', xmlText: xml(node(10, realLim + placeholderLim), node(20)) },
+  { sourceId: 'B', fileName: 'B.xml', xmlText: xml(node(10, rB), node(20)) },
+];
+// Only the live (v045) Run applies the parity enricher that fills placeholders.
+for (const [copy, build, run] of copies.filter(([name]) => name === 'v045')) {
+  test(`${copy}: X4 R2 N3 real LIM plus filled placeholder LIM on one node runs`, async () => {
+    const { state } = setup('both', n3Sources());
+    const fill = (x) => x.replace(placeholderLim, realLim);
+    const result = await run(await build(state), runtime((x) => x, fill));
+    assert.equal(result.ok, true, result.error);
+  });
+  test(`${copy}: X4 R2 N3 allowance is one per placeholder and LIM only`, async () => {
+    const { state } = setup('both', n3Sources());
+    refusal(await run(await build(state), runtime((x) => x, (x) => x.replace(placeholderLim, realLim + realLim))));
+    const nonLim = [{ sourceId: 'A', fileName: 'A.xml', xmlText: xml(node(10, rB + placeholderLim), node(20)) },
+      { sourceId: 'B', fileName: 'B.xml', xmlText: xml(node(10, rA), node(20)) }];
+    const { state: s2 } = setup('both', nonLim);
+    refusal(await run(await build(s2), runtime((x) => x, (x) => x.replace(placeholderLim, rB))));
+  });
+}
+
+test('X4 R2 N3 inventory counts placeholders; Run check allows one filled LIM per placeholder', () => {
+  const combined = combineXmlWithNodeOffsets(n3Sources(), { offsetStep: 100000 });
+  assert.equal(combined.manifest.sourceOrder[0].restraintInventory[0].placeholders, 1);
+  assert.equal(combined.manifest.sourceOrder[1].restraintInventory[0].placeholders, undefined);
+  const once = combined.xmlText.replace(placeholderLim, realLim);
+  assertModeBRestraintsConserved(once, combined.manifest, 'Run', { allowAdditions: true });
+  assert.throws(() => assertModeBRestraintsConserved(once, combined.manifest), /MODE_B_RESTRAINT_NOT_CONSERVED/);
+  const twice = combined.xmlText.replace(placeholderLim, realLim + realLim);
+  assert.throws(() => assertModeBRestraintsConserved(twice, combined.manifest, 'Run', { allowAdditions: true }),
+    /unexpected restraint occurrence/);
 });

@@ -1,8 +1,8 @@
 import { validateSupportConfigJson } from '../xml-cii-workflow-api.js?v=20261113-x4-1';
 import { createElement, appendLabeledControl, createOption } from './xml-cii-adapted-dom.js';
 import { getAdaptedWorkflowPhase } from './xml-cii-adapted-phase-registry.js';
-import { renderInputXmlControls, renderSourceControls, renderSourceTextControl, renderStagedJsonControl } from './xml-cii-adapted-controls.js?v=20261001-weight-output-2';
-import { renderStandaloneSourceModePanel, renderDetectionSummary, renderValidityDiagnostics } from './xml-cii-adapted-source-mode.js?v=20261001-weight-output-2';
+import { renderInputXmlControls, renderSourceControls, renderSourceTextControl, renderStagedJsonControl } from './xml-cii-adapted-controls.js?v=20261113-x4-1';
+import { renderStandaloneSourceModePanel, renderDetectionSummary, renderValidityDiagnostics } from './xml-cii-adapted-source-mode.js?v=20261113-x4-1';
 import { renderStandaloneSourcePreviewPanel } from './xml-cii-adapted-source-preview.js';
 import { renderStandaloneImportMastersPanel } from './xml-cii-adapted-import-masters.js?v=20261006-c05-5-5-persistence-retry-1';
 import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js?v=20261001-weight-output-2';
@@ -13,7 +13,7 @@ import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propaga
 import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js?v=20261001-single-weight-owners-1';
 import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-support-type-mapper.js?v=20261001-weight-output-2';
 import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js?v=20261001-weight-output-2';
-import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20261001-single-weight-owners-1';
+import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20261113-x4-1';
 import { appendBendRadiusConfigToggle } from './xml-cii-adapted-bend-radius-toggle.js?v=20261001-weight-output-2';
 import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js?v=20261113-x4-1';
 import { XML229_STAGED_SOURCE_SCHEMA } from '../integration/xml229-staged-source-receipt.mjs';

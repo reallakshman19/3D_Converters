@@ -9,7 +9,11 @@ const value = (node, tag) => children(node, tag)[0]?.textContent?.trim() ?? null
 const DIRECTIONS = ['DirectionCosineX', 'DirectionCosineY', 'DirectionCosineZ'];
 const restraintSignatures = (node) => children(node, 'Restraint')
   .filter((restraint) => !isZeroInformationLimitRestraintElement(restraint)).map(signature);
+// Run parity may fill a zero-information LIM placeholder (e.g. Stiffness),
+// so it can reappear as a real LIM that duplicates one already present.
+const placeholderCount = (node) => children(node, 'Restraint').filter(isZeroInformationLimitRestraintElement).length;
 const DIRECTION_TOLERANCE = 1e-6;
+const LIMIT_TYPES = new Set(['LIM', 'LIMIT', 'LINESTOP']);
 const identityFields = ['ComponentRefNo', 'Endpoint', 'Position', 'ComponentType'];
 const helperIdentity = (node, branch) => [value(branch, 'Branchname'), ...identityFields.map((field) => value(node, field))];
 
@@ -67,8 +71,10 @@ export function captureModeBSourceRestraints(root) {
     const restraints = restraintSignatures(node);
     if (!restraints.length) return [];
     const sourceNumber = nodeNumber(node);
+    const placeholders = placeholderCount(node);
     return [{ sourceNumber, pipeOrdinal, branchOrdinal, nodeOrdinal,
-      ...(sourceNumber <= 0 ? { helperIdentity: helperIdentity(node, branch) } : {}), restraints }];
+      ...(sourceNumber <= 0 ? { helperIdentity: helperIdentity(node, branch) } : {}), restraints,
+      ...(placeholders ? { placeholders } : {}) }];
   }));
 }
 
@@ -102,7 +108,7 @@ function manifestMaps(manifest) {
       numbers.set(sourceNumber, outputNumber);
       owners.set(outputNumber, index);
     }
-    return { source, numbers, index, actual: new Map() };
+    return { source, numbers, index, actual: new Map(), placeholders: new Map() };
   });
   return { sources, owners };
 }
@@ -125,15 +131,25 @@ function indexPipe(pipe, source, owners, pipeOrdinal) {
       throw modeBRestraintRefusal('combined Pipe contains a mapped node from a different source.');
     }
     const restraints = restraintSignatures(node);
-    if (!restraints.length) continue;
+    const placeholders = placeholderCount(node);
+    if (!restraints.length) {
+      // Placeholder-only nodes keep their old leniency; only count them when
+      // the number is valid and owned by this source.
+      const n = /^-?\d+$/.test(raw || '') ? Number(raw) : NaN;
+      if (placeholders && Number.isSafeInteger(n) && (n <= 0 || owner === source.index)) {
+        source.placeholders.set(key(n, pipeOrdinal, branchOrdinal, nodeOrdinal, n <= 0 ? helperIdentity(node, branch) : null), placeholders);
+      }
+      continue;
+    }
     const n = nodeNumber(node);
     // A restrained positive ID outside the exact source map cannot be
     // assigned by range or guessed from its position.
     if (n > 0 && owner !== source.index) {
       throw modeBRestraintRefusal(`source ${source.index + 1}: restrained node ${n} has no source node map entry.`);
     }
-    addRestraints(source.actual, key(n, pipeOrdinal, branchOrdinal, nodeOrdinal,
-      n <= 0 ? helperIdentity(node, branch) : null), restraints);
+    const nodeKey = key(n, pipeOrdinal, branchOrdinal, nodeOrdinal, n <= 0 ? helperIdentity(node, branch) : null);
+    addRestraints(source.actual, nodeKey, restraints);
+    if (placeholders) source.placeholders.set(nodeKey, placeholders);
   }
 }
 
@@ -152,27 +168,30 @@ function indexCombined(xmlText, manifest) {
   return sources;
 }
 
-function expectedInventory({ source, numbers, index }) {
+function expectedInventory({ source, numbers, index }, placeholderCounts = new Map()) {
   const expected = new Map();
   for (const row of source.restraintInventory) {
-    const { sourceNumber, pipeOrdinal, branchOrdinal, nodeOrdinal, restraints, helperIdentity: identity } = row || {};
+    const { sourceNumber, pipeOrdinal, branchOrdinal, nodeOrdinal, restraints, helperIdentity: identity, placeholders = 0 } = row || {};
     if (!Number.isSafeInteger(sourceNumber) || ![pipeOrdinal, branchOrdinal, nodeOrdinal].every((n) => Number.isSafeInteger(n) && n >= 0)
         || pipeOrdinal >= source.pipeCount || (sourceNumber <= 0 && (!Array.isArray(identity) || identity.length !== 5
           || !identity.every((v) => v === null || typeof v === 'string')))
         || !Array.isArray(restraints) || !restraints.length || !restraints.every((r) => Array.isArray(r) && r.length === 5
-          && typeof r[0] === 'string' && r[0] && r.slice(1).every(Number.isFinite))) {
+          && typeof r[0] === 'string' && r[0] && r.slice(1).every(Number.isFinite))
+        || !Number.isSafeInteger(placeholders) || placeholders < 0) {
       throw modeBRestraintRefusal(`source ${index + 1}: invalid restraint inventory row.`);
     }
     const mapped = sourceNumber > 0 ? numbers.get(sourceNumber) : sourceNumber;
     if (mapped === undefined) throw modeBRestraintRefusal(`source ${index + 1}: node ${sourceNumber} is missing from the node map.`);
-    addRestraints(expected, key(mapped, pipeOrdinal, branchOrdinal, nodeOrdinal, identity), restraints);
+    const nodeKey = key(mapped, pipeOrdinal, branchOrdinal, nodeOrdinal, identity);
+    addRestraints(expected, nodeKey, restraints);
+    if (placeholders) placeholderCounts.set(nodeKey, (placeholderCounts.get(nodeKey) || 0) + placeholders);
   }
   return expected;
 }
 
 // Match occurrences one-to-one (not rounded signature buckets). Augmenting
 // paths avoid a false loss when several directions overlap within tolerance.
-function compareNode(expected, actual, label, allowAdditions) {
+function compareNode(expected, actual, label, allowAdditions, placeholderAllowance = 0) {
   const matched = new Array(actual.length).fill(-1);
   function match(i, seen) {
     for (let j = 0; j < actual.length; j += 1) {
@@ -189,17 +208,26 @@ function compareNode(expected, actual, label, allowAdditions) {
   }
   for (let j = 0; j < actual.length; j += 1) {
     if (matched[j] !== -1) continue;
-    if (!allowAdditions || expected.some((sig) => sameSignature(sig, actual[j]))) {
+    const duplicate = expected.some((sig) => sameSignature(sig, actual[j]));
+    // A filled placeholder may duplicate a real LIM; allow at most the number
+    // of placeholders that node carried before Run, and only of a LIM type.
+    if (allowAdditions && duplicate && placeholderAllowance > 0 && LIMIT_TYPES.has(actual[j][0])) {
+      placeholderAllowance -= 1;
+      continue;
+    }
+    if (!allowAdditions || duplicate) {
       throw modeBRestraintRefusal(`${label}: unexpected restraint occurrence ${JSON.stringify(actual[j])}.`);
     }
   }
 }
 
-function compareSource(entry, stage, expected = expectedInventory(entry), allowAdditions = false) {
+function compareSource(entry, stage, expected, allowAdditions = false, placeholders = new Map()) {
+  if (!expected) expected = expectedInventory(entry, placeholders);
   const nodes = new Set([...expected.keys(), ...entry.actual.keys()]);
   for (const nodeKey of nodes) {
     compareNode(expected.get(nodeKey) || [], entry.actual.get(nodeKey) || [],
-      `${stage}: source ${entry.index + 1} (${entry.source.fileName}), combined node ${nodeKey}`, allowAdditions);
+      `${stage}: source ${entry.index + 1} (${entry.source.fileName}), combined node ${nodeKey}`, allowAdditions,
+      placeholders.get(nodeKey) || 0);
   }
 }
 
@@ -212,7 +240,9 @@ export function assertModeBRestraintsConserved(xmlText, manifest, stage = 'combi
 export function assertModeBRunXmlRestraintsPreserved(before, after, manifest) {
   const expected = indexCombined(before, manifest);
   const actual = indexCombined(after, manifest);
-  for (const source of actual) compareSource(source, 'Run enriched XML', expected[source.index].actual, true);
+  for (const source of actual) {
+    compareSource(source, 'Run enriched XML', expected[source.index].actual, true, expected[source.index].placeholders);
+  }
 }
 
 // The X1 closure has already isolated the source by the manifest-derived

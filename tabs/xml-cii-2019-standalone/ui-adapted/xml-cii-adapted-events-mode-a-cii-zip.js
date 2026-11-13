@@ -1,4 +1,4 @@
-import { bindAdaptedWorkflowEvents as bindBaseModeAEvents } from './xml-cii-adapted-events-mode-a.js?v=20261008-p0-mode-b-parity-1';
+import { bindAdaptedWorkflowEvents as bindBaseModeAEvents } from './xml-cii-adapted-events-mode-a.js?v=20261113-x4-1';
 import { modeARawRef } from './xml-cii-adapted-mode-a-propagation.js?v=20261001-weight-output-2';
 import {
   collectModeASuccessfulCiiFiles,

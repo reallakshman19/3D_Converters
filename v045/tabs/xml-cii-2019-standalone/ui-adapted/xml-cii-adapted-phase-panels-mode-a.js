@@ -1,5 +1,5 @@
-import { renderActivePhase as renderBranchScopedPhase } from './xml-cii-adapted-phase-panels-branch-scope.js?v=20260813-mode-a-full-propagation-2';
-import { renderActivePhase as renderSmartPhase } from './xml-cii-adapted-phase-panels-smart.js?v=20260813-mode-a-full-propagation-2';
+import { renderActivePhase as renderBranchScopedPhase } from './xml-cii-adapted-phase-panels-branch-scope.js?v=20261113-x4-1';
+import { renderActivePhase as renderSmartPhase } from './xml-cii-adapted-phase-panels-smart.js?v=20261113-x4-1';
 import { renderModeABatchResults, renderModeASourceInventory } from './xml-cii-adapted-mode-a-panel.js?v=20260813-mode-a-full-propagation-2';
 import { createElement } from '../../../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js';
 import { getAdaptedWorkflowPhase } from './xml-cii-adapted-phase-registry.js?v=20260813-mode-a-full-propagation-2';
