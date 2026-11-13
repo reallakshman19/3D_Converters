@@ -3,7 +3,7 @@
   "benchmark": "Benchmarks/css/SYS-0010.xml",
   "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/136.0.7103.25 Safari/537.36",
   "hardwareConcurrency": 4,
-  "generatedAt": "2026-11-12T19:18:38.854Z",
+  "generatedAt": "2026-11-13T04:50:40.838Z",
   "cases": [
     {
       "name": "SYS0010_0_MASTERS",
@@ -20,49 +20,49 @@
       },
       "cold": {
         "samples": [
-          81.7,
-          49.2,
-          45.7,
-          44.8,
-          47.2
+          87.7,
+          70.2,
+          66.6,
+          68.3,
+          71.7
         ],
-        "minMs": 44.8,
-        "medianMs": 47.2,
-        "p95Ms": 81.7,
-        "maxMs": 81.7
+        "minMs": 66.6,
+        "medianMs": 70.2,
+        "p95Ms": 87.7,
+        "maxMs": 87.7
       },
       "semanticDomReuse": {
         "samples": [
-          57.9,
-          43.6,
-          43.4,
-          43.3,
-          43.5
+          69.1,
+          64.3,
+          63,
+          64.9,
+          65.7
         ],
-        "minMs": 43.3,
-        "medianMs": 43.5,
-        "p95Ms": 57.9,
-        "maxMs": 57.9
+        "minMs": 63,
+        "medianMs": 64.9,
+        "p95Ms": 69.1,
+        "maxMs": 69.1
       },
       "materialOnly": {
         "samples": [
-          0.2,
-          0.1,
           0.1,
           0,
-          0
+          0,
+          0.1,
+          0.1
         ],
         "minMs": 0,
         "medianMs": 0.1,
-        "p95Ms": 0.2,
-        "maxMs": 0.2
+        "p95Ms": 0.1,
+        "maxMs": 0.1
       },
       "weightOnly": {
         "samples": [
-          0,
-          0,
-          0,
           0.1,
+          0,
+          0,
+          0,
           0
         ],
         "minMs": 0,
@@ -89,7 +89,7 @@
         "masterSheetToJsonMs": 0,
         "masterNormalizeMs": 0,
         "masterPersistMs": 0,
-        "sourceParseMs": 1.5999999999985448
+        "sourceParseMs": 2
       },
       "lastRuntime": {
         "fullBuilds": 2,
@@ -117,47 +117,47 @@
       },
       "cold": {
         "samples": [
-          60.1,
-          53.7,
-          51.3
+          86.7,
+          73.2,
+          70.2
         ],
-        "minMs": 51.3,
-        "medianMs": 53.7,
-        "p95Ms": 60.1,
-        "maxMs": 60.1
+        "minMs": 70.2,
+        "medianMs": 73.2,
+        "p95Ms": 86.7,
+        "maxMs": 86.7
       },
       "semanticDomReuse": {
         "samples": [
-          54.5,
-          54.4,
-          54.7
+          75.4,
+          67.7,
+          74.1
         ],
-        "minMs": 54.4,
-        "medianMs": 54.5,
-        "p95Ms": 54.7,
-        "maxMs": 54.7
+        "minMs": 67.7,
+        "medianMs": 74.1,
+        "p95Ms": 75.4,
+        "maxMs": 75.4
       },
       "materialOnly": {
         "samples": [
-          3.1,
-          3.3,
-          2.8
+          4.1,
+          3.7,
+          3.8
         ],
-        "minMs": 2.8,
-        "medianMs": 3.1,
-        "p95Ms": 3.3,
-        "maxMs": 3.3
+        "minMs": 3.7,
+        "medianMs": 3.8,
+        "p95Ms": 4.1,
+        "maxMs": 4.1
       },
       "weightOnly": {
         "samples": [
-          0.9,
-          1.3,
-          0.8
+          1.2,
+          1.4,
+          1.1
         ],
-        "minMs": 0.8,
-        "medianMs": 0.9,
-        "p95Ms": 1.3,
-        "maxMs": 1.3
+        "minMs": 1.1,
+        "medianMs": 1.2,
+        "p95Ms": 1.4,
+        "maxMs": 1.4
       },
       "lastPerf": {
         "configParseCount": 0,
@@ -178,7 +178,7 @@
         "masterSheetToJsonMs": 0,
         "masterNormalizeMs": 0,
         "masterPersistMs": 0,
-        "sourceParseMs": 1.8000000000029104
+        "sourceParseMs": 1.9000000000014552
       },
       "lastRuntime": {
         "fullBuilds": 2,
@@ -206,43 +206,43 @@
       },
       "cold": {
         "samples": [
-          68.1,
-          68.9
+          89.9,
+          95.5
         ],
-        "minMs": 68.1,
-        "medianMs": 68.5,
-        "p95Ms": 68.9,
-        "maxMs": 68.9
+        "minMs": 89.9,
+        "medianMs": 92.7,
+        "p95Ms": 95.5,
+        "maxMs": 95.5
       },
       "semanticDomReuse": {
         "samples": [
-          61.1,
-          67
+          87.5,
+          87.2
         ],
-        "minMs": 61.1,
-        "medianMs": 64.05,
-        "p95Ms": 67,
-        "maxMs": 67
+        "minMs": 87.2,
+        "medianMs": 87.35,
+        "p95Ms": 87.5,
+        "maxMs": 87.5
       },
       "materialOnly": {
         "samples": [
-          9.8,
-          10.2
+          12.2,
+          13
         ],
-        "minMs": 9.8,
-        "medianMs": 10,
-        "p95Ms": 10.2,
-        "maxMs": 10.2
+        "minMs": 12.2,
+        "medianMs": 12.6,
+        "p95Ms": 13,
+        "maxMs": 13
       },
       "weightOnly": {
         "samples": [
-          3.4,
-          5.1
+          4.7,
+          6.6
         ],
-        "minMs": 3.4,
-        "medianMs": 4.25,
-        "p95Ms": 5.1,
-        "maxMs": 5.1
+        "minMs": 4.7,
+        "medianMs": 5.65,
+        "p95Ms": 6.6,
+        "maxMs": 6.6
       },
       "lastPerf": {
         "configParseCount": 0,
@@ -263,7 +263,7 @@
         "masterSheetToJsonMs": 0,
         "masterNormalizeMs": 0,
         "masterPersistMs": 0,
-        "sourceParseMs": 1.6999999999970896
+        "sourceParseMs": 2.099999999998545
       },
       "lastRuntime": {
         "fullBuilds": 2,
@@ -291,43 +291,43 @@
       },
       "cold": {
         "samples": [
-          146.2,
-          131.2
+          200.8,
+          191.9
         ],
-        "minMs": 131.2,
-        "medianMs": 138.7,
-        "p95Ms": 146.2,
-        "maxMs": 146.2
+        "minMs": 191.9,
+        "medianMs": 196.35,
+        "p95Ms": 200.8,
+        "maxMs": 200.8
       },
       "semanticDomReuse": {
         "samples": [
-          128.8,
-          131.2
+          186.7,
+          187.3
         ],
-        "minMs": 128.8,
-        "medianMs": 130,
-        "p95Ms": 131.2,
-        "maxMs": 131.2
+        "minMs": 186.7,
+        "medianMs": 187,
+        "p95Ms": 187.3,
+        "maxMs": 187.3
       },
       "materialOnly": {
         "samples": [
-          3,
-          2.3
+          3.7,
+          3
         ],
-        "minMs": 2.3,
-        "medianMs": 2.65,
-        "p95Ms": 3,
-        "maxMs": 3
+        "minMs": 3,
+        "medianMs": 3.35,
+        "p95Ms": 3.7,
+        "maxMs": 3.7
       },
       "weightOnly": {
         "samples": [
-          0.8,
-          0.8
+          1.1,
+          1
         ],
-        "minMs": 0.8,
-        "medianMs": 0.8,
-        "p95Ms": 0.8,
-        "maxMs": 0.8
+        "minMs": 1,
+        "medianMs": 1.05,
+        "p95Ms": 1.1,
+        "maxMs": 1.1
       },
       "lastPerf": {
         "configParseCount": 0,
@@ -348,7 +348,7 @@
         "masterSheetToJsonMs": 0,
         "masterNormalizeMs": 0,
         "masterPersistMs": 0,
-        "sourceParseMs": 4.099999999998545
+        "sourceParseMs": 4.5
       },
       "lastRuntime": {
         "fullBuilds": 2,
