@@ -1,6 +1,7 @@
+import { assertModeBRunRestraints, assertModeBRunResult } from '../../converters/xml-cii2019-core/xml-node-offset-combine.js?v=20261113-x4-1';
 import { enrichInputXmlDocument } from './xml-cii-inputxml-enrichment.js';
 import { runXmlCii2019StandaloneEngineJob } from './xml-cii-workflow-engine-client.js?v=20261001-single-weight-owners-1';
-import { createWorkflowDiagnostics, normalizeWorkflowResult } from './xml-cii-workflow-types.js';
+import { createWorkflowDiagnostics, normalizeWorkflowResult } from './xml-cii-workflow-types.js?v=20261113-x4-1';
 import { applyStandaloneSifFacts } from './xml-cii-standalone-sif-apply.js';
 import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity.js?v=20261008-p0-mode-b-parity-1';
 import { buildXmlCiiBranchOccurrences } from './xml-cii-branch-scope.js';
@@ -129,6 +130,7 @@ async function runBaseXmlWithoutEnrichment(job,runtime,reason,formatAudit=null) 
     previewFacts:[],manualFacts:[],supportMapperRules:[],weightOverrides:{}};
   // Selected staged JSON remains present and independently fail-closed.
   const result=await runXmlCii2019StandaloneEngineJob(raw,runtime);
+  assertModeBRunResult(job, result);
   const normalized=normalizeXmlEngineResult(result);
   if(normalized.diagnostics)normalized.diagnostics.optionalEnrichment={
     status:'WITHHELD',reason,
@@ -141,6 +143,7 @@ async function runBaseXmlWithoutEnrichment(job,runtime,reason,formatAudit=null) 
 
 export async function runXmlCii2019WorkflowService(job, runtime = {}) {
   const factedJob = applyEffectiveFactsToJob(job);
+  assertModeBRunRestraints(factedJob, factedJob.sourceText, 'Run combined source XML');
   if (factedJob.sourceKind === 'inputxml') {
     const enrichedResult = enrichInputXmlDocument(factedJob);
     const sif = applyStandaloneSifFacts(enrichedResult.enrichedText, 'inputxml', factedJob.sifFacts);
@@ -177,8 +180,10 @@ export async function runXmlCii2019WorkflowService(job, runtime = {}) {
   if (finalAudit.blocked) return runBaseXmlWithoutEnrichment(factedJob,runtime,
     'PREVIEW_ENRICHMENT_IDENTITY_CONFLICT',finalAudit);
 
+  assertModeBRunRestraints(factedJob, parity.xmlText, 'Run engine input XML', { allowAdditions: true });
   const engineJob = { ...factedJob, sourceText: parity.xmlText };
   const result = await runXmlCii2019StandaloneEngineJob(engineJob, runtime);
+  assertModeBRunResult(factedJob, result, engineJob.sourceText);
   if (Array.isArray(result?.logs) && parity.logs.length) result.logs = [...parity.logs, ...result.logs];
   const normalized = normalizeXmlEngineResult(result);
   if (normalized.diagnostics) {

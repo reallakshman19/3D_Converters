@@ -1,8 +1,8 @@
-import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-workflow-api.js?v=20261008-p0-mode-b-parity-1';
+import { runXmlCii2019Workflow, validateSupportConfigJson } from '../xml-cii-workflow-api.js?v=20261113-x4-1';
 import {handleXml229CurrentRunReview} from './xml229-current-run-review.mjs';
 import {isXml229XmlOnlyApproved} from '../integration/xml229-output-participation.mjs';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
-import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js?v=20261001-weight-output-2';
+import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js?v=20261113-x4-1';
 import { applyStandaloneOutputRunReadiness, updateWorkflowState, xmlCiiEnrichedConfigFromState, saveMasterContextToLocalStorage } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { compactDatasetBackedConfig } from './xml-cii-adapted-master-runtime.js';
 import { materializeXmlCiiDatasetBackedConfig } from '../xml-cii-dataset-backed-config.js?v=20261001-weight-output-2';

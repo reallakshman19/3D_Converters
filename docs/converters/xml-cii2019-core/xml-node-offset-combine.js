@@ -1,3 +1,5 @@
+import { captureModeBSourceRestraints, assertModeBRestraintsConserved, assertModeBRunXmlRestraintsPreserved, modeBRestraintRefusal } from './mode-b-restraint-conservation.js?v=20261113-x4-1';
+
 const name = (node) => String(node?.localName || node?.nodeName || '').replace(/^.*:/, '');
 const text = (node) => String(node?.textContent || '').trim();
 const children = (node) => [...(node?.childNodes || [])].filter((child) => child.nodeType === 1);
@@ -65,11 +67,13 @@ export function combineXmlWithNodeOffsets(sources, { offsetStep = 100000 } = {})
     previousMaximum = Math.max(previousMaximum, plan.outputMaximum);
     records.push({ sourceId: entry.source.sourceId || '', fileName: entry.source.fileName,
       basis: entry.source.basis || 'source', offset: plan.offset, positiveIdCount: entry.positive.size,
-      pipeCount: entry.pipes.length, numberMap });
+      pipeCount: entry.pipes.length, numberMap, restraintInventory: captureModeBSourceRestraints(entry.root) });
   }
-  return { xmlText: new XMLSerializer().serializeToString(output),
-    manifest: { schema: 'xml-node-offset-combine/v1', offsetStep: step, headerSource: sources[0].fileName,
+  const result = { xmlText: new XMLSerializer().serializeToString(output),
+    manifest: { restraintInventoryVersion: 2, schema: 'xml-node-offset-combine/v1', offsetStep: step, headerSource: sources[0].fileName,
       sourceCount: records.length, sourceOrder: records, automaticCrossSourceJoins: 0 } };
+  assertModeBRestraintsConserved(result.xmlText, result.manifest);
+  return result;
 }
 
 // The support-config block the converter reads to keep Mode B sources apart:
@@ -108,4 +112,31 @@ function requireCompatibleHeaders(parsed) {
       throw new Error(`${entry.source.fileName}: XML namespace, units or root engineering settings differ from the first source.`);
     }
   }
+}
+
+// The Run receives the same manifest held in Single state. A configured Mode B
+// run without that independently captured baseline cannot release output.
+export function assertModeBRunRestraints(job, xmlText, stage, options) {
+  const block = JSON.parse(job.supportConfigJson || '{}')?.modeB;
+  const manifest = job.modeBManifest;
+  if (!block && !manifest) return;
+  if (!block || !manifest) throw modeBRestraintRefusal('Mode B Run lacks its source manifest or source config; combine again.');
+  let expected;
+  try { expected = modeBSupportConfigBlock(manifest); }
+  catch (error) { throw modeBRestraintRefusal(`invalid source manifest: ${error.message}`); }
+  if (block.schema !== expected.schema || block.offsetStep !== expected.offsetStep
+      || !Array.isArray(block.sources) || block.sources.length !== expected.sources.length
+      || expected.sources.some((row, i) => Object.keys(row).some((key) => row[key] !== block.sources[i]?.[key]))) {
+    throw modeBRestraintRefusal('Mode B Run source config does not match the node-offset manifest.');
+  }
+  assertModeBRestraintsConserved(xmlText, manifest, stage, options);
+}
+
+export function assertModeBRunResult(job, result, engineInputXml = job.sourceText) {
+  if (!result?.ok || (!job.modeBManifest && !JSON.parse(job.supportConfigJson || '{}')?.modeB)) return;
+  // CII-only runs do not emit XML. Verify the exact combined XML supplied
+  // to the converter; this is not a CII record-level validation.
+  const after = result.enrichedText || (job.options?.outputMode === 'cii-only' ? engineInputXml : '');
+  assertModeBRunRestraints(job, after, 'Run combined XML result', { allowAdditions: true });
+  assertModeBRunXmlRestraintsPreserved(engineInputXml, after, job.modeBManifest);
 }

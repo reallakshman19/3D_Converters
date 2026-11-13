@@ -4,7 +4,7 @@
  * ACTUAL CII bytes. Release requires a current live Worker and 1:1 proof.
  */
 import {readTextFile,enrichSupportConfigJson,workflowOptionsFromState,sourceNameFromState}
- from '../xml-cii-workflow-ui-adapter.js';
+ from '../xml-cii-workflow-ui-adapter.js?v=20261113-x4-1';
 import {runXmlCii2019StandaloneEngineJob}
  from '../xml-cii-workflow-engine-client.js';
 import {resolveXml229NativeCandidateSource} from './xml229-native-source-custody.mjs';

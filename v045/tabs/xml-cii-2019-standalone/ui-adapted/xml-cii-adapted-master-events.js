@@ -1,6 +1,6 @@
 import { MASTER_FIELDS } from '../../../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-fields-config.js';
 import { detectLineListFieldMap, normalizeLineListRow } from '../../../converters/xml-cii2019-core/linelist-mapping.js';
-import { readTextFile } from '../xml-cii-workflow-ui-adapter.js';
+import { readTextFile } from '../xml-cii-workflow-ui-adapter.js?v=20261113-x4-1';
 import { prepareStandaloneImportMasters } from '../xml-cii-master-context.js';
 import { applyStandaloneImportMastersContext, setStoredMaster, updateWorkflowState, updateMasterLastLoadedPath, getSavedMappingsForMaster, saveMappingForFile, findSmartMatchingMapping, setStoredJson, getStoredJson } from './xml-cii-adapted-state.js';
 import { fuzzyAutoMapFields } from './xml-cii-adapted-fuzzy-mapper.js';

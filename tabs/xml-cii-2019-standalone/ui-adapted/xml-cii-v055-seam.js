@@ -17,14 +17,14 @@
  *    a view ref. Writes from v0.45 are stripped of it, so 3D_Converters' own state
  *    never gains a stagedJsonText it did not create.
  */
-import { renderActivePhase as renderV045Phase } from '../../../v045/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js?v=20260813-mode-a-consolidated-1';
-import { bindAdaptedWorkflowEvents as bindV045Events } from '../../../v045/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js?v=20260814-fast-run-1';
+import { renderActivePhase as renderV045Phase } from '../../../v045/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-phase-panels-mode-a.js?v=20261113-x4-1';
+import { bindAdaptedWorkflowEvents as bindV045Events } from '../../../v045/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a-consolidated-review-v2.js?v=20261113-x4-1';
 import { installModeAConsolidatedPreviewEasyUiFromWorkspace as installV045PreviewEasyUi } from '../../../v045/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-easy-ui-hook.js?v=20260814-preview-restore-1';
 import { installModeAConsolidatedWeightEasyUiFromWorkspace as installV045WeightEasyUi } from '../../../v045/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-consolidated-easy-weight-hook.js?v=20260814-weight-tools-1';
 import { installModeACompactMultiUi as installV045CompactMultiUi } from '../../../v045/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-a-compact-ui.js?v=20260814-compact-multi-1';
 import { materializeMasterDatasetRows } from './xml-cii-adapted-master-dataset-runtime.js?v=20261007-c05-6-2-consumer-authority-1';
 import { resolveXml229CurrentPreviewBlob } from './xml-cii-adapted-lfj-o1-intake.js';
-import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261001-single-weight-owners-1';
+import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261113-x4-1';
 import { createElement } from './xml-cii-adapted-dom.js?v=20260813-mode-a-full-propagation-2';
 
 export const V045_PHASE_IDS = Object.freeze(['weight-match', 'support-mapper', 'config', 'matched-audit', 'run']);

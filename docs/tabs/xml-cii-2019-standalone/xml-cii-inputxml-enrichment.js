@@ -1,4 +1,4 @@
-import { createWorkflowDiagnostics } from './xml-cii-workflow-types.js';
+import { createWorkflowDiagnostics } from './xml-cii-workflow-types.js?v=20261113-x4-1';
 import { mutateRestraintType, normalizeRestraintTypeValue } from '../../converters/xml-cii2019-core/restraint-type-mutation.js';
 const ENRICH_FIELDS = Object.freeze(['DTXR_POS', 'DTXR_PS', 'ComponentType', 'PipingClass', 'Rating', 'Position']);
 const ATTR_FIELDS = Object.freeze(['LINE_ID', 'FROM_NAME', 'TO_NAME']);

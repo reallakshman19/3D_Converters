@@ -162,6 +162,7 @@ export function normalizeWorkflowJob(job = {}) {
     weightOverrides: job.weightOverrides && typeof job.weightOverrides === 'object' && !Array.isArray(job.weightOverrides) ? job.weightOverrides : {},
     supportMapperRules: objectArrayValue(job.supportMapperRules),
     sifFacts: objectArrayValue(job.sifFacts),
+    ...(job.modeBManifest != null ? { modeBManifest: job.modeBManifest } : {}),
     modeBStagedSources: modeBStaged.value,
   } };
 }
