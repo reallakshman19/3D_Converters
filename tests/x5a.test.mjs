@@ -172,12 +172,22 @@ test('X5a T6 all production importers in the X5a chain are versioned and docs mi
   const seeds = ['converters/xml-cii2019-core/mode-b-source-config.js', 'converters/xml-cii2019-core/xml-node-offset-combine.js',
     'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-mode-b-xml-export.js', 'tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js'];
   const changed = new Set([...seeds, ...seeds.map(p => 'docs/' + p), 'v045/tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js']);
+  changed.add('v045/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-final-rigid-review.js');
+  // Preserve X4's direct-import contract in the broader X5a graph check too.
+  const x4Direct = new Map([
+    ['mode-b-restraint-conservation.js', '?v=20261113-x4-1'],
+    ['xml-node-offset-combine.js', '?v=20261113-x5a-1'],
+    ['xml-cii-workflow-service.js', '?v=20261113-x5a-1'],
+    ['xml-cii-workflow-types.js', '?v=20261113-x4-1'],
+    ['xml-cii-workflow-ui-adapter.js', '?v=20261113-x4-1'],
+    ['xml-cii-mode-b-restraint-closure.js', '?v=20261113-x4-1'],
+  ]);
   const references = /(['"])((?:\.{1,2}\/)[^'"\s?#]+\.(?:m?js))(\?v=[^'"\s]+)?\1/g;
   const refs = new Map();
   function walk(directory) {
     for (const entry of readdirSync(new URL(directory + '/', repo), { withFileTypes: true })) {
       const path = posix.join(directory, entry.name);
-      if (entry.isDirectory() && !['backup', 'node_modules', '.bak', 'vendor', 'tests', 'scripts'].includes(entry.name)) walk(path);
+      if (entry.isDirectory() && !['backup', 'node_modules', '.bak'].includes(entry.name)) walk(path);
       else if (entry.isFile() && /\.(?:m?js|html)$/.test(entry.name)) {
         refs.set(path, [...readFileSync(new URL(path, repo), 'utf8').matchAll(references)].map(m => ({ target: posix.normalize(posix.join(posix.dirname(path), m[2])), version: m[3] })));
       }
@@ -192,7 +202,11 @@ test('X5a T6 all production importers in the X5a chain are versioned and docs mi
     previousSize = changed.size;
     for (const [path, matches] of refs) if (matches.some(m => changed.has(m.target))) changed.add(path);
   } while (previousSize !== changed.size);
-  for (const [path, matches] of refs) for (const m of matches) if (changed.has(m.target)) assert.equal(m.version, '?v=20261113-x5a-1', `${path}: ${m.target}`);
+  for (const [path, matches] of refs) for (const m of matches) {
+    const directVersion = x4Direct.get(posix.basename(m.target));
+    if (directVersion) assert.equal(m.version, directVersion, `${path}: ${m.target}`);
+    if (changed.has(m.target)) assert.equal(m.version, '?v=20261113-x5a-1', `${path}: ${m.target}`);
+  }
   const divergentAtBase = new Set(['tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events-mode-a.js', 'tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js']);
   for (const path of changed) {
     if (path.startsWith('docs/') || divergentAtBase.has(path)) continue;
