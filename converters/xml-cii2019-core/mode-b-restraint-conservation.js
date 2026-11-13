@@ -211,7 +211,7 @@ function compareNode(expected, actual, label, allowAdditions, placeholderAllowan
     const duplicate = expected.some((sig) => sameSignature(sig, actual[j]));
     // A filled placeholder may duplicate a real LIM; allow at most the number
     // of placeholders that node carried before Run, and only of a LIM type.
-    if (allowAdditions && duplicate && placeholderAllowance > 0 && LIMIT_TYPES.has(actual[j][0])) {
+    if (allowAdditions && duplicate && placeholderAllowance > 0 && LIMIT_TYPES.has(actual[j][0].replace(/\s+/g, ''))) {
       placeholderAllowance -= 1;
       continue;
     }
@@ -227,7 +227,8 @@ function compareSource(entry, stage, expected, allowAdditions = false, placehold
   for (const nodeKey of nodes) {
     compareNode(expected.get(nodeKey) || [], entry.actual.get(nodeKey) || [],
       `${stage}: source ${entry.index + 1} (${entry.source.fileName}), combined node ${nodeKey}`, allowAdditions,
-      placeholders.get(nodeKey) || 0);
+      // Only placeholders that Run actually used up (before minus after).
+      Math.max(0, (placeholders.get(nodeKey) || 0) - (entry.placeholders.get(nodeKey) || 0)));
   }
 }
 

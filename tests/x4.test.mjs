@@ -376,3 +376,16 @@ test('X4 R2 N3 inventory counts placeholders; Run check allows one filled LIM pe
   assert.throws(() => assertModeBRestraintsConserved(twice, combined.manifest, 'Run', { allowAdditions: true }),
     /unexpected restraint occurrence/);
 });
+
+test('X4 R3 allowance counts only placeholders Run used up; spaced LINE STOP accepted', () => {
+  const combined = combineXmlWithNodeOffsets(n3Sources(), { offsetStep: 100000 });
+  const keptPlaceholder = combined.xmlText.replace(placeholderLim, realLim + placeholderLim);
+  assert.throws(() => assertModeBRestraintsConserved(keptPlaceholder, combined.manifest, 'Run', { allowAdditions: true }),
+    /unexpected restraint occurrence/);
+  const realStop = '<Restraint><Type>LINE STOP</Type><Stiffness>1.75E12</Stiffness><Gap>0</Gap></Restraint>';
+  const stopSources = [{ sourceId: 'A', fileName: 'A.xml', xmlText: xml(node(10, realStop + '<Restraint><Type>LINE STOP</Type></Restraint>'), node(20)) },
+    { sourceId: 'B', fileName: 'B.xml', xmlText: xml(node(10, rB), node(20)) }];
+  const stop = combineXmlWithNodeOffsets(stopSources, { offsetStep: 100000 });
+  assertModeBRestraintsConserved(stop.xmlText.replace('<Restraint><Type>LINE STOP</Type></Restraint>', realStop),
+    stop.manifest, 'Run', { allowAdditions: true });
+});
