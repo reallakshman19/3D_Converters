@@ -1,7 +1,7 @@
 /** Actual pre-Final topology actions, separate from native conversion/release. */
 import {getXml229TopologyReview,getXml229TopologyFailure,xml229TopologyActions,
  runXml229TopologyReview,selectXml229TopologyActions,openXml229TopologyFreshWeight}
- from './xml229-topology-review-controller.mjs';
+ from './xml229-topology-review-controller.mjs?v=20261113-x5a-2';
 import {downloadTextFile} from './xml-cii-adapted-dom.js';
 
 const pages=new WeakMap();

@@ -4,14 +4,14 @@ import {attestXml229TopoFixFreshSource,startXml229TopoFixFreshWeightSession}
 import {revokeXml229VerifiedEngineeringBasis}
  from '../integration/xml229-engineering-basis-authority.mjs';
 import {resolveXml229CurrentPreviewBlob,reindexXml229OriginalBlobForTopoFix}
- from './xml-cii-adapted-lfj-o1-intake.js';
-import {singleXmlCiiSourceState} from './xml-cii-adapted-processing-mode.js';
+ from './xml-cii-adapted-lfj-o1-intake.js?v=20261113-x5a-2';
+import {singleXmlCiiSourceState} from './xml-cii-adapted-processing-mode.js?v=20261113-x5a-2';
 import {updateWorkflowState} from './xml-cii-adapted-state.js';
 import {normalizeXmlCiiBranchSelection} from '../xml-cii-branch-scope.js';
 import {getXml229CurrentWorkerHeldReview,openXml229P4VerifiedSession,
  resolveXml229P4ProductionInputs,captureXml229P4LiveSourceSnapshot,
  compareXml229P4LiveSourceSnapshot,assertXml229P4OriginalFullSelection}
- from './xml-cii-adapted-p4-verified-weight-panel.js';
+ from './xml-cii-adapted-p4-verified-weight-panel.js?v=20261113-x5a-2';
 
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const defaults={attest:attestXml229TopoFixFreshSource,

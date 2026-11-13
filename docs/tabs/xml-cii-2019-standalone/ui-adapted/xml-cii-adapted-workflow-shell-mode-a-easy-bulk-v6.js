@@ -1,8 +1,8 @@
 import { clearElement, createElement } from './xml-cii-adapted-dom.js?v=20260813-mode-a-consolidated-1';
-import { renderHeader, renderPhaseRail } from './xml-cii-adapted-workflow-shell-mode-a-core.js?v=20261113-x4-1';
+import { renderHeader, renderPhaseRail } from './xml-cii-adapted-workflow-shell-mode-a-core.js?v=20261113-x5a-2';
 import { createXmlCiiAdaptedWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
-import { renderActivePhase } from './xml-cii-adapted-phase-panels-mode-a.js?v=20261113-x4-1';
-import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-mode-a-consolidated-review-v2.js?v=20261113-x4-1';
+import { renderActivePhase } from './xml-cii-adapted-phase-panels-mode-a.js?v=20261113-x5a-2';
+import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-mode-a-consolidated-review-v2.js?v=20261113-x5a-2';
 import { createXmlCiiBranchScopedStateRef, ensureXmlCiiBranchSelectionInRef } from './xml-cii-adapted-branch-scope-state.js?v=20260930-issue781-branch-scope-1';
 import { createXmlCiiModeAStateRef } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-2';
 import { installRigidReviewActionsEnhancement } from './xml-cii-adapted-rigid-review-actions-ui.js?v=20260813-mode-a-consolidated-1';
@@ -13,8 +13,8 @@ import { installModeAConsolidatedRigidReviewTools } from './xml-cii-adapted-mode
 import { installModeACompactMultiUi } from './xml-cii-adapted-mode-a-compact-ui.js?v=20260814-compact-multi-1';
 import { hydratePersistedMasterDatasets } from '../workers/master-dataset-startup-hydration.js?v=20260930-issue781-weight-no-staged-rewrite-1';
 import { disposeAdaptedGeometryPreviews } from './xml-cii-adapted-cii-preview-canvas.js?v=20261001-weight-output-2';
-import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261113-x4-1';
-import { installLfjO1SourceIntake } from './xml-cii-adapted-lfj-o1-intake.js';
+import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261113-x5a-2';
+import { installLfjO1SourceIntake } from './xml-cii-adapted-lfj-o1-intake.js?v=20261113-x5a-2';
 
 let activeWorkflowState = createXmlCiiAdaptedWorkflowState();
 installRigidReviewActionsEnhancement();

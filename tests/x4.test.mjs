@@ -308,9 +308,16 @@ test('X4 R1.4 unit directions compare within 1e-6, not by rounded bucket', async
 
 test('X4 R1.5 every production X4 import is versioned and docs mirrors match', () => {
   const repo = new URL('../', import.meta.url);
-  const direct = new Set(['mode-b-restraint-conservation.js', 'xml-node-offset-combine.js',
-    'xml-cii-workflow-service.js', 'xml-cii-workflow-types.js', 'xml-cii-workflow-ui-adapter.js',
-    'xml-cii-mode-b-restraint-closure.js']);
+  // One current key per direct module, shared by every root/live/docs importer.
+  // X5a superseded the combiner and workflow service; other X4 modules did not change.
+  const direct = new Map([
+    ['mode-b-restraint-conservation.js', '?v=20261113-x4-1'],
+    ['xml-node-offset-combine.js', '?v=20261113-x5a-2'],
+    ['xml-cii-workflow-service.js', '?v=20261113-x5a-2'],
+    ['xml-cii-workflow-types.js', '?v=20261113-x4-1'],
+    ['xml-cii-workflow-ui-adapter.js', '?v=20261113-x4-1'],
+    ['xml-cii-mode-b-restraint-closure.js', '?v=20261113-x4-1'],
+  ]);
   const references = /(['"])((?:\.{1,2}\/)[^'"\s?#]+\.(?:m?js))(\?v=[^'"\s]+)?\1/g;
   const checked = new Set();
   function walk(directory) {
@@ -321,7 +328,7 @@ test('X4 R1.5 every production X4 import is versioned and docs mirrors match', (
         const content = readFileSync(new URL(path, repo));
         for (const match of content.toString().matchAll(references)) {
           if (!direct.has(match[2].split('/').at(-1))) continue;
-          assert.equal(match[3], '?v=20261113-x4-1', `${path}: ${match[2]}`);
+          assert.equal(match[3], direct.get(match[2].split('/').at(-1)), `${path}: ${match[2]}`);
           checked.add(path);
         }
         const mirror = new URL('docs/' + path, repo);
@@ -331,7 +338,7 @@ test('X4 R1.5 every production X4 import is versioned and docs mirrors match', (
       }
     }
   }
-  for (const directory of ['converters', 'tabs', 'v045']) walk(directory);
+  for (const directory of ['converters', 'tabs', 'v045', 'docs/converters', 'docs/tabs']) walk(directory);
   for (const path of ['tabs/xml-cii-2019-standalone/xml-cii-workflow-api-atta-default.js',
     'v045/tabs/xml-cii-2019-standalone/xml-cii-workflow-api-atta-default.js',
     'v045/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity-mds-restraints.js']) {

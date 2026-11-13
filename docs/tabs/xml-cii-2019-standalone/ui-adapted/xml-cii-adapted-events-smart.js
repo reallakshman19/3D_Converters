@@ -1,6 +1,6 @@
-import { bindAdaptedWorkflowEvents as bindBaseAdaptedWorkflowEvents } from './xml-cii-adapted-events.js?v=20261113-x4-1';
+import { bindAdaptedWorkflowEvents as bindBaseAdaptedWorkflowEvents } from './xml-cii-adapted-events.js?v=20261113-x5a-2';
 import { installRigidSmartFillDashboard } from './xml-cii-adapted-rigid-smart-fill-ui.js?v=20261001-single-weight-owners-1';
-import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261113-x4-1';
+import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261113-x5a-2';
 
 installRigidSmartFillDashboard();
 

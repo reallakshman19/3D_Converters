@@ -1,4 +1,4 @@
-import { validateSupportConfigJson } from '../xml-cii-workflow-api.js?v=20261113-x4-1';
+import { validateSupportConfigJson } from '../xml-cii-workflow-api.js?v=20261113-x5a-2';
 import { createElement, appendLabeledControl, createOption } from './xml-cii-adapted-dom.js';
 import { getAdaptedWorkflowPhase } from './xml-cii-adapted-phase-registry.js';
 import { renderInputXmlControls, renderSourceControls, renderSourceTextControl, renderStagedJsonControl } from './xml-cii-adapted-controls.js?v=20261113-x4-1';
@@ -8,12 +8,12 @@ import { renderStandaloneImportMastersPanel } from './xml-cii-adapted-import-mas
 import { renderStandaloneRegexTesterPanel } from './xml-cii-adapted-regex-tester.js?v=20261001-weight-output-2';
 import { renderStandaloneResolverJsonTracePanel } from './xml-cii-adapted-resolver-json-trace.js';
 import { renderStandaloneInputXmlElementSideloadPanel, renderStandaloneManualElementSideloadPanel } from './xml-cii-adapted-manual-element-sideload.js';
-import { renderStandaloneDiagnosticsReportPanel, renderStandalonePreviewReportPanel } from './xml-cii-adapted-preview-diagnostics-audit-v7.js?v=20261001-weight-output-2';
+import { renderStandaloneDiagnosticsReportPanel, renderStandalonePreviewReportPanel } from './xml-cii-adapted-preview-diagnostics-audit-v7.js?v=20261113-x5a-2';
 import { renderStandalonePropagationAuditPanel } from './xml-cii-adapted-propagation-audit.js?v=20261001-weight-output-2';
-import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js?v=20261001-single-weight-owners-1';
+import { renderAdaptedWeightMatchPanelV2 } from './xml-cii-adapted-weight-match-v2.js?v=20261113-x5a-2';
 import { renderStandaloneSupportTypeMapperPanel } from './xml-cii-adapted-support-type-mapper.js?v=20261001-weight-output-2';
-import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js?v=20261001-weight-output-2';
-import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20261113-x4-1';
+import { renderStandaloneOutputRunPanel } from './xml-cii-adapted-output-run.js?v=20261113-x5a-2';
+import { renderAdaptedConfigPanel } from './xml-cii-adapted-config-tabs.js?v=20261113-x5a-2';
 import { appendBendRadiusConfigToggle } from './xml-cii-adapted-bend-radius-toggle.js?v=20261001-weight-output-2';
 import { summarizeWorkflowFile } from '../xml-cii-workflow-ui-adapter.js?v=20261113-x4-1';
 import { XML229_STAGED_SOURCE_SCHEMA } from '../integration/xml229-staged-source-receipt.mjs';

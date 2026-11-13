@@ -1,6 +1,6 @@
 import { detectXmlCiiWorkflowSourceKind, workflowOutputKindForSource } from '../../../tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js';
 import { normalizeWorkflowJob, normalizeWorkflowResult } from './xml-cii-workflow-types.js?v=20261113-x4-1';
-import { runXmlCii2019WorkflowService } from './xml-cii-workflow-service.js?v=20261113-x4-1';
+import { runXmlCii2019WorkflowService } from './xml-cii-workflow-service.js?v=20261113-x5a-2';
 import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity-mds-restraints.js?v=20261113-x4-1';
 
 export async function runXmlCii2019Workflow(job, runtime = {}) {

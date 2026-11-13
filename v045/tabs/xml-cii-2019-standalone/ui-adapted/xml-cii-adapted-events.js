@@ -10,7 +10,7 @@ import { downloadTextFile } from '../../../../tabs/xml-cii-2019-standalone/ui-ad
 import { applyPreviewDiagnosticsAuditReport, applyStandaloneManualElementSideloadResult, applyStandaloneOutputRunReadiness, applyStandaloneRegexTesterResult, applyStandaloneResolverJsonTraceResult, applyStandaloneSupportTypeMapperResult, applyStandaloneWeightMatchResult, clearWorkflowResult, patchResolverJsonTraceConfig, resetWorkflowState, updateManualElementSideloadConfig, updateRegexTesterConfig, updateResolverJsonTraceConfig, updateSupportTypeMapperConfig, updateSupportTypeMapperTestInput, updateWeightMatchOverrides, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js';
 import { detectXmlCiiWorkflowSourceKind, maskedFileName } from '../../../../tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js';
 import { bindImportMastersEvents, clearMasterContextFromUi, loadImportMastersFromUi } from './xml-cii-adapted-master-events.js?v=20261113-x4-1';
-import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow.js';
+import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow.js?v=20261113-x5a-2';
 import { bindTraceTableEvents } from './xml-cii-adapted-table-trace-events.js';
 import { compareTraceResultsByComponentRef } from '../xml-cii-table-trace-source.js';
 import {

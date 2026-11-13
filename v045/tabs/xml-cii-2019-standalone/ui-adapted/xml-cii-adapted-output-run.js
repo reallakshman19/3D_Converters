@@ -1,4 +1,4 @@
-import { createFinalRigidWeightReviewButton } from './xml-cii-adapted-final-rigid-review.js';
+import { createFinalRigidWeightReviewButton } from './xml-cii-adapted-final-rigid-review.js?v=20261113-x5a-2';
 import { buildStandaloneOutputRunReadiness } from '../xml-cii-output-run-readiness.js';
 import { detectXmlCiiWorkflowSourceKind, maskedFileName } from '../../../../tabs/xml-cii-2019-standalone/xml-cii-workflow-source-detect.js';
 import { createElement, createOption, downloadTextFile } from '../../../../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-dom.js';

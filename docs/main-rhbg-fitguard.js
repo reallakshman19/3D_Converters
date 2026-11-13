@@ -11,7 +11,7 @@ function reportStartupError(error) {
 }
 
 async function startStandaloneApp() {
-  const module = await import('./core/app.js?v=20261001-single-weight-owners-1');
+  const module = await import('./core/app.js?v=20261113-x5a-2');
   await module.init(startupMount());
 }
 

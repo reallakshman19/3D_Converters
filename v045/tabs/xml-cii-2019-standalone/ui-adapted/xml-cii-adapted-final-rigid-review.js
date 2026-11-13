@@ -6,7 +6,7 @@ import { classifyFinalRigidWeightError, configuredFinalRigidErrorThreshold, form
 import { parseFinalCiiRigidInventory } from '../xml-cii-final-rigid-inventory.js';
 import { buildFrozenCiiRunPackage, verifyFrozenCiiRunPackage }
   from '../xml-cii-frozen-run-package.js';
-import { modeBStagedSourcesForRun } from '../xml-cii-workflow-ui-adapter.js';
+import { modeBStagedSourcesForRun } from '../xml-cii-workflow-ui-adapter.js?v=20261113-x4-1';
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;')
   .replace(/</g, '&lt;').replace(/>/g, '&gt;')

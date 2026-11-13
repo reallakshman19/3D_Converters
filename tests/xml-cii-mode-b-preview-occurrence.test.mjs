@@ -114,7 +114,7 @@ test('live Single Run reaches repaired parity through Smart, ATTA and MDS wrappe
     readFile(new URL('../' + path, import.meta.url), 'utf8')));
   for (let index = 0; index < modules.length - 1; index += 1) {
     const nextName = modules[index + 1].split('/').at(-1);
-    const cacheKey = index <= 7 ? '20261113-x4-1' : '20261008-p0-mode-b-parity-1';
+    const cacheKey = index < 7 ? '20261113-x5a-2' : index === 7 ? '20261113-x4-1' : '20261008-p0-mode-b-parity-1';
     assert.ok(source[index].includes(nextName + '?v=' + cacheKey),
       'live module still imports stale ' + nextName + ' via ' + modules[index]);
   }

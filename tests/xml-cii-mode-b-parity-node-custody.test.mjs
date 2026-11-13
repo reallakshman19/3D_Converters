@@ -220,7 +220,7 @@ test('static runtime loads the refreshed parity writer and evidence modules as a
     'xml-cii-run-parity-evidence',
   ];
   sources.forEach((source, index) => assert.ok(
-    source.includes(modules[index] + '.js?v=' + (index < 3 ? '20261113-x4-1' : '20261008-p0-mode-b-parity-1')),
+    source.includes(modules[index] + '.js?v=' + (index < 3 ? '20261113-x5a-2' : '20261008-p0-mode-b-parity-1')),
     'static P0 import chain must contain refreshed ' + modules[index],
   ));
   const preview = await readFile(new URL(
