@@ -1,0 +1,125 @@
+name: Rigid S1 BM2 checkpoint native CII nonrelease
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'converters/scripts/xml229_native_final_mass_binding.py'
+      - 'converters/scripts/xml_cii_weight_output_custody.py'
+      - 'converters/scripts/xml229_rigid_s1_testonly.py'
+      - 'docs/converters/scripts/xml229_native_final_mass_binding.py'
+      - 'docs/converters/scripts/xml_cii_weight_output_custody.py'
+      - 'docs/converters/scripts/xml229_rigid_s1_testonly.py'
+      - 'tests/rigid-s1-testonly.test.py'
+      - 'tests/rigid-s1-r1-main-positive-control.test.py'
+      - 'tests/rigid-s1-r1-deletion-mutants.test.py'
+      - 'tests/rigid-s1-r2-guards.test.py'
+      - 'tests/rigid-s1-r2-deletion-mutants.test.py'
+      - 'tests/rigid-s2-owner-budget.test.py'
+      - 'tests/rigid-s2-deletion-mutants.test.py'
+      - 'tests/fixtures/rigid-s2-r9-ledger.json'
+      - 'tests/fixtures/rigid-s2-r1-derived-native-geometry.xml'
+      - 'tests/rigid-s2-r1-native-proof.test.py'
+      - 'tests/rigid-s2-r1-deletion-mutants.test.py'
+      - 'tests/rigid-s2-r2-synthetic.test.py'
+      - 'tests/rigid-s2-r2-owner-leak-guard.test.py'
+      - 'tests/rigid-s2-r2-deletion-mutants.test.py'
+      - 'tests/rigid_s2_r3_geometry.py'
+      - 'tests/rigid_s2_r3_synthetic_basis.py'
+      - 'tests/rigid-s2-r3-reviewer-mutants.test.py'
+      - 'tests/rigid-s2-r4-guards.test.py'
+      - 'tests/rigid-s2-r4-deletion-mutants.test.py'
+      - 'tests/rigid-s2-r5-guards.test.py'
+      - 'tests/rigid-s2-r5-deletion-mutants.test.py'
+      - '.github/workflows/rigid-s1-testonly.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  r9-derived-14-pair-nonrelease:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fail if ANY tracked test contains protected Owner R9 markers
+        run: python3 tests/rigid-s2-r2-owner-leak-guard.test.py --guard
+      - name: P2 behavioral re-add from historical fixture must turn RED
+        run: python3 tests/rigid-s2-r2-owner-leak-guard.test.py -v
+      - name: Root/live mirrors and compile
+        run: |
+          for f in xml229_native_final_mass_binding.py xml_cii_weight_output_custody.py xml229_rigid_s1_testonly.py; do
+            diff -u "converters/scripts/$f" "docs/converters/scripts/$f"
+            python3 -m py_compile "converters/scripts/$f"
+          done
+      - name: Test-only Native Final binding + actual native CII + five RED mutants
+        run: python3 tests/rigid-s1-testonly.test.py -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Independent JS reconciler must reject S1 test-only release
+        run: node --test tests/rigid-s1-nonrelease-independent.test.mjs
+      - name: R2 negative tampered-CII, witness, source and R-LT10 tests
+        run: python3 tests/rigid-s1-r2-guards.test.py -v
+      - name: 25 R2 isolated delete-one source mutants (assertion failures only)
+        run: python3 tests/rigid-s1-r2-deletion-mutants.test.py -v
+      # S2 full Owner ledger + exact R9 proof/mutants are ONLY runnable with
+      # RIGID_S2_R9_XML, RIGID_S2_R9_LEDGER, RIGID_S2_R9_SHA256,
+      # RIGID_S2_R9_BYTES on an Owner-controlled local machine.
+      # Do NOT invoke skipped unittest suites as public CI passes.
+      - name: Synthetic S2-R2 native product stages, force pointers, HELD and 3.2mm merge
+        run: python3 tests/rigid-s2-r2-synthetic.test.py -v
+      - name: Four S2-R2 isolated behavioral source mutants P1-P4
+        run: python3 tests/rigid-s2-r2-deletion-mutants.test.py -v
+      - name: Seven S2-R3 X1 X2 X3 X6 X7 X8 X9 real synthetic behavior mutants
+        run: python3 tests/rigid-s2-r3-reviewer-mutants.test.py -v
+      - name: S2-R4 T1 T2 T3 synthetic 19.1mm flange, merge-identity and HELD decoy negative witnesses
+        run: python3 tests/rigid-s2-r4-guards.test.py -v
+      - name: S2-R4 nine T1 T2 T3 delete-one behavioral mutants GREEN to RED
+        run: python3 tests/rigid-s2-r4-deletion-mutants.test.py -v
+      - name: S2-R5 Z1 Z2 strict physical owner and HELD kg conservation synthetic proofs
+        run: python3 tests/rigid-s2-r5-guards.test.py -v
+      - name: S2-R5 six Z1 Z2 source-guard deletions GREEN to RED
+        run: python3 tests/rigid-s2-r5-deletion-mutants.test.py -v
+      - name: Emit ONLY synthetic test-only CII and status sidecar plus SHA256
+        run: python3 tests/rigid-s2-r2-synthetic.test.py --write-test-only-dir rigid-s2-r2-synthetic
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rigid-s2-r2-synthetic-native-source-cii-sidecar-nonrelease
+          path: rigid-s2-r2-synthetic/
+          retention-days: 3
+      - name: Owner input boundary notice (informational, never a test PASS)
+        run: |
+          echo "EXACT_R9_SKIP - no protected Owner XML or 144-edge ledger in public CI"
+          echo "OWNER_LOCAL_ONLY: export RIGID_S2_R9_XML, RIGID_S2_R9_LEDGER, RIGID_S2_R9_SHA256, RIGID_S2_R9_BYTES and run the exact-R9 unittest suites locally."
+      - name: Ten isolated source-code deletion mutants must turn the guard tests RED
+        run: python3 tests/rigid-s1-r1-deletion-mutants.test.py -v
+      - name: R1 ordinary PCOM and Native Final compare byte-exact to pinned main
+        run: python3 tests/rigid-s1-r1-main-positive-control.test.py -v
+      - name: No test-only CII fixture or Owner R9 source in committed paths
+        run: |
+          if git ls-files | grep -E '(S1_TEST_ONLY_NON_RELEASE\.cii|S2_TEST_ONLY_NON_RELEASE\.cii|S2_R1_NATIVE_ACTUAL_TEST_ONLY\.cii|S2_R2_SYNTHETIC_NATIVE_TEST_ONLY\.cii|bm2-enriched-R9\.xml)'; then
+            echo "Nonreleased CII or Owner original must never be committed"
+            exit 1
+          fi
+          python3 tests/rigid-s2-r2-owner-leak-guard.test.py --guard
+          echo "NON_RELEASE_SOURCE_AND_CII_NOT_COMMITTED"
+      - name: Package only public S2-R3 test source for Owner-local verification
+        run: |
+          tar -czf s2r3-test-source.tgz tests/rigid-s2-r1-native-proof.test.py tests/rigid-s2-r1-deletion-mutants.test.py tests/rigid-s2-r2-synthetic.test.py tests/rigid-s2-r2-deletion-mutants.test.py tests/rigid-s2-r3-reviewer-mutants.test.py tests/rigid_s2_r3_geometry.py tests/rigid_s2_r3_synthetic_basis.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rigid-s2-r3-public-test-source-local-replay
+          path: s2r3-test-source.tgz
+          retention-days: 3
+      - name: Package native Python source for offline exact-R9 test
+        run: tar -czf rigid-s1-python-source-testonly.tgz -C converters scripts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rigid-s1-native-source-nonrelease
+          path: rigid-s1-python-source-testonly.tgz
+          retention-days: 3

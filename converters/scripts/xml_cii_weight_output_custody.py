@@ -50,10 +50,14 @@ def audit_rigid_weight_owners(xml_path, model):
     return unresolved
 
 
-def require_rigid_weight_owners(xml_path, model):
+def require_rigid_weight_owners(xml_path, model, *, s1_test_only_witness=None):
     unresolved = audit_rigid_weight_owners(xml_path, model)
     if unresolved:
         details = "; ".join(f"{row['branch']}::{row['nodeNumber']} ({row['weight']} kg)"
                             for row in unresolved)
         raise ValueError(f"CII_WEIGHT_OWNER_UNRESOLVED: {len(unresolved)} weighted components "
                          f"lack one matching CII owner. CII withheld; enriched XML retained. {details}")
+    if s1_test_only_witness is not None:
+        # Explicit S1-only proof; production path remains precisely main.
+        from xml229_rigid_s1_testonly import _s1_assert_pcom_release_hold
+        _s1_assert_pcom_release_hold(xml_path, model, s1_test_only_witness)
