@@ -10,6 +10,7 @@
 import { enrichStandaloneDtxrAnnotations } from './xml-cii-standalone-dtxr-enrichment.js';
 import { synchronizeXmlCiiNodeBoreWithOutsideDiameter } from '../../converters/xml-cii2019-core/node-bore-od-authority.js';
 import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js';
+import { snapshotTransferProtection, restoreTransferProtection, protectExpectedEntries } from './xml-cii-transfer-protection.js';
 import { findExactClassWall, nodeBoreMm } from './ui-adapted/xml-cii-adapted-preview-wall-evidence.js';
 import { xmlCiiClassSizeKey } from '../../converters/xml-cii2019-core/branch-process-resolver.js';
 
@@ -267,6 +268,7 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
   }
 
   try {
+    const protection = snapshotTransferProtection(sourceText);
     const parity = await import(PARITY_MODULE_URL.href);
     const options = { ...standaloneParityOptions(job.supportConfigJson, job.options || {}), ...extraOptions };
     const enriched = await parity.enrichXmlForCii2019(sourceText, text(job.stagedJsonText), options);
@@ -290,12 +292,14 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
     // Standalone does not use the parent runner's post-OD authority pass.
     // Freeze local DN by each effective node OD before CII engine-input custody.
     const boreAuthority=synchronizeXmlCiiNodeBoreWithOutsideDiameter(process.xmlText);
-    out.xmlText=boreAuthority.xmlText;
-    out.stats={...out.stats,...boreAuthority.stats};
-    out.diagnostics.push(...boreAuthority.diagnostics);
+    // Owner D5: values a transfer moved in win over every master refill above.
+    const kept = restoreTransferProtection(boreAuthority.xmlText, protection);
+    out.xmlText=kept.xmlText;
+    out.stats={...out.stats,...boreAuthority.stats,transferProtected:kept.restored};
+    out.diagnostics.push(...boreAuthority.diagnostics, ...kept.diagnostics);
     out.branchRows = process.branchRows;
     out.nodeRows = process.nodeRows;
-    out.expectedEntries = process.expectedEntries;
+    out.expectedEntries = protectExpectedEntries(process.expectedEntries, protection);
     out.evidence = createStandaloneRunParityEvidence({
       xmlText: out.xmlText,
       expectedEntries: out.expectedEntries,
