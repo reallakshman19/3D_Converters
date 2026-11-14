@@ -50,3 +50,16 @@ export function restraintTypeToCaesarCode(restraintType) {
 
   return null;
 }
+
+/**
+ * The PSI116 route (xml_to_cii2019.py, Owner 14 Nov, GOLDEN-30 G): a step-10 profile type is
+ * written with its CII-frame direction, so a bare axis becomes CAESAR's own bidirectional code
+ * X 2, Y 3, Z 4 (as CAESAR-written CII files show). restraintTypeToCaesarCode above keeps the
+ * InputXML route's historical 17/19/18, which the Restraint Type Mutation table is tuned to.
+ */
+export function psi116ProfileTypeToCaesarCode(restraintType) {
+  const normalized = String(restraintType ?? '').trim().toUpperCase();
+  const axisCodes = { X: 2, Y: 3, Z: 4 };
+  if (Object.prototype.hasOwnProperty.call(axisCodes, normalized)) return axisCodes[normalized];
+  return restraintTypeToCaesarCode(normalized);
+}

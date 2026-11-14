@@ -4038,10 +4038,12 @@ function _xmlCiiTypeEntriesFromSupportKind(kind, config) {
 // (or none) and its CMPSUPGAP note. The shared reader carries both; only the type keeps this
 // tab's own normalisation.
 function _xmlCiiTypeEntryFromExistingRestraint(restraint, config) {
-  return {
-    ...xmlCiiTypeEntryFromExistingRestraint(restraint, config),
-    type: _normalizeExistingXmlCiiRestraintType(_xmlText(restraint, 'Type'), config),
-  };
+  const shared = xmlCiiTypeEntryFromExistingRestraint(restraint, config);
+  const type = _normalizeExistingXmlCiiRestraintType(_xmlText(restraint, 'Type'), config);
+  const sourceAxis = String(_xmlText(restraint, 'Type') ?? '').trim().toUpperCase().replace(/^[+-]/, '');
+  const remapped = /^[XYZ]$/.test(type) && /^[XYZ]$/.test(sourceAxis) && type !== sourceAxis;
+  const direction = shared.direction || (remapped ? { x: type === 'X' ? 1 : 0, y: type === 'Y' ? 1 : 0, z: type === 'Z' ? 1 : 0 } : null);
+  return { ...shared, type, direction };
 }
 
 function _applyXmlRestraints(document, nodeElement, entries, config) {

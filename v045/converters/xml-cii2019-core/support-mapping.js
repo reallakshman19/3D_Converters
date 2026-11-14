@@ -383,11 +383,11 @@ export function calibrateStagedSupportIndexCoordinates(stagedSupportIndex, offse
 const XML_CII_NATIVE_RESTRAINT_TYPE_ALIASES = Object.freeze({
   GUI: 'GUI',
   GUIDE: 'GUI',
-  X: 'GUI',
   LIM: 'LIM',
   LIMIT: 'LIM',
   LINESTOP: 'LIM',
-  Z: 'LIM',
+  // Owner, 14 Nov (GOLDEN-30 G): X and Z are CAESAR restraint types of their own and stay
+  // X / Z; they are never turned into GUI / LIM.
 });
 
 export function normalizeExistingXmlCiiRestraintType(typeText, config = {}) {
@@ -541,6 +541,7 @@ export function xmlCiiRestraintEntriesFromSupportMatch(match, nodeElement, confi
   const entries = [];
   for (const kind of kinds) {
     for (const entry of restraintEntriesFromSupportKind(kind, attrs, nodeElement, config)) {
+      entry.fromStagedItem = true;
       entries.push(entry);
     }
   }
@@ -556,9 +557,19 @@ function directionFromRestraint(restraint) {
   return normalizeDirectionVector({ x: xmlText(restraint, 'DirectionCosineX'), y: xmlText(restraint, 'DirectionCosineY'), z: xmlText(restraint, 'DirectionCosineZ') });
 }
 
+// A bare source axis letter the config re-maps to the CII frame (for example Z -> Y) gets that
+// CII axis as its direction, so the CII writer never re-maps the letter a second time
+// (GOLDEN-30 G, 14 Nov). A restraint with its own direction keeps it.
+function remappedAxisDirection(sourceType, type) {
+  const sourceAxis = toText(sourceType).trim().toUpperCase().replace(/^[+-]/, '');
+  if (!/^[XYZ]$/.test(type) || !/^[XYZ]$/.test(sourceAxis) || type === sourceAxis) return null;
+  return { x: type === 'X' ? 1 : 0, y: type === 'Y' ? 1 : 0, z: type === 'Z' ? 1 : 0 };
+}
+
 export function xmlCiiTypeEntryFromExistingRestraint(restraint, config = {}) {
+  const type = normalizeExistingXmlCiiRestraintType(xmlText(restraint, 'Type'), config);
   return {
-    type: normalizeExistingXmlCiiRestraintType(xmlText(restraint, 'Type'), config),
+    type,
     stiffness: xmlText(restraint, 'Stiffness'),
     gap: xmlText(restraint, 'Gap'),
     friction: xmlText(restraint, 'Friction'),
@@ -566,7 +577,7 @@ export function xmlCiiTypeEntryFromExistingRestraint(restraint, config = {}) {
     // it never inherits a sibling restraint's direction (Owner, 14 Nov: second pass must not
     // turn a direction-less GUI into a vertical one).
     cmpSupGap: xmlText(restraint, 'CMPSUPGAP'),
-    direction: directionFromRestraint(restraint),
+    direction: directionFromRestraint(restraint) || remappedAxisDirection(xmlText(restraint, 'Type'), type),
     directionMode: 'from-xml',
     fromExistingRestraint: true,
   };
@@ -593,6 +604,7 @@ export function applyXmlRestraints(document, nodeElement, entries, config = {}) 
   const existing = xmlChildrenByName(nodeElement, 'Restraint');
   const nodeSupportGapText = firstNodeSupportGapText(nodeElement);
   const nodeSupportGap = parseGapValue(nodeSupportGapText);
+  const nodeAlreadyEnriched = !!toText(xmlText(nodeElement, 'DTXR_SOURCE')).trim();
   let stiffness = config.defaultStiffness || '1.751270E+12';
   let gap = '0';
   let friction = config.defaultFriction || '0.3';
@@ -615,12 +627,19 @@ export function applyXmlRestraints(document, nodeElement, entries, config = {}) 
     xmlSetText(document, restraint, 'Stiffness', toText(entry?.stiffness).trim() || stiffness);
     const entryGap = toText(entry?.gap).trim();
     const usesSupportGap = restraintTypeUsesSupportGap(type, entry);
-    const gapValue = usesSupportGap && (!entryGap || Number(entryGap) === 0) && nodeSupportGap
+    // Owner, 14 Nov (GOLDEN-30 A): a guide and a line stop on one node may need different gaps,
+    // or none. A restraint made from one staged item keeps that item's own gap and note; the
+    // node-level CMPSUPGAP (merged from every item at the position) fills only the others.
+    // A restraint read back from a node that step 10 already enriched (DTXR_SOURCE present) was
+    // written per item the first time; re-enrichment keeps its own gap and note too.
+    const ownItemOnly = entry?.fromStagedItem === true || (entry?.fromExistingRestraint === true && nodeAlreadyEnriched);
+    const explicitSourceGap = toText(entry?.cmpSupGap).trim() !== '';
+    const gapValue = usesSupportGap && !ownItemOnly && !explicitSourceGap && (!entryGap || Number(entryGap) === 0) && nodeSupportGap
       ? String(nodeSupportGap)
       : (entryGap || gap);
     xmlSetText(document, restraint, 'Gap', gapValue);
     xmlSetText(document, restraint, 'Friction', frictionForEntry(entry, type, friction, config));
-    const cmpSupGap = toText(entry?.cmpSupGap).trim() || (usesSupportGap ? nodeSupportGapText : '');
+    const cmpSupGap = toText(entry?.cmpSupGap).trim() || (usesSupportGap && !ownItemOnly ? nodeSupportGapText : '');
     if (cmpSupGap) xmlSetText(document, restraint, 'CMPSUPGAP', cmpSupGap);
     const direction = entry?.fromExistingRestraint
       ? normalizeDirectionVector(entry?.direction)

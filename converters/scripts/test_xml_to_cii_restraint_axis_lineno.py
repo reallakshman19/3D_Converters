@@ -10,18 +10,53 @@ import xml_to_cii2019 as X
 
 
 class TestRestraintAxisMap(unittest.TestCase):
-    """Bare (unsigned) restraint axes follow the geometry frame map
-    (XML XYZ -> CII X,Z,-Y), so a vertical XML-Z restraint becomes CII-Y
-    (code 18), not CII-Z. Signed axes keep their literal CAESAR II codes."""
+    """Bare (unsigned) source restraint axes follow the geometry frame map
+    (XML XYZ -> CII X,Z,-Y), so a vertical XML-Z restraint becomes CII-Y.
+    The codes are CAESAR's own (X 2, Y 3, Z 4, read from CAESAR-written
+    benchmark CII files); the old 17/19/18 were -Y, +RX and -Z.
+    Signed axes keep their literal CAESAR II codes."""
 
     def test_vertical_z_maps_to_y(self):
-        self.assertEqual(X._restraint_type_to_code("Z"), 18)
+        self.assertEqual(X._restraint_type_to_code("Z"), 3)
 
     def test_y_maps_to_z(self):
-        self.assertEqual(X._restraint_type_to_code("Y"), 19)
+        self.assertEqual(X._restraint_type_to_code("Y"), 4)
 
     def test_x_unchanged(self):
-        self.assertEqual(X._restraint_type_to_code("X"), 17)
+        self.assertEqual(X._restraint_type_to_code("X"), 2)
+
+    def test_bare_axis_codes_never_collide_with_signed_or_rotation_codes(self):
+        bare = {X._restraint_type_to_code(a) for a in "XYZ"}
+        signed = {X._restraint_type_to_code(s + a) for s in "+-" for a in ("X", "Y", "Z", "RX", "RY", "RZ")}
+        self.assertEqual(bare, {2, 3, 4})
+        self.assertFalse(bare & signed)
+
+    def test_enriched_restraint_direction_names_the_cii_axis(self):
+        # A spring written by the enrichment as Y with CII direction 0,1,0 is vertical (CII Y).
+        self.assertEqual(X._restraint_type_to_code("Y", (0.0, 1.0, 0.0)), 3)
+        self.assertEqual(X._restraint_type_to_code("X", (1.0, 0.0, 0.0)), 2)
+        self.assertEqual(X._restraint_type_to_code("Z", (0.0, 0.0, -1.0)), 4)
+        # A sloped direction names no axis: the letter's frame map applies.
+        self.assertEqual(X._restraint_type_to_code("Z", (0.7, 0.7, 0.0)), 3)
+
+    def test_axis_restraint_without_cosines_gets_its_own_axis_row(self):
+        # CAESAR writes X 2 with 1,0,0, Y 3 with 0,1,0, Z 4 with 0,0,1; never the 0,0,1 placeholder for X.
+        self.assertEqual(X._direction_cosines_for_restraint_type(2, False), (1.0, 0.0, 0.0))
+        self.assertEqual(X._direction_cosines_for_restraint_type(3, False), (0.0, 1.0, 0.0))
+        self.assertEqual(X._direction_cosines_for_restraint_type(4, False), (0.0, 0.0, 1.0))
+
+    def test_cii_engine_direction_parser_uses_the_restraint_direction(self):
+        # The live CII engine parses restraints in xml_to_cii2019_direction: a spring the
+        # enrichment wrote as Y with direction 0,1,0 must stay vertical (CAESAR Y, 3).
+        import xml.etree.ElementTree as ET
+        import xml_to_cii2019_direction as D
+        node = ET.fromstring(
+            "<Node><Restraint><Type>Y</Type><Stiffness>0</Stiffness><Gap>0</Gap><Friction>0.3</Friction>"
+            "<DirectionCosineX>0</DirectionCosineX><DirectionCosineY>1</DirectionCosineY>"
+            "<DirectionCosineZ>0</DirectionCosineZ></Restraint>"
+            "<Restraint><Type>Z</Type><Stiffness>0</Stiffness><Gap>0</Gap><Friction>0.3</Friction></Restraint></Node>"
+        )
+        self.assertEqual([s.type_code for s in D._parse_restraints_with_direction(node, "")], [3, 3])
 
     def test_signed_axes_use_literal_caesar_codes(self):
         # Signed restraints map to their literal CAESAR II type codes
@@ -114,11 +149,11 @@ class TestMultiRestraintAuxBlock(unittest.TestCase):
         payload = X._build_restraint_payload(model)
 
         self.assertEqual(len(model.restraints), 1)
-        # +Y -> 14 (literal CAESAR code), Z -> 18 (bare-axis frame map), GUI -> 8.
-        self.assertEqual([spec.type_code for spec in model.restraints[0].specs], [14, 18, 8])
+        # +Y -> 14 (literal CAESAR code), Z -> 3 (bare-axis frame map: vertical = CAESAR Y), GUI -> 8.
+        self.assertEqual([spec.type_code for spec in model.restraints[0].specs], [14, 3, 8])  # bare Z = vertical = CAESAR Y (3)
         self.assertEqual(len(payload), X.RESTRAINT_SLOTS_PER_AUX * 4)
         self.assertIn(X._format_auto_float(14.0), payload[0])
-        self.assertIn(X._format_auto_float(18.0), payload[4])
+        self.assertIn(X._format_auto_float(3.0), payload[4])
         self.assertIn(X._format_auto_float(8.0), payload[8])
 
 

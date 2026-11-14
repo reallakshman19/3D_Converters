@@ -54,7 +54,9 @@ RESTRAINT_SLOTS_PER_AUX: Final[int] = 6
 # Mirrored for UI display/edit purposes in
 # converters/xml-cii2019-core/restraint-type-codes.js (NATIVE_RESTRAINT_TYPE_CODES /
 # restraintTypeToCaesarCode). This Python table remains the source of truth for
-# the numeric codes actually written into CII output; keep both in sync.
+# the numeric codes actually written into CII output; keep the signed/named codes in
+# sync. Bare X/Y/Z differ by route: this writer uses CAESAR's 2/3/4 (mirrored by
+# psi116ProfileTypeToCaesarCode); restraintTypeToCaesarCode keeps the InputXML route's 17/19/18.
 NATIVE_RESTRAINT_TYPE_CODES: Final[dict[str, int]] = {
     "ANC": 1, "GUI": 8, "GUIDE": 8, "LIM": 9, "LIMIT": 9, "XSNB": 10, "YSNB": 11, "ZSNB": 12,
     "+X": 13, "+Y": 14, "+Z": 15, "-X": 16, "-Y": 17, "-Z": 18,
@@ -298,10 +300,29 @@ def _parse_yes_no(value: str, field_name: str) -> bool:
     return False
 
 
-def _restraint_type_to_code(restraint_type: str) -> int:
+# CAESAR II codes for bidirectional axis restraints, as CAESAR itself writes them
+# (Benchmarks/*[BENCHMARK].CII: X 2 with 1,0,0; Y 3 with 0,1,0; Z 4 with 0,0,1).
+CII_AXIS_CODES: Final[dict[str, int]] = {"X": 2, "Y": 3, "Z": 4}
+# A bare PSI116 axis letter is in the AVEVA frame (Z up) and maps like geometry
+# (_map_position_to_cii: XML X,Y,Z -> CII X,Z,-Y), so a vertical XML-Z becomes CII-Y.
+PSI116_TO_CII_AXIS: Final[dict[str, str]] = {"X": "X", "Y": "Z", "Z": "Y"}
+
+
+def _axis_from_direction(direction: tuple[float, float, float] | None) -> str | None:
+    if direction is None:
+        return None
+    for axis, value in zip("XYZ", direction):
+        if abs(abs(value) - 1.0) < 1e-6:
+            return axis
+    return None
+
+
+def _restraint_type_to_code(
+    restraint_type: str, direction: tuple[float, float, float] | None = None
+) -> int:
     # Logic mirrored in converters/xml-cii2019-core/restraint-type-codes.js
     # (restraintTypeToCaesarCode) so the mapping table UI can display the
-    # resulting CAESAR II numeric code. Keep both in sync.
+    # resulting CAESAR II numeric code. Bare X/Y/Z are mirrored by psi116ProfileTypeToCaesarCode.
     normalized = _safe_text(restraint_type).upper()
     try:
         numeric = float(normalized)
@@ -320,16 +341,14 @@ def _restraint_type_to_code(restraint_type: str) -> int:
         return 1
     if normalized.startswith("+") or normalized.startswith("-"):
         normalized = normalized[1:]
-    # Bare (unsigned) restraint axes follow the same XML->CII frame map as
-    # geometry (_map_position_to_cii: XML XYZ -> CII X,Z,-Y). Otherwise a
-    # vertical XML-Z restraint stays on CII-Z while the geometry's vertical moved
-    # to CII-Y, i.e. the support points sideways. So: X->X(17), Y->Z(19), Z->Y(18).
-    if normalized == "X":
-        return 17
-    if normalized == "Y":
-        return 19
-    if normalized == "Z":
-        return 18
+    # Bare (unsigned) restraint axes (Owner, 14 Nov: X/Z stay X/Z restraints).
+    # A restraint the enrichment wrote carries its CII-frame direction cosines and
+    # that direction names the axis. A source PSI116 restraint carries none: its
+    # letter is in the AVEVA frame and follows the geometry map X->X, Y->Z, Z->Y.
+    # (The old 17/19/18 were the CAESAR codes of -Y, +RX and -Z.)
+    if normalized in PSI116_TO_CII_AXIS:
+        axis = _axis_from_direction(direction) or PSI116_TO_CII_AXIS[normalized]
+        return CII_AXIS_CODES[axis]
     _record_parse_warning("Restraint/Type", restraint_type, 1)
     return 1
 
@@ -384,14 +403,15 @@ def _parse_restraints(node_element: ET.Element, namespace: str) -> tuple[Restrai
         friction = _parse_optional_float(
             _child_text(restraint_element, namespace, "Friction"), "Restraint/Friction"
         )
+        direction_cosines = _parse_direction_cosines(restraint_element, namespace)
         specs.append(
             RestraintSpec(
-                type_code=_restraint_type_to_code(type_text),
+                type_code=_restraint_type_to_code(type_text, direction_cosines),
                 stiffness=0.0 if stiffness is None else stiffness,
                 gap=0.0 if gap is None else gap,
                 friction=0.0 if friction is None else friction,
                 is_open_end=False,
-                direction_cosines=_parse_direction_cosines(restraint_element, namespace),
+                direction_cosines=direction_cosines,
             )
         )
     return tuple(specs)
@@ -1554,6 +1574,11 @@ def _direction_cosines_for_restraint_type(type_code: int, is_open_end: bool) -> 
     if is_open_end:
         return (0.0, 0.0, 0.0)
     code = int(round(type_code))
+    # Bidirectional axis restraints: the row CAESAR writes itself (X 2 -> 1,0,0; Y 3 -> 0,1,0;
+    # Z 4 -> 0,0,1), so an X restraint is never read along Z (GOLDEN-30 G review, 14 Nov).
+    axis_rows = {2: (1.0, 0.0, 0.0), 3: (0.0, 1.0, 0.0), 4: (0.0, 0.0, 1.0)}
+    if code in axis_rows:
+        return axis_rows[code]
     if code == 13:
         return (1.0, 0.0, 0.0)
     if code == 14:

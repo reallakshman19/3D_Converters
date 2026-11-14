@@ -8,6 +8,7 @@
 // contains the Preview and Weight Match facts that were selected.
 
 import { enrichStandaloneDtxrAnnotations } from './xml-cii-standalone-dtxr-enrichment.js';
+import { rememberSupportLedger, refreshUnmatchedSupportWarnings } from './xml-cii-unmatched-supports.js';
 import { synchronizeXmlCiiNodeBoreWithOutsideDiameter } from '../../converters/xml-cii2019-core/node-bore-od-authority.js';
 import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js';
 import { snapshotTransferProtection, restoreTransferProtection, protectExpectedEntries } from './xml-cii-transfer-protection.js';
@@ -295,6 +296,9 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
     // Owner D5: values a transfer moved in win over every master refill above.
     const kept = restoreTransferProtection(boreAuthority.xmlText, protection);
     out.xmlText=kept.xmlText;
+    // Owner, 14 Nov (GOLDEN-30 H): staged supports that did not become restraints are
+    // non-blocking warnings, judged on the final XML (wrappers refresh them after their closures).
+    rememberSupportLedger(out, dtxr.ledgerResult, Number(config?.coordinateTolerance ?? 1));
     out.stats={...out.stats,...boreAuthority.stats,transferProtected:kept.restored};
     out.diagnostics.push(...boreAuthority.diagnostics, ...kept.diagnostics);
     out.branchRows = process.branchRows;
@@ -319,6 +323,7 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
     out.logs.push(
       `Standalone run parity PASS (${out.evidence.status}): ${out.evidence.comparisons} comparison(s), input ${out.evidence.engineInputDigest}.`,
     );
+    refreshUnmatchedSupportWarnings(out);
     out.logs.push(`Standalone run parity applied: ${out.stats.weightAnnotations || 0} weight annotation(s), ${out.stats.processAnnotations || 0} process annotation(s), ${out.stats.stagedSupportsMapped || 0} staged support(s), ${out.stats.dtxrPosAnnotations || 0} DTXR_POS annotation(s), ${out.stats.dtxrPsAnnotations || 0} DTXR_PS annotation(s), ${out.stats.splitCondensedRigidNodes || 0} renumbered node(s).`);
   } catch (error) {
     out.error = text(error?.message || error);
