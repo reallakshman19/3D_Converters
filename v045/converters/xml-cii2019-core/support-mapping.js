@@ -562,8 +562,13 @@ export function xmlCiiTypeEntryFromExistingRestraint(restraint, config = {}) {
     stiffness: xmlText(restraint, 'Stiffness'),
     gap: xmlText(restraint, 'Gap'),
     friction: xmlText(restraint, 'Friction'),
+    // A re-enriched restraint keeps its own direction (or none) and its own source gap note;
+    // it never inherits a sibling restraint's direction (Owner, 14 Nov: second pass must not
+    // turn a direction-less GUI into a vertical one).
+    cmpSupGap: xmlText(restraint, 'CMPSUPGAP'),
     direction: directionFromRestraint(restraint),
     directionMode: 'from-xml',
+    fromExistingRestraint: true,
   };
 }
 
@@ -617,7 +622,9 @@ export function applyXmlRestraints(document, nodeElement, entries, config = {}) 
     xmlSetText(document, restraint, 'Friction', frictionForEntry(entry, type, friction, config));
     const cmpSupGap = toText(entry?.cmpSupGap).trim() || (usesSupportGap ? nodeSupportGapText : '');
     if (cmpSupGap) xmlSetText(document, restraint, 'CMPSUPGAP', cmpSupGap);
-    const direction = normalizeDirectionVector(entry?.direction) || (entry?.directionMode === 'from-xml' ? existingDirection : null);
+    const direction = entry?.fromExistingRestraint
+      ? normalizeDirectionVector(entry?.direction)
+      : normalizeDirectionVector(entry?.direction) || (entry?.directionMode === 'from-xml' ? existingDirection : null);
     if (direction) {
       xmlSetText(document, restraint, 'DirectionCosineX', direction.x.toFixed(9));
       xmlSetText(document, restraint, 'DirectionCosineY', direction.y.toFixed(9));
