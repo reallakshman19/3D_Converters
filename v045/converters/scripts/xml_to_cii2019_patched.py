@@ -387,8 +387,26 @@ def _renumber_length_bearing_negative_nodes(root: ET.Element, namespace: str) ->
     return changed
 
 
+_TRANSFER_PROTECT_RE = re.compile(r"<!--\s*TOPOFIX-TRANSFER-PROTECT\s*(.*?)-->", re.S)
+
+
+def _load_transfer_protection(xml_path: Path) -> dict[str, set[str]]:
+    """Owner D5 (13 Nov 2026): values a TopoFix transfer moved in win over the line list.
+    Branchname -> protected paths, read from the XML text (ElementTree drops comments)."""
+    found = _TRANSFER_PROTECT_RE.search(Path(xml_path).read_text(encoding="utf-8-sig", errors="replace"))
+    if not found:
+        return {}
+    note = json.loads(found.group(1))
+    if note.get("v") != 1:
+        raise ValueError("TRANSFER_PROTECT_VERSION: the XML carries a transfer protection note of another version")
+    return {name: set(paths) for name, paths in (note.get("branches") or {}).items()}
+
+
 def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -> Path:
     _normalize_process_field_map(support_config)
+    if "_transferProtect" not in support_config:
+        support_config["_transferProtect"] = _load_transfer_protection(xml_path)
+    protected_by_branch = support_config["_transferProtect"]
     tree = ET.parse(xml_path)
     root = tree.getroot()
     namespace = _namespace(root.tag)
@@ -402,6 +420,7 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
             continue
         pressure = _ensure_child(branch, namespace, "Pressure")
         line_key = _line_key_from_branch(_child_text(branch, namespace, "Branchname"), support_config)
+        protected = protected_by_branch.get(_child_text(branch, namespace, "Branchname").strip(), set())
         hydro = ""
         if _matching_linelist_rows(line_key, support_config):
             temperature = _ensure_child(branch, namespace, "Temperature")
@@ -415,14 +434,15 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
             density = (_mapped_process_value(line_key, support_config, "densityMixed", ["Mixed kg/m3", "Mixed kg/m³", "Density Mixed"])
                        or _mapped_process_value(line_key, support_config, "densityGas", ["Gas kg/m3", "Gas kg/m³", "Density Gas"])
                        or _mapped_process_value(line_key, support_config, "densityLiquid", ["Liquid kg/m3", "Liquid kg/m³", "Density Liquid"]))
-            if values["Pressure1"]:
+            if values["Pressure1"] and "Pressure/Pressure1" not in protected:
                 _set_child(pressure, namespace, "Pressure1", values["Pressure1"]); changed = True
             for tag in ("Temperature1", "Temperature2", "Temperature3"):
-                if values[tag]:
+                if values[tag] and f"Temperature/{tag}" not in protected:
                     _set_child(temperature, namespace, tag, values[tag]); changed = True
-            if density:
+            if density and "FluidDensity" not in protected:
                 _set_child(branch, namespace, "FluidDensity", density); changed = True
-        _set_child(pressure, namespace, "HydroPressure", hydro if hydro else _child_text(pressure, namespace, "HydroPressure") or 0)
+        if "Pressure/HydroPressure" not in protected:
+            _set_child(pressure, namespace, "HydroPressure", hydro if hydro else _child_text(pressure, namespace, "HydroPressure") or 0)
         changed = True
         max_insulation = _numeric_text(_child_text(branch, namespace, "InsulationThickness")) or 0.0
         for node in _branch_nodes(branch, namespace):
@@ -432,7 +452,8 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
             has_explicit_restraints = any(_local_name(child.tag) == "Restraint" for child in list(node))
             if not skip_dtxr_restraint_fallback and not has_explicit_restraints and _apply_dtxr_restraints_to_node(node, namespace, support_config, use_dtxr_only=True):
                 changed = True
-        _set_child(branch, namespace, "InsulationDensity", insulation_density_default if max_insulation >= 50.0 else 0)
+        if "InsulationDensity" not in protected:
+            _set_child(branch, namespace, "InsulationDensity", insulation_density_default if max_insulation >= 50.0 else 0)
         changed = True
     if _truthy(support_config.get("splitCondensedValveFlange")) and _renumber_length_bearing_negative_nodes(root, namespace):
         changed = True

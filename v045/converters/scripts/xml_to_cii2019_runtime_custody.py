@@ -159,6 +159,8 @@ def main() -> None:
     support_config.setdefault("defaultTeeSifType", 0)
     _PUBLISH_BEND_RADIUS_1_5D = publish_one_point_five_d(support_config)
 
+    # Read before any temp copy: ElementTree rewrites drop the transfer protection comment.
+    support_config["_transferProtect"] = patched._load_transfer_protection(args.input)
     input_xml = patched._maybe_enrich_from_staged_json(args.input, args.staged_json, support_config)
     input_xml = patched._apply_process_data_to_xml(input_xml, support_config)
     input_xml, bend_policy = apply_bend_radius_policy(input_xml, support_config)
