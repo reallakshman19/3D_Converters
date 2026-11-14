@@ -4,10 +4,9 @@
 // records in the CII. A re-enriched restraint must keep its own direction (or none) and its note.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  applyXmlRestraints,
-  xmlCiiTypeEntryFromExistingRestraint,
-} from '../converters/xml-cii2019-core/support-mapping-legacy.js';
+import * as mainCopy from '../converters/xml-cii2019-core/support-mapping-legacy.js';
+// The live main app serves step 10 (Output / Run) from v045/, which has its own copy.
+import * as v045Copy from '../v045/converters/xml-cii2019-core/support-mapping.js';
 
 class Element {
   constructor(name) { this.localName = name; this.nodeName = name; this.nodeType = 1; this.namespaceURI = null; this.childNodes = []; this._text = ''; }
@@ -33,38 +32,40 @@ function enrichedNode() {
   return node;
 }
 
-function reenrich(node) {
-  const entries = kids(node, 'Restraint').map((r) => xmlCiiTypeEntryFromExistingRestraint(r, {})).filter((e) => e.type);
-  applyXmlRestraints(document, node, entries, {});
-  return node;
+for (const [label, lib] of [['main', mainCopy], ['v045', v045Copy]]) {
+  function reenrich(node) {
+    const entries = kids(node, 'Restraint').map((r) => lib.xmlCiiTypeEntryFromExistingRestraint(r, {})).filter((e) => e.type);
+    lib.applyXmlRestraints(document, node, entries, {});
+    return node;
+  }
+
+  test(`${label}: second pass keeps a direction-less GUI direction-less and keeps its CMPSUPGAP`, () => {
+    const node = reenrich(enrichedNode());
+    const [rest, gui] = kids(node, 'Restraint');
+    assert.equal(val(rest, 'Type'), '+Y');
+    assert.equal(val(rest, 'DirectionCosineY'), '1.000000000');
+    assert.equal(val(gui, 'Type'), 'GUI');
+    assert.equal(val(gui, 'DirectionCosineX'), undefined);
+    assert.equal(val(gui, 'DirectionCosineY'), undefined);
+    assert.equal(val(gui, 'Gap'), '5');
+    assert.equal(val(gui, 'CMPSUPGAP'), '5mm GAP');
+  });
+
+  test(`${label}: re-enrichment is idempotent: a third pass changes nothing`, () => {
+    const snap = (n) => JSON.stringify(kids(n, 'Restraint').map((r) => r.childNodes.map((c) => [c.localName, c.textContent])));
+    const twice = reenrich(enrichedNode());
+    const before = snap(twice);
+    assert.equal(snap(reenrich(twice)), before);
+  });
+
+  test(`${label}: a restraint with its own direction keeps exactly that direction`, () => {
+    const node = new Element('Node');
+    node.appendChild(el('Restraint', { Type: '+Y', Stiffness: '1', Gap: '0', Friction: '0.3',
+      DirectionCosineX: '0.000000000', DirectionCosineY: '1.000000000', DirectionCosineZ: '0.000000000' }));
+    node.appendChild(el('Restraint', { Type: 'GUI', Stiffness: '1', Gap: '0', Friction: '-1.010100',
+      DirectionCosineX: '0.000000000', DirectionCosineY: '0.000000000', DirectionCosineZ: '1.000000000' }));
+    const [, gui] = kids(reenrich(node), 'Restraint');
+    assert.equal(val(gui, 'DirectionCosineZ'), '1.000000000');
+    assert.equal(val(gui, 'DirectionCosineY'), '0.000000000');
+  });
 }
-
-test('second pass keeps a direction-less GUI direction-less and keeps its CMPSUPGAP', () => {
-  const node = reenrich(enrichedNode());
-  const [rest, gui] = kids(node, 'Restraint');
-  assert.equal(val(rest, 'Type'), '+Y');
-  assert.equal(val(rest, 'DirectionCosineY'), '1.000000000');
-  assert.equal(val(gui, 'Type'), 'GUI');
-  assert.equal(val(gui, 'DirectionCosineX'), undefined);
-  assert.equal(val(gui, 'DirectionCosineY'), undefined);
-  assert.equal(val(gui, 'Gap'), '5');
-  assert.equal(val(gui, 'CMPSUPGAP'), '5mm GAP');
-});
-
-test('re-enrichment is idempotent: a third pass changes nothing', () => {
-  const snap = (n) => JSON.stringify(kids(n, 'Restraint').map((r) => r.childNodes.map((c) => [c.localName, c.textContent])));
-  const twice = reenrich(enrichedNode());
-  const before = snap(twice);
-  assert.equal(snap(reenrich(twice)), before);
-});
-
-test('a restraint with its own direction keeps exactly that direction', () => {
-  const node = new Element('Node');
-  node.appendChild(el('Restraint', { Type: '+Y', Stiffness: '1', Gap: '0', Friction: '0.3',
-    DirectionCosineX: '0.000000000', DirectionCosineY: '1.000000000', DirectionCosineZ: '0.000000000' }));
-  node.appendChild(el('Restraint', { Type: 'GUI', Stiffness: '1', Gap: '0', Friction: '-1.010100',
-    DirectionCosineX: '0.000000000', DirectionCosineY: '0.000000000', DirectionCosineZ: '1.000000000' }));
-  const [, gui] = kids(reenrich(node), 'Restraint');
-  assert.equal(val(gui, 'DirectionCosineZ'), '1.000000000');
-  assert.equal(val(gui, 'DirectionCosineY'), '0.000000000');
-});
