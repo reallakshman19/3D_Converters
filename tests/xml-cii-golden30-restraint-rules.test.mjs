@@ -169,3 +169,24 @@ test('G display: step-10 profile types show the codes the PSI116 writer writes; 
   assert.deepEqual(['X', 'Y', 'Z', '+Y', 'GUI', 'LIM', 'A'].map(psi116ProfileTypeToCaesarCode), [2, 3, 4, 14, 8, 9, 1]);
   assert.deepEqual(['X', 'Y', 'Z'].map(restraintTypeToCaesarCode), [17, 19, 18]);
 });
+
+// GOLDEN-30 rev 3 finding J (Owner "fix J", 14 Nov): the line list's insulation thickness was also
+// written into the branch's InsulationDensity (50 mm became 50 kg/m3). Thickness goes to
+// InsulationThickness only; the source density stays.
+test('J: line-list insulation thickness never overwrites InsulationDensity', async () => {
+  const { xmlCiiApplyLineListProcessData } = await import('../v045/tabs/model-converters/converters/xmltocii2019_helper/enrichment-core.js');
+  const document = { createElement: (name) => new Element(name) };
+  const branch = new Element('Branch');
+  const density = branch.appendChild(new Element('InsulationDensity'));
+  density.textContent = '120';
+  xmlCiiApplyLineListProcessData(document, branch, { lineNo: 'P0001', t1: '340', insThk: '50' }, {}, 'P0001');
+  const kid = (name) => branch.childNodes.find((c) => c.localName === name)?.textContent;
+  assert.equal(kid('InsulationThickness'), '50');
+  assert.equal(kid('InsulationDensity'), '120');
+  for (const file of ['v045/tabs/model-converters/converters/xmltocii2019_helper/enrichment-core.js',
+    'tabs/model-converters/converters/xmltocii2019_helper/enrichment-core-legacy.js',
+    'docs/tabs/model-converters/converters/xmltocii2019_helper/enrichment-core-legacy.js',
+    'tabs/model-converters/legacy-adapter.js', 'docs/tabs/model-converters/legacy-adapter.js']) {
+    assert.doesNotMatch(readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'), /'InsulationDensity',\s*insThk/, file);
+  }
+});
