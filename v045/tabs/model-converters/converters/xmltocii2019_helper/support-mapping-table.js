@@ -14,7 +14,7 @@ import {
   DEFAULT_STOP_KEYWORD_HELP,
 } from '../../../../converters/xml-cii2019-core/support-mapping-config.js';
 
-import { restraintTypeToCaesarCode } from '../../../../../converters/xml-cii2019-core/restraint-type-codes.js';
+import { psi116ProfileTypeToCaesarCode } from '../../../../../converters/xml-cii2019-core/restraint-type-codes.js';
 
 function text(value) {
   return String(value ?? '');
@@ -44,7 +44,7 @@ function caesarTypeCodesForXmlTypes(xmlTypesValue) {
   // Reuses normalizeXmlTypes' composite-token splitter so a leading sign (e.g. "+Y")
   // is not mistaken for the "+" used to join multiple types (e.g. "GUI+LIM").
   const tokens = normalizeXmlTypes(xmlTypesValue);
-  const codes = tokens.map((token) => restraintTypeToCaesarCode(token));
+  const codes = tokens.map((token) => psi116ProfileTypeToCaesarCode(token));
   if (!codes.length || codes.some((code) => code === null)) return '';
   return codes.join('/');
 }

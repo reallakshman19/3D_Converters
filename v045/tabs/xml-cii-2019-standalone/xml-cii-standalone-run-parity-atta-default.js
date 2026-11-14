@@ -1,3 +1,4 @@
+import { refreshUnmatchedSupportWarnings } from './xml-cii-unmatched-supports.js';
 import {
   enrichStandaloneXmlForRun as enrichStandaloneXmlForRunBase,
   loadParentWeightMatchModules,
@@ -66,6 +67,7 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
     return out;
   }
 
+  refreshUnmatchedSupportWarnings(out);
   out.logs = [
     ...(out.logs || []),
     `ATTA default-restraint closure applied: ${closure.stats.attaDefaultRestRestraintsAdded || 0} missing restraint(s) added, ${closure.stats.zeroInformationLimitPlaceholdersReplaced || 0} placeholder(s) replaced.`,

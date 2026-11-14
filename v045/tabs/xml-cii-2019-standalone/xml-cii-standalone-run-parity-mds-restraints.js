@@ -1,3 +1,4 @@
+import { refreshUnmatchedSupportWarnings } from './xml-cii-unmatched-supports.js';
 import {
   enrichStandaloneXmlForRun as enrichStandaloneXmlForRunBase,
   loadParentWeightMatchModules,
@@ -69,6 +70,7 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
     return out;
   }
 
+  refreshUnmatchedSupportWarnings(out);
   out.logs = [
     ...(out.logs || []),
     `MDS position-restraint closure applied: ${closure.stats.mdsGuideRestraintsAdded || 0} GUI, ${closure.stats.mdsLineStopRestraintsAdded || 0} LIM, and ${closure.stats.mdsRestRestraintsAdded || 0} REST restraint(s) added.`,

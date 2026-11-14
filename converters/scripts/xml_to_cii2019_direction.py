@@ -172,14 +172,16 @@ def _parse_restraints_with_direction(node_element: ET.Element, namespace: str) -
         friction = base._parse_optional_float(
             base._child_text(restraint_element, namespace, "Friction"), "Restraint/Friction"
         )
+        direction_cosines = _parse_direction_cosines(restraint_element, namespace)
         specs.append(
             DirectionRestraintSpec(
-                type_code=base._restraint_type_to_code(type_text),
+                # A bare X/Y/Z with its own CII direction takes that axis (GOLDEN-30 G).
+                type_code=base._restraint_type_to_code(type_text, direction_cosines),
                 stiffness=0.0 if stiffness is None else stiffness,
                 gap=0.0 if gap is None else gap,
                 friction=0.0 if friction is None else friction,
                 is_open_end=False,
-                direction_cosines=_parse_direction_cosines(restraint_element, namespace),
+                direction_cosines=direction_cosines,
             )
         )
     return tuple(specs)
