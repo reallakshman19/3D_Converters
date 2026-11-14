@@ -17,6 +17,8 @@ import {assertBasisDigest,canonicalJson,digestCanonical,digestUtf8,validateFactR
 import {isolatedOriginalPreviewWorkConfig} from './xml229-original-preview-work-config.mjs';
 import {finalizeXml229WeightGeometry} from './xml229-finalized-weight-geometry.mjs';
 import {prepareXml229PrefinalRestraints} from './xml229-prefinal-restraints.mjs';
+import {indexXml229OriginalPhysicalVertices}
+  from './xml229-original-physical-vertices.mjs';
 import {indexXml229ComponentBodyBores} from './xml229-component-body-bore.mjs';
 import {projectXmlCiiOccurrences}
   from '../ui-adapted/xml-cii-adapted-preview-facts-xml-source.js';
@@ -294,6 +296,23 @@ export async function openXml229EngineeringFactModel({
     nonOwnerEndpointStarts,componentSuppressionPairs:canonicalEndpointPairs,sourceId,
     prefinalRestraints:restraintStage.proof,
   },{children,field,fail,canonicalJson});
+  // WBS 1.1/1.2: explicitly opt-in NON-AUTHORIZING source-coordinate shadow
+  // audit. The reviewed branch aliases come from the existing mass lineage,
+  // not from a new matching heuristic. Never mutate finalizedGeometry or kg.
+  // Keep disabled in production until the exact large-source Worker budget and
+  // source graph identity tests are qualified.
+  const physicalVertexShadow=live.config?.xml229PhysicalVertexShadow===true
+    ?indexXml229OriginalPhysicalVertices({
+      xmlText,sourceXmlSha256:basis.sourceRefs[0].sha256,
+      branchConnectionAliases:
+        finalizedGeometry.physicalLineage.branchConnectionAliases,
+    }).summary
+    :null;
+  if(physicalVertexShadow&&
+    (physicalVertexShadow.originalNodeOccurrences!==projection.nodeCount||
+     physicalVertexShadow.originalBranchCount!==projection.branchCount))
+    fail('XML229_VERTEX_SOURCE_CENSUS_DRIFT',
+      'Read-only physical-vertex index differs from original source census');
   const workerResult=Object.freeze({
     ...previewResult,
     coverage:{
@@ -311,6 +330,7 @@ export async function openXml229EngineeringFactModel({
     engineeringFactCount:records.length,
   });
   return Object.freeze({model,workerResult,finalizedGeometry,
+    ...(physicalVertexShadow?{physicalVertexShadow}:{}),
     sourceOccurrenceCensus:sourceOriginals,
     workerOriginalCount:sourceOriginals.length,
     originalOccurrences:projection.nodes.map(({sourceId,branchOccurrenceIndex,nodeOrdinal})=>({
