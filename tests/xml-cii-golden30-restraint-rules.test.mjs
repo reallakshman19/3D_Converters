@@ -190,3 +190,27 @@ test('J: line-list insulation thickness never overwrites InsulationDensity', asy
     assert.doesNotMatch(readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'), /'InsulationDensity',\s*insThk/, file);
   }
 });
+
+// GOLDEN-30 rev 3 finding L (Owner, 14 Nov: "based on Source xml"): a wall the source XML states
+// (> 0) is kept over the piping-class fill; wall 0 (every AVEVA export) is still filled.
+test('L: a wall stated in the source XML wins over the piping-class fill', async () => {
+  const { installWeightBasisXmlDom } = await import('../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js');
+  installWeightBasisXmlDom(globalThis);
+  const { snapshotSourceWalls, restoreSourceWalls, expectSourceWalls } = await import('../v045/tabs/xml-cii-2019-standalone/xml-cii-source-wall.js');
+  const node = (n, type, ref, ep, wall) => `<Node><NodeNumber>${n}</NodeNumber><ComponentType>${type}</ComponentType><ComponentRefNo>${ref}</ComponentRefNo><Endpoint>${ep}</Endpoint><WallThickness>${wall}</WallThickness></Node>`;
+  const doc = (nodes) => `<PipeStressExport><Pipe><Branch><Branchname>/L1/B1</Branchname>${nodes.join('')}</Branch></Pipe></PipeStressExport>`;
+  const source = doc([node(10, 'FLAN', '=1/1', 1, '12.7'), node(-1, 'FLAN', '=1/2', 2, '12.7'), node(60, 'ATTA', '=1/3', 0, '0')]);
+  // Step 10 filled 8.18 from the class and renumbered the -1 flange end to 19.
+  const run = doc([node(10, 'FLAN', '=1/1', 1, '8.18'), node(19, 'FLAN', '=1/2', 2, '8.18'), node(60, 'ATTA', '=1/3', 0, '8.18')]);
+  const walls = snapshotSourceWalls(source);
+  assert.equal(walls.size, 2);
+  const out = restoreSourceWalls(run, walls);
+  assert.deepEqual([...out.xmlText.matchAll(/<WallThickness>([^<]*)/g)].map((m) => m[1]), ['12.7', '12.7', '8.18']);
+  assert.deepEqual(out.kept.map((k) => [k.nodeNumber, k.nodeOrdinal, k.runValue]), [['10', 0, '8.18'], ['19', 1, '8.18']]);
+  const expected = expectSourceWalls([{ scope: 'node', branchName: '/L1/B1', nodeOrdinal: 1, path: ['WallThickness'], expected: '8.18' },
+    { scope: 'node', branchName: '/L1/B1', nodeOrdinal: 2, path: ['WallThickness'], expected: '8.18' }], out.kept);
+  assert.deepEqual(expected.map((e) => e.expected), ['12.7', '8.18']);
+  assert.equal(snapshotSourceWalls(doc([node(10, 'FLAN', '=1/1', 1, '0')])), null, 'AVEVA wall 0 states nothing');
+  assert.match(readFileSync(new URL('../v045/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js', import.meta.url), 'utf8'),
+    /restoreSourceWalls\(boreAuthority\.xmlText, sourceWalls\);[\s\S]*restoreTransferProtection\(walls\.xmlText, protection\)/, 'source walls are put back before transfers, so a transfer still wins');
+});

@@ -12,6 +12,7 @@ import { rememberSupportLedger, refreshUnmatchedSupportWarnings } from './xml-ci
 import { synchronizeXmlCiiNodeBoreWithOutsideDiameter } from '../../converters/xml-cii2019-core/node-bore-od-authority.js';
 import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js';
 import { snapshotTransferProtection, restoreTransferProtection, protectExpectedEntries } from './xml-cii-transfer-protection.js';
+import { snapshotSourceWalls, restoreSourceWalls, expectSourceWalls } from './xml-cii-source-wall.js';
 import { findExactClassWall, nodeBoreMm } from './ui-adapted/xml-cii-adapted-preview-wall-evidence.js';
 import { xmlCiiClassSizeKey } from '../../converters/xml-cii2019-core/branch-process-resolver.js';
 
@@ -270,6 +271,7 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
 
   try {
     const protection = snapshotTransferProtection(sourceText);
+    const sourceWalls = snapshotSourceWalls(sourceText);
     const parity = await import(PARITY_MODULE_URL.href);
     const options = { ...standaloneParityOptions(job.supportConfigJson, job.options || {}), ...extraOptions };
     const enriched = await parity.enrichXmlForCii2019(sourceText, text(job.stagedJsonText), options);
@@ -293,17 +295,19 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
     // Standalone does not use the parent runner's post-OD authority pass.
     // Freeze local DN by each effective node OD before CII engine-input custody.
     const boreAuthority=synchronizeXmlCiiNodeBoreWithOutsideDiameter(process.xmlText);
+    // Owner 14 Nov (GOLDEN-30 L): a wall the source XML states wins over the piping-class fill.
+    const walls = restoreSourceWalls(boreAuthority.xmlText, sourceWalls);
     // Owner D5: values a transfer moved in win over every master refill above.
-    const kept = restoreTransferProtection(boreAuthority.xmlText, protection);
+    const kept = restoreTransferProtection(walls.xmlText, protection);
     out.xmlText=kept.xmlText;
     // Owner, 14 Nov (GOLDEN-30 H): staged supports that did not become restraints are
     // non-blocking warnings, judged on the final XML (wrappers refresh them after their closures).
     rememberSupportLedger(out, dtxr.ledgerResult, Number(config?.coordinateTolerance ?? 1));
-    out.stats={...out.stats,...boreAuthority.stats,transferProtected:kept.restored};
-    out.diagnostics.push(...boreAuthority.diagnostics, ...kept.diagnostics);
+    out.stats={...out.stats,...boreAuthority.stats,transferProtected:kept.restored,sourceWallsKept:walls.kept.length};
+    out.diagnostics.push(...boreAuthority.diagnostics, ...walls.diagnostics, ...kept.diagnostics);
     out.branchRows = process.branchRows;
     out.nodeRows = process.nodeRows;
-    out.expectedEntries = protectExpectedEntries(process.expectedEntries, protection);
+    out.expectedEntries = protectExpectedEntries(expectSourceWalls(process.expectedEntries, walls.kept), protection);
     out.evidence = createStandaloneRunParityEvidence({
       xmlText: out.xmlText,
       expectedEntries: out.expectedEntries,
