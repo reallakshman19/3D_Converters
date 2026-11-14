@@ -3586,7 +3586,6 @@ function _xmlCiiApplyLineListProcessData(document, branch, row, config, branchLi
   }
   if (insThk) {
     _xmlSetText(document, branch, 'InsulationThickness', insThk);
-    _xmlSetText(document, branch, 'InsulationDensity', insThk);
     count += 1;
   }
   if (density) {
