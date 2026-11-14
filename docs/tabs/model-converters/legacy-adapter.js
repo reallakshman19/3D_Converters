@@ -4034,12 +4034,13 @@ function _xmlCiiTypeEntriesFromSupportKind(kind, config) {
     .map((type) => XML_CII_NATIVE_RESTRAINT_TYPE_ALIASES[type] || type);
 }
 
+// Owner, 14 Nov: re-enriching an already-enriched XML must keep each restraint's own direction
+// (or none) and its CMPSUPGAP note. The shared reader carries both; only the type keeps this
+// tab's own normalisation.
 function _xmlCiiTypeEntryFromExistingRestraint(restraint, config) {
   return {
+    ...xmlCiiTypeEntryFromExistingRestraint(restraint, config),
     type: _normalizeExistingXmlCiiRestraintType(_xmlText(restraint, 'Type'), config),
-    stiffness: _xmlText(restraint, 'Stiffness'),
-    gap: _xmlText(restraint, 'Gap'),
-    friction: _xmlText(restraint, 'Friction'),
   };
 }
 
