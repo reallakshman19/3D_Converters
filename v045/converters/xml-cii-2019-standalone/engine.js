@@ -2,6 +2,7 @@ import { loadPyodide } from '../../../vendor/pyodide/pyodide.mjs';
 import { buildStandaloneCiiInvocation, outputStem } from './invocation-builder.js';
 import { applyStandaloneSifFacts } from '../../../tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js';
 import { runPsi116TopologyStage, topologyRequested } from './topology-integration.js';
+import { carryTransferNote } from '../../tabs/xml-cii-2019-standalone/xml-cii-transfer-protection.js';
 
 const PYODIDE_INDEX_URL = new URL('../../../vendor/pyodide/', import.meta.url).href;
 const SCRIPT_FILE_NAMES = Object.freeze([
@@ -47,6 +48,7 @@ support_config = patched._load_support_config(job_support_config_json)
 if job_split_condensed is not None:
     support_config["splitCondensedValveFlange"] = bool(job_split_condensed)
 staged = Path(job_staged_json_path) if job_staged_json_path else None
+support_config["_transferProtect"] = patched._load_transfer_protection(Path(job_input_path))
 final_xml = patched._maybe_enrich_from_staged_json(Path(job_input_path), staged, support_config)
 final_xml = patched._apply_process_data_to_xml(final_xml, support_config)
 policy_xml, bend_policy = apply_bend_radius_policy(final_xml, support_config, Path(job_output_path))
@@ -178,7 +180,7 @@ export async function runXmlCii2019StandaloneEngine(job) {
       if (sourceKind === 'xml') {
         const enriched = await runEnrichedXml(pyodide, normalizedJob, paths, jobDir, stdout);
         const sif = applyStandaloneSifFacts(enriched.enrichedText, 'xml', normalizedJob.sifFacts);
-        enrichedText = sif.text;
+        enrichedText = carryTransferNote(normalizedJob.sourceText, sif.text);
         enrichedName = enriched.enrichedName;
         partial.enrichedText = enrichedText;
         partial.enrichedName = enrichedName;

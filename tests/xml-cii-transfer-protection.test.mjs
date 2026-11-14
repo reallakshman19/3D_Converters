@@ -2,10 +2,11 @@
 // live step 10 put T1 127 -> 120, FluidDensity 110 -> 100 and material 106 -> 338 back from the
 // masters on a transferred branch. Invented PSI116 data only.
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { installWeightBasisXmlDom } from '../tabs/xml-cii-2019-standalone/workers/weight-basis-xml-dom.js';
 import {
-  snapshotTransferProtection, restoreTransferProtection, protectExpectedEntries,
+  snapshotTransferProtection, restoreTransferProtection, protectExpectedEntries, carryTransferNote,
 } from '../v045/tabs/xml-cii-2019-standalone/xml-cii-transfer-protection.js';
 
 installWeightBasisXmlDom(globalThis);
@@ -78,4 +79,15 @@ test('the note is carried into the run output, so converting that output again s
   assert.match(out, /^(<\?xml[^>]*\?>\n)?<!--TOPOFIX-TRANSFER-PROTECT /);
   const again = read(restoreTransferProtection(refilled, snapshotTransferProtection(out)).xmlText);
   assert.deepEqual([again.t1, again.density, again.material], ['127', '110', '106']);
+});
+
+test('the enriched XML download keeps the note (the engine rewrite drops comments)', () => {
+  const rewritten = psi({ note: false });
+  const out = carryTransferNote(psi(), rewritten);
+  assert.match(out, /^<\?xml[^>]*\?>\n<!--TOPOFIX-TRANSFER-PROTECT /);
+  assert.equal(carryTransferNote(psi(), out), out, 'never a second note');
+  assert.equal(carryTransferNote(psi({ note: false }), rewritten), rewritten, 'no note in the source: unchanged');
+  const engine = readFileSync(new URL('../v045/converters/xml-cii-2019-standalone/engine.js', import.meta.url), 'utf8');
+  assert.match(engine, /enrichedText = carryTransferNote\(normalizedJob\.sourceText, sif\.text\)/);
+  assert.match(engine, /support_config\["_transferProtect"\] = patched\._load_transfer_protection\(Path\(job_input_path\)\)/);
 });

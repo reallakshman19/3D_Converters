@@ -70,6 +70,13 @@ function branchesOf(document) {
   return [...document.getElementsByTagName('Branch')].map((b) => [textOf(first(b, 'Branchname'))?.trim() || '', b]);
 }
 
+/** Copy the source's note into an output another step wrote (the engine's enriched XML is an
+ * ElementTree rewrite that drops comments), so converting that output again stays protected. */
+export function carryTransferNote(sourceText, outputText) {
+  const found = NOTE_RE.exec(String(sourceText || ''));
+  return found ? withNote(outputText, found[0]) : outputText;
+}
+
 /** Source values of the protected fields. Fields absent in the source are not protected. */
 export function snapshotTransferProtection(xmlText) {
   const protection = readTransferProtection(xmlText);
