@@ -7,6 +7,18 @@ import test from 'node:test';
 import * as mainCopy from '../converters/xml-cii2019-core/support-mapping-legacy.js';
 // The live main app serves step 10 (Output / Run) from v045/, which has its own copy.
 import * as v045Copy from '../v045/converters/xml-cii2019-core/support-mapping.js';
+import { readFileSync } from 'node:fs';
+
+// The 3D Model Converters tab has its own reader in legacy-adapter.js (that module needs a
+// browser to import), so its source is taken as is and run against the shared writer.
+const tabSource = readFileSync(new URL('../tabs/model-converters/legacy-adapter.js', import.meta.url), 'utf8');
+const tabReaderSource = /function _xmlCiiTypeEntryFromExistingRestraint\(restraint, config\) \{[\s\S]*?\n\}/.exec(tabSource)[0];
+const tabReader = new Function('xmlCiiTypeEntryFromExistingRestraint', '_normalizeExistingXmlCiiRestraintType', '_xmlText',
+  `${tabReaderSource}\nreturn _xmlCiiTypeEntryFromExistingRestraint;`)(
+  mainCopy.xmlCiiTypeEntryFromExistingRestraint,
+  (t) => String(t ?? '').trim().toUpperCase(),
+  (el, name) => el.childNodes.find((c) => c.localName === name)?.textContent ?? '');
+const tabCopy = { xmlCiiTypeEntryFromExistingRestraint: tabReader, applyXmlRestraints: mainCopy.applyXmlRestraints };
 
 class Element {
   constructor(name) { this.localName = name; this.nodeName = name; this.nodeType = 1; this.namespaceURI = null; this.childNodes = []; this._text = ''; }
@@ -32,7 +44,7 @@ function enrichedNode() {
   return node;
 }
 
-for (const [label, lib] of [['main', mainCopy], ['v045', v045Copy]]) {
+for (const [label, lib] of [['main', mainCopy], ['v045', v045Copy], ['model-converters tab', tabCopy]]) {
   function reenrich(node) {
     const entries = kids(node, 'Restraint').map((r) => lib.xmlCiiTypeEntryFromExistingRestraint(r, {})).filter((e) => e.type);
     lib.applyXmlRestraints(document, node, entries, {});
