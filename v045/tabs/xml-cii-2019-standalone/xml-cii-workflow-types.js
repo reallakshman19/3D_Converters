@@ -197,6 +197,7 @@ export function normalizeWorkflowResult(partial = {}) {
     enrichedName: String(partial.enrichedName || ''),
     ciiText: partial.ciiText == null ? null : String(partial.ciiText),
     ciiName: partial.ciiName == null ? null : String(partial.ciiName),
+    ...(partial.restraintAudit?{restraintAudit:partial.restraintAudit}:{}),
     topologyFindingsText: String(partial.topologyFindingsText || ''),
     topologyFindingsName: String(partial.topologyFindingsName || ''),
     topologyFixPlanText: String(partial.topologyFixPlanText || ''),

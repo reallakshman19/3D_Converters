@@ -186,10 +186,18 @@ async function runWorkflow(job, runtime) {
   const result = await runXmlCii2019StandaloneEngineJob(engineJob, runtime);
   assertModeBRunResult(factedJob, result, engineJob.sourceText);
   if (Array.isArray(result?.logs) && parity.logs.length) result.logs = [...parity.logs, ...result.logs];
-  const normalized = normalizeXmlEngineResult(result);
+  const restraintAudit=parity.restraintClosureAudit?{
+    schema:'XML229.RestraintAuditResult.v1',status:'XML_RECORDED',
+    scope:'compatibility closure stage only; complete original-source/CII proof not recorded',
+    privateOwnerLocalOnly:true,recorded:parity.restraintClosureAudit,
+    records:parity.restraintClosureAudit.records,
+  }:null;
+  const normalized = normalizeXmlEngineResult({...result,...(restraintAudit?{restraintAudit}:{})});
   if (normalized.diagnostics) {
     normalized.diagnostics.runParityStats = parity.stats;
     normalized.diagnostics.runParityEvidence = parity.evidence;
+    normalized.diagnostics.restraintAuditSummary={status:restraintAudit?.status||'NOT_RECORDED',
+      records:restraintAudit?.records?.length||0};
     normalized.diagnostics.converterInputReleased = true;
     normalized.diagnostics.converterInputDigest = parity.evidence.engineInputDigest;
   }

@@ -1,4 +1,5 @@
 import { governedSupportKind } from '../../converters/xml-cii2019-core/support-kind-precedence.js';
+import {migrateSupportMappingConfig,DEFAULT_STEP7_MDS_ROWS} from '../../converters/xml-cii2019-core/support-mapping-config.js';
 const KINDS = Object.freeze(['REST', 'GUIDE', 'LINESTOP', 'ANCHOR']);
 
 const DEFAULT_ROWS = Object.freeze([
@@ -42,7 +43,8 @@ function normalizeMapperRow(row = {}, index = 0) {
   return {
     rowId: text(row.rowId || row.id) || `${kind.toLowerCase()}-${index + 1}`,
     kind,
-    aliases: splitAliases(row.aliases || row.patterns || row.detectionText).length ? splitAliases(row.aliases || row.patterns || row.detectionText) : [...base.aliases],
+    aliases: row.aliases !== undefined || row.patterns !== undefined || row.detectionText !== undefined
+      ? splitAliases(row.aliases ?? row.patterns ?? row.detectionText) : [...base.aliases],
     ciiKind: text(row.ciiKind || row.ciiOutputKind) || base.ciiKind,
     ciiPreview: text(row.ciiPreview || row.preview) || base.ciiPreview,
     source: text(row.source) || 'support-type-mapper',
@@ -108,9 +110,7 @@ function splitOccurrenceSegments(row) {
 
 function structuredMemberEvidence(member = {}) {
   const fields = object(member.supportEvidence);
-  const hasEvidence = ['DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'MDSSUPPTYPE',
-    'CMPSUPTYPE', 'SPRE', 'SUPPORT_KIND', 'SUPPORT_TYPE', 'SUPPORT_MAPPER_KIND', 'NODETYPE']
-    .some(key => text(fields[key]));
+  const hasEvidence = Object.values(fields).some(value=>text(value));
   if (!hasEvidence) return null;
   return {
     sourceFields: fields,
@@ -123,8 +123,8 @@ function structuredMemberEvidence(member = {}) {
 // source NODETYPE wins when present; otherwise the Step 7 support table.
 // The alias classification below is only the fallback.
 function ownerRuleResult(fields, mapperRows, supportConfig) {
-  let decided;
-  try { decided = governedSupportKind(fields, supportConfig); } catch (error) {
+  let decided,evidence=null;
+  try { decided = governedSupportKind(fields, supportConfig,undefined,value=>{evidence=value;}); } catch (error) {
     // A refused member (e.g. a contradictory 8 Config row) is shown with its
     // code on its own row; the Run refuses the same member.
     return { status: 'refused', supportKind: '', ciiKind: '', ciiPreview: '', confidence: 'NONE', confidenceScore: 0,
@@ -134,14 +134,16 @@ function ownerRuleResult(fields, mapperRows, supportConfig) {
   if (!decided.kind) return null;
   const row = mapperRows.find((entry) => entry.kind === decided.kind) || defaultRow(decided.kind);
   const byNodeType = decided.source === 'NODETYPE';
+  const rule=evidence?.rule;
   return {
     status: 'matched', supportKind: decided.kind, ciiKind: row.ciiKind, ciiPreview: row.ciiPreview,
     confidence: 'HIGH', confidenceScore: 1,
-    matchedAlias: byNodeType ? 'NODETYPE ' + text(fields.NODETYPE) : 'Step 7 support table',
+    matchedAlias: byNodeType ? 'NODETYPE ' + text(fields.NODETYPE) : rule?.id||decided.source,
     matchMode: byNodeType ? 'source-nodetype' : 'step7-support-table',
     candidates: [], suppressedCandidates: [], matches: [],
     decisionReason: byNodeType ? 'Source NODETYPE wins (Owner rule).'
-      : 'Step 7 support table (Use JSON/support mapper for restraints).',
+      : rule?.matchEvidence?`Step 7 rule ${rule.id} (priority ${rule.priority}): ${rule.matchEvidence.sourceField}=${rule.matchEvidence.value}`
+        : `Support kind resolved from ${decided.source}.`,
   };
 }
 
@@ -371,7 +373,8 @@ function mdsPrefixRules(mapperRows) {
 }
 
 function serializeMapperConfig(input, mapperRows) {
-  const config = parseJson(input.supportConfigJson);
+  const config=Object.keys(object(input.supportConfig)).length
+    ?JSON.parse(JSON.stringify(input.supportConfig)):parseJson(input.supportConfigJson);
   config.supportTypeMapper = {
     schema: 'xml-cii-2019-support-type-mapper/v2',
     confidencePolicy: {
@@ -383,23 +386,30 @@ function serializeMapperConfig(input, mapperRows) {
     },
     rows: mapperRows.map(({ kind, aliases, ciiKind, ciiPreview }) => ({ kind, aliases, ciiKind, ciiPreview })),
   };
-  const injected = mdsPrefixRules(mapperRows);
-  const injectedIds = new Set(injected.map((rule) => rule.id));
-  const existingMapping = object(config.supportMapping);
-  const existingRules = array(existingMapping.rules).filter((rule) => !injectedIds.has(text(rule?.id)));
-  config.supportMapping = {
-    ...existingMapping,
-    version: 2,
-    rules: [...existingRules, ...injected],
-  };
-  return JSON.stringify(config, null, 2);
+  const injected=mdsPrefixRules(mapperRows);
+  const existingMapping=migrateSupportMappingConfig(config);
+  const defaultById=new Map(DEFAULT_STEP7_MDS_ROWS.map(r=>[r.id,r]));
+  const injectedIds=new Set(injected.map(r=>r.id));
+  // An explicitly removed alias removes only an unchanged automatically seeded
+  // row. Test/Save must not reset the user's edited or disabled Step 7 rows.
+  const existingRules=array(existingMapping.rules).filter(rule=>{
+    const seed=defaultById.get(rule.id);
+    if(!seed||injectedIds.has(rule.id))return true;
+    return ['enabled','priority','source','field','match','pattern','kind']
+      .some(key=>rule[key]!==seed[key]);
+  });
+  const existingIds=new Set(existingRules.map(r=>r.id));
+  config.supportMapping={...existingMapping,version:2,
+    rules:[...existingRules,...injected.filter(r=>!existingIds.has(r.id))]};
+  return JSON.stringify(config,null,2);
 }
 
 export function runStandaloneSupportTypeMapper(input = {}) {
   const parsed = parseSupportTypeMapperConfig(input);
   const mapperRows = array(input.mapperRows).length ? input.mapperRows.map(normalizeMapperRow) : parsed.mapperRows;
   const testRows = evidenceRows(input);
-  const supportConfig = Object.keys(object(input.supportConfig)).length ? input.supportConfig : parseJson(input.supportConfigJson);
+  const supportConfigJson=serializeMapperConfig(input,mapperRows);
+  const supportConfig=parseJson(supportConfigJson);
   const previewRows = testRows.map((row, index) => previewRow(row, index, mapperRows, object(supportConfig)));
   const diagnostics = [...parsed.diagnostics, ...previewDiagnostics(previewRows)];
   return {
@@ -408,7 +418,7 @@ export function runStandaloneSupportTypeMapper(input = {}) {
     testRows,
     previewRows,
     diagnostics,
-    supportConfigJson: serializeMapperConfig(input, mapperRows),
+    supportConfigJson,
     raw: {
       sourceKind: input.sourceKind || 'xml',
       resolverTraceRows: resolverTraceEvidenceRows(input).length,

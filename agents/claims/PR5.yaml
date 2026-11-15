@@ -1,0 +1,14 @@
+schema: AgentClaim.v1
+repository: reallakshman19/3D_Convertersv0.6
+pr_or_wip: PR5
+claim_state: RELEASED_IMPLEMENTATION_COMPLETE
+claim_modes: [OBSERVE_ONLY]
+authority_domains: [SOURCE_SUPPORT_CENSUS, AUDIT_COMPLETENESS, PRIVATE_DIAGNOSTIC_EXPORT]
+files:
+  prefixes: [tabs/xml-cii-2019-standalone/xml-cii-active-restraint, docs/tabs/xml-cii-2019-standalone/xml-cii-active-restraint]
+  exact: [v045/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js, v045/tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js, tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-v055-seam.js, tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-restraint-audit-panel.js, v045/tabs/xml-cii-2019-standalone/xml-cii-workflow-api-atta-default.js]
+protected: [CLASSIFICATION_PRECEDENCE, ENGINEERING_VALUES, WRITER_RUNTIME, TOPOLOGY_GEOMETRY, ORIGINAL_INPUTS, V2_OFF, STALE_CURRENT_AUDIT_GUARDS]
+coordination: No draftPR1 changed-file overlap; shared policy function reused without modification
+last_verified_head: e2da556398ea26b5df9a3c044bf661374fd54d57
+
+native_pr_state_authority: https://github.com/reallakshman19/3D_Convertersv0.6/pull/5

@@ -1,0 +1,19 @@
+{
+  "entrypoint": "index.html real Chromium and Pyodide, synthetic public fixtures",
+  "singleModel": "PASS: rule, raw gap25, CII type9, block1, slot1, line107, search and JSON/CSV/HTML",
+  "outputEquivalence": {
+    "output.xml": {
+      "equal": true,
+      "sha256": "cb98df0f5f74499b8cc10c91a85c826f6c963559b2718ea02d4e57e2dab8fdb1"
+    },
+    "output.cii": {
+      "equal": true,
+      "sha256": "4cca8951e0defc22bb44b69b1ef3db6de37be7283d7255a5a6b1f19ba8a7251b"
+    }
+  },
+  "multiModel": "PASS: separate identities, gaps25/40, all three downloads per model",
+  "negative": "PASS expected FAILED/DUPLICATE_SLOT for shared coincident source members; retained native regression",
+  "changedOption": "PASS: existing results invalidated, zero audit download buttons",
+  "distinctReview": "NOT_RUN",
+  "engineeringAcceptance": "NOT_GRANTED"
+}

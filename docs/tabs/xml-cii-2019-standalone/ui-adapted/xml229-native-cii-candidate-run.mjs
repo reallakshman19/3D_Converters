@@ -18,6 +18,7 @@ import {nativeEnrichedFields} from '../../../converters/xml-cii-2019-standalone/
 import {verifyCiiEngineeringAgainstNativeXml}
  from './xml-cii-adapted-propagation-proof.mjs';
 import {reportNativeRunPhase} from '../../../converters/xml-cii-2019-standalone/engine-progress.mjs';
+import {verifyRestraintAudit} from '../xml-cii-restraint-audit-verify.js';
 
 async function currentEnrichedArtifact(native,packet,session,isCurrent){
  try {
@@ -91,6 +92,18 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
  const native=await runXmlCii2019StandaloneEngineJob(job,{onProgress});
  progress('ENGINE_RESULT');
  if(!isCurrent())fail('NATIVE_CANDIDATE_BASIS_STALE');
+  const restraintAudit={...await verifyRestraintAudit({
+    audit:packet.finalizedGeometry?.prefinalRestraints?.restraintAudit,
+    xmlText:sourceText,stagedJsonText,config:verifiedConfig,
+    nativeXmlText:native?.enrichedText||packet.finalizedGeometry?.xmlText||'',
+    ciiText:native?.ciiText||'',finalizedGeometry:packet.finalizedGeometry,
+  }),run:{basisId:packet.basisId,finalIntentSha256:packet.finalIntentSha256,
+    sourceGenerationId:packet.sourceGenerationId,
+    engineSourceDigests:native?.diagnostics?.engineSourceDigests||[]}};
+  if(restraintAudit.status==='FAILED')throw Object.assign(
+    new Error('NATIVE_CII_RESTRAINT_AUDIT_FAILED'),{code:'NATIVE_CII_RESTRAINT_AUDIT_FAILED',
+      xml229RestraintAudit:restraintAudit,
+      xml229EnrichedArtifact:await currentEnrichedArtifact(native,packet,session,isCurrent)});
  if(native?.ok!==true||!native.ciiText||!native.xml229NativeMassDiagnostic){
   // Preserve the actual native basis guard instead of masking it behind a
   // generic converter failure. The user must finalize geometry upstream,
@@ -100,6 +113,7 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
     code:diagnosis.code,phase:native?.nativePythonFailure?.stage||native?.nativeFailurePhase,
     xml229NativeFailure:diagnosis,
     xml229EnrichedArtifact:await currentEnrichedArtifact(native,packet,session,isCurrent),
+     xml229RestraintAudit:restraintAudit,
   });
  }
  progress('VERIFYING_CII');
@@ -156,6 +170,7 @@ export async function runXml229NativeCiiMassCandidate({state,session,isCurrent=(
   engineeringCiiVerified:true,
   engineeringElementsVerified:engineering.elements,
   engineeringRestraintsVerified:engineering.restraints,
+   restraintAudit,
   nativeCiiReleaseAuthorized:true,
   // Keep bytes in memory; caller may publish only within the same current lease.
   ciiText:native.ciiText,

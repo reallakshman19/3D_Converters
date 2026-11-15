@@ -12,7 +12,15 @@ export function engineeringNumber(value, temperature = false) {
 }
 
 function fields(row, minimum = 6) {
-  const parts = String(row || '').trim().split(/\s+/);
+  const raw=String(row||'');
+  // Native records use one 15-column field followed by 13-column fields.
+  // Full-width adjacent values need no whitespace separator.
+  if(raw.length>=15+(minimum-1)*13) {
+    const fixed=[raw.slice(0,15).trim()];
+    for(let i=15;i+13<=raw.length;i+=13)fixed.push(raw.slice(i,i+13).trim());
+    if(fixed.length>=minimum&&fixed.every(x=>engineeringNumber(x)!==null))return fixed;
+  }
+  const parts = raw.trim().split(/\s+/);
   if (parts.length < minimum || parts.slice(0, minimum).some(x => engineeringNumber(x) === null)) {
     throw new Error('CII_ELEMENT_ROW_MALFORMED');
   }
@@ -21,13 +29,15 @@ function fields(row, minimum = 6) {
 
 export function parseCiiEngineeringFields(text) {
   const sections = new Map();
+  const offsets = new Map();
   let section = '';
-  for (const line of String(text || '').split(/\r?\n/)) {
+  for (const [lineIndex,line] of String(text || '').split(/\r?\n/).entries()) {
     const heading = /^#\$\s+(.+?)\s*$/.exec(line);
     if (heading) {
       section = heading[1];
       if (sections.has(section)) throw new Error('CII_DUPLICATE_SECTION');
       sections.set(section, []);
+      offsets.set(section,lineIndex+2);
     } else if (section) {
       sections.get(section).push(line);
     }
@@ -74,10 +84,13 @@ export function parseCiiEngineeringFields(text) {
       wallThickness: Number(r2[0]), corrosion: Number(r2[2]),
       t1: Number(r2[3]), t2: Number(r2[4]), t3: Number(r2[5]),
       p1: Number(r4[0]), density: Number(r6[1]), rigidPointer,
+      restraintPointer: Number(pointers[3]),
       materialCode: misc[i / 15] ?? null,
     });
   }
-  const restraintLines = (sections.get('RESTRANT') || []).filter(line => line.trim());
+  const restraintRows = (sections.get('RESTRANT') || [])
+    .map((text,index)=>({text,line:(offsets.get('RESTRANT')||0)+index})).filter(row=>row.text.trim());
+  const restraintLines = restraintRows.map(row=>row.text);
   if (restraintLines.length % 4 !== 0) throw new Error('CII_RESTRAINT_BLOCK_COUNT_INVALID');
   const restraints = [];
   for (let i = 0; i < restraintLines.length; i += 4) {
@@ -86,10 +99,14 @@ export function parseCiiEngineeringFields(text) {
     if (!Number.isSafeInteger(node) || !Number.isSafeInteger(typeCode) ||
         typeCode < 0 || typeCode > 62) throw new Error('CII_RESTRAINT_ROW_INVALID');
     if (node === 0) continue; // Unused native restraint slots.
+    const direction = fields(restraintLines[i+1],3).slice(0,3).map(Number);
     restraints.push({node: String(node), typeCode, gap: Number(record[3]),
+                     stiffness: Number(record[2]), friction: engineeringNumber(record[4]), direction,
+                     blockIndex: Math.floor(i/24)+1, slotIndex:(i%24)/4+1,
+                     line:restraintRows[i].line,
                      recordIndex: i / 4 + 1});
   }
-  return { elements, rigid, restraints };
+  return { elements, rigid, restraints, restraintBlockCount:restraintLines.length/24 };
 }
 
 function approximately(value, actual) {

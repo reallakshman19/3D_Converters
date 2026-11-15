@@ -1,0 +1,14 @@
+schema: AgentPrStatus.v1
+repository: reallakshman19/3D_Convertersv0.6
+pr_or_wip: PR8
+mission: Dynamic configured Step 7 rule authority with original-source native proof
+branch: fix/xml229-step7-dynamic-authority-20261115
+main_head_last_checked: fa54925905c42e2591ca42e5ddafe4ea1f2952aa
+work_intent: IMPLEMENT
+criticality: ENGINEERING_CRITICAL
+current_stage: OWNER_AUTHORIZED_CONDITIONAL_MERGE_BROWSER_QUALIFICATION
+report_path: agents/PR8_workreport.md
+appendix_a_status: SELF_ASSESSED_94_OF_100_NOT_INDEPENDENT
+highest_risk: Full audit fails; overlap with PR1; follow-up actual resolver-to-Preview CI pending
+exact_next_action: Verify exact-head Node22/24 and Chromium HOLD, reconcile baseline failures and merge only when conditions met
+native_pr_state_authority: https://github.com/reallakshman19/3D_Convertersv0.6/pull/8

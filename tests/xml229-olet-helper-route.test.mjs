@@ -1,3 +1,4 @@
+import {nativeTestPython} from './helpers/native-python.mjs';
 import test from 'node:test';
 import './xml229-tee-port-route.test.mjs';
 import assert from 'node:assert/strict';
@@ -55,7 +56,7 @@ test('restraint, named, rigid and mass authority cannot be silently removed',()=
 test('source BM2 independently parsed:147 helper records,49 retained junctions',()=>{
   const path=fileURLToPath(new URL('../Benchmarks/XML-CII-2019/revamped/GLRD-1000-PI-01 - BM2.xml',import.meta.url));
   // ElementTree parses original XML; expected source identities are the oracle.
-  const parsed=JSON.parse(execFileSync('python3',['-c',
+  const parsed=JSON.parse(execFileSync(nativeTestPython,['-c',
     "import xml.etree.ElementTree as E,json,sys; r=E.parse(sys.argv[1]).getroot(); "+
     "print(json.dumps([[{c.tag.split('}')[-1]:(c.text or '').strip() for c in n} "+
     "for n in b if n.tag.split('}')[-1]=='Node'] for b in r.iter() "+

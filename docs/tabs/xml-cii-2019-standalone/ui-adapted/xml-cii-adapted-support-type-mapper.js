@@ -45,7 +45,7 @@ function renderMapperKindSection(parent, state, kind) {
   aliasArea.value = (row.aliases || []).join('\n');
   aliasArea.dataset.field = `support-mapper-aliases-${kind}`;
 
-  const ciiInput = appendLabeledControl(section, 'CII support kind:', createElement('input'));
+  const ciiInput = appendLabeledControl(section, 'Audit display label:', createElement('input'));
   ciiInput.type = 'text';
   ciiInput.value = row.ciiKind || '';
   ciiInput.dataset.field = `support-mapper-cii-${kind}`;
@@ -58,7 +58,7 @@ function renderConfidencePolicy(parent) {
   section.appendChild(createElement('h3', 'Confidence / precedence policy'));
   section.appendChild(createElement(
     'p',
-    'Confidence is derived from the evidence, not manually assigned. Explicit semantics such as GUIDE, LINE STOP, AXIAL STOP, DIRECTIONAL ANCHOR and PIPE REST/REST are HIGH. Short/prefix codes such as GT, ST, PG and LS are LOW fallbacks. A stronger decision suppresses lower-confidence competing kinds for the same support occurrence; equal-strength conflicts remain review-required. An explicit description (DTXR, or MDSDTXR when DTXR is blank) outranks a staged SUPPORT_KIND label.',
+    'For source members, a valid NODETYPE after the 8 Config mutation takes precedence; otherwise the saved Step 7 table decides. The preview names the matched rule, priority and source field. Generated labels are fallback evidence. Test evaluates the proposed configuration; Save to Config makes that configuration available to Preview, Final and Run. Equal-priority conflicting rules remain review-required.',
     'xml-cii-phase-help'
   ));
   parent.appendChild(section);
@@ -91,9 +91,9 @@ function renderPreviewSection(parent, state) {
   const section = createElement('section', '', 'xml-cii-audit-panel');
   section.appendChild(createElement('h3', 'CII Support Kind / Confidence Audit'));
   section.appendChild(table(
-    ['Occurrence', 'Source', 'Evidence', 'Support Kind', 'CII Kind', 'Confidence', 'Score', 'Matched Alias', 'Match Mode', 'Suppressed Candidates', 'Status', 'Decision Basis'],
+    ['Occurrence', 'Source', 'Evidence', 'Support Kind', 'Audit Label', 'XML/CII Type(s)', 'Confidence', 'Score', 'Matched Alias', 'Match Mode', 'Suppressed Candidates', 'Status', 'Decision Basis'],
     result?.previewRows || [],
-    ['occurrenceName', 'source', 'evidenceText', 'supportKind', 'ciiKind', 'confidence', 'confidenceScore', 'matchedAlias', 'matchMode', 'suppressedCandidates', 'status', 'decisionReason'],
+    ['occurrenceName', 'source', 'evidenceText', 'supportKind', 'ciiKind', 'runtimeXmlTypes', 'confidence', 'confidenceScore', 'matchedAlias', 'matchMode', 'suppressedCandidates', 'status', 'decisionReason'],
     'No preview rows yet. Enter text above and click Test support mapper.'
   ));
   parent.appendChild(section);
@@ -151,6 +151,12 @@ function renderRestraintTypeCodeTable(card, stateRef, render) {
     if (stateRef.current.masterContext) saveMasterContextToLocalStorage(stateRef.current.masterContext);
     if (typeof render === 'function') render();
   };
+
+  const conservation=appendLabeledControl(card,'Preserve separate restraints at connected source vertices (qualified inputs only):',createElement('input'));
+  conservation.type='checkbox';conservation.checked=config.xml229PhysicalVertexPrefinal===true;
+  conservation.dataset.field='physical-vertex-restraints';
+  conservation.addEventListener('change',()=>onSaveConfig({...config,xml229PhysicalVertexPrefinal:conservation.checked}));
+  card.appendChild(createElement('p','This opt-in requires exact source coordinate matches, one JSON member per restraint, and independent source replay. Auxiliary hardware roles, compound text and unsupported type profiles need review. Unbound or ambiguous evidence blocks conversion. Rebuild Preview/Final after changing it.','xml-cii-phase-help'));
 
   try {
     renderUnifiedSupportMappingTable(container, config);

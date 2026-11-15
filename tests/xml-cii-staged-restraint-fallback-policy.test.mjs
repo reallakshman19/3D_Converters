@@ -17,6 +17,10 @@ await copy('converters/xml-cii2019-core/staged-restraint-fallback-policy.js');
 await copy('tabs/xml-cii-2019-standalone/xml-cii-standalone-dtxr-enrichment.js');
 await mkdir(join(tempRoot, 'converters/xml-cii2019-core'), { recursive: true });
 await writeFile(join(tempRoot, 'converters/xml-cii2019-core/support-mapping.js'), `
+export function sourceSupportGap(attrs = {}) {
+  const raw = ['CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS', 'NODEGAP'].map((key) => String(attrs?.[key] ?? '').trim()).find((value) => value !== '') || '';
+  return raw ? { raw, gap: String(Number(raw)), explicit: true } : { raw: '', gap: '0', explicit: false };
+}
 export function resolveXmlCiiSupportKind(attrs = {}) { return String(attrs.SUPPORT_KIND || attrs.SUPPORT_MAPPER_KIND || attrs.SUPPORT_TYPE || '').trim().toUpperCase(); }
 export function restraintEntriesFromSupportKind(kind) { return String(kind).toUpperCase() === 'REST' ? [{ type: '+Y', direction: { x: 0, y: 1, z: 0 } }] : []; }
 export function applyXmlRestraints(document, node, entries) {

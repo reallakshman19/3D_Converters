@@ -6,6 +6,7 @@ import { migrateSupportMappingConfig } from '../../converters/xml-cii2019-core/s
 import { governedSupportKind, SUPPORT_KIND_EVIDENCE_FIELDS } from '../../converters/xml-cii2019-core/support-kind-precedence.js';
 import { buildStandaloneDtxrResolutionLedger } from './xml-cii-trace-resolution-ledger.js';
 import { decorateJsonTraceLedger } from './xml-cii-json-trace-fields.js';
+import {activeAuditNode,activeAuditSource,recordActiveRestraintWrite} from '../../../tabs/xml-cii-2019-standalone/xml-cii-active-restraint-journal.js';
 
 const CARRIER_TYPES = new Set(['ANCI', 'ATTA']);
 const GOVERNED_KINDS = Object.freeze(['REST', 'GUIDE', 'LINESTOP']);
@@ -53,16 +54,16 @@ function memberAttributes(member) {
   return safeObject(member?.raw?.attributes || member?.attributes || member?.capturedFields);
 }
 
-function supportKindFromMember(member, config = {}) {
+export function supportKindFromMember(member, config = {}, onDecision) {
   const captured = safeObject(member?.capturedFields);
   const attrs = memberAttributes(member);
   // Owner rule (RCA-04): NODETYPE first, then the Step 7 support table.
-  const decided = governedSupportKind({ ...captured, ...attrs }, config);
+  const decided = governedSupportKind(Object.keys(attrs).length?attrs:captured, config,undefined,onDecision);
   if (decided.kind) return decided.kind;
   const code = text(captured.MDSSUPPTYPE || attrs.MDSSUPPTYPE).toUpperCase();
-  if (code.startsWith('GT')) return 'GUIDE';
-  if (code.startsWith('ST')) return 'LINESTOP';
-  if (code === 'PIPE-REST' || code.startsWith('AT')) return 'REST';
+  if (code.startsWith('GT')) return observedFallback('GUIDE','MDSSUPPTYPE-GT',code,onDecision);
+  if (code.startsWith('ST')) return observedFallback('LINESTOP','MDSSUPPTYPE-ST',code,onDecision);
+  if (code === 'PIPE-REST' || code.startsWith('AT')) return observedFallback('REST','MDSSUPPTYPE-REST',code,onDecision);
   const evidence = [
     captured.DTXR,
     captured.SPRE,
@@ -72,15 +73,24 @@ function supportKindFromMember(member, config = {}) {
     member?.dtxr,
     member?.raw?.type,
   ].map(text).join(' ').toUpperCase();
-  if (/\b(?:PIPE[- ]?REST|REST|SHOE|WEAR\s*PAD|BEARING\s*PLATE)\b/.test(evidence)) return 'REST';
+  if (/\b(?:PIPE[- ]?REST|REST|SHOE|WEAR\s*PAD|BEARING\s*PLATE)\b/.test(evidence)) return observedFallback('REST','closure-rest-text',evidence,onDecision);
   return '';
 }
 
-function evidenceByKind(record, config = {}) {
+function observedFallback(kind,id,value,onDecision) {
+  onDecision?.({kind,source:'mds-closure-fallback',rule:{id,value}});
+  return kind;
+}
+
+function evidenceByKind(record, config = {}, onSelected) {
   const result = new Map();
   for (const member of Array.isArray(record?.positionMembers) ? record.positionMembers : []) {
-    const kind = supportKindFromMember(member, config);
-    if (kind && !result.has(kind)) result.set(kind, memberAttributes(member));
+    let decision;
+    const kind = supportKindFromMember(member, config,value=>{decision=value;});
+    if (kind && !result.has(kind)) {
+      result.set(kind, memberAttributes(member));
+      onSelected?.(kind,member,decision);
+    }
   }
   // Aggregated derived kinds are generated labels: they only stand in when no
   // source member resolved a kind, and never add a second kind (RCA-04).
@@ -127,7 +137,7 @@ function nodeDiagnostic(node, record, kinds, entries) {
   };
 }
 
-export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, config = {}) {
+export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, config = {}, auditJournal) {
   const source = String(xmlText ?? '');
   const stats = {
     mdsPositionNodesChanged: 0,
@@ -147,6 +157,7 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
 
   const rawLedger = buildStandaloneDtxrResolutionLedger(source, stagedJsonText, config);
   const traceConfig = {
+    ...config,
     captureFields: [...new Set(['DTXR', 'SPRE', 'SPREF', 'MDSSUPPTYPE', 'NAME', 'CMPSUPGAP', ...SUPPORT_KIND_EVIDENCE_FIELDS])],
   };
   const ledger = decorateJsonTraceLedger(rawLedger, traceConfig);
@@ -164,7 +175,10 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
       if (!CARRIER_TYPES.has(componentType)) continue;
       const record = byIndex.get(xmlIndex);
       if (!record || !String(record.status || '').startsWith('RESOLVED_')) continue;
-      const evidence = evidenceByKind(record, config);
+      const selected=new Map();
+      const evidence = evidenceByKind(record, config,(kind,member,decision)=>{
+        if(auditJournal)selected.set(kind,activeAuditSource(auditJournal,member,decision));
+      });
       if (!evidence.size) continue;
 
       const present = existingTypes(node);
@@ -183,8 +197,13 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
       }
       if (!entries.length) continue;
 
+      const auditBefore=auditJournal?activeAuditNode(node):null;
       const appended = appendGeneratedEntries(document, node, entries, config);
       if (!appended) continue;
+      if(auditBefore)recordActiveRestraintWrite(auditJournal,auditBefore,node,{
+        stage:'mds-closure',method:record.matchType,entries:[...Array(auditBefore.restraints.length).fill(null),...entries],
+        sources:[...selected.entries()].map(([kind,source])=>({...source,
+          outputOrdinals:entries.flatMap((entry,index)=>entry.supportKind===kind?[auditBefore.restraints.length+index]:[])}))});
       stats.mdsPositionNodesChanged += 1;
       if (kinds.includes('REST')) stats.mdsRestRestraintsAdded += 1;
       if (kinds.includes('GUIDE')) stats.mdsGuideRestraintsAdded += 1;

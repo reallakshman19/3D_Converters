@@ -1,0 +1,46 @@
+{
+  "status": "PASS",
+  "observation": "LOCAL_EXECUTION_REAL_CHROMIUM_PYODIDE",
+  "inputBasis": "published literal synthetic fixture",
+  "pendingIntake": {
+    "actualWorkerScriptDelayedMs": 3000,
+    "visibleRunButtons": 0,
+    "gate": "INDEXING"
+  },
+  "sourceCoverage": {
+    "supports": 1,
+    "accounted": 1,
+    "status": "COMPLETE"
+  },
+  "nativeCii": {
+    "type": 9,
+    "gapMm": 25,
+    "recorded": 1,
+    "verified": 1
+  },
+  "downloads": [
+    "JSON",
+    "CSV",
+    "HTML",
+    "enriched XML",
+    "CII"
+  ],
+  "byteIdentity": {
+    "xmlSha256": "cb98df0f5f74499b8cc10c91a85c826f6c963559b2718ea02d4e57e2dab8fdb1",
+    "ciiSha256": "4cca8951e0defc22bb44b69b1ef3db6de37be7283d7255a5a6b1f19ba8a7251b"
+  },
+  "staleChallenge": {
+    "actualRunOptionChanged": true,
+    "visibleCurrentDownloads": 0,
+    "retainedOldDomControl": "STALE_PANEL",
+    "labelledDiagnosticDownloaded": true,
+    "diagnosticCurrency": "RESULT_REPLACED"
+  },
+  "limits": [
+    "same author; no distinct-author review",
+    "browser run precedes final non-semantic run-manifest metadata addition; focused/default/manifest tests cover final bytes",
+    "early missing-public-runtime-asset attempts were NOT_RUN for native CII; localStorage-only stale attempt was ineffective and not counted as a guard PASS",
+    "original reported other-PC run/configuration not reproduced",
+    "no source-specific native engineering or CAESAR acceptance"
+  ]
+}

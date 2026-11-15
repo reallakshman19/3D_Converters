@@ -314,7 +314,7 @@ export function runStandaloneResolverJsonTrace(input = {}) {
   };
   const scoped = scopedStagedJsonInput(input);
   const rawLedgerResult = buildStandaloneDtxrResolutionLedger(sourceText, scoped.stagedInput, ledgerConfig);
-  const ledgerResult = stripRawTraceLedger(decorateJsonTraceLedger(rawLedgerResult, jsonConfig));
+  const ledgerResult = stripRawTraceLedger(decorateJsonTraceLedger(rawLedgerResult, { ...supportConfig, ...jsonConfig }));
   const indexes = buildStandaloneXmlResolverIndex(sourceText);
   const nodeByIndex = new Map(indexes.nodes.map((node) => [Number(node.xmlIndex), node]));
   const resolvedFacts = ledgerResult.records

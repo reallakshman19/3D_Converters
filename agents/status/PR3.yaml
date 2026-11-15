@@ -1,0 +1,13 @@
+schema: AgentPrStatus.v1
+repository: reallakshman19/3D_Convertersv0.6
+pr_or_wip: PR3
+branch: codex/xmlcii-active-audit
+main_head_last_checked: 409c59ee73169b78458226fd4d50843dff279d68
+criticality: ENGINEERING_CRITICAL
+current_stage: VALIDATED_AWAITING_MERGE
+takeover_authority: WRITE_ALLOWED_OBSERVATIONAL_ONLY
+appendix_a_status: CURRENT_SAME_AUTHOR_97
+overlap: COORDINATION_REQUIRED_PR1_EVALUATOR_WITNESS_ONLY
+report_path: agents/PR3_workreport.md
+merge_authority: OWNER_EXPLICIT_FIX_AND_MERGE
+exact_next_action: Push the validated correction, allocate its PR and merge the exact authorized head.

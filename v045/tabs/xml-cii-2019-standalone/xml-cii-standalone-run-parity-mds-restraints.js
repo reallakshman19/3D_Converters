@@ -7,6 +7,7 @@ import {
 import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js?v=20260804-mds-position-restraints-1';
 import { closeGovernedMdsPositionRestraintsXml } from './xml-cii-mds-restraint-closure.js?v=20260804-mds-position-restraints-1';
 import { closeModeBSourceRestraintsXml } from './xml-cii-mode-b-restraint-closure.js?v=20261113-x4-1';
+import {recordActiveRestraintStage} from '../../../tabs/xml-cii-2019-standalone/xml-cii-active-restraint-journal.js';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -46,12 +47,15 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
       out.xmlText,
       text(job?.stagedJsonText),
       effectiveConfig(job, extraOptions),
+      out.restraintAuditJournal,
     );
   out.diagnostics = [
     ...(Array.isArray(out.diagnostics) ? out.diagnostics : []),
     ...(Array.isArray(closure.diagnostics) ? closure.diagnostics : []),
   ];
   out.stats = mergeStats(out.stats, closure.stats);
+  recordActiveRestraintStage(out.restraintAuditJournal,'mds-closure',closure.xmlText,
+    {config:effectiveConfig(job,extraOptions),diagnostics:closure.diagnostics});
   if (!closure.changed) return out;
 
   out.xmlText = closure.xmlText;

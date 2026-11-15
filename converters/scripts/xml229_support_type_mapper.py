@@ -183,7 +183,7 @@ TABLE_REQUIRED_RULES = json.loads(r'''[
  {
   "id": "builtin-user-limit",
   "priority": 10,
-  "field": "SPRE,SKEY,NAME,DESCRIPTION,DESC,CMPSUPTYPE,DTXR,SUPPORT_TYPE,SUPPORT_KIND,SUPPORT_MAPPER_KIND,MDSSUPPTYPE",
+  "field": "SKEY,DESCRIPTION,DESC,CMPSUPTYPE,DTXR,MDSSUPPTYPE",
   "pattern": "\\b(?:LINE\\s*STOP|LIMIT\\s*STOP|AXIAL\\s*STOP|DIRECTIONAL\\s+ANCHOR)\\b",
   "match": "regex",
   "kind": "LINESTOP",
@@ -192,7 +192,7 @@ TABLE_REQUIRED_RULES = json.loads(r'''[
  {
   "id": "builtin-user-guide",
   "priority": 20,
-  "field": "SPRE,SKEY,NAME,DESCRIPTION,DESC,CMPSUPTYPE,DTXR,SUPPORT_TYPE,SUPPORT_KIND,SUPPORT_MAPPER_KIND,MDSSUPPTYPE",
+  "field": "SKEY,DESCRIPTION,DESC,CMPSUPTYPE,DTXR,MDSSUPPTYPE",
   "pattern": "GUIDE",
   "match": "contains",
   "kind": "GUIDE",
@@ -201,7 +201,7 @@ TABLE_REQUIRED_RULES = json.loads(r'''[
  {
   "id": "builtin-user-rest",
   "priority": 30,
-  "field": "SPRE,SKEY,NAME,DESCRIPTION,DESC,CMPSUPTYPE,DTXR,SUPPORT_TYPE,SUPPORT_KIND,SUPPORT_MAPPER_KIND,MDSSUPPTYPE",
+  "field": "SKEY,DESCRIPTION,DESC,CMPSUPTYPE,DTXR,MDSSUPPTYPE",
   "pattern": "REST,SHOE,BP,BEARING PLATE,WP,WEAR PAD,ANCI",
   "match": "contains",
   "kind": "REST",
@@ -389,16 +389,16 @@ TABLE_DEFAULT_RULES = json.loads(r'''[
 ]''')
 _TABLE_SUPPORT_KINDS = ('REST', 'GUIDE', 'LINESTOP', 'LIMIT', 'ANCHOR', 'SPRING')
 _TABLE_MATCH_TYPES = ('startsWith', 'equals', 'contains', 'regex')
-# Only the member's own description and code fields: never SPRE/NAME catalogue
-# paths (a path like /MDS-Ancillaries/ANCI/... must not make a stop a REST).
-_TABLE_FIELDS = ('DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'CMPSUPTYPE', 'MDSSUPPTYPE',
-                 'SKEY', 'COMPONENTTYPE')
+# Generic intent rows exclude catalogue paths; dedicated named-field rules do not.
+_LEGACY_SUPPORT_INTENT_FIELDS = 'SPRE,SKEY,NAME,DESCRIPTION,DESC,CMPSUPTYPE,DTXR,SUPPORT_TYPE,SUPPORT_KIND,SUPPORT_MAPPER_KIND,MDSSUPPTYPE'
+_TEXT_FALLBACK_FIELDS = ('DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'CMPSUPTYPE', 'MDSSUPPTYPE',
+                         'SKEY', 'COMPONENTTYPE')
 _GENERATED_FIELDS = ('SUPPORTKIND', 'SUPPORTMAPPERKIND', 'SUPPORTTYPE')
 _DESCRIPTION_KEYS = ('DTXR', 'DESC', 'DESCRIPTION')
 
 
 def _owner_text(value):
-    return '' if value is None else str(value).strip()
+    return '' if value is None else str(value).lower() if isinstance(value, bool) else str(value).strip()
 
 
 def _owner_key(key):
@@ -444,9 +444,9 @@ def _field_name(name):
 
 def _rule_values(evidence, rule):
     wanted = [_field_name(f) for f in _split_terms(rule['field'])]
-    if not wanted or '*' in wanted or 'ANY' in wanted:
-        return [v for v in evidence.values() if str(v).strip()]
-    return [v for k, v in evidence.items() if k in wanted and str(v).strip()]
+    wildcard = not wanted or '*' in wanted or 'ANY' in wanted
+    return [(k, v) for k, v in evidence.items() if str(v).strip() and
+            (wildcard or k in wanted)]
 
 
 def _kind_from_text(value):
@@ -490,6 +490,49 @@ _STAGED_SOURCES = ('', 'ALL', 'STAGED-JSON', 'JSON')
 _REGEX_OUTSIDE_SUBSET = re.compile(r'\(\?(?![:=!]|<[=!])|\\[AZzGpPk]|\$\{|\(\?P')
 
 
+_STEP7_MDS_SEEDS = [
+    dict(id=ident, priority=priority, kind=kind, pattern=pattern,
+         enabled=True, source='staged-json', field='MDSSUPPTYPE', match='startsWith')
+    for ident, priority, kind, pattern in (
+        ('standalone-mds-gt-guide', 900, 'GUIDE', 'GT'),
+        ('standalone-mds-st-linestop', 910, 'LINESTOP', 'ST'),
+        ('standalone-mds-pg-guide', 920, 'GUIDE', 'PG'),
+        ('standalone-mds-ls-linestop', 930, 'LINESTOP', 'LS'))
+]
+
+
+def _mds_seed_enabled(row, config):
+    aliases = ((config or {}).get('supportTypeMapper') or {}).get('rows')
+    if not isinstance(aliases, list):
+        return True
+    group = next((r for r in aliases if isinstance(r, dict) and
+                  _owner_text(r.get('kind')).upper() == row['kind']), None)
+    if not group or not isinstance(group.get('aliases'), list):
+        return True
+    return any(_owner_text(a).upper().replace('*', '') == row['pattern']
+               for a in group['aliases'])
+
+
+# Owner 15 Nov 2026: permanent built-in GT5/GT GUIDE table policy.
+_GT_GUIDE_PRIORITIES = {'builtin-gt5-cmp': 130, 'builtin-gt5-mds': 140,
+                        'builtin-gt5-text': 150, 'builtin-gt-mds': 160}
+
+
+def _enforce_owner_gt_guide_rows(rows):
+    canonical = {r['id']: {**r, 'priority': _GT_GUIDE_PRIORITIES[r['id']],
+                           'source': 'all', 'enabled': True, 'kind': 'GUIDE'}
+                 for r in TABLE_DEFAULT_RULES if r['id'] in _GT_GUIDE_PRIORITIES}
+    seen = set()
+    corrected = []
+    for row in rows:
+        ident = row.get('id') if isinstance(row, dict) else None
+        if ident in canonical:
+            seen.add(ident)
+            row = {**row, **canonical[ident]}
+        corrected.append(row)
+    return corrected + [r for ident, r in canonical.items() if ident not in seen]
+
+
 def table_rules(config):
     """Enabled Step 7 rows for staged JSON, in priority order (as JS tableRules)."""
     mapping = (config or {}).get('supportMapping')
@@ -498,12 +541,20 @@ def table_rules(config):
         if version is not None and version >= 2 else TABLE_DEFAULT_RULES
     by_id = {_owner_text(r.get('id')): r for r in source if isinstance(r, dict) and _owner_text(r.get('id'))}
     required_ids = {r['id'] for r in TABLE_REQUIRED_RULES}
-    merged = [{**by_id.get(r['id'], {}), **r,
-               'enabled': False if by_id.get(r['id'], {}).get('enabled') is False else r['enabled']}
-              for r in TABLE_REQUIRED_RULES]
+    merged = []
+    for rule in TABLE_REQUIRED_RULES:
+        old = by_id.get(rule['id'], {})
+        saved = old if version is not None and version >= 2 else {}
+        field = saved.get('field')
+        if not field or field == _LEGACY_SUPPORT_INTENT_FIELDS:
+            field = rule['field']
+        merged.append({**old, **rule, **saved, 'field': field,
+                       'enabled': False if old.get('enabled') is False else rule['enabled']})
     merged += [r for r in source if not (isinstance(r, dict) and _owner_text(r.get('id')) in required_ids)]
+    ids = {_owner_text(r.get('id')) for r in merged if isinstance(r, dict)}
+    merged += [r for r in _STEP7_MDS_SEEDS if r['id'] not in ids and _mds_seed_enabled(r, config)]
     rows = []
-    for index, rule in enumerate(merged):
+    for index, rule in enumerate(_enforce_owner_gt_guide_rows(merged)):
         rule = rule if isinstance(rule, dict) else {}
         priority = _js_number(rule.get('priority')) if 'priority' in rule else None
         if priority is None:
@@ -545,28 +596,51 @@ def _rule_matches(rule, value):
     return False
 
 
-def table_support_kind(attrs, config, only_user_rows=False):
-    f = _owner_fields(attrs)
-    evidence = {k: f[k] for k in _TABLE_FIELDS if f.get(k)}
-    if not any(evidence.get(k) for k in _DESCRIPTION_KEYS) and evidence.get('MDSDTXR'):
-        evidence['DESCRIPTION'] = evidence['MDSDTXR']
+def _match_table_rules(evidence, rules):
     first = None
-    rules = [r for r in table_rules(config)
-             if not only_user_rows or not re.match(r'^(?:builtin-|standalone-mds-)', r['id'])]
     for rule in rules:
         if first is not None and rule['priority'] != first['priority']:
             break
-        if not any(_rule_matches(rule, v) for v in _rule_values(evidence, rule)):
+        hit = next(((k, v) for k, v in _rule_values(evidence, rule)
+                    if _rule_matches(rule, v)), None)
+        if hit is None:
             continue
         if first is None:
-            first = rule
+            first = {'kind': rule['kind'], 'ruleId': rule['id'], 'priority': rule['priority'],
+                     'matchedField': hit[0], 'matchedValue': hit[1]}
         elif rule['kind'] != first['kind']:
             raise ValueError('NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
-    if first is not None:
+    return first
+
+
+def _table_evidence(attrs):
+    f = _owner_fields(attrs)
+    evidence = {k: v for k, v in f.items() if k not in _GENERATED_FIELDS}
+    if not any(evidence.get(k) for k in _DESCRIPTION_KEYS) and evidence.get('MDSDTXR'):
+        evidence['DESCRIPTION'] = evidence['MDSDTXR']
+    return f, evidence
+
+
+def table_support_decision(attrs, config, only_user_rows=False):
+    _, evidence = _table_evidence(attrs)
+    rules = [r for r in table_rules(config)
+             if not only_user_rows or not re.match(r'^(?:builtin-|standalone-mds-)', r['id'])]
+    return _match_table_rules(evidence, rules)
+
+
+def table_support_kind(attrs, config, only_user_rows=False):
+    first = table_support_decision(attrs, config, only_user_rows)
+    if first:
         return first['kind']
     if only_user_rows:
         return ''
-    return _kind_from_text(' '.join(str(v) for v in evidence.values()))
+    f, evidence = _table_evidence(attrs)
+    semantic = _kind_from_text(' '.join(evidence.get(k, '') for k in _TEXT_FALLBACK_FIELDS))
+    if semantic:
+        return semantic
+    generated = {k: v for k, v in f.items() if k in _GENERATED_FIELDS}
+    fallback = _match_table_rules(generated, table_rules(config))
+    return fallback['kind'] if fallback else ''
 
 
 def node_type_user_row_conflict(attrs, config, node_type_kind,

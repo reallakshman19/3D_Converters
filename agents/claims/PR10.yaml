@@ -1,0 +1,12 @@
+schema: AgentClaim.v1
+repository: reallakshman19/3D_Convertersv0.6
+pr_or_wip: PR10
+claim_state: COORDINATION_REQUIRED
+claim_modes: [OBSERVATIONAL_EXPORT, VALIDATION]
+authority_domains: [XML229_SOURCE_NATIVE_TRACE]
+files:
+  exact: [tabs/xml-cii-2019-standalone/xml-cii-source-native-trace.js, tabs/xml-cii-2019-standalone/xml-cii-active-restraint-audit.js, tabs/xml-cii-2019-standalone/xml-cii-restraint-audit-export.js, tests/xmlcii-source-native-trace.test.mjs, tests/xml229-native-owner-blocker-evidence.test.mjs]
+  mirrored: [docs/tabs/xml-cii-2019-standalone]
+protected: [WRITER_RUNTIME, TOPOLOGY_GEOMETRY, SOURCE_INPUTS, SOURCE_COVERAGE_DISPOSITION, V2_OFF, MERGE_OWNER_ONLY]
+coordination: PR4/7 audit ownership and PR9 shared test harness; no merge without reconciliation
+native_pr_state_authority: https://github.com/reallakshman19/3D_Convertersv0.6/pull/10

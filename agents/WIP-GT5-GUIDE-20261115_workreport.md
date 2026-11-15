@@ -1,0 +1,14 @@
+# WIP-GT5-GUIDE-20261115 — permanent owner GT5/GT GUIDE Step 7 policy
+ENGINEERING_CRITICAL / CONTINUE from merged PR8. Base 326270b46f190b324f6a6f52a7602a0296d79623. Owner explicitly supersedes PR8's former preservation of the four invalid built-in GT rules, providing exact priorities 130/140/150/160, source all, field/match/pattern, GUIDE. No blanket override of custom rules, NODETYPE, semantic higher-priority intent or source gaps. Built-ins reconstituted if missing and canonicalized on every migration, including persisted disabled/stale rows; this is explicit permanent table policy, not a hardcoded node classifier. Shared GUIDE profile defaults already GUI/8, pipe-normal, default stiffness, gap0, sentinel, kind; existing unrelated custom profile values are retained. Native Python mirrors same rows. Existing unrelated rules and priorities remain unchanged. No writer/geometry/runtime/V2 changes.
+
+Appendix A self-assessment 94/100 (19/20,20/20,19/20,18/20,18/20): traced root/docs/v045 config and Python evaluator; prior original-source proof PR8 logs show invalid saved GT5 REST -> native 14/9, corrected ->14/8/9; owner manually confirmed correction works; explicit owner authority changes old test negative control, not weakened oracle; regression tests assert exactly four canonical rows, saved wrong/missing rows, persistence, root/docs/v045/Python parity, full original source native codes. No independent reviewer or actual PC config. Existing PR1 overlaps prior mapper; PR4/7 audit scope separate. No workflow changes. Backup originals exact blob references (local checkout unavailable). Validation NOT_RUN. No merge requested in this turn.
+
+Changed files:
+- converters/xml-cii2019-core/support-mapping-config.js original df62f3b6b5c504e24dc1322bef00a2327fbdaa6a
+- v045/converters/xml-cii2019-core/support-mapping-config.js original 446be3494c0b16e432fe644c72b20629a5a8ac4f
+- converters/scripts/xml229_support_type_mapper.py original ba3c7f894ea0c4230db361cca6ce93e84e7662de
+- tests/xml229-step7-dynamic-authority.test.mjs original 26d792c5f2817b54dfe76085fd04e820dc2c2d58
+- tests/xmlcii-ps4131-dynamic-step7-native.test.mjs original ae85a06c688efbce2a7e7a08213a24a683a3a7c4
+- docs/converters/xml-cii2019-core/support-mapping-config.js original df62f3b6b5c504e24dc1322bef00a2327fbdaa6a
+- docs/converters/scripts/xml229_support_type_mapper.py original ba3c7f894ea0c4230db361cca6ce93e84e7662de
+EXACT_NEXT_ACTION: inspect exact-head HOLD Node/Python and native original-source results; coordinate prior PR1 and audit PR4/7; keep draft, no merge without explicit owner authorization. Audit explanation/trace separately.

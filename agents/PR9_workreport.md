@@ -1,0 +1,21 @@
+# WIP-GT5-GUIDE-20261115 — permanent owner GT5/GT GUIDE Step 7 policy
+ENGINEERING_CRITICAL / CONTINUE from merged PR8. Base 326270b46f190b324f6a6f52a7602a0296d79623. Owner explicitly supersedes PR8's former preservation of the four invalid built-in GT rules, providing exact priorities 130/140/150/160, source all, field/match/pattern, GUIDE. No blanket override of custom rules, NODETYPE, semantic higher-priority intent or source gaps. Built-ins reconstituted if missing and canonicalized on every migration, including persisted disabled/stale rows; this is explicit permanent table policy, not a hardcoded node classifier. Shared GUIDE profile defaults already GUI/8, pipe-normal, default stiffness, gap0, sentinel, kind; existing unrelated custom profile values are retained. Native Python mirrors same rows. Existing unrelated rules and priorities remain unchanged. No writer/geometry/runtime/V2 changes.
+
+Appendix A self-assessment 94/100 (19/20,20/20,19/20,18/20,18/20): traced root/docs/v045 config and Python evaluator; prior original-source proof PR8 logs show invalid saved GT5 REST -> native 14/9, corrected ->14/8/9; owner manually confirmed correction works; explicit owner authority changes old test negative control, not weakened oracle; regression tests assert exactly four canonical rows, saved wrong/missing rows, persistence, root/docs/v045/Python parity, full original source native codes. No independent reviewer or actual PC config. Existing PR1 overlaps prior mapper; PR4/7 audit scope separate. No workflow changes. Backup originals exact blob references (local checkout unavailable). Validation NOT_RUN. No merge requested in this turn.
+
+Changed files:
+- converters/xml-cii2019-core/support-mapping-config.js original df62f3b6b5c504e24dc1322bef00a2327fbdaa6a
+- v045/converters/xml-cii2019-core/support-mapping-config.js original 446be3494c0b16e432fe644c72b20629a5a8ac4f
+- converters/scripts/xml229_support_type_mapper.py original ba3c7f894ea0c4230db361cca6ce93e84e7662de
+- tests/xml229-step7-dynamic-authority.test.mjs original 26d792c5f2817b54dfe76085fd04e820dc2c2d58
+- tests/xmlcii-ps4131-dynamic-step7-native.test.mjs original ae85a06c688efbce2a7e7a08213a24a683a3a7c4
+- docs/converters/xml-cii2019-core/support-mapping-config.js original df62f3b6b5c504e24dc1322bef00a2327fbdaa6a
+- docs/converters/scripts/xml229_support_type_mapper.py original ba3c7f894ea0c4230db361cca6ce93e84e7662de
+EXACT_NEXT_ACTION: inspect exact-head HOLD Node/Python and native original-source results; coordinate prior PR1 and audit PR4/7; keep draft, no merge without explicit owner authorization. Audit explanation/trace separately.
+
+PR9 allocated; direct table edits and deletion also normalize these four permanent built-ins before persistence. No unrelated profile changes. Exact-head checks pending.
+Added actual visible Step 7 table regression in established HOLD harness and original-source PS4122 native GUIDE 10mm assertion alongside PS4131. No workflow edits. Exact-head validation pending.
+
+
+## Owner clarification 15 Nov: default gap zero unless source JSON explicitly specifies it, all mapper kinds
+Owner explicitly expanded the same mapper-policy scope to gap defaults independent of classification. Root/docs/v045 profile generation now reads same-member CMPSUPGAP, CMPSUPGAP_POS, CMPSUPGAP_PS, NODEGAP, preserves numeric zero, rejects conflicting aliases except established NODEGAP zero placeholder, and does not inherit sibling/node gap or nonzero saved defaults. Existing authored XML rows not deliberately rewritten. Native qualified REST/GUIDE/LINESTOP profile replay follows same policy and no longer rejects absent LINESTOP gap (invalid remains fail-closed); other native kind-route authority unchanged. Early REST fallback uses resolved REST evidence instead of empty attrs. Added all-six-kind JS + three-kind native replay checks. PR9 prior run 43709215787 had 90 pass/2 fail due solely to test comparing optional profile normalization metadata; native PS4122 all four runs actual 3260 block38 slot2 GUI gap10, PS4131 native passes. Normalization test corrected without changing engineering expectations. PR10 source audit separately passed 90/90 and Chromium. Exact new head validation pending. No merge authorized. No workflow edits.

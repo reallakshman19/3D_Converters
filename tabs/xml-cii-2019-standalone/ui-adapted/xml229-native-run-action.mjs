@@ -20,6 +20,7 @@ function record(ref,session,status,code){
 }
 function failedResult(error){
  return {ok:false,error:codeOf(error),
+   ...(error?.xml229RestraintAudit?{restraintAudit:error.xml229RestraintAudit}:{}),
   ...nativeEnrichedFields(error?.xml229EnrichedArtifact),
   ...(error?.xml229NativeFailure?.schema==='XML229.NativeConverterFailure.v1'
    ?{xml229NativeFailure:error.xml229NativeFailure}:{}),
@@ -53,6 +54,7 @@ export async function executeXml229NativeRun({
      verified?.strictOneToOneOwnerMatch!==true||!verified?.ciiText?.trim())
    throw {code:'NATIVE_RUN_SOURCE_CHANGED_OR_OUTPUT_UNVERIFIED'};
   const result={ok:true,...nativeEnrichedFields(verified),ciiText:verified.ciiText,
+    ...(verified.restraintAudit?{restraintAudit:verified.restraintAudit}:{}),
    ciiName:'xml229-verified-native.cii',
    xml229ActualCiiSha256:verified.actualCiiSha256,xml229NativeOutput:verified};
   stateRef.current=updateState(stateRef.current,{result});

@@ -1,0 +1,19 @@
+schema: AgentClaim.v1
+repository: reallakshman19/3D_Convertersv0.6
+pr_or_wip: PR2
+claim_state: DELIVERY_VALIDATED_PROFILE_MERGE_AUTHORIZED
+branch: codex/xmlcii2019-restraint-audit
+report: agents/PR2_workreport.md
+authority_domains:
+  - standalone restraint source audit and stale-run evidence custody
+  - configured Step7/8 parity
+  - opt-in source occurrence collection and policy-derived attachment delegation
+files_ledger: agents/evidence/WIP-XMLCII-AUDIT-20261115/changed-files.json
+protected:
+  - original source geometry and authored restraints
+  - native source replay and fail-closed export guards
+  - existing runtime and writer ownership
+  - optional mode off for unqualified inputs
+overlap: PR1_TABLE_FIXES_RECONCILED_LOCALLY_REFERENCE_VERSION_CHANGES_EXCLUDED
+private_inputs_and_run_artifacts: EXCLUDED_FROM_PUBLICATION
+merge_authority: OWNER_EXPLICIT_PUSH_AND_MERGE_20261115_COMPLETED_PATCH_ONLY

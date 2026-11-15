@@ -286,9 +286,11 @@ def append_profile(node, kind, attrs, config, allowed=None):
     p = profile_for(kind, config)
     ns = node.tag.rsplit('}', 1)[0] + '}' if '}' in node.tag else ''
     d = direction(p, attrs, node)
-    raw = source_gap(attrs) if kind in ('REST', 'GUIDE', 'LINESTOP') else ''
-    gap = str(numeric(raw)) if raw else text(p.get('gap')) or '0'
-    node_gap = next((field(node, k) for k in ('CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS') if field(node, k)), '')
+    raw = source_gap(attrs)
+    require_gap = numeric(raw) if raw else 0
+    if require_gap is None or not math.isfinite(require_gap):
+        raise ValueError('NATIVE_PREFINAL_RESTRAINT_GAP_INVALID')
+    gap = str(require_gap)
     original_type = node_type_mutation(attrs, config)
     if original_type in ('+Y','GUI','LIM') and original_type != {
             'REST':'+Y','GUIDE':'GUI','LINESTOP':'LIM'}[kind]:
@@ -301,12 +303,12 @@ def append_profile(node, kind, attrs, config, allowed=None):
             friction = text(p['fixedFriction'])
         elif p['frictionMode'] == 'sentinel' and config.get('useFrictionSentinelForNonYSupports') is not False and typ not in ('Y', '+Y'):
             friction = '-1.010100'
-        actual_gap = str(numeric(node_gap)) if typ in ('GUI', 'LIM') and not raw and numeric(gap) == 0 and node_gap else gap
+        actual_gap = gap
         values = [('Type', typ), ('Stiffness', text(p['stiffness']) if text(p['stiffness']) not in ('', 'default')
                   else text(config.get('defaultStiffness')) or '1.751270E+12'),
                   ('Gap', actual_gap), ('Friction', friction)]
-        if (raw and typ in ('GUI', 'LIM')) or (typ in ('GUI', 'LIM') and node_gap):
-            values.append(('CMPSUPGAP', raw or node_gap))
+        if raw:
+            values.append(('CMPSUPGAP', raw))
         if d:
             values.extend(('DirectionCosine' + axis, f'{v:.9f}') for axis, v in zip('XYZ', d))
         r = ET.SubElement(node, ns + 'Restraint')
@@ -321,7 +323,8 @@ def replay_prefinal_restraints(expected, packet, staged_json_path, config, requi
     stage = final.get('prefinalRestraints')
     if stage is None:
         return False
-    require(isinstance(stage, dict) and stage.get('schema') == 'XML229.PrefinalRestraints.v1',
+    require(isinstance(stage, dict) and stage.get('schema') in (
+        'XML229.PrefinalRestraints.v1', 'XML229.PrefinalRestraints.v2'),
             'NATIVE_PREFINAL_RESTRAINT_STAGE_INVALID')
     raw = staged_json_path.read_bytes() if staged_json_path is not None else b''
     sha = hashlib.sha256(raw).hexdigest()
@@ -329,12 +332,24 @@ def replay_prefinal_restraints(expected, packet, staged_json_path, config, requi
             (not packet.get('originalJsonSha256') or packet['originalJsonSha256'] == sha),
             'NATIVE_PREFINAL_RESTRAINT_SOURCE_SHA_DRIFT')
     require(isinstance(config, dict), 'NATIVE_PREFINAL_RESTRAINT_CONFIG_REQUIRED')
+    wants_v2=config.get('xml229PhysicalVertexPrefinal') is True and bool(raw.strip()) and \
+        (config.get('supportMapping') or {}).get('useJsonForRestraints') is not False
+    require(stage['schema']==('XML229.PrefinalRestraints.v2' if wants_v2 else 'XML229.PrefinalRestraints.v1'),
+            'NATIVE_PREFINAL_RESTRAINT_MODE_DRIFT')
     if (config.get('supportMapping') or {}).get('useJsonForRestraints') is False:
+        require(stage['schema'] != 'XML229.PrefinalRestraints.v2',
+                'NATIVE_PREFINAL_RESTRAINT_MODE_DRIFT')
         return True
     try:
         parsed = json.loads(raw.decode('utf-8-sig')) if raw.strip() else []
     except (ValueError, UnicodeError):
         require(False, 'NATIVE_PREFINAL_RESTRAINT_SOURCE_INVALID')
+    if stage['schema'] == 'XML229.PrefinalRestraints.v2':
+        require(config.get('xml229PhysicalVertexPrefinal') is True and bool(raw.strip()),
+                'NATIVE_PREFINAL_RESTRAINT_MODE_DRIFT')
+        from xml229_physical_vertex_prefinal import replay_physical_vertex_prefinal
+        return replay_physical_vertex_prefinal(expected, parsed, config,
+            stage.get('physicalVertexMemberCensus'), require)
     source_nodes = [(field(b, 'Branchname'), n) for b in expected.iter() if local(b) == 'Branch'
                     for n in children(b, 'Node')]
     groups = calibrated_groups(source_nodes, source_entries(parsed, config), config, field)

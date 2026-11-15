@@ -5,6 +5,7 @@ import {
   standaloneParityOptions,
 } from './xml-cii-standalone-run-parity.js?v=20260803-atta-default-rest-closure-1';
 import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js?v=20260803-atta-default-rest-closure-1';
+import {recordActiveRestraintStage} from '../../../tabs/xml-cii-2019-standalone/xml-cii-active-restraint-journal.js';
 import { closeGovernedAttaDefaultRestraintsXml } from '../../converters/xml-cii2019-core/atta-default-restraint-closure.js?v=20260803-atta-default-rest-closure-1';
 
 function text(value) {
@@ -49,6 +50,8 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
     ...(Array.isArray(closure.diagnostics) ? closure.diagnostics : []),
   ];
   out.stats = mergeStats(out.stats, closure.stats);
+  recordActiveRestraintStage(out.restraintAuditJournal,'atta-default',closure.xmlText,
+    {decision:'existing-xml-ATTA-default',config:effectiveConfig(job,extraOptions),diagnostics:closure.diagnostics});
   if (!closure.changed) return out;
 
   out.xmlText = closure.xmlText;

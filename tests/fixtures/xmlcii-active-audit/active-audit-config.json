@@ -1,0 +1,26 @@
+{
+  "weight": {
+    "enabled": false
+  },
+  "pipingClass": {
+    "enabled": false
+  },
+  "material": {
+    "enabled": false
+  },
+  "dropGasketNodes": false,
+  "supportMapping": {
+    "version": 2,
+    "rules": [
+      {
+        "id": "audit-owner-stop",
+        "source": "staged-json",
+        "field": "DTXR",
+        "match": "contains",
+        "pattern": "LINE STOP",
+        "kind": "LINESTOP",
+        "priority": 1
+      }
+    ]
+  }
+}

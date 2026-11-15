@@ -1,3 +1,4 @@
+import {projectSupportRuleEvidence} from '../../converters/xml-cii2019-core/support-kind-precedence.js';
 import { readSourceField, sourceSchemaEnabled } from '../../converters/xml-cii2019-core/source-schema-adapter.js';
 
 export const DEFAULT_JSON_TRACE_CAPTURE_FIELDS = Object.freeze([
@@ -29,7 +30,7 @@ const PRIMARY_FIELD_ORDER = Object.freeze(['DTXR', 'DESC', 'DESCRIPTION', 'MDSDT
 // Bounded source-only evidence survives stripRawMember independently of user
 // display-field selections. Never feed derived labels back into this projection.
 const SUPPORT_EVIDENCE_FIELDS = Object.freeze([
-  'DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'NAME', 'SPRE', 'SKEY', 'CMPSUPTYPE',
+  'DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'NAME', 'SPRE', 'SKEY', 'CMPSUPTYPE', 'COMPONENTTYPE',
   'MDSSUPPTYPE', 'SUPPORT_KIND', 'SUPPORT_TYPE', 'SUPPORT_MAPPER_KIND',
   'NODETYPE', 'NODEGAP', 'CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS',
 ]);
@@ -135,7 +136,7 @@ export function decorateJsonTraceMember(member = {}, config = {}) {
     capturedFields: captureConfiguredJsonTraceFields(raw, config),
     // Explicit source profiles retain their existing profile-governed behavior.
     supportEvidence: sourceSchemaEnabled(config) ? {} :
-      captureConfiguredJsonTraceFields(raw, { captureFields: SUPPORT_EVIDENCE_FIELDS }),
+      projectSupportRuleEvidence(raw, config, SUPPORT_EVIDENCE_FIELDS),
     semanticFields: semantic,
   };
 }

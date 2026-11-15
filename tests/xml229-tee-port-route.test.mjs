@@ -1,3 +1,4 @@
+import {nativeTestPython} from './helpers/native-python.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -23,7 +24,7 @@ function set(n,key,value){
 }
 function sourceBranches(file='GLRD-1000-PI-01 - BM2.xml'){
   const path=fileURLToPath(new URL('../Benchmarks/XML-CII-2019/revamped/'+file,import.meta.url));
-  return JSON.parse(execFileSync('python3',['-c',
+  return JSON.parse(execFileSync(nativeTestPython,['-c',
     "import xml.etree.ElementTree as E,json,sys; r=E.parse(sys.argv[1]).getroot(); "+
     "print(json.dumps([[{c.tag.split('}')[-1]:(c.text or '').strip() for c in n} "+
     "for n in b if n.tag.split('}')[-1]=='Node'] for b in r.iter() "+

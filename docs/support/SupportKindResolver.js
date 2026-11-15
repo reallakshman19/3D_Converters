@@ -201,11 +201,16 @@ function _explicitKindFromEntries(entries) {
   return _normalizeKind(explicit?.value || '');
 }
 
-function _runRules(attrs, rules) {
+function _runRules(attrs, rules, onDecision) {
   for (const rule of (rules || [])) {
     const kind = _normalizeKind(rule.kind);
     if (!kind) continue;
-    if (collectMapperFieldValues(attrs, rule).some(v => _matchValue(rule, v))) return kind;
+    const values=collectMapperFieldValues(attrs,rule);
+    const matched=values.findIndex(v=>_matchValue(rule,v));
+    if(matched>=0) {
+      onDecision?.({source:'mapping-rule',rule:{...rule,value:values[matched]}});
+      return kind;
+    }
   }
   return '';
 }
@@ -237,36 +242,37 @@ export function resolveKindPure(attrs, {
   defaultRules = DEFAULT_RULES,
   kindMap      = DEFAULT_KIND_MAP,
   defaultKind  = '',
+  onDecision,
 } = {}) {
   if (!attrs || typeof attrs !== 'object') return defaultKind;
   const entries = _collectEntries(attrs);
 
   // 1. Explicit attribute. This also supports nested attrs/userData bags.
   const explicit = _explicitKindFromEntries(entries);
-  if (explicit) return explicit;
+  if (explicit) { onDecision?.({source:'explicit-attribute',rule:{id:'explicit-support-kind'}}); return explicit; }
 
   // 2. User rules
-  const fromUser = _runRules(attrs, userRules);
+  const fromUser = _runRules(attrs, userRules, onDecision);
   if (fromUser) return fromUser;
 
   // 3. kindMap SKEY lookup
   const skey = String(attrs['SKEY'] || attrs['SUPPORT-SKEY'] || '').toUpperCase().trim();
   if (skey && kindMap[skey]) {
     const mapped = _normalizeKind(kindMap[skey]);
-    if (mapped) return mapped;
+    if (mapped) { onDecision?.({source:'skey-map',rule:{id:'skey-map',field:'SKEY',value:skey}}); return mapped; }
   }
 
   // 4. Default rules
-  const fromDefault = _runRules(attrs, defaultRules);
+  const fromDefault = _runRules(attrs, defaultRules, onDecision);
   if (fromDefault) return fromDefault;
 
   // 5. Text heuristic then direction heuristic.
   // Support identity text must beat orientation-only direction fields.
   const text        = entries.map(e => String(e.value)).join(' ');
   const fromText    = resolveKindFromText(text);
-  if (fromText) return fromText;
+  if (fromText) { onDecision?.({source:'text-heuristic',rule:{id:'resolveKindFromText',value:text}}); return fromText; }
   const fromDir     = resolveKindFromDirection(text, { entries });
-  if (fromDir) return fromDir;
+  if (fromDir) { onDecision?.({source:'direction-heuristic',rule:{id:'resolveKindFromDirection',value:text}}); return fromDir; }
 
   return defaultKind;
 }
@@ -301,6 +307,7 @@ export function resolveKindDescriptor(attrs, options = {}) {
   const skey = String(attrs?.SKEY || attrs?.['SUPPORT-SKEY'] || '').toUpperCase().trim();
   const composite = _COMPOSITE[skey];
   if (composite) {
+    options.onDecision?.({source:'composite-skey',rule:{id:'composite-skey',field:'SKEY',value:skey}});
     const dofs = composite.kinds.reduce((acc, k) => ({ ...acc, ...(_KIND_DOFS[k] || {}) }), {});
     return { primaryKind: composite.primaryKind, kinds: [...composite.kinds], dofs };
   }
