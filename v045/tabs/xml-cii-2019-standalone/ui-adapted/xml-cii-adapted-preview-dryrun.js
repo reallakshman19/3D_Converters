@@ -95,6 +95,8 @@ function blockedUnmappedRow(row) {
     t2Source: 'none',
     t3Source: 'none',
     densitySource: 'none',
+    insThk: '',
+    insThkSource: 'none',
     wallThickness: '',
     wallThicknessSource: 'none',
     corrosion: '',

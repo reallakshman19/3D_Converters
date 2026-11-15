@@ -24,6 +24,7 @@ export const BRANCH_COLUMNS = [
   { id: 't2', label: 'T2 (C)', hint: 'Edit', width: 90, minWidth: 60 },
   { id: 't3', label: 'T3 (C)', hint: 'Edit', width: 90, minWidth: 60 },
   { id: 'density', label: 'Density', hint: 'Edit', width: 90, minWidth: 60 },
+  { id: 'insThk', label: 'Insulation Thk', hint: 'Edit', width: 100, minWidth: 60 },
   { id: 'wallThickness', label: 'Wall Thk', hint: 'Edit', width: 90, minWidth: 60 },
   { id: 'corrosion', label: 'Corrosion', hint: 'Edit', width: 90, minWidth: 60 }
 ];
@@ -148,6 +149,7 @@ export class XmlCiiAdaptedEditablePreviewTable {
         <td class="mc-preview-td mc-preview-pd-td">${renderProcessField('t2', row.t2, row.t2Source)}</td>
         <td class="mc-preview-td mc-preview-pd-td">${renderProcessField('t3', row.t3, row.t3Source)}</td>
         <td class="mc-preview-td mc-preview-pd-td">${renderProcessField('density', row.density, row.densitySource)}</td>
+        <td class="mc-preview-td mc-preview-pd-td">${renderProcessField('insThk', row.insThk || '', row.insThkSource || 'none')}</td>
         <td ${tdApprox(false, editAttrs('wallThickness', wallKey, `title="Wall thickness override key: ${this._escapeAttr(wallKey)}"`))}>${editablePlain('wallThickness', row.wallThickness, wallKey, row.wallThicknessSource)}${fillDownBtn('wallThickness', ri)}</td>
         <td ${tdApprox(false, editAttrs('corrosion', corrosionKey, `title="Corrosion override key: ${this._escapeAttr(corrosionKey)}"`))}>${editablePlain('corrosion', row.corrosion, corrosionKey, row.corrosionSource)}${fillDownBtn('corrosion', ri)}</td>
       </tr>`;
