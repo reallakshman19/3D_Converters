@@ -86,6 +86,8 @@ function compactPreviewRow(source, row) {
     t3Source: row?.t3Source || '',
     density: row?.density || '',
     densitySource: row?.densitySource || '',
+    insThk: row?.insThk || '',
+    insThkSource: row?.insThkSource || '',
     wallThickness: row?.wallThickness || '',
     wallThicknessSource: row?.wallThicknessSource || '',
     corrosion: row?.corrosion || '',
@@ -360,7 +362,7 @@ function renderPreviewTable(panel, result) {
   const headers = [
     'Source XML', 'Branch Name', 'Line Key', 'From', 'To', 'Size', 'Piping Class', 'Material', 'Rating',
     'Material Code', 'P1 / Design Pressure', 'Hydro/Test Pressure', 'T1 (C)', 'T2 (C)', 'T3 (C)', 'Density',
-    'Wall Thk', 'Corrosion', 'Line Status', 'Individual',
+    'Wall Thk', 'Corrosion', 'Insulation Thk', 'Line Status', 'Individual',
   ];
   const { wrap, tbody } = tableShell(headers);
   for (const row of result.rows || []) {
@@ -386,6 +388,7 @@ function renderPreviewTable(panel, result) {
       td(row.density, { defaultValue: isDefaultSource(row.densitySource), title: row.densitySource }),
       td(row.wallThickness, { defaultValue: isDefaultSource(row.wallThicknessSource), title: row.wallThicknessSource }),
       td(row.corrosion, { defaultValue: isDefaultSource(row.corrosionSource), title: row.corrosionSource }),
+      td(row.insThk, { defaultValue: isDefaultSource(row.insThkSource), title: row.insThkSource }),
       td(row.lineMiss ? 'UNMAPPED' : 'MAPPED'),
     );
     const action = createElement('td');

@@ -525,6 +525,9 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
     const density = densityInfo.value || _processDefaultValue(config, 'density');
     const densitySource = densityInfo.value ? densityInfo.source : (_processDefaultValue(config, 'density') ? 'default' : 'none');
 
+    // Owner, 15 Nov 2026 (finding K): insulation is as per the line list; shown in the preview.
+    const insThk = _xmlCiiProcessValue(pdOverride, lineListMatch, 'insThk', ['insThk', 'InsThk', 'Insulation Thickness', 'InsulationThickness', 'Insulation Thk'], config);
+    const insThkSource = insThk ? _xmlCiiProcessSource(pdOverride, lineListMatch, 'insThk', ['insThk', 'InsThk', 'Insulation Thickness', 'InsulationThickness', 'Insulation Thk'], config) : 'none';
     const wallStart = perf?.now() ?? 0;
     const dtxrWall = resolveXmlCiiWallThicknessFromDtxr({ boreMm, dtxrValues: _branchDtxrValues(branch, stagedIndex, config, dtxrCache), config });
     totals.dtxrWall += elapsed(wallStart);
@@ -579,6 +582,8 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
       t2Source: _xmlCiiProcessSource(pdOverride, lineListMatch, 't2', ['t2', 'T2', 'Temperature2', 'Temp. ºC', 'Temp. °C', 'Operating Temp', 'Operating Temperature', 'T2 (ºC)'], config),
       t3Source: _xmlCiiProcessSource(pdOverride, lineListMatch, 't3', ['t3', 'T3', 'Temperature3', 'Temp Min ºC', 'Temp Min °C', 'Temp Min', 'Minimum Temp', 'T3 (ºC)'], config),
       densitySource,
+      insThk,
+      insThkSource,
       wallThickness,
       wallThicknessSource: (() => {
         const _wSrc = resolved.wallThicknessSource || _overrideSource(config.overrides, 'wallThickness', lineKey);

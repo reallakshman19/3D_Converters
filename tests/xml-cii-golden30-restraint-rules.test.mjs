@@ -191,6 +191,24 @@ test('J: line-list insulation thickness never overwrites InsulationDensity', asy
   }
 });
 
+// GOLDEN-30 finding K (Owner, 15 Nov: "This should be as per linelist, add the missing column in
+// '4 preview'"): the CII takes insulation from each node, so the line list value reaches every node.
+test('K: line-list insulation thickness reaches every node of the branch, and both previews show it', async () => {
+  const { xmlCiiApplyLineListProcessData } = await import('../v045/tabs/model-converters/converters/xmltocii2019_helper/enrichment-core.js');
+  const document = { createElement: (name) => new Element(name) };
+  const branch = new Element('Branch');
+  const nodes = [0, 1].map(() => branch.appendChild(new Element('Node')));
+  nodes[0].appendChild(new Element('InsulationThickness')).textContent = '0';
+  xmlCiiApplyLineListProcessData(document, branch, { lineNo: 'P0004', insThk: '40' }, {}, 'P0004');
+  assert.deepEqual(nodes.map((n) => val(n, 'InsulationThickness')), ['40', '40']);
+  assert.equal(val(branch, 'InsulationThickness'), '40');
+  const ui = 'v045/tabs/xml-cii-2019-standalone/ui-adapted/';
+  const src = (f) => readFileSync(new URL(`../${ui}${f}`, import.meta.url), 'utf8');
+  assert.match(src('xml-cii-adapted-preview-dryrun-core.js'), /insThk,\s*insThkSource,/);
+  assert.match(src('xml-cii-adapted-editable-preview-table.js'), /renderProcessField\('insThk'/);
+  assert.match(src('xml-cii-adapted-mode-a-consolidated.js'), /'Insulation Thk'[\s\S]*td\(row\.insThk/);
+});
+
 // GOLDEN-30 rev 3 finding L (Owner, 14 Nov: "based on Source xml"): a wall the source XML states
 // (> 0) is kept over the piping-class fill; wall 0 (every AVEVA export) is still filled.
 test('L: a wall stated in the source XML wins over the piping-class fill', async () => {

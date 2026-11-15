@@ -436,6 +436,9 @@ export function xmlCiiApplyLineListProcessData(document, branch, row, config, br
   }
   if (insThk) {
     xmlSetText(document, branch, 'InsulationThickness', insThk);
+    // Owner, 15 Nov 2026 (GOLDEN-30 finding K): node insulation is "as per linelist". The CII
+    // takes insulation from each node, so the line list value is written to every node too.
+    for (const node of xmlChildrenByName(branch, 'Node')) xmlSetText(document, node, 'InsulationThickness', insThk);
     count += 1;
   }
   if (density) {
