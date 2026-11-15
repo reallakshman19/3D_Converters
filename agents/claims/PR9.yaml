@@ -1,0 +1,11 @@
+schema: AgentClaim.v1
+repository: reallakshman19/3D_Convertersv0.6
+pr_or_wip: PR9
+claim_state: COORDINATION_REQUIRED
+claim_modes: [PRODUCTION_RULE_POLICY, VALIDATION]
+authority_domains: [XML229_STEP7_GT_GUIDE_POLICY]
+files:
+  exact: [converters/xml-cii2019-core/support-mapping-config.js, v045/converters/xml-cii2019-core/support-mapping-config.js, docs/converters/xml-cii2019-core/support-mapping-config.js, converters/scripts/xml229_support_type_mapper.py, docs/converters/scripts/xml229_support_type_mapper.py, tests/xml229-step7-dynamic-authority.test.mjs, tests/xmlcii-ps4131-dynamic-step7-native.test.mjs]
+protected: [WRITER_RUNTIME, TOPOLOGY_GEOMETRY, SOURCE_INPUTS, V2_OFF, MERGE_OWNER_ONLY]
+coordination: PR1 overlaps; PR4/7 audit separate
+native_pr_state_authority: https://github.com/reallakshman19/3D_Convertersv0.6/pull/9

@@ -4,6 +4,7 @@ import { loadPyodide } from '../../vendor/pyodide/pyodide.mjs';
 import { buildStandaloneCiiInvocation, outputStem } from './invocation-builder.js';
 import { applyStandaloneSifFacts } from '../../tabs/xml-cii-2019-standalone/xml-cii-standalone-sif-apply.js';
 import { runPsi116TopologyStage, topologyRequested } from './topology-integration.js';
+import {digestUtf8} from '../../contracts/gc-pw-v1/contract.mjs';
 
 const PYODIDE_INDEX_URL = new URL('../../vendor/pyodide/', import.meta.url).href;
 const SCRIPT_FILE_NAMES = Object.freeze([
@@ -16,6 +17,9 @@ const SCRIPT_FILE_NAMES = Object.freeze([
   'xml229_native_final_mass_binding.py',
   'xml229_prefinal_restraint_source.py',
   'xml229_prefinal_restraints.py',
+  'xml229_physical_vertex_prefinal.py',
+  'xml229_source_coordinate_policy.py',
+  'xml229_source_attachment_policy.py',
   'xml229_support_type_mapper.py',
   'xml_cii_weighted_geometry.py',
   'xml_to_cii2019_master_addon.py',
@@ -107,6 +111,7 @@ print("BEND_RADIUS_POLICY enabled=%s published=%s removed=%s" % (bend_policy.get
 
 let pyodidePromise = null;
 let scriptsLoaded = false;
+let loadedScriptDigests = [];
 
 function text(value) { return value === undefined || value === null ? '' : String(value); }
 function safeName(name) { return (text(name).trim() || 'input.xml').replace(/[\/:*?"|]/g, '_'); }
@@ -114,7 +119,7 @@ function logs(values) { return values.map((line) => text(line).trimEnd()).filter
 function outputKindFor(sourceKind) { return sourceKind === 'inputxml' ? 'enrichedInputXML' : 'enrichedXML'; }
 function enrichedNameFor(job) { const stem = outputStem(job.sourceName); return job.sourceKind === 'inputxml' ? `${stem}_enriched.input.xml` : `${stem}_enriched.xml`; }
 function splitValue(job) { const v = job?.options?.splitCondensedValveFlange; return v === true || v === false ? v : null; }
-function diagnostics(job, extra = {}) { return { schema: 'xml-cii-2019-workflow-diagnostics/v1', engine: 'standalone-compatibility-engine', sourceKind: job.sourceKind === 'inputxml' ? 'inputxml' : 'xml', outputMode: job.options?.outputMode || 'enriched-only', warnings: [], ...extra }; }
+function diagnostics(job, extra = {}) { return { schema: 'xml-cii-2019-workflow-diagnostics/v1', engine: 'standalone-compatibility-engine', engineSourceDigests:loadedScriptDigests, sourceKind: job.sourceKind === 'inputxml' ? 'inputxml' : 'xml', outputMode: job.options?.outputMode || 'enriched-only', warnings: [], ...extra }; }
 
 function emptyTopologyResult() {
   return {
@@ -155,6 +160,7 @@ async function getPyodide() {
 
 async function ensureScripts(pyodide) {
   if (scriptsLoaded) return;
+  const digests=[];
   pyodide.FS.mkdirTree('/scripts');
   pyodide.FS.mkdirTree('/work');
   for (const fileName of SCRIPT_FILE_NAMES) {
@@ -163,10 +169,12 @@ async function ensureScripts(pyodide) {
     if (!response.ok) throw new Error(`Failed to load standalone script ${fileName}: HTTP ${response.status}`);
     const fileText = await response.text();
     if (!fileText.trim()) throw new Error(`Standalone script ${fileName} loaded as empty text.`);
+    digests.push(Object.freeze({script:fileName,sha256:await digestUtf8(fileText)}));
     pyodide.FS.writeFile(`/scripts/${fileName}`, fileText, { encoding: 'utf8' });
   }
   pyodide.runPython('import sys\nif "/scripts" not in sys.path:\n    sys.path.insert(0, "/scripts")');
   scriptsLoaded = true;
+  loadedScriptDigests=Object.freeze(digests);
 }
 
 function writeTextFile(pyodide, dir, name, body) {

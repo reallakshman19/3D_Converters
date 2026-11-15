@@ -2,6 +2,7 @@ import {
   applyXmlRestraints,
   resolveXmlCiiSupportKind,
   restraintEntriesFromSupportKind,
+  sourceSupportGap,
 } from '../../converters/xml-cii2019-core/support-mapping.js';
 import { migrateSupportMappingConfig } from '../../converters/xml-cii2019-core/support-mapping-config.js';
 import { decideMissingStagedRestRestraint } from '../../converters/xml-cii2019-core/staged-restraint-fallback-policy.js';
@@ -118,6 +119,20 @@ function existingRestraintSummaries(node) {
   return childrenByName(node, 'Restraint').map(existingRestraintSummary);
 }
 
+function restGapAttributes(resolved,node,config) {
+  const rows=(resolved?.positionMembers||[]).map(member=>member?.raw?.attributes||member?.attributes||member?.capturedFields||{})
+    .filter(attrs=>resolveXmlCiiSupportKind(attrs,config)==='REST');
+  const canonical=v=>text(v).replace(/^[/]+/,'').toUpperCase();
+  const exact=rows.filter(attrs=>canonical(attrs.NAME)&&canonical(attrs.NAME)===canonical(childText(node,'NodeName')));
+  const candidates=exact.length?exact:rows;
+  if(!candidates.length)return {};
+  const authored=candidates.filter(attrs=>sourceSupportGap(attrs).explicit);
+  if(!authored.length)return candidates[0];
+  const gaps=new Set(authored.map(attrs=>sourceSupportGap(attrs).gap));
+  if(gaps.size>1)throw Error('NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS');
+  return authored[0];
+}
+
 export function materializeMissingStandaloneRestRestraint(document, node, resolved, config = {}, stagedSupportTypes = []) {
   const existing = childrenByName(node, 'Restraint');
   const supportMapping = migrateSupportMappingConfig(config);
@@ -130,7 +145,8 @@ export function materializeMissingStandaloneRestRestraint(document, node, resolv
     jsonRestraintsEnabled: supportMapping.useJsonForRestraints !== false,
   });
   if (!decision.apply) return { added: false, ...decision, entries: [] };
-  const entries = restraintEntriesFromSupportKind('REST', {}, node, config);
+  const attrs=decision.authority==='staged-json-rest'?restGapAttributes(resolved,node,config):{};
+  const entries = restraintEntriesFromSupportKind('REST', attrs, node, config);
   if (!entries.length) return { added: false, ...decision, reason: 'rest-profile-empty', entries: [] };
   applyXmlRestraints(document, node, entries, config);
   const added = childrenByName(node, 'Restraint').length > 0;

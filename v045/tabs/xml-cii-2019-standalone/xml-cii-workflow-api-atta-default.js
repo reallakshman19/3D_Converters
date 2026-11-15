@@ -2,6 +2,7 @@ import { detectXmlCiiWorkflowSourceKind, workflowOutputKindForSource } from '../
 import { normalizeWorkflowJob, normalizeWorkflowResult } from './xml-cii-workflow-types.js?v=20261113-x4-1';
 import { runXmlCii2019WorkflowService } from './xml-cii-workflow-service.js?v=20261113-x5a-2';
 import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity-mds-restraints.js?v=20261113-x4-1';
+import {activeAuditJobIdentity,activeAuditJobManifest} from '../../../tabs/xml-cii-2019-standalone/xml-cii-active-restraint-audit.js';
 
 export async function runXmlCii2019Workflow(job, runtime = {}) {
   const normalized = normalizeWorkflowJob(job);
@@ -31,10 +32,15 @@ export async function runXmlCii2019Workflow(job, runtime = {}) {
     : runtime;
 
   try {
-    return await runXmlCii2019WorkflowService(
+    const result=await runXmlCii2019WorkflowService(
       { ...workflowJob, sourceKind: resolvedSourceKind },
       serviceRuntime,
     );
+    if(result.restraintAudit?.run) {
+      result.restraintAudit.run.requestSha256=await activeAuditJobIdentity(workflowJob);
+      result.restraintAudit.run.requestManifest=await activeAuditJobManifest(workflowJob);
+    }
+    return result;
   } catch (error) {
     return normalizeWorkflowResult({
       ok: false,

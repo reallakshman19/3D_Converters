@@ -5,6 +5,7 @@ import {
 } from './xml-cii-standalone-run-parity-atta-default.js?v=20261008-p0-mode-b-parity-1';
 import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js?v=20261008-p0-mode-b-parity-1';
 import { closeGovernedMdsPositionRestraintsXml } from './xml-cii-mds-restraint-closure.js?v=20260804-mds-position-restraints-1';
+import {bindRestraintAudit} from './xml-cii-restraint-audit.js';
 
 function text(value) {
   return value === undefined || value === null ? '' : String(value);
@@ -46,6 +47,13 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
     ...(Array.isArray(closure.diagnostics) ? closure.diagnostics : []),
   ];
   out.stats = mergeStats(out.stats, closure.stats);
+  out.restraintResolutionLedger=closure.ledger||[];
+  // Compatibility enrichment already ran upstream: label this stage's input
+  // honestly. Only pre-Final original-source evidence may claim the full trail.
+  if(closure.restraintAudit)out.restraintClosureAudit=await bindRestraintAudit(
+    {...closure.restraintAudit,scope:'COMPATIBILITY_CLOSURE_STAGE_ONLY'},
+    {xmlText:out.xmlText,stagedJsonText:text(job?.stagedJsonText),
+      config:effectiveConfig(job,extraOptions),preparedXmlText:closure.xmlText});
   if (!closure.changed) return out;
 
   out.xmlText = closure.xmlText;

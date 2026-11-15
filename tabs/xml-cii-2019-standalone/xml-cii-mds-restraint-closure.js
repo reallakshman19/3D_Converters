@@ -12,7 +12,10 @@ import { decorateJsonTraceLedger } from './xml-cii-json-trace-fields.js';
 import {isZeroInformationLimitRestraintElement}
   from '../../converters/xml-cii2019-core/atta-default-restraint-closure.js';
 
+import {inventoryRestraintAudit, collectRestraintAudit, restraintAuditMember} from './xml-cii-restraint-audit.js';
+
 const CARRIER_TYPES = new Set(['ANCI', 'ATTA']);
+export {supportKindFromMember,supportGapNumber,sourceNodeType,isRestHardwareMember};
 const GOVERNED_KINDS = Object.freeze(['REST', 'GUIDE', 'LINESTOP']);
 const EXPECTED_XML_TYPE = Object.freeze({ REST: '+Y', GUIDE: 'GUI', LINESTOP: 'LIM' });
 
@@ -105,7 +108,8 @@ function configuredSupportRuleDecision(attrs, member, config) {
     }
     if (!matches) continue;
     const priority = Number.isFinite(Number(rule.priority)) ? Number(rule.priority) : (index + 1) * 10;
-    matching.push({kind,priority,id:text(rule.id) || 'rule-' + index});
+    matching.push({kind,priority,id:text(rule.id) || 'rule-' + index,
+      field:text(rule.field),match:mode,pattern});
   }
   if (!matching.length) return null;
   matching.sort((a,b) => a.priority - b.priority || a.id.localeCompare(b.id));
@@ -151,14 +155,20 @@ function assertTab7Compatible(attrs, member, config, pinnedKind) {
     }
 }
 
-function supportKindFromMember(member,config={}) {
+function supportKindFromMember(member,config={},observe=null) {
   const attrs = memberAttributes(member);
+  const decidedBy=(kind,source,rule={})=>{
+    observe?.({kind,source,rule});
+    return kind;
+  };
   // Owner rule (12 Nov, RCA-04): source NODETYPE wins when present; otherwise
   // the Step 7 support table decides. The chain below is the fallback only.
-  const decided = governedSupportKind({...safeObject(member?.capturedFields), ...attrs}, config);
+  let decision=null;
+  const decided = governedSupportKind({...safeObject(member?.capturedFields), ...attrs}, config,
+    GOVERNED_KINDS,value=>{decision=value;});
   // A Step 7 table answer must still agree with edited Tab 7 keywords.
   if (decided.source === 'step7-support-table') assertTab7Compatible(attrs, member, config, decided.kind);
-  if (decided.kind) return decided.kind;
+  if (decided.kind) return decidedBy(decided.kind,decision?.source||decided.source,decision?.rule);
   // An explicit source description wins over abbreviated MDS code aliases.
   // This mirrors the old confidence mapper, not its legacy axis defaults.
   // When the staged member has no DTXR/DESC text, its MDS description
@@ -187,8 +197,9 @@ function supportKindFromMember(member,config={}) {
       {code:'PREFINAL_RESTRAINT_KIND_UNSUPPORTED'});
   const pinnedKind = semantic[0] || configured?.kind || '';
   if (pinnedKind) assertTab7Compatible(attrs, member, config, pinnedKind);
-  if (semantic.length) return semantic[0];
-  if (configured) return configured.kind;
+  if (semantic.length) return decidedBy(semantic[0],'source-description',
+    {id:'semantic:'+semantic[0],field:attrs.DTXR?'DTXR':attrs.DESC?'DESC':attrs.DESCRIPTION?'DESCRIPTION':'MDSDTXR',pattern:desc});
+  if (configured) return decidedBy(configured.kind,'configured-support-rule',configured);
   // Use the user-authored Step 7 mapper rows, not a second hard-coded alias list.
   // HIGH/MEDIUM semantic intent can override a stale generated REST label;
   // LOW GT/ST evidence cannot override a resolved canonical source kind.
@@ -203,7 +214,7 @@ function supportKindFromMember(member,config={}) {
       throw Object.assign(new Error('Conflicting Step 7 mapper classification'),
         {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
     if(mapper.status==='matched'&&mapper.confidence!=='LOW'&&
-       GOVERNED_KINDS.includes(mapper.supportKind))return mapper.supportKind;
+       GOVERNED_KINDS.includes(mapper.supportKind))return decidedBy(mapper.supportKind,'step7-keyword-mapper',mapper);
   }
   const canonical = [...new Set(['SUPPORT_KIND', 'SUPPORT_MAPPER_KIND', 'SUPPORT_TYPE']
     .map(key=>text(attrs[key]).toUpperCase().replace(/\s+/g,''))
@@ -211,14 +222,15 @@ function supportKindFromMember(member,config={}) {
   if (canonical.length > 1)
     throw Object.assign(new Error('Conflicting canonical support kinds'),
       {code:'PREFINAL_RESTRAINT_KIND_AMBIGUOUS'});
-  if (canonical.length) return canonical[0];
+  if (canonical.length) return decidedBy(canonical[0],'generated-label',{id:'source:generated-label'});
   if(mapper?.status==='matched'&&GOVERNED_KINDS.includes(mapper.supportKind))
-    return mapper.supportKind;
+    return decidedBy(mapper.supportKind,'step7-keyword-mapper',mapper);
   const code = text(attrs.MDSSUPPTYPE || member?.capturedFields?.MDSSUPPTYPE).toUpperCase();
-  if (code.startsWith('GT')) return 'GUIDE';
-  if (code.startsWith('ST')) return 'LINESTOP';
-  if (code === 'PIPE-REST' || code.startsWith('AT')) return 'REST';
-  return /\b(?:PIPE[- ]?REST|REST|SHOE)\b/.test(text(attrs.SPRE).toUpperCase()) ? 'REST' : '';
+  if (code.startsWith('GT')) return decidedBy('GUIDE','source-code',{id:'code:GT',field:'MDSSUPPTYPE'});
+  if (code.startsWith('ST')) return decidedBy('LINESTOP','source-code',{id:'code:ST',field:'MDSSUPPTYPE'});
+  if (code === 'PIPE-REST' || code.startsWith('AT')) return decidedBy('REST','source-code',{id:'code:REST',field:'MDSSUPPTYPE'});
+  return /\b(?:PIPE[- ]?REST|REST|SHOE)\b/.test(text(attrs.SPRE).toUpperCase())
+    ? decidedBy('REST','catalogue-fallback',{id:'catalogue:REST',field:'SPRE'}) : '';
 }
 
 function sourceGapText(attrs){
@@ -265,10 +277,12 @@ function isRestHardwareMember(attrs,kind) {
          (code==='AT05'&&/\bWEAR\s+PLATE\b/.test(desc));
 }
 
-function evidenceByKind(record, config = {}, requireUnambiguous = false) {
+function evidenceByKind(record, config = {}, requireUnambiguous = false, selected=new Map(), evaluations=[]) {
   const result=new Map();
   for(const member of Array.isArray(record?.positionMembers)?record.positionMembers:[]){
-    const kind=supportKindFromMember(member,config);
+    let decision=null;
+    const kind=supportKindFromMember(member,config,value=>{decision=value;});
+    evaluations.push({xmlIndex:record.xmlIndex,kind,source:restraintAuditMember(member,decision,'evaluated-member')});
     if(!kind)continue;
     const original=memberAttributes(member);
     const numeric=requireUnambiguous?supportGapNumber(original):null;
@@ -277,6 +291,10 @@ function evidenceByKind(record, config = {}, requireUnambiguous = false) {
     // stored the same gap in NODEGAP. Preserve its value, including zero.
     const attrs=raw&&!text(original.CMPSUPGAP)&&!text(original.CMPSUPGAP_POS)
       &&!text(original.CMPSUPGAP_PS)?{...original,CMPSUPGAP:raw}:original;
+    const choose=reason=>{
+      result.set(kind,attrs);
+      selected.set(kind,restraintAuditMember(member,decision,reason));
+    };
     const previous=result.get(kind);
     // A PIPE-REST datum and its AT01/AT05 hardware can share exact XYZ.
     // The shoe/plate is not an independent REST gap owner: first select the
@@ -287,7 +305,7 @@ function evidenceByKind(record, config = {}, requireUnambiguous = false) {
       const previousHardware = isRestHardwareMember(previous,kind);
       const currentHardware = isRestHardwareMember(attrs,kind);
       if (previousHardware !== currentHardware) {
-        if (previousHardware) result.set(kind,attrs);
+        if (previousHardware) choose('structural-rest-owner-over-hardware');
         continue;
       }
     }
@@ -303,13 +321,13 @@ function evidenceByKind(record, config = {}, requireUnambiguous = false) {
       const earlierHardware=isRestHardwareMember(previous,kind);
       const laterHardware=isRestHardwareMember(attrs,kind);
       if(earlierHardware!==laterHardware){
-        if(earlierHardware)result.set(kind,attrs);
+        if(earlierHardware)choose('structural-rest-owner-over-hardware');
         continue;
       }
       throw Object.assign(new Error('Conflicting staged NODETYPE mutations for the same support kind'),
         {code:'PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'});
     }
-    if(!previous||(!sourceGapText(previous)&&raw))result.set(kind,attrs);
+    if(!previous||(!sourceGapText(previous)&&raw))choose(previous?'explicit-source-gap':'first-qualified-kind-member');
   }
   // Aggregated trace kinds can contain a lower-confidence GT/ST alias that
   // the resolved source member explicitly contradicted. Never re-add it.
@@ -386,6 +404,8 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
     return { xmlText: source, changed: false, stats, diagnostics: [{ type: 'mds-position-restraint-closure-skipped', reason: 'XML parse failed' }] };
   }
 
+  const auditBefore=inventoryRestraintAudit(document),auditNotes=new Map();
+
   let xmlIndex = 0;
   for (const branch of [...document.getElementsByTagName('Branch')]) {
     for (const node of childrenByName(branch, 'Node')) {
@@ -398,7 +418,13 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
           {code:'PREFINAL_RESTRAINT_MATCH_AMBIGUOUS'});
       if (!record || !String(record.status || '').startsWith('RESOLVED_')) continue;
       let evidence;
-      try { evidence = evidenceByKind(record,config,runtime.requireUnambiguous===true); }
+      const selected=new Map(),evaluations=[];
+      const note={evaluations,selections:[],match:{method:record.matchType,status:record.status,
+        groupId:record.groupId||null,matchedPosition:record.matchedPosition||null,
+        distanceMm:record.positionDistanceMm,toleranceMm:record.coordinateToleranceMm,
+        branchRelationship:record.branchRelationship}};
+      auditNotes.set(xmlIndex,note);
+      try { evidence = evidenceByKind(record,config,runtime.requireUnambiguous===true,selected,evaluations); }
       catch (error) {
         // Name the XML node so the conflict can be found in the JSON Trace.
         const where = ' at XML Node '+(childText(node,'NodeNumber')||'?')+' ('+componentType+', '+
@@ -438,16 +464,18 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
         if (!evidence.has(kind)) continue;
         const attrs=evidence.get(kind);
         const explicitGap=sourceGapText(attrs);
-        const selectedType=sourceNodeType(attrs,config)||EXPECTED_XML_TYPE[kind];
+        const selectedType=sourceNodeType(attrs,config);
         if (['+Y','GUI','LIM'].includes(selectedType)&&selectedType!==EXPECTED_XML_TYPE[kind])
           throw Object.assign(new Error('Configured NODETYPE mutation contradicts Step 7 support kind'),
             {code:'PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT'});
-        const generated=restraintEntriesFromSupportKind(kind, attrs, node, config)
+        const candidates=restraintEntriesFromSupportKind(kind, attrs, node, config)
           .map(entry=>({
-            ...entry,type:selectedType,
+            ...entry,type:selectedType||entry.type,
             gap:kind==='REST'&&explicitGap?String(supportGapNumber(attrs)):entry.gap,
-          }))
-          .filter(entry=>!present.has(normalizeXmlType(entry?.type || entry)));
+          }));
+        note.selections.push({kind,types:candidates.map(entry=>normalizeXmlType(entry?.type||entry)),
+          source:selected.get(kind)||null});
+        const generated=candidates.filter(entry=>!present.has(normalizeXmlType(entry?.type || entry)));
         if (!generated.length) continue;
         kinds.push(kind);
         entries.push(...generated);
@@ -472,5 +500,8 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
     stats,
     diagnostics,
     ledger: ledger.records || [],
+    restraintAudit:{...collectRestraintAudit(auditBefore,document,auditNotes,ledger.records||[],config),
+      matching:{schema:rawLedger.schema,toleranceMm:rawLedger.toleranceMm,
+        calibration:rawLedger.calibration||null}},
   };
 }

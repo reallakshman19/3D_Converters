@@ -1,0 +1,15 @@
+schema: AgentStatus.v1
+repository: reallakshman19/3D_Convertersv0.6
+pr: 2
+state: VALIDATED_PROFILE_DELIVERY
+branch: codex/xmlcii2019-restraint-audit
+report: agents/PR2_workreport.md
+report_basis_head: fd00c841db7e7a737759a55bfff1af20a9fc4082
+base: cf5d5ccb611a487e1f549b59c2886c87af9114eb
+local_validation: 304_PASS_EXACT_NORMALIZED_GIT_BLOBS
+remote_ci: MIXED_SAMPLED_FAILURES_PREEXISTING_UNEXAMINED_ORIGINS_UNKNOWN
+merge_state_source: NATIVE_GITHUB_PR2_FIELDS_ARE_AUTHORITATIVE
+distinct_review: NOT_RUN
+engineering_acceptance: NOT_GRANTED_UNQUALIFIED_INPUTS_HELD
+merge_authority: OWNER_EXPLICIT_PUSH_AND_MERGE_20261115
+exact_next_action: Read live PR2 merge state; merge exact authorized head if open, otherwise preserve holds and continue source qualification separately.

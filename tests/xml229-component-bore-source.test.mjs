@@ -1,3 +1,5 @@
+import {fileURLToPath} from 'node:url';
+import {nativeTestPython} from './helpers/native-python.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
@@ -17,5 +19,5 @@ test('duplicate and wrong-source bore rows fail closed',()=>{
  assert.throws(()=>indexXml229PhysicalBores([{...row,endpoint:'1'}],originals,fail),{code:'PHYSICAL_BORE_SOURCE_DRIFT'});
 });
 test('actual PL-BM1 native port and contrary cases',()=>{
- execFileSync('python3',[new URL('./xml-cii-connected-port-diameter.test.py',import.meta.url).pathname],{stdio:'pipe'});
+ execFileSync(nativeTestPython,[fileURLToPath(new URL('./xml-cii-connected-port-diameter.test.py',import.meta.url))],{stdio:'pipe'});
 });

@@ -1,0 +1,12 @@
+schema: AgentClaim.v1
+repository: reallakshman19/3D_Convertersv0.6
+pr_or_wip: PR3
+branch: codex/xmlcii-active-audit
+claim_state: ACTIVE
+authority_domains: [ACTIVE_V06_RESTRAINT_OBSERVATION, PRIVATE_AUDIT_EXPORT]
+files:
+  prefixes: [tabs/xml-cii-2019-standalone/xml-cii-active-restraint, v045/tabs/xml-cii-2019-standalone, v045/tabs/model-converters/converters/xmltocii2019_helper]
+  exact: [support/SupportKindResolver.js, v045/converters/xml-cii2019-core/support-mapping.js, v045/converters/xml-cii2019-core/support-kind-precedence.js, tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-v055-seam.js]
+protected: [CONVERSION_VALUES, CLASSIFICATION_PRECEDENCE, NATIVE_WRITER, RUNTIME_OWNERSHIP, TOPOLOGY, OPTIONAL_V2_OFF]
+coordination: COORDINATION_REQUIRED_PR1_EVALUATOR_WITNESS_ONLY
+last_verified_head: 409c59ee73169b78458226fd4d50843dff279d68

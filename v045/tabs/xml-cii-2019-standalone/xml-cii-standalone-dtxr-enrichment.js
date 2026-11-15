@@ -2,9 +2,11 @@ import {
   applyXmlRestraints,
   resolveXmlCiiSupportKind,
   restraintEntriesFromSupportKind,
+  sourceSupportGap,
 } from '../../converters/xml-cii2019-core/support-mapping.js';
 import { migrateSupportMappingConfig } from '../../converters/xml-cii2019-core/support-mapping-config.js';
 import { decideMissingStagedRestRestraint } from '../../../converters/xml-cii2019-core/staged-restraint-fallback-policy.js';
+import {activeAuditNode,activeAuditSource,recordActiveRestraintWrite} from '../../../tabs/xml-cii-2019-standalone/xml-cii-active-restraint-journal.js';
 import {
   buildStandaloneDtxrPositionGroups,
   buildStandaloneDtxrResolutionLedger,
@@ -65,7 +67,7 @@ function recordsByXmlIndex(records) {
   return new Map((records || []).map((record) => [Number(record.xmlIndex), record]));
 }
 
-function stagedSupportKindsByPath(stagedJsonText, config = {}) {
+function stagedSupportKindsByPath(stagedJsonText, config = {}, auditSelections) {
   const out = new Map();
   let parsed;
   try { parsed = typeof stagedJsonText === 'string' ? JSON.parse(stagedJsonText) : stagedJsonText; } catch { return out; }
@@ -76,8 +78,10 @@ function stagedSupportKindsByPath(stagedJsonText, config = {}) {
     }
     if (!value || typeof value !== 'object') return;
     const attrs = value.attributes && typeof value.attributes === 'object' ? value.attributes : {};
-    const kind = resolveXmlCiiSupportKind(attrs, config);
+    let decision;
+    const kind = resolveXmlCiiSupportKind(attrs, config,value=>{decision=value;});
     if (kind) out.set(path, kind);
+    if(kind&&auditSelections)auditSelections.set(path,{kind,decision});
     if (Array.isArray(value.children)) value.children.forEach((child, index) => visit(child, `${path}.children[${index}]`));
   };
   visit(parsed, '$');
@@ -118,7 +122,21 @@ function existingRestraintSummaries(node) {
   return childrenByName(node, 'Restraint').map(existingRestraintSummary);
 }
 
-export function materializeMissingStandaloneRestRestraint(document, node, resolved, config = {}, stagedSupportTypes = []) {
+function restGapAttributes(resolved,node,config) {
+  const rows=(resolved?.positionMembers||[]).map(member=>member?.raw?.attributes||member?.attributes||member?.capturedFields||{})
+    .filter(attrs=>resolveXmlCiiSupportKind(attrs,config)==='REST');
+  const canonical=v=>text(v).replace(/^[/]+/,'').toUpperCase();
+  const exact=rows.filter(attrs=>canonical(attrs.NAME)&&canonical(attrs.NAME)===canonical(childText(node,'NodeName')));
+  const candidates=exact.length?exact:rows;
+  if(!candidates.length)return {};
+  const authored=candidates.filter(attrs=>sourceSupportGap(attrs).explicit);
+  if(!authored.length)return candidates[0];
+  const gaps=new Set(authored.map(attrs=>sourceSupportGap(attrs).gap));
+  if(gaps.size>1)throw Error('NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS');
+  return authored[0];
+}
+
+export function materializeMissingStandaloneRestRestraint(document, node, resolved, config = {}, stagedSupportTypes = [], audit) {
   const existing = childrenByName(node, 'Restraint');
   const supportMapping = migrateSupportMappingConfig(config);
   const decision = decideMissingStagedRestRestraint({
@@ -130,10 +148,15 @@ export function materializeMissingStandaloneRestRestraint(document, node, resolv
     jsonRestraintsEnabled: supportMapping.useJsonForRestraints !== false,
   });
   if (!decision.apply) return { added: false, ...decision, entries: [] };
-  const entries = restraintEntriesFromSupportKind('REST', {}, node, config);
+  const attrs=decision.authority==='staged-json-rest'?restGapAttributes(resolved,node,config):{};
+  const entries = restraintEntriesFromSupportKind('REST', attrs, node, config);
   if (!entries.length) return { added: false, ...decision, reason: 'rest-profile-empty', entries: [] };
+  const auditBefore=audit?activeAuditNode(node):null;
   applyXmlRestraints(document, node, entries, config);
   const added = childrenByName(node, 'Restraint').length > 0;
+  if(added&&auditBefore)recordActiveRestraintWrite(audit.journal,auditBefore,node,{
+    stage:'dtxr-enrichment',entries,policy:decision,policyInputs:{ledgerSupportTypes:resolved?.derivedSupportTypes||[],
+      stagedSupportTypes,jsonRestraintsEnabled:supportMapping.useJsonForRestraints!==false},sources:audit.sources});
   return {
     added,
     ...decision,
@@ -169,7 +192,7 @@ function materializedDiagnostic(node, resolved, materialized) {
   };
 }
 
-export function enrichStandaloneDtxrAnnotations(xmlText, stagedJsonText, config = {}) {
+export function enrichStandaloneDtxrAnnotations(xmlText, stagedJsonText, config = {}, auditJournal) {
   const source = String(xmlText ?? '');
   const stats = {
     dtxrPositionGroups: 0,
@@ -213,7 +236,8 @@ export function enrichStandaloneDtxrAnnotations(xmlText, stagedJsonText, config 
   }
 
   const byIndex = recordsByXmlIndex(ledgerResult.records);
-  const kindsByPath = stagedSupportKindsByPath(stagedJsonText, config);
+  const auditSelections=auditJournal?new Map():null;
+  const kindsByPath = stagedSupportKindsByPath(stagedJsonText, config,auditSelections);
   let xmlIndex = 0;
   for (const branch of [...document.getElementsByTagName('Branch')]) {
     for (const node of childrenByName(branch, 'Node')) {
@@ -237,6 +261,7 @@ export function enrichStandaloneDtxrAnnotations(xmlText, stagedJsonText, config 
         resolved,
         config,
         supportKindsForRecord(resolved, kindsByPath),
+        auditJournal?{journal:auditJournal,sources:fallbackAuditSources(auditJournal,resolved,auditSelections)}:null,
       );
       if (materialized.added) {
         stats.stagedRestRestraintsAdded += 1;
@@ -256,6 +281,12 @@ export function enrichStandaloneDtxrAnnotations(xmlText, stagedJsonText, config 
     ledger: ledgerResult.records,
     ledgerResult,
   };
+}
+
+function fallbackAuditSources(journal,record,selections) {
+  const paths=[...(record?.sourcePaths||[]),...(record?.positionMembers||[]).map(member=>member.sourcePath)].filter(Boolean);
+  return [...new Set(paths)].map(path=>({...activeAuditSource(journal,{path},selections.get(path)?.decision),
+    evaluatedKind:selections.get(path)?.kind||'',role:'resolved-source-group'}));
 }
 
 export {

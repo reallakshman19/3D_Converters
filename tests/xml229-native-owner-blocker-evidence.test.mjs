@@ -92,3 +92,20 @@ test('new native owner audit UI is mirrored and does not replace native proof',a
   assert.match(candidate,/reconcileXml229ActualCiiAgainstFinal/);
   assert.doesNotMatch(candidate,/executeStandaloneFallbackCandidate|xml229NativeFinalPacket:\s*null/);
 });
+
+// Dynamic Step 7 qualification in the existing Run HOLD test gate.
+import './xml229-step7-dynamic-authority.test.mjs';
+import './xmlcii-ps4131-dynamic-step7-native.test.mjs';
+import './xml-cii-support-kind-owner-precedence.test.mjs';
+import './xml229-step78-runtime-parity.test.mjs';
+
+test('Step 7 visible table repairs stale GT5 GUIDE rows before Run',async()=>{
+  const {supportMappingRowsForTable}=await import('../v045/converters/xml-cii2019-core/support-mapping-config.js');
+  const stale={supportMapping:{version:2,rules:[{id:'builtin-gt5-mds',priority:999,source:'all',
+    field:'MDSSUPPTYPE',match:'startsWith',pattern:'GT5',kind:'REST',enabled:false}]}};
+  const row=supportMappingRowsForTable(stale).find(r=>r.id==='builtin-gt5-mds');
+  assert.deepEqual([row.priority,row.kind,row.xmlTypes,row.directionMode,row.gap,row.frictionMode,row.enabled],
+    [140,'GUIDE','GUI','pipe-normal','0','sentinel',true]);
+});
+
+import './xml229-all-mapper-source-gap.test.mjs';

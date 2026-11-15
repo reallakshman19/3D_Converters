@@ -1,3 +1,4 @@
+import {nativeTestPython} from './helpers/native-python.mjs';
 import './xml229-native-enriched-artifact.test.mjs';
 import './xml229-component-bore-source.test.mjs';
 import './xml229-olet-helper-route.test.mjs';
@@ -70,7 +71,7 @@ test('REAL Python native converter CII independently reconciles against exact so
         xmlPath=join(folder,'actual-enriched.xml');
   writeFileSync(input,source);
   writeFileSync(manifest,JSON.stringify(packet));
-  const proc=spawnSync('python3',['converters/scripts/xml_to_cii2019_runtime_custody.py',
+  const proc=spawnSync(nativeTestPython,['converters/scripts/xml_to_cii2019_runtime_custody.py',
     '--input',input,'--output',output,'--weight-scale','10',
     '--xml229-native-final-packet',manifest,'--xml229-native-mass-proof',proofPath,
     '--enriched-output',xmlPath,
@@ -107,7 +108,7 @@ test('REAL native conversion accepts signed scientific displacement and independ
   const input=join(folder,'source.xml'),output=join(folder,'emitted.cii');
   const manifest=join(folder,'packet.json'),proofPath=join(folder,'proof.json');
   writeFileSync(input,signedSource);writeFileSync(manifest,JSON.stringify(signedPacket));
-  const proc=spawnSync('python3',['converters/scripts/xml_to_cii2019_runtime_custody.py',
+  const proc=spawnSync(nativeTestPython,['converters/scripts/xml_to_cii2019_runtime_custody.py',
    '--input',input,'--output',output,'--weight-scale','10',
    '--xml229-native-final-packet',manifest,'--xml229-native-mass-proof',proofPath],
    {cwd:fileURLToPath(new URL('../',import.meta.url)),encoding:'utf8',timeout:45000});

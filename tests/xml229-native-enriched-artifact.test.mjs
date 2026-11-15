@@ -1,3 +1,5 @@
+import {fileURLToPath} from 'node:url';
+import {nativeTestPython} from './helpers/native-python.mjs';
 import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -29,5 +31,5 @@ test('artifact reader never substitutes input or reads a prior job',()=>{
 });
 
 test('real native XML export survives a later CII writer fault and protects source bytes',()=>{
- execFileSync('python3',[new URL('./xml229-native-enriched-export.test.py',import.meta.url).pathname],{stdio:'pipe'});
+ execFileSync(nativeTestPython,[fileURLToPath(new URL('./xml229-native-enriched-export.test.py',import.meta.url))],{stdio:'pipe'});
 });

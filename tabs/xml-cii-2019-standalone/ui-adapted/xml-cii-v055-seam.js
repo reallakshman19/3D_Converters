@@ -26,6 +26,7 @@ import { materializeMasterDatasetRows } from './xml-cii-adapted-master-dataset-r
 import { resolveXml229CurrentPreviewBlob } from './xml-cii-adapted-lfj-o1-intake.js?v=20261113-x5a-2';
 import { xmlCiiProcessingMode } from './xml-cii-adapted-processing-mode.js?v=20261113-x5a-2';
 import { createElement } from './xml-cii-adapted-dom.js?v=20260813-mode-a-full-propagation-2';
+import {renderActiveRestraintAuditPanels} from './xml-cii-active-restraint-audit-panel.js';
 
 export const V045_PHASE_IDS = Object.freeze(['weight-match', 'support-mapper', 'config', 'matched-audit', 'run']);
 const V045_PHASES = new Set(V045_PHASE_IDS);
@@ -124,7 +125,24 @@ async function loadPending(stateRef, signature, render, materialize) {
  * Returns null when v0.45 may render, or an element explaining why not yet.
  * Starts the loads when needed.
  */
+function stagedInputGate(stateRef,render) {
+  const state=stateRef.current,receipt=state.xml229StagedSourceReceipt;
+  if(!receipt&&!state.xml229StagedSourceStatus)return null;
+  if(receipt?.phase==='INDEX_COMMITTED'&&receipt.sha256)return null;
+  const phase=String(receipt?.phase||state.xml229StagedSourceStatus||'UNKNOWN');
+  const card=createElement('section','','xml-cii-standalone-card');
+  card.setAttribute?.('data-v055-master-gate','staged-'+phase.toLowerCase());
+  card.append(createElement('h2','Staged JSON not ready'),
+    createElement('p',`Selected JSON status: ${phase}. This step cannot run with empty or previous JSON while the selected source is unfinished or invalid.`),
+    createElement('p','Wait for INDEX_COMMITTED in Step 3, then check input readiness. Failed or revoked imports must be loaded again. No conversion has started.'));
+  const retry=createElement('button','Check input readiness','xml-cii-standalone-button');retry.type='button';
+  retry.addEventListener?.('click',()=>render?.());card.append(retry);
+  return card;
+}
+
 export function v055MasterGate(stateRef, render, materialize = materializeMasterDatasetRows) {
+  const stagedGate=stagedInputGate(stateRef,render);
+  if(stagedGate)return stagedGate;
   const signature = signatureOf(stateRef.current);
   if (!signature) return null;
   if (gate.signature === signature && gate.status === 'done') {
@@ -191,7 +209,9 @@ export function v045ViewRef(ref, state) {
 }
 
 export function renderV045ActivePhase(main, viewRef, render) {
-  return renderV045Phase(main, viewRef, render);
+  const result=renderV045Phase(main, viewRef, render);
+  if(viewRef.current.activePhaseId==='run')renderActiveRestraintAuditPanels(main,viewRef);
+  return result;
 }
 
 export function installV045WorkspaceHooks(main, viewRef, state) {

@@ -1,4 +1,5 @@
 import { parseXmlCiiEnrichmentConfig } from '../../../../converters/xml-cii2019-core/config.js';
+import {activeAuditNode,recordActiveRestraintWrite} from '../../../../../tabs/xml-cii-2019-standalone/xml-cii-active-restraint-journal.js';
 import {
   DEFAULT_PIPING_CLASS_MASTER_URLS,
   loadXmlCiiMaterialMap,
@@ -698,7 +699,8 @@ export async function enrichXmlForCii2019(xmlTextVal, stagedJsonText, options = 
       : (tagMatches.length > 0 ? 'dtxr-ps-tag-fallback' : (relaxedTagMatches.length > 0 ? 'dtxr-ps-tag-relaxed-fallback' : 'unmatched'));
     const staged = stagedMatches[0] || null;
     const restraints = xmlChildrenByName(node, 'Restraint');
-    const combinedTypes = dedupeXmlCiiRestraintEntries(stagedMatches.flatMap(m => xmlCiiRestraintEntriesFromSupportMatch(m, node, config)));
+    const supportCandidates=stagedMatches.map(match=>({match,entries:xmlCiiRestraintEntriesFromSupportMatch(match,node,config)}));
+    const combinedTypes = dedupeXmlCiiRestraintEntries(supportCandidates.flatMap(candidate=>candidate.entries));
     const dtxrPs = xmlCiiDtxrPsForNode(node, stagedComponentIndex);
     if (dtxrPs.text) {
       xmlSetText(document, node, 'DTXR_PS', dtxrPs.text);
@@ -737,6 +739,7 @@ export async function enrichXmlForCii2019(xmlTextVal, stagedJsonText, options = 
         .filter((entry) => !!entry.type);
     }
 
+    const auditBefore=options._restraintAuditJournal?activeAuditNode(node):null;
     if (componentType === 'ATTA' && targetEntries.length > 0) {
       applyXmlRestraints(document, node, targetEntries, config);
       if (staged) stats.stagedSupportsMapped += 1;
@@ -744,6 +747,13 @@ export async function enrichXmlForCii2019(xmlTextVal, stagedJsonText, options = 
     } else if (restraints.length) {
       applyXmlRestraints(document, node, targetEntries, config);
       stats.normalizedRestraints += targetEntries.length;
+    }
+    if(auditBefore&&(componentType==='ATTA'&&targetEntries.length>0||restraints.length)) {
+      recordActiveRestraintWrite(options._restraintAuditJournal,auditBefore,node,{
+        stage:'parent-enrichment',method:supportMatchMethod,entries:targetEntries,
+        sources:supportCandidates.map(({match,entries})=>({path:match.path,
+          name:match.attrs?.NAME||match.component?.name||'',fields:match.attrs||{},
+          decision:match.auditDecision,outputOrdinals:entries.map(entry=>targetEntries.indexOf(entry)).filter(i=>i>=0)}))});
     }
     if (staged) {
       const rating = deriveRatingText(staged.attrs, config, xmlText(node, 'PipingClass'));

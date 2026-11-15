@@ -1,0 +1,14 @@
+schema: AgentPrStatus.v1
+repository: reallakshman19/3D_Convertersv0.6
+pr_or_wip: PR10
+mission: Link source coverage to verified native CII fields
+branch: fix/source-coverage-native-cii-trace-20261115
+main_head_last_checked: 326270b46f190b324f6a6f52a7602a0296d79623
+work_intent: IMPLEMENT
+criticality: ENGINEERING_CRITICAL
+current_stage: VALIDATION_PENDING
+report_path: agents/PR10_workreport.md
+appendix_a_status: SELF_ASSESSED_NOT_INDEPENDENT
+highest_risk: No unique physical owner proof; audit overall failed baseline
+exact_next_action: Inspect original-source native trace and browser tests; coordinate PR4/7; no merge without authorization
+native_pr_state_authority: https://github.com/reallakshman19/3D_Convertersv0.6/pull/10

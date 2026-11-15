@@ -6,10 +6,8 @@ import { migrateSupportMappingConfig } from './support-mapping-config.js';
 //    14 -> REST (+Y), 8 -> GUIDE (GUI), 9 -> LINESTOP (LIM).
 // 2. Otherwise the Step 7 support table ("Use JSON/support mapper for
 //    restraints"): its enabled rows for staged JSON, in priority order, then
-//    the keyword text pass. The table reads ONLY the member's own description
-//    and code fields (DTXR, DESC, DESCRIPTION, MDSDTXR, CMPSUPTYPE,
-//    MDSSUPPTYPE, SKEY, ComponentType); never catalogue paths (SPRE) or names
-//    (NAME): a path like /MDS-Ancillaries/ANCI/... must not make a stop a REST.
+//    the keyword text pass. Explicit field rules execute against source values;
+//    generic intent rows visibly exclude catalogue paths and generated labels.
 //    Generated labels (SUPPORT_KIND / SUPPORT_MAPPER_KIND / SUPPORT_TYPE) are
 //    the weakest evidence, used only when nothing else decides.
 // 3. Fail closed, as before: rows of equal priority that match with different
@@ -22,7 +20,7 @@ const CODE_BY_LABEL = Object.freeze({ '+Y': 14, GUI: 8, LIM: 9 });
 const GOVERNED = Object.freeze(['REST', 'GUIDE', 'LINESTOP']);
 const SUPPORT_KINDS = Object.freeze(['REST', 'GUIDE', 'LINESTOP', 'LIMIT', 'ANCHOR', 'SPRING']);
 const DESCRIPTION_KEYS = Object.freeze(['DTXR', 'DESC', 'DESCRIPTION']);
-const TABLE_FIELDS = Object.freeze(['DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'CMPSUPTYPE', 'MDSSUPPTYPE',
+const TEXT_FALLBACK_FIELDS = Object.freeze(['DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'CMPSUPTYPE', 'MDSSUPPTYPE',
   'SKEY', 'COMPONENTTYPE']);
 const GENERATED_FIELDS = Object.freeze(['SUPPORTKIND', 'SUPPORTMAPPERKIND', 'SUPPORTTYPE']);
 const STAGED_SOURCES = Object.freeze(['', 'ALL', 'STAGED-JSON', 'JSON']);
@@ -34,7 +32,7 @@ const fieldKey = (key) => text(key).toUpperCase().replace(/[^A-Z0-9]/g, '');
 const refuse = (code, message) => Object.assign(new Error(`${code}: ${message}`), { code });
 
 function fields(attrs = {}) {
-  const out = {};
+  const out = Object.create(null);
   for (const [key, value] of Object.entries(attrs || {})) {
     if (value !== null && typeof value === 'object') continue;
     const name = fieldKey(key);
@@ -57,6 +55,8 @@ export function nodeTypeSupportKind(attrs = {}, config = {}) {
       `8 Config row ${text(row.label)} maps NODETYPE ${text(row.from)} to ${text(row.to)}, not ${labelCode}`);
   }
   const code = Number(mutateRestraintType(raw, mutation));
+  if(!Number.isInteger(code)||code<1||code>62)
+    throw refuse('PREFINAL_RESTRAINT_TYPE_INVALID','Source NODETYPE or its configured mutation is outside CAESAR codes 1–62');
   return Number.isInteger(code) ? (KIND_BY_CAESAR_CODE[code] || '') : '';
 }
 
@@ -86,10 +86,10 @@ const fieldName = (name) => {
   return trimmed === '*' ? '*' : trimmed.replace(/^<+|>+$/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 };
 
-function ruleValues(evidence, rule) {
+function ruleEvidence(evidence, rule) {
   const wanted = terms(rule.field).map(fieldName);
-  if (!wanted.length || wanted.includes('*') || wanted.includes('ANY')) return Object.values(evidence);
-  return Object.entries(evidence).filter(([key]) => wanted.includes(key)).map(([, value]) => value);
+  const wildcard=!wanted.length||wanted.includes('*')||wanted.includes('ANY');
+  return Object.entries(evidence).filter(([key])=>wildcard||wanted.includes(key));
 }
 
 function compiledRegex(rule) {
@@ -123,25 +123,59 @@ function kindFromText(value) {
   return '';
 }
 
-export function tableSupportKind(attrs = {}, config = {}, onlyUserRows = false) {
-  const f = fields(attrs);
-  const evidence = {};
-  for (const key of TABLE_FIELDS) if (f[key]) evidence[key] = f[key];
-  if (!DESCRIPTION_KEYS.some((key) => evidence[key]) && evidence.MDSDTXR) evidence.DESCRIPTION = evidence.MDSDTXR;
+function matchTableRules(attrs,evidence,rules,observe) {
   let first = null;
-  const isUserRow = (rule) => !/^(?:builtin-|standalone-mds-)/.test(rule.id);
-  for (const rule of tableRules(config).filter((row) => !onlyUserRows || isUserRow(row))) {
+  for (const rule of rules) {
     if (first && rule.priority !== first.priority) break;
     if (!SUPPORT_KINDS.includes(rule.kind)) continue;
-    if (!ruleValues(evidence, rule).some((value) => ruleMatches(rule, value))) continue;
-    if (!first) { first = rule; continue; }
+    let matchEvidence=null;
+    if (!ruleEvidence(evidence, rule).some(([field,value]) => {
+      if(!ruleMatches(rule,value))return false;
+      const sourceKey=field==='DESCRIPTION'&&!DESCRIPTION_KEYS.some(key=>fields(attrs)[key])&&
+        fields(attrs).MDSDTXR?'MDSDTXR':field;
+      matchEvidence={field,value,sourceField:Object.keys(attrs).find(key=>fieldKey(key)===sourceKey)||sourceKey};
+      return true;
+    })) continue;
+    if (!first) { first = {...rule,matchEvidence}; continue; }
     if (rule.kind !== first.kind) {
       throw refuse('PREFINAL_RESTRAINT_KIND_AMBIGUOUS', `Step 7 rows ${first.id} and ${rule.id} have equal priority and different kinds`);
     }
   }
-  if (first) return first.kind;
+  if (first) {
+    observe?.({ source: 'step7-support-table', rule: { ...first,value:first.matchEvidence.value } });
+    return first.kind;
+  }
+  return '';
+}
+
+export function tableSupportKind(attrs = {}, config = {}, onlyUserRows = false, observe = null) {
+  const f=fields(attrs),rules=tableRules(config);
+  const evidence=Object.fromEntries(Object.entries(f).filter(([key])=>!GENERATED_FIELDS.includes(key)));
+  if(!DESCRIPTION_KEYS.some(key=>evidence[key])&&evidence.MDSDTXR)evidence.DESCRIPTION=evidence.MDSDTXR;
+  const isUserRow=rule=>!/^(?:builtin-|standalone-mds-)/.test(rule.id);
+  const first=matchTableRules(attrs,evidence,rules.filter(row=>!onlyUserRows||isUserRow(row)),observe);
+  if(first)return first;
   if (onlyUserRows) return '';
-  return kindFromText(Object.values(evidence).join(' '));
+  const kind = kindFromText(TEXT_FALLBACK_FIELDS.map(key=>evidence[key]||'').join(' '));
+  if (kind) observe?.({ source: 'step7-keywords',
+    rule: { id: 'builtin-keyword:' + kind, field: Object.keys(evidence).join(','),
+      match: 'engineering-keywords', pattern: Object.values(evidence).join(' ') } });
+  return kind||matchTableRules(attrs,Object.fromEntries(Object.entries(f)
+    .filter(([key])=>GENERATED_FIELDS.includes(key))),rules,observe);
+}
+
+// Project original scalar attributes for Preview independently of display fields.
+export function projectSupportRuleEvidence(rawValue, config = {}, baseline = []) {
+  const raw=rawValue&&typeof rawValue==='object'?rawValue:{};
+  const attrs=raw.attributes||raw.ATTRIBUTES||raw.rawAttributes||raw;
+  const rules=config.supportMapping?.rules;
+  const names=(Array.isArray(rules)?rules:[]).filter(r=>r&&r.enabled!==false&&
+    STAGED_SOURCES.includes(text(r.source||'all').toUpperCase()))
+    .flatMap(r=>terms(r.field||'*')).map(fieldName);
+  const wildcard=names.includes('*')||names.includes('ANY');
+  const wanted=new Set([...baseline.map(fieldName),...names]);
+  return Object.fromEntries(Object.entries(attrs).filter(([key,value])=>
+    value!=null&&typeof value!=='object'&&text(value)&&(wildcard||wanted.has(fieldName(key)))));
 }
 
 export function generatedSupportKind(attrs = {}) {
@@ -153,7 +187,7 @@ export function generatedSupportKind(attrs = {}) {
   return '';
 }
 
-export function governedSupportKind(attrs = {}, config = {}, governed = GOVERNED) {
+export function governedSupportKind(attrs = {}, config = {}, governed = GOVERNED, observe = null) {
   const byNodeType = nodeTypeSupportKind(attrs, config);
   if (byNodeType && governed.includes(byNodeType)) {
     // A user-authored Step 7 row that names this member as another governed
@@ -162,17 +196,27 @@ export function governedSupportKind(attrs = {}, config = {}, governed = GOVERNED
     if (governed.includes(userKind) && userKind !== byNodeType) {
       throw refuse('PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT', `NODETYPE gives ${byNodeType} but a Step 7 user row gives ${userKind}`);
     }
+    observe?.({ kind: byNodeType, source: 'NODETYPE', rule: {
+      id: 'source:NODETYPE', field: 'NODETYPE', rawValue: text(fields(attrs).NODETYPE),
+      mutation: config.inputXmlRestraintTypeMutation || config.restraintTypeMutation || null,
+    } });
     return { kind: byNodeType, source: 'NODETYPE' };
   }
   const described = describedKinds(attrs);
   if (described.length > 1) return { kind: '', source: 'description-conflict' };
-  const byTable = tableSupportKind(attrs, config);
+  let decision = null;
+  const byTable = tableSupportKind(attrs, config, false, value => { decision = value; });
   if (byTable) {
     if (described.length === 1 && byTable !== described[0]) return { kind: '', source: 'description-conflict' };
+    if (governed.includes(byTable)) observe?.({ ...decision, kind: byTable });
     return governed.includes(byTable) ? { kind: byTable, source: 'step7-support-table' } : { kind: '', source: 'step7-not-governed' };
   }
   const generated = generatedSupportKind(attrs);
-  if (governed.includes(generated)) return { kind: generated, source: 'generated-label' };
+  if (governed.includes(generated)) {
+    observe?.({ kind: generated, source: 'generated-label',
+      rule: { id: 'source:generated-label', field: GENERATED_FIELDS.find(key => fields(attrs)[key]) } });
+    return { kind: generated, source: 'generated-label' };
+  }
   return { kind: '', source: '' };
 }
 

@@ -1,0 +1,13 @@
+schema: AgentClaim.v1
+repository: reallakshman19/3D_Convertersv0.6
+pr_or_wip: PR8
+claim_state: COORDINATION_REQUIRED
+claim_modes: [PRODUCTION_RULE_ENGINE, VALIDATION, BOUNDED_CI_RUNNER]
+authority_domains: [XML229_STEP7_RULE_EXECUTION, CONFIG_MIGRATION, SOURCE_EVIDENCE_PROJECTION]
+files:
+  exact: [.github/workflows/xml229-output-run-audit.yml, converters/xml-cii2019-core/support-kind-precedence.js, converters/xml-cii2019-core/support-mapping-config.js, converters/xml-cii2019-core/support-mapping-legacy.js, converters/scripts/xml229_support_type_mapper.py, tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js, tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js, tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js, v045/converters/xml-cii2019-core/support-kind-precedence.js, v045/converters/xml-cii2019-core/support-mapping-config.js, v045/converters/xml-cii2019-core/support-mapping.js, v045/tabs/xml-cii-2019-standalone/xml-cii-json-trace-fields.js, v045/tabs/xml-cii-2019-standalone/xml-cii-support-type-mapper.js, v045/tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js, v045/tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js, tests/xml229-step7-dynamic-authority.test.mjs, tests/xmlcii-ps4131-dynamic-step7-native.test.mjs, tests/xml229-native-owner-blocker-evidence.test.mjs]
+  mirrored: [docs/converters/xml-cii2019-core, docs/converters/scripts, docs/tabs/xml-cii-2019-standalone]
+protected: [PR5_DIAGNOSTICS, WRITER_RUNTIME, TOPOLOGY_GEOMETRY, SOURCE_INPUTS, V2_OFF, TEST_ORACLES, MERGE_OWNER_ONLY]
+coordination: Owner authorized bounded HOLD browser completion and conditional PR8 merge; exact runner change reused from PR6, PR7 overlaps; PR1 mapper superseded by PR8 only upon authorized merge
+last_verified_head: e38fe95617bdd65852eaef6786ca6b8a171665a6
+native_pr_state_authority: https://github.com/reallakshman19/3D_Convertersv0.6/pull/8

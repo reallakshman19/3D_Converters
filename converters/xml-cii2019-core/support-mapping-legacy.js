@@ -1,3 +1,4 @@
+import {governedSupportKind} from './support-kind-precedence.js';
 import {
   resolveKindDescriptor,
   SUPPORT_KINDS,
@@ -9,7 +10,6 @@ import {
 
 import {
   migrateSupportMappingConfig,
-  supportRulesFromMapping,
   normalizeXmlTypes,
 } from './support-mapping-config.js';
 
@@ -215,11 +215,6 @@ function attrsWithoutGeneratedSupportKind(attrs = {}) {
   return stripped;
 }
 
-function supportDescriptorFromKind(kind, attrs, source) {
-  const normalized = normalizeSupportKind(kind);
-  return normalized ? { primaryKind: normalized, kinds: [normalized], dofs: {}, source, attrs } : null;
-}
-
 function normalizeSupportKind(value) {
   const kind = toText(value).toUpperCase().replace(/\s+/g, '');
   return SUPPORT_KINDS.includes(kind) ? kind : '';
@@ -242,27 +237,25 @@ function isKindReference(value) {
 }
 
 export function resolveXmlCiiSupportDescriptor(attrs, config = {}) {
-  const direct = normalizeSupportKind(attrs?.SUPPORT_KIND || attrs?.SUPPORT_MAPPER_KIND || attrs?.SUPPORT_TYPE);
-  const directDescriptor = supportDescriptorFromKind(direct, attrs, 'explicit');
-  if (direct && direct !== 'REST') return directDescriptor;
-
-  const supportMapping = migrateSupportMappingConfig(config);
-  const rules = supportRulesFromMapping(supportMapping);
-  const ruleAttrs = attrsWithoutGeneratedSupportKind(attrs);
-  if (rules.length) {
-    const descriptor = resolveKindDescriptor(ruleAttrs, {
-      userRules: rules,
-      defaultRules: [],
-      kindMap: {},
-      defaultKind: '',
-    });
-    if (descriptor?.primaryKind) return { ...descriptor, source: 'supportMapping' };
+  let decision;
+  const resolved=governedSupportKind(attrs,config,SUPPORT_KINDS,value=>{decision=value;});
+  if(resolved.kind) {
+    
+    // Keep the unchanged default CA100 catalogue composite; a different
+    // explicit Step 7 or NODETYPE decision remains authoritative.
+    const composite=decision?.rule?.id==='builtin-ca100'&&resolved.kind==='GUIDE';
+    const descriptor=resolveKindDescriptor(composite?attrs:{}, {userRules:[],defaultRules:[],kindMap:{},defaultKind:resolved.kind});
+    return {...descriptor,source:'supportMapping',attrs};
   }
-
-  const legacyKind = normalizeSupportKind(resolveKindFromAttrs(ruleAttrs));
-  if (legacyKind) return { primaryKind: legacyKind, kinds: [legacyKind], dofs: {}, source: 'legacyRvmSupportMapper' };
-  if (directDescriptor) return directDescriptor;
-  return { primaryKind: '', kinds: [], dofs: {}, source: 'none' };
+  if(resolved.source==='description-conflict'||resolved.source==='step7-not-governed')
+    return {primaryKind:'',kinds:[],dofs:{},source:resolved.source};
+  const ruleAttrs=attrsWithoutGeneratedSupportKind(attrs);
+  const legacyKind=normalizeSupportKind(resolveKindFromAttrs(ruleAttrs));
+  if(legacyKind) {
+    
+    return {primaryKind:legacyKind,kinds:[legacyKind],dofs:{},source:'legacyRvmSupportMapper'};
+  }
+  return {primaryKind:'',kinds:[],dofs:{},source:'none'};
 }
 
 export function resolveXmlCiiSupportKind(attrs, config = {}) {
@@ -439,15 +432,23 @@ function supportProfileForKind(kind, config = {}) {
   return supportMapping.kindProfiles?.[normalizeSupportKind(kind)] || {};
 }
 
-function gapForSupportKind(kind, attrs, fallbackGap) {
-  const upperKind = normalizeSupportKind(kind);
-  if (upperKind !== 'LINESTOP' && upperKind !== 'LIMIT' && upperKind !== 'GUIDE') return fallbackGap;
-  return parseGapValue(sourceSupportGap(attrs)) || fallbackGap;
-}
-
-function sourceSupportGap(attrs){
-  return [attrs?.CMPSUPGAP,attrs?.CMPSUPGAP_POS,attrs?.CMPSUPGAP_PS]
-    .map(value=>toText(value).trim()).find(value=>value!=='')??'';
+// Source-owned gap is independent of support classification. Explicit zero is
+// evidence, not absence; NODEGAP=0 is the established placeholder only when
+// the same source member supplies CMPSUPGAP.
+export function sourceSupportGap(attrs = {}) {
+  const aliases=['CMPSUPGAP','CMPSUPGAP_POS','CMPSUPGAP_PS','NODEGAP'];
+  const fields=aliases.map(key=>({key,raw:toText(attrs?.[key]).trim()})).filter(f=>f.raw!=='');
+  const parse=raw=>{
+    const match=raw.match(/[-+]?(?:\d+\.?\d*|\.\d+)(?:[Ee][+-]?\d+)?/);
+    const number=match?Number(match[0]):NaN;
+    if(!Number.isFinite(number))throw Error('NATIVE_PREFINAL_RESTRAINT_GAP_INVALID');
+    return number;
+  };
+  const authored=fields.filter(f=>!(f.key==='NODEGAP'&&fields.some(v=>v.key==='CMPSUPGAP')&&parse(f.raw)===0));
+  if(!authored.length)return {raw:'',gap:'0',explicit:false};
+  const first=parse(authored[0].raw);
+  if(authored.some(f=>parse(f.raw)!==first))throw Error('NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS');
+  return {raw:authored[0].raw,gap:String(first),explicit:true};
 }
 
 function restraintTypeUsesSupportGap(type, entry = null) {
@@ -508,12 +509,14 @@ export function restraintEntriesFromSupportKind(kind, attrs = {}, nodeElement = 
   const profile = supportProfileForKind(upperKind, config);
   const values = normalizeXmlTypes(profile.xmlTypes || config.supportKindToXmlType?.[upperKind] || []);
   const direction = resolveSupportDirectionCosines({ profile, attrs, nodeElement });
-  const gap = gapForSupportKind(upperKind, attrs, profile.gap ?? '0');
+  const sourceGap = sourceSupportGap(attrs);
+  const gap = sourceGap.gap;
   return values.map(normalizeXmlType).filter(Boolean).map((type) => createRestraintEntry({
     type,
     stiffness: profile.stiffness && profile.stiffness !== 'default' ? profile.stiffness : config.defaultStiffness,
     gap,
-    cmpSupGap: upperKind === 'LINESTOP' || upperKind === 'LIMIT' || upperKind === 'GUIDE' ? sourceSupportGap(attrs) : '',
+    cmpSupGap: sourceGap.raw,
+    sourceGapPolicy: true,
     frictionMode: profile.frictionMode || 'default',
     fixedFriction: profile.fixedFriction || '',
     supportTagMode: profile.supportTagMode || 'kind',
@@ -639,12 +642,14 @@ export function applyXmlRestraints(document, nodeElement, entries, config = {}) 
     // written per item the first time; re-enrichment keeps its own gap and note too.
     const ownItemOnly = entry?.fromStagedItem === true || (entry?.fromExistingRestraint === true && nodeAlreadyEnriched);
     const explicitSourceGap = toText(entry?.cmpSupGap).trim() !== '';
-    const gapValue = usesSupportGap && !ownItemOnly && !explicitSourceGap && (!entryGap || Number(entryGap) === 0) && nodeSupportGap
+    // v0.6 PR 9 (Owner, 15 Nov): a source gap policy or an existing XML restraint never takes the node gap.
+    const keepOwnGap = ownItemOnly || !!entry?.sourceGapPolicy || !!entry?.fromExistingRestraint;
+    const gapValue = usesSupportGap && !keepOwnGap && !explicitSourceGap && (!entryGap || Number(entryGap) === 0) && nodeSupportGap
       ? String(nodeSupportGap)
       : (entryGap || gap);
     xmlSetText(document, restraint, 'Gap', gapValue);
     xmlSetText(document, restraint, 'Friction', frictionForEntry(entry, type, friction, config));
-    const cmpSupGap = toText(entry?.cmpSupGap).trim() || (usesSupportGap && !ownItemOnly ? nodeSupportGapText : '');
+    const cmpSupGap = toText(entry?.cmpSupGap).trim() || (usesSupportGap && !keepOwnGap ? nodeSupportGapText : '');
     if (cmpSupGap) xmlSetText(document, restraint, 'CMPSUPGAP', cmpSupGap);
     const direction = entry?.fromExistingRestraint
       ? normalizeDirectionVector(entry?.direction)

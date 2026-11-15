@@ -1,0 +1,14 @@
+schema: AgentPrStatus.v1
+repository: reallakshman19/3D_Convertersv0.6
+pr_or_wip: PR9
+mission: Permanent owner GT5 GUIDE table policy
+branch: fix/step7-permanent-gt-guide-20261115
+main_head_last_checked: 326270b46f190b324f6a6f52a7602a0296d79623
+work_intent: IMPLEMENT
+criticality: ENGINEERING_CRITICAL
+current_stage: VALIDATION_PENDING
+report_path: agents/PR9_workreport.md
+appendix_a_status: SELF_ASSESSED_NOT_INDEPENDENT
+highest_risk: Exact-head tests pending; custom priorities remain authoritative
+exact_next_action: Verify Node/Python and original-source native proof; owner-only merge
+native_pr_state_authority: https://github.com/reallakshman19/3D_Convertersv0.6/pull/9

@@ -1,3 +1,4 @@
+import {projectSupportRuleEvidence} from '../../converters/xml-cii2019-core/support-kind-precedence.js';
 export const DEFAULT_JSON_TRACE_CAPTURE_FIELDS = Object.freeze([
   { name: 'DTXR_POS', enabled: true },
   { name: 'DTXR_PS', enabled: true },
@@ -23,7 +24,7 @@ const PRIMARY_FIELD_ORDER = Object.freeze(['DTXR', 'DESC', 'DESCRIPTION', 'MDSDT
 // Bounded source-only evidence survives stripRawMember independently of user
 // display-field selections (PR 408). Never feed derived labels back into it.
 const SUPPORT_EVIDENCE_FIELDS = Object.freeze([
-  'DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'NAME', 'SPRE', 'SKEY', 'CMPSUPTYPE',
+  'DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'NAME', 'SPRE', 'SKEY', 'CMPSUPTYPE', 'COMPONENTTYPE',
   'MDSSUPPTYPE', 'SUPPORT_KIND', 'SUPPORT_TYPE', 'SUPPORT_MAPPER_KIND',
   'NODETYPE', 'NODEGAP', 'CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS',
 ]);
@@ -108,7 +109,7 @@ export function decorateJsonTraceMember(member = {}, config = {}) {
   return {
     ...member,
     capturedFields: captureConfiguredJsonTraceFields(member.raw || member, config),
-    supportEvidence: captureConfiguredJsonTraceFields(member.raw || member, { captureFields: SUPPORT_EVIDENCE_FIELDS }),
+    supportEvidence: projectSupportRuleEvidence(member.raw || member, config, SUPPORT_EVIDENCE_FIELDS),
   };
 }
 

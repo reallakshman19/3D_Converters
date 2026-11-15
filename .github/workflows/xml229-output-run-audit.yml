@@ -37,7 +37,8 @@ jobs:
         run: node --test tests/xml229-run-hold-audit.test.mjs tests/xml-cii-229-canonical-readiness-worker.test.mjs tests/xml-cii-229-engineering-basis-authority.test.mjs tests/xml229-cross-worker-flow-audit.test.mjs tests/xml229-native-owner-blocker-evidence.test.mjs
   chromium:
     needs: node
-    runs-on: ubuntu-latest
+    # Playwright 1.52.0 supports Ubuntu 24.04, not the moving latest image.
+    runs-on: ubuntu-24.04
     timeout-minutes: 18
     steps:
       - uses: actions/checkout@v4

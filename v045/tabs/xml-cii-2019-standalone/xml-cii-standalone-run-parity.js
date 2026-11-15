@@ -9,6 +9,7 @@
 
 import { enrichStandaloneDtxrAnnotations } from './xml-cii-standalone-dtxr-enrichment.js';
 import { rememberSupportLedger, refreshUnmatchedSupportWarnings } from './xml-cii-unmatched-supports.js';
+import {createActiveRestraintJournal,recordActiveRestraintStage} from '../../../tabs/xml-cii-2019-standalone/xml-cii-active-restraint-journal.js';
 import { synchronizeXmlCiiNodeBoreWithOutsideDiameter } from '../../converters/xml-cii2019-core/node-bore-od-authority.js';
 import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js';
 import { snapshotTransferProtection, restoreTransferProtection, protectExpectedEntries } from './xml-cii-transfer-protection.js';
@@ -274,9 +275,18 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
     const sourceWalls = snapshotSourceWalls(sourceText);
     const parity = await import(PARITY_MODULE_URL.href);
     const options = { ...standaloneParityOptions(job.supportConfigJson, job.options || {}), ...extraOptions };
+    out.restraintAuditJournal=createActiveRestraintJournal(job);
+    try {
+      const {inspectActiveSourceExpectations}=await import('./xml-cii-active-source-expectations.js');
+      out.restraintAuditJournal.sourceExpectations=inspectActiveSourceExpectations(
+        out.restraintAuditJournal,parseConfig(options.supportConfigJson));
+    }catch(error){out.restraintAuditJournal.sourceExpectations={sources:[],error:'SOURCE_EXPECTATIONS_NOT_RECORDED: '+String(error.message)};}
+    options._restraintAuditJournal=out.restraintAuditJournal;
     const enriched = await parity.enrichXmlForCii2019(sourceText, text(job.stagedJsonText), options);
     const config = parseConfig(options.supportConfigJson);
-    const dtxr = enrichStandaloneDtxrAnnotations(enriched.xmlText || sourceText, text(job.stagedJsonText), config);
+    recordActiveRestraintStage(out.restraintAuditJournal,'parent-enrichment',enriched.xmlText||sourceText);
+    const dtxr = enrichStandaloneDtxrAnnotations(enriched.xmlText || sourceText, text(job.stagedJsonText), config,out.restraintAuditJournal);
+    recordActiveRestraintStage(out.restraintAuditJournal,'dtxr-enrichment',dtxr.text||enriched.xmlText||sourceText,{config});
     out.diagnostics = [
       ...(Array.isArray(enriched.diagnostics) ? enriched.diagnostics : []),
       ...(Array.isArray(dtxr.diagnostics) ? dtxr.diagnostics : []),
@@ -324,6 +334,7 @@ export async function enrichStandaloneXmlForRun(job, extraOptions = {}) {
     }
 
     out.applied = true;
+    recordActiveRestraintStage(out.restraintAuditJournal,'process-parity',out.xmlText);
     out.logs.push(
       `Standalone run parity PASS (${out.evidence.status}): ${out.evidence.comparisons} comparison(s), input ${out.evidence.engineInputDigest}.`,
     );

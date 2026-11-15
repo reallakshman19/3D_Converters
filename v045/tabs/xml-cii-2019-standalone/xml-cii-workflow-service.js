@@ -7,6 +7,7 @@ import { applyStandaloneSifFacts } from '../../../tabs/xml-cii-2019-standalone/x
 import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity.js';
 import { ciiSha256 } from './xml-cii-final-property-reader.js';
 import { captureModeBStagedSources } from './xml-cii-frozen-run-package.js';
+import {captureActiveRestraintAudit} from '../../../tabs/xml-cii-2019-standalone/xml-cii-active-restraint-audit.js';
 
 function parseSupportConfig(raw) {
   try {
@@ -120,7 +121,10 @@ async function runWorkflow(job, runtime) {
     : enrichStandaloneXmlForRun;
   const parity = await parityRunner(factedJob);
   if (!parity?.applied || parity?.error || !parity?.evidence || parity.evidence.ok !== true) {
-    return blockedRunParityResult(factedJob, parity);
+    const blocked=blockedRunParityResult(factedJob,parity);
+    blocked.restraintAudit=await captureActiveRestraintAudit(parity?.restraintAuditJournal,blocked);
+    if(blocked.restraintAudit.run)blocked.restraintAudit.status='CONVERSION_HELD';
+    return blocked;
   }
 
   assertModeBRunRestraints(factedJob, parity.xmlText, 'Run engine input XML', { allowAdditions: true });
@@ -129,6 +133,7 @@ async function runWorkflow(job, runtime) {
   assertModeBRunResult(factedJob, result, engineJob.sourceText);
   if (Array.isArray(result?.logs) && parity.logs.length) result.logs = [...parity.logs, ...result.logs];
   const normalized = normalizeXmlEngineResult(result);
+  normalized.restraintAudit=await captureActiveRestraintAudit(parity.restraintAuditJournal,normalized);
   // Non-published, run-pinned review evidence: exact XML handed to the engine,
   // effective weight master, staged context and weight unit scale. The final CII
   // pointer/branch/geometry must still reconcile before any reference is offered.

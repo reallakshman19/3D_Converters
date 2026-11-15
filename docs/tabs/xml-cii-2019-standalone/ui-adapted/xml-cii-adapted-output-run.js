@@ -22,6 +22,7 @@ import {ensureXml229FlowTrace,getXml229FlowTrace,recordXml229FlowTrace,getXml229
 import {buildXml229RunHoldAudit} from '../integration/xml229-run-hold-audit.mjs';
 import {isXml229VerifiedReviewCompletionForInput} from '../integration/xml229-live-preview-restoration.mjs';
 import {readXml229NativeFinalObservation} from '../integration/xml229-native-final-observation.mjs';
+import {renderRestraintAuditPanel} from './xml-cii-restraint-audit-panel.js';
 import {inspectXml229EngineeringLease} from '../integration/xml229-engineering-basis-authority.mjs';
 import {syncXml229CanonicalOutputHeaderBadges} from './xml229-canonical-output-header-badges.mjs';
 import {captureXml229XmlOnlyApproval,isXml229XmlOnlyApproved}
@@ -818,6 +819,7 @@ export function renderStandaloneOutputRunPanel(card, stateOrRef, render) {
     renderRunOptions(card, stateRef, renderState, render);
     renderRunControls(card, stateRef, renderState, report, render);
     renderArtifacts(card, renderState, report, stateRef);
+    renderRestraintAuditPanel(card,{stateRef});
     renderTopologyArtifacts(card, xml229TopologyDisplayState(renderState,stateRef));
     renderLogs(card, report);
     renderManifest(card, report);

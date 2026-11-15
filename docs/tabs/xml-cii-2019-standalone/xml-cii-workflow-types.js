@@ -197,5 +197,6 @@ export function normalizeWorkflowResult(partial = {}) {
     diagnostics: normalizedDiagnostics(partial.diagnostics, sourceKind, outputKind),
     logs: Array.isArray(partial.logs) ? partial.logs.map((line) => String(line)) : [],
     error: partial.error ? String(partial.error) : null,
+    ...(partial.restraintAudit?{restraintAudit:partial.restraintAudit}:{}),
   };
 }

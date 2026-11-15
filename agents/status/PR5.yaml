@@ -1,0 +1,15 @@
+schema: AgentPrStatus.v1
+repository: reallakshman19/3D_Convertersv0.6
+pr_or_wip: PR5
+mission: Detect omitted source supports and expose audit diagnostic download causes
+branch: codex/xmlcii-source-coverage
+main_head_last_checked: e2da556398ea26b5df9a3c044bf661374fd54d57
+work_intent: IMPLEMENT
+criticality: ENGINEERING_CRITICAL
+current_stage: VALIDATED_READY_FOR_MERGE
+report_path: agents/PR5_workreport.md
+appendix_a_status: CURRENT_SAME_AUTHOR_97_MIN19
+highest_risk: Surviving XML field matches mistaken for complete source transfer
+exact_next_action: Publish exact331-check default correction, reconcile PR and existing same-task merge authority
+
+native_pr_state_authority: https://github.com/reallakshman19/3D_Convertersv0.6/pull/5

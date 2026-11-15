@@ -1,0 +1,37 @@
+{
+  "baseSha": "cf5d5ccb611a487e1f549b59c2886c87af9114eb",
+  "candidateSha": "fd00c841db7e7a737759a55bfff1af20a9fc4082",
+  "sampledNativeCommand": "python tests/xml229-bm2-source-transfer-contract.test.py",
+  "nativeResults": [
+    {
+      "basis": "base",
+      "exitCode": 1,
+      "failures": [
+        "FAIL: test_3430_current_saved_mapper_regex_and_mutation_pass_to_native_xml (__main__.SourceTransferRegression.test_3430_current_saved_mapper_regex_and_mutation_pass_to_native_xml)",
+        "FAIL: test_authoritative_xml_restraint_conflicts_and_stale_replacement (__main__.SourceTransferRegression.test_authoritative_xml_restraint_conflicts_and_stale_replacement)"
+      ]
+    },
+    {
+      "basis": "candidate",
+      "exitCode": 1,
+      "failures": [
+        "FAIL: test_3430_current_saved_mapper_regex_and_mutation_pass_to_native_xml (__main__.SourceTransferRegression.test_3430_current_saved_mapper_regex_and_mutation_pass_to_native_xml)",
+        "FAIL: test_authoritative_xml_restraint_conflicts_and_stale_replacement (__main__.SourceTransferRegression.test_authoritative_xml_restraint_conflicts_and_stale_replacement)"
+      ]
+    }
+  ],
+  "sameNativeFailureNames": true,
+  "unchangedConsumerMirrorBlobs": {
+    "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js": {
+      "cf5d5ccb611a487e1f549b59c2886c87af9114eb": "7c0285560ef77e021d2f0463f7df83c83b960df9",
+      "fd00c841db7e7a737759a55bfff1af20a9fc4082": "7c0285560ef77e021d2f0463f7df83c83b960df9"
+    },
+    "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-workflow-shell-mode-a-easy-bulk-v6.js": {
+      "cf5d5ccb611a487e1f549b59c2886c87af9114eb": "66b017e95ca38b1a35ab2a7807d35c9ccbd897fb",
+      "fd00c841db7e7a737759a55bfff1af20a9fc4082": "66b017e95ca38b1a35ab2a7807d35c9ccbd897fb"
+    }
+  },
+  "historicalLedgerCommitAbsent": "db926a1ecf6ae2dd72735d9ab9c03e029c9e4239",
+  "remoteCIStatus": "MIXED_FAILURES",
+  "scope": "Sampled failures proven inherited; unexamined checks remain UNKNOWN_ORIGIN. No workflow or test was weakened."
+}

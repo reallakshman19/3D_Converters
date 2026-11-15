@@ -1,0 +1,152 @@
+{
+  "baseSha": "e2da556398ea26b5df9a3c044bf661374fd54d57",
+  "status": "PASS",
+  "checks": 331,
+  "failed": 0,
+  "observation": "LOCAL_EXECUTION_EXACT_SELECTED_GIT_BLOBS",
+  "testFiles": [
+    "tests\\xml-cii-229-independent-preview-worker.test.mjs",
+    "tests\\xml-cii-229-p4-real-engineering-fact-producer.test.mjs",
+    "tests\\xml-cii-mds-position-restraints.test.mjs",
+    "tests\\xml-cii-preview-strict-line-authority.test.mjs",
+    "tests\\xml-cii-restraint-audit-panel.test.mjs",
+    "tests\\xml-cii-restraint-audit.test.mjs",
+    "tests\\xml-cii-support-kind-owner-precedence.test.mjs",
+    "tests\\xml229-component-bore-source.test.mjs",
+    "tests\\xml229-cross-worker-flow-audit.test.mjs",
+    "tests\\xml229-cross-worker-flow-trace.test.mjs",
+    "tests\\xml229-g3-candidate-coverage.test.mjs",
+    "tests\\xml229-g3-candidate-readiness-reconciliation.test.mjs",
+    "tests\\xml229-g3g4-local-aggregate-export.test.mjs",
+    "tests\\xml229-native-cii-independent-reconciliation.test.mjs",
+    "tests\\xml229-native-cii-real-cli-e2e.test.mjs",
+    "tests\\xml229-native-enriched-artifact.test.mjs",
+    "tests\\xml229-native-final-observation.test.mjs",
+    "tests\\xml229-native-restraint-audit.test.mjs",
+    "tests\\xml229-native-run-action.test.mjs",
+    "tests\\xml229-native-run-debug.test.mjs",
+    "tests\\xml229-olet-helper-route.test.mjs",
+    "tests\\xml229-physical-vertex-native-audit.test.mjs",
+    "tests\\xml229-physical-vertex-prefinal-v2.test.mjs",
+    "tests\\xml229-step78-runtime-parity.test.mjs",
+    "tests\\xml229-tee-port-route.test.mjs",
+    "tests\\xml229-topology-fresh-transition.test.mjs",
+    "tests\\xml229-topology-only-engine.test.mjs",
+    "tests/xml-cii-standalone-workflow-api.test.js",
+    "tests/xml-cii-standalone-trace-export.test.js",
+    "tests/xml-cii-standalone-support-type-mapper.test.js",
+    "tests/xml229-source-coordinate-policy.test.mjs",
+    "tests/xml229-source-attachment-delegation.test.mjs",
+    "tests/xml-cii-active-restraint-audit.test.mjs",
+    "tests/xml-cii-active-restraint-coverage.test.mjs",
+    "tests/xml-cii-active-intake-gate.test.mjs"
+  ],
+  "testedCodeBlobs": {
+    "docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-restraint-audit-panel.js": {
+      "gitBlob": "7fa82a32d1ea34fcf69b65c7c017c61f9335888a",
+      "sha256": "084b0fc49730b695e992d007ce0af8dc8d2dafc7a46448218ec2328508125335"
+    },
+    "docs/tabs/xml-cii-2019-standalone/xml-cii-active-restraint-audit.js": {
+      "gitBlob": "46aada3b9ece68c415ba1ac4aac290e783744cde",
+      "sha256": "cafe6fcc81b918dbc1589114fdb4690bf565f19512addb0d725f6369a78b32b3"
+    },
+    "docs/tabs/xml-cii-2019-standalone/xml-cii-active-restraint-journal.js": {
+      "gitBlob": "c990de3a7a25c5fa56b62163ff0f461ef971bfc4",
+      "sha256": "543ee3a8b071094f756bcd1b6267b2a8f8c23af72454e5ce56afc1a499f80f76"
+    },
+    "docs/tabs/xml-cii-2019-standalone/xml-cii-restraint-audit-export.js": {
+      "gitBlob": "314433bac45a0b8135d0992c017672734218f9f3",
+      "sha256": "504a17479316e44ad88300aa3cd6f77027f9fbccf06ea4525d89ea0417c0b973"
+    },
+    "docs/xml-cii-2019-standalone-audit.md": {
+      "gitBlob": "013cbb00b3cd35bf8d757aaf56115ad3d32257c8",
+      "sha256": "ec4c09b3e90dc1baa06de50a128621c07d529408bf26f51da3859c93db1ae22b"
+    },
+    "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-active-restraint-audit-panel.js": {
+      "gitBlob": "cc6d8b7d93d24aaaf3407a249001bc0b56dc1052",
+      "sha256": "2751d1069c7c903ede3eb9a12081732d267c983c32a3d325438bc70cbd847ac6"
+    },
+    "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-restraint-audit-panel.js": {
+      "gitBlob": "7fa82a32d1ea34fcf69b65c7c017c61f9335888a",
+      "sha256": "084b0fc49730b695e992d007ce0af8dc8d2dafc7a46448218ec2328508125335"
+    },
+    "tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-v055-seam.js": {
+      "gitBlob": "adb6869f93028e236efa56faab7f862e11429962",
+      "sha256": "24c223c60d42625ac142306937bcdc27cb00dc1837e49ffe4436360659960901"
+    },
+    "tabs/xml-cii-2019-standalone/xml-cii-active-restraint-audit.js": {
+      "gitBlob": "46aada3b9ece68c415ba1ac4aac290e783744cde",
+      "sha256": "cafe6fcc81b918dbc1589114fdb4690bf565f19512addb0d725f6369a78b32b3"
+    },
+    "tabs/xml-cii-2019-standalone/xml-cii-active-restraint-journal.js": {
+      "gitBlob": "c990de3a7a25c5fa56b62163ff0f461ef971bfc4",
+      "sha256": "543ee3a8b071094f756bcd1b6267b2a8f8c23af72454e5ce56afc1a499f80f76"
+    },
+    "tabs/xml-cii-2019-standalone/xml-cii-restraint-audit-export.js": {
+      "gitBlob": "314433bac45a0b8135d0992c017672734218f9f3",
+      "sha256": "504a17479316e44ad88300aa3cd6f77027f9fbccf06ea4525d89ea0417c0b973"
+    },
+    "tests/xml-cii-restraint-audit-panel.test.mjs": {
+      "gitBlob": "63798a86226a00ece0c86436cd2248499864a9b8",
+      "sha256": "32e83399e88570cac99f68fcb89d3f948c63781ba9ae1d719dd9c76631a2eac9"
+    },
+    "v045/tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js": {
+      "gitBlob": "6cfbed7cba49e33bb844092e7563eb57063995ac",
+      "sha256": "ec532f8bc00da1955888490d3917e9336822b5fa14723c2cc9bb057912b587b0"
+    },
+    "v045/tabs/xml-cii-2019-standalone/xml-cii-standalone-run-parity.js": {
+      "gitBlob": "20781acf42a4e41605dcd7902328961320a3a207",
+      "sha256": "b1d5505bd2778f9e736ce9f44bab69efa51a213b0a977d89b5e8ea0400344d04"
+    },
+    "v045/tabs/xml-cii-2019-standalone/xml-cii-workflow-api-atta-default.js": {
+      "gitBlob": "2268c4de4ecf88adcab8c47d89be3bd6ce87f1f2",
+      "sha256": "77961677fc091e99aef571e94cae636efdd359c4031786620d7ec6520e943398"
+    },
+    "tabs/xml-cii-2019-standalone/xml-cii-active-audit-currency.js": {
+      "gitBlob": "8fad5a4016ddab2dd9a307ee85621a20325ce686",
+      "sha256": "39ea1be5c66325b8e0a21054dde0677fea9f1386ea942b7a2cbf89a8424102d8"
+    },
+    "tabs/xml-cii-2019-standalone/xml-cii-active-restraint-coverage.js": {
+      "gitBlob": "f56027ae7de99cdeff88e38f445a591d029957a1",
+      "sha256": "0cb6a9bc73126540a705f6dbe5cd6717404df658cbd70c9ecaafebaf31e20e22"
+    },
+    "docs/tabs/xml-cii-2019-standalone/xml-cii-active-audit-currency.js": {
+      "gitBlob": "8fad5a4016ddab2dd9a307ee85621a20325ce686",
+      "sha256": "39ea1be5c66325b8e0a21054dde0677fea9f1386ea942b7a2cbf89a8424102d8"
+    },
+    "docs/tabs/xml-cii-2019-standalone/xml-cii-active-restraint-coverage.js": {
+      "gitBlob": "f56027ae7de99cdeff88e38f445a591d029957a1",
+      "sha256": "0cb6a9bc73126540a705f6dbe5cd6717404df658cbd70c9ecaafebaf31e20e22"
+    },
+    "v045/tabs/xml-cii-2019-standalone/xml-cii-active-source-expectations.js": {
+      "gitBlob": "48d601eb4784f3fa98f369739aaba388fbed42cd",
+      "sha256": "54cf98a6927db9ed0c3de2880b456a0da2594c843d76e64b1b8d0b5645e67623"
+    },
+    "tests/xml-cii-active-restraint-coverage.test.mjs": {
+      "gitBlob": "0b97abce2b1b6a0adf720b3ace3cd8fa9c374805",
+      "sha256": "144a75d12b7c9be5a1de6c8a9c4fc9dd7f3084a2448a7eb0a0af6c3873661c1c"
+    },
+    "tests/xml-cii-active-intake-gate.test.mjs": {
+      "gitBlob": "0004019bb73bdc40d149f037278d2212cd85d995",
+      "sha256": "34f26b3c53e1639ef4dfc901d23bbd901bdb15a320f2a28840ca4d1acbbc57bd"
+    }
+  },
+  "syntax": "21 selected ECMAScript modules compiled; source/docs bytes equal",
+  "oracle": [
+    "literal source omission/gap/default-policy expectations",
+    "unchanged actual native Python/CII field decoding",
+    "implementation-coupled policy/resolver projections explicitly labelled; not independent design authority"
+  ],
+  "historicalResultsPreserved": [
+    205,
+    292,
+    304,
+    314,
+    330
+  ],
+  "privateInputsUnchanged": true,
+  "optionalV2Activation": "OFF",
+  "distinctAuthorReview": "NOT_RUN",
+  "caesarApplicationAcceptance": "NOT_RUN",
+  "packaging": "Final EOF whitespace corrected, then331/331 rerun on the exact selected code blobs"
+}

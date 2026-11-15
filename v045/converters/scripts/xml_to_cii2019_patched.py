@@ -523,7 +523,7 @@ def _line_stop_gap_for_node(node: ET.Element, namespace: str) -> float | None:
 
 def _specs_from_dtxr_text(text: str, support_config: dict[str, Any], gap_by_kind: dict[str, float] | None = None) -> tuple[base.RestraintSpec, ...]:
     stiffness = _to_float(support_config.get("defaultStiffness"), base.DEFAULT_LINEAR_STIFFNESS)
-    default_gap = _to_float(support_config.get("defaultGap"), 0.0)
+    default_gap = 0.0
     friction = _to_float(support_config.get("defaultFriction"), 0.3)
     specs: list[base.RestraintSpec] = []
     seen: set[int] = set()

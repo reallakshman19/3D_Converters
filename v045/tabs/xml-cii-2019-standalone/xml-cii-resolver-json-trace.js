@@ -196,7 +196,7 @@ export function runStandaloneResolverJsonTrace(input = {}) {
     dtxrPositionOffset: jsonConfig.dtxrPositionOffset,
   };
   const rawLedgerResult = buildStandaloneDtxrResolutionLedger(sourceText, input.stagedJsonText, ledgerConfig);
-  const ledgerResult = decorateJsonTraceLedger(rawLedgerResult, jsonConfig);
+  const ledgerResult = decorateJsonTraceLedger(rawLedgerResult, { ...supportConfig, ...jsonConfig });
   const indexes = buildStandaloneXmlResolverIndex(sourceText);
   const nodeByIndex = new Map(indexes.nodes.map((node) => [Number(node.xmlIndex), node]));
   const resolvedFacts = ledgerResult.records
