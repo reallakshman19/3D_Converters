@@ -3,6 +3,7 @@
 Source rows come from saved supportTypeMapper.rows, not from a claimed Worker
 resolution. Non-REST/GUIDE/LINESTOP targets never fabricate governed restraints.
 """
+from xml229_restraint_precedence import restraint_precedence, node_type_uses_mapper
 import json
 import math
 import re
@@ -681,3 +682,80 @@ def owner_rule_kind(attrs, config, governed=('REST', 'GUIDE', 'LINESTOP')):
         if kind:
             return (kind, 'generated-label') if kind in governed else ('', '')
     return '', ''
+
+
+def mapped_code_precedence_enabled(config):
+    current = restraint_precedence(config)
+    if current:
+        return 'supportMapper' in (current['nodeType']['primary'],current['nodeType']['fallback'])
+    policy = config.get('xml229SourceFieldPrecedence') or {}
+    if 'mappedCodes' in policy:
+        return policy['mappedCodes'] is True
+    return config.get('xml229PhysicalVertexPrefinal') is not True
+
+
+def mapped_code_precedence_applies(attrs, config):
+    mode = node_type_uses_mapper(attrs,config)
+    return (mapped_code_precedence_enabled(config) if mode is None else mode) and (
+        'NODETYPE_CODES' in attrs or
+        str(attrs.get('NODETYPE_CLASSIFICATION_SOURCE') or '').strip() == 'STEP7_SUPPORT_MAPPING')
+
+
+def staged_field_kind_decision(attrs, config, original_kind):
+    """Explicit source-field precedence; no generated labels or NODETYPE rule."""
+    active_policy = restraint_precedence(config)
+    active = active_policy['nodeType'] if active_policy else None
+    mode = node_type_uses_mapper(attrs,config)
+    is_support = any(k in attrs for k in ('NODETYPE','SOURCE_NODETYPE','NODETYPE_CODES','MDSSUPPTYPE','MDSSUPPFUNC','CMPSUPTYPE','SUPPORT_KIND','SUPPORT_TYPE','SUPPORT_MAPPER_KIND'))
+    if active and not is_support:
+        return ''
+    if mode is False:
+        if active and not original_kind:
+            raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_AMBIGUOUS')
+        return ''
+    policy = config.get('xml229SourceFieldPrecedence') or {}
+    mapped = mapped_code_precedence_applies(attrs, config)
+    if (not mapped and mode is not True and policy.get('type') is not True) or (not original_kind and not active):
+        return ''
+    if mapped and ((not active and not str(attrs.get('SOURCE_NODETYPE') or '').strip()) or
+        str(attrs.get('NODETYPE_CLASSIFICATION_SOURCE') or '').strip() != 'STEP7_SUPPORT_MAPPING' or
+        not isinstance(attrs.get('NODETYPE_CODES'),list) or len(attrs['NODETYPE_CODES'])!=1):
+        if active:
+            raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_AMBIGUOUS')
+        return ''
+    evidence = {k:v for k,v in _owner_fields(attrs).items()
+                if k in ('SKEY','DESCRIPTION','DESC','CMPSUPTYPE','DTXR','MDSSUPPTYPE')}
+    decision = _match_table_rules(evidence, table_rules(config))
+    kind = decision['kind'] if decision else ''
+    if not kind:
+        if not active or (active['primary']=='supportMapper' and active['fallback']=='json' and original_kind):
+            return ''
+        raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_AMBIGUOUS')
+    if not active and kind == original_kind:
+        return ''
+    expected = {'REST':'+Y','GUIDE':'GUI','LINESTOP':'LIM'}.get(kind)
+    if not expected:
+        raise ValueError('NATIVE_PREFINAL_RESTRAINT_KIND_UNSUPPORTED')
+    described = described_kinds(evidence)
+    if len(described)>1 or (described and described[0]!=kind):
+        raise ValueError('NATIVE_PREFINAL_RESTRAINT_KIND_AMBIGUOUS')
+    profiles = (config.get('supportMapping') or {}).get('kindProfiles') or {}
+    default = (config.get('supportKindToXmlType') or {}).get(kind, [expected])
+    types = (profiles.get(kind) or {}).get('xmlTypes', default)
+    if isinstance(types,str):
+        types = [v for part in re.split(r'[,;\n]',types) for v in re.split(r'(?<=\w)(?=\+)',part)]
+    types = [{'GUIDE':'GUI','X':'GUI','LIMIT':'LIM','LINESTOP':'LIM','Z':'LIM'}.get(str(v).strip().upper(),str(v).strip().upper()) for v in types if str(v).strip()]
+    if types != [expected]:
+        raise ValueError('NATIVE_PREFINAL_RESTRAINT_CONFIG_INVALID')
+    if str(attrs.get('NODETYPE_CLASSIFICATION_SOURCE') or '').strip() == 'STEP7_SUPPORT_MAPPING':
+        expected_code = {'REST':'14','GUIDE':'8','LINESTOP':'9'}[kind]
+        proposal = str(attrs.get('NODETYPE') or '').strip()
+        effective = str(attrs.get('SUPPORT_EFFECTIVE_NODETYPE') or '').strip()
+        codes = attrs.get('NODETYPE_CODES')
+        if (mapped and str(codes[0]).strip()!=expected_code) or (proposal != expected_code or (effective and effective != expected_code) or
+                (codes is not None and (not isinstance(codes,list) or len(codes)!=1 or
+                 str(codes[0]).strip()!=expected_code))):
+            if active:
+                raise ValueError('NATIVE_PREFINAL_RESTRAINT_TYPE_AMBIGUOUS')
+            return ''
+    return kind

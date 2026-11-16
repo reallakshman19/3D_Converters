@@ -1,6 +1,9 @@
 /** Private run evidence. Records existing decisions; never classifies or writes restraints. */
 import {digestCanonical, digestUtf8} from '../../contracts/gc-pw-v1/contract.mjs';
 
+import {restraintPrecedence,selectRestraintGap,selectRestraintScalar} from '../../converters/xml-cii2019-core/restraint-precedence-policy.js';
+import {mappedCodePrecedenceEnabled} from '../../converters/xml-cii2019-core/support-kind-precedence.js';
+
 export const RESTRAINT_AUDIT_SCHEMA = 'XML229.RestraintAudit.v1';
 const local = n => String(n?.localName || n?.nodeName || '').replace(/^.*:/, '');
 const children = (n, tag) => [...(n?.childNodes || [])].filter(c => c.nodeType === 1 && local(c) === tag);
@@ -11,18 +14,23 @@ const type = v => ({REST:'+Y', Y:'+Y', '14':'+Y', GUIDE:'GUI', '8':'GUI',
   LINESTOP:'LIM', LIMIT:'LIM', '9':'LIM'}[String(v).toUpperCase()] || String(v).toUpperCase());
 const text = v => v == null ? '' : String(v).trim();
 const clone = v => JSON.parse(JSON.stringify(v));
-const sourceFields = ['NAME','REF','TYPE','RAW_TYPE','NODESTIFF','MDSSUPPFUNC','CMPSTRESSN','ISONOTE','RTEXT', 'NODETYPE', 'NODEGAP', 'CMPSUPGAP', 'CMPSUPGAP_POS',
+const sourceFields = ['NAME','REF','TYPE','RAW_TYPE','NODESTIFF','SOURCE_NODETYPE','SOURCE_NODEGAP','NODETYPE_CODES','NODETYPE_CLASSIFICATION_SOURCE','SUPPORT_EFFECTIVE_NODETYPE','SUPPORT_EFFECTIVE_GAP','SUPPORT_GAP_SOURCE','SUPPORT_MAPPING_STATUS','SUPPORT_MAPPING_RULE_ID','SUPPORT_MAPPING_REQUIRES_ENGINEERING_APPROVAL','MDSSUPPFUNC','CMPSTRESSN','ISONOTE','RTEXT', 'NODETYPE', 'NODEGAP', 'CMPSUPGAP', 'CMPSUPGAP_POS',
   'CMPSUPGAP_PS', 'DTXR', 'DESC', 'DESCRIPTION', 'MDSDTXR', 'MDSSUPPTYPE',
-  'CMPSUPTYPE', 'SPRE', 'SUPPORT_KIND', 'SUPPORT_MAPPER_KIND', 'SUPPORT_TYPE',
+  'CMPSUPTYPE', 'SPRE', 'SKEY', 'CMPSUPSTIFF','CMPSUPFRICTION','SUPPORT_KIND', 'SUPPORT_MAPPER_KIND', 'SUPPORT_TYPE',
   'POS','POSI','COMPRE','ATTACHED_COMPONENT_REF','STIFFNESS','NODESTIFFNESS','FRICTION','NODEFRICTION',
   'DirectionCosineX','DirectionCosineY','DirectionCosineZ','DIRECTIONCOSINEX','DIRECTIONCOSINEY','DIRECTIONCOSINEZ'];
 const configKeys = ['supportMapping', 'supportTypeMapper', 'inputXmlRestraintTypeMutation',
-  'restraintTypeMutation', 'defaultStiffness', 'defaultGap', 'defaultFriction',
+  'restraintTypeMutation', 'xml229RestraintKindOverrides', 'xml229SourceFieldPrecedence', 'xml229RestraintPrecedence', 'defaultStiffness', 'defaultGap', 'defaultFriction',
   'useFrictionSentinelForNonYSupports', 'supportKindToXmlType', 'dtxrPositionOffset',
   'dtxrCoordinateToleranceMm', 'coordinateTolerance', 'resolverJsonTrace', 'jsonTrace','xml229PhysicalVertexPrefinal','xml229SourceCoordinatePolicy','xml229SourceAttachmentPolicy'];
 
 export function restraintAuditConfig(config = {}) {
-  return clone(Object.fromEntries(configKeys.filter(k => config[k] !== undefined).map(k => [k, config[k]])));
+  const selected=Object.fromEntries(configKeys.filter(k => config[k] !== undefined).map(k => [k, config[k]]));
+  // Bind the effective V1 default into the native source-bound configuration receipt.
+  if(config.xml229PhysicalVertexPrefinal!==true)
+    selected.xml229SourceFieldPrecedence={...(selected.xml229SourceFieldPrecedence||{}),
+      mappedCodes:mappedCodePrecedenceEnabled(config)};
+  return clone(selected);
 }
 
 export function restraintAuditMember(member, decision, reason = 'selected-source-member') {
@@ -64,6 +72,23 @@ function fieldEvidence(name, after, before, selected, nodeGap, config, preserved
     rule: selected?.decision?.rule || null,
     attribute:selected?.decision?.rule?.matchEvidence?.sourceField||selected?.decision?.rule?.field||null,
     raw:selected?.decision?.rule?.matchEvidence?.value??attrs.NODETYPE??attrs.MDSDTXR??attrs.DTXR??null};
+  const flag={Gap:'gap',Stiffness:'stiffness',Friction:'friction'}[name];
+  if(flag&&restraintPrecedence(config)&&selected?.decision?.kind){
+    const kind=selected.decision.kind;
+    const decision=flag==='gap'?selectRestraintGap(attrs,config,kind):selectRestraintScalar(attrs,config,flag,kind);
+    return {...decision,configuredRaw:decision.attribute?null:decision.raw};
+  }
+  if(flag&&config.xml229SourceFieldPrecedence?.[flag]===true&&selected){
+    const keys={gap:['CMPSUPGAP','CMPSUPGAP_POS','CMPSUPGAP_PS'],
+      stiffness:['STIFFNESS','NODESTIFFNESS','CMPSUPSTIFF'],friction:['FRICTION','CMPSUPFRICTION']}[flag];
+    const selectedKey=keys.find(k=>text(attrs[k]));
+    const legacy={gap:'NODEGAP',stiffness:'NODESTIFF',friction:'NODEFRICTION'}[flag];
+    const receipt={policy:'xml229SourceFieldPrecedence.'+flag,legacyField:legacy,legacyRaw:attrs[legacy]??null};
+    if(selectedKey)return {...receipt,authority:'original-json',attribute:selectedKey,raw:attrs[selectedKey]};
+    const profile=config.supportMapping?.kindProfiles?.[selected.decision?.kind]||null;
+    if(flag!=='gap'||(profile?.gap!=null&&text(profile.gap)!==''))
+      return {...receipt,authority:'support-profile/config',profile,configuredRaw:profile?.[flag]??null};
+  }
   if (name === 'Gap') {
     const key = ['CMPSUPGAP', 'CMPSUPGAP_POS', 'CMPSUPGAP_PS', 'NODEGAP'].find(k => text(attrs[k]));
     if (key) return {authority: 'original-json', attribute: key, raw: attrs[key], unit: 'mm'};

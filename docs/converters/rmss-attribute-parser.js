@@ -15,6 +15,9 @@
  */
 
 import { DEFAULT_KIND_MAP, DEFAULT_RULES, resolveKindPure } from '../support/SupportKindResolver.js';
+import { matchAttRvmSupportTable } from './xml-cii2019-core/support-kind-precedence.js';
+import { migrateSupportMappingConfig } from './xml-cii2019-core/support-mapping-config.js';
+import { restraintTypeToCaesarCode } from './xml-cii2019-core/restraint-type-codes.js';
 
 const TYPE_ALIASES = Object.freeze({
   FBLI: 'FLAN',
@@ -146,6 +149,77 @@ function parseTextBlocks(content) {
 // Bore fields in order of reliability for AVEVA PDMS/E3D.
 // DTXR is intentionally excluded by default: it can contain support text such as GUIDE/REST.
 const BORE_FIELDS = ['HBOR', 'TBOR', 'ABORE', 'LBORE', 'BORE', 'NBORE', 'DBOR'];
+
+// Export-only rule/profile projection. Raw source values remain available;
+// the shared XML->CII NODETYPE owner rule is not changed.
+export function normalizeAttRvmMdsMember(attrs = {}, config = {}, source = 'ATT') {
+  const text = value => String(value ?? '').trim();
+  const mapping = migrateSupportMappingConfig(config);
+  if (!mapping.useJsonForRestraints) return '';
+  const evidence = {...attrs};
+  if (Object.hasOwn(attrs,'SOURCE_NODETYPE')) evidence.NODETYPE = attrs.SOURCE_NODETYPE;
+  if (Object.hasOwn(attrs,'SOURCE_NODEGAP')) evidence.NODEGAP = attrs.SOURCE_NODEGAP;
+  let decision;
+  let kind;
+  try {kind=matchAttRvmSupportTable(evidence,{...config,supportMapping:mapping},source,d=>{decision=d;});}
+  catch(error) {
+    if(error.code!=='PREFINAL_RESTRAINT_KIND_AMBIGUOUS') throw error;
+    attrs.SUPPORT_MAPPING_STATUS='FOR_REVIEW_RULE_TIE';return '';
+  }
+  if (!kind) { attrs.SUPPORT_MAPPING_STATUS = 'FOR_REVIEW_NO_RULE'; return ''; }
+  const profile = mapping.kindProfiles[kind] || {};
+  const types = profile.xmlTypes || [];
+  const codes = types.map(restraintTypeToCaesarCode);
+  if (!codes.length || codes.some(code=>code===null)) {
+    attrs.SUPPORT_MAPPING_STATUS = 'FOR_REVIEW_INVALID_PROFILE'; return '';
+  }
+  const parseGap = value => {
+    const raw = text(value);
+    const match=raw.match(/^(?:GAP\s*=\s*)?([-+]?(?:\d+(?:\.\d+)?|\.\d+))\s*(?:MM)?(?:\s+GAP)?$/i);
+    if (!match) return null;
+    const n=Number(match[1]);
+    return Number.isFinite(n) ? n : null;
+  };
+  const gaps = ['CMPSUPGAP','CMPSUPGAP_POS','CMPSUPGAP_PS'].filter(k=>text(evidence[k])!=='');
+  const sourceNodeGap = text(evidence.NODEGAP);
+  if (sourceNodeGap && parseGap(sourceNodeGap)!==0) gaps.push('NODEGAP');
+  const values = gaps.map(k=>parseGap(evidence[k]));
+  if (values.some(v=>v===null) || values.some(v=>v!==values[0])) {
+    attrs.SUPPORT_MAPPING_STATUS='FOR_REVIEW_GAP_CONFLICT';return '';
+  }
+  const gap = values.length ? values[0] : parseGap(profile.gap);
+  if (gap===null) {attrs.SUPPORT_MAPPING_STATUS='FOR_REVIEW_INVALID_DEFAULT_GAP';return '';}
+  if (!Object.hasOwn(attrs,'SOURCE_NODETYPE')) attrs.SOURCE_NODETYPE=attrs.NODETYPE ?? null;
+  if (!Object.hasOwn(attrs,'SOURCE_NODEGAP')) attrs.SOURCE_NODEGAP=attrs.NODEGAP ?? null;
+  // Composite profiles cannot be represented by one source NODETYPE.
+  // Preserve all configured codes and allow downstream profile expansion.
+  if (codes.length===1) attrs.NODETYPE=String(codes[0]);
+  else delete attrs.NODETYPE;
+  attrs.NODETYPE_CODES=codes.map(String);
+  attrs.NODETYPE_CLASSIFICATION_SOURCE='STEP7_SUPPORT_MAPPING';
+  attrs.SUPPORT_MAPPING_RULE_ID=decision.rule.id;
+  attrs.SUPPORT_MAPPING_RULE_PRIORITY=String(decision.rule.priority);
+  attrs.SUPPORT_MAPPING_RULE_FIELD=decision.rule.matchEvidence.sourceField;
+  // Correct the generated XML/JSON type at ATT/RVM export, but never claim a
+  // conflicting original NODETYPE has already received engineering approval.
+  // Preserve both raw and effective types so O1/Preview can quarantine and
+  // strict Final can demand an exact source-bound decision.
+  const rawSourceType=text(attrs.SOURCE_NODETYPE);
+  const reclassified=!!rawSourceType && (codes.length!==1 ||
+    rawSourceType!==String(codes[0]));
+  attrs.SUPPORT_EFFECTIVE_NODETYPE=codes.length===1?String(codes[0]):'';
+  attrs.SUPPORT_MAPPING_STATUS=reclassified
+    ?'FOR_REVIEW_SOURCE_NODETYPE_CORRECTED':'MAPPED';
+  attrs.SUPPORT_MAPPING_REQUIRES_ENGINEERING_APPROVAL=reclassified;
+  attrs.SUPPORT_KIND=attrs.SUPPORT_TYPE=attrs.SUPPORT_MAPPER_KIND=kind;
+  // Retain original catalogue gaps, including explicit zero; materialize the
+  // selected profile default only when no independent clearance is supplied.
+  if (!gaps.length) attrs.NODEGAP=String(gap);
+  attrs.SUPPORT_EFFECTIVE_GAP=String(gap);
+  attrs.SUPPORT_GAP_SOURCE=gaps.length ? gaps[0] : 'STEP7_KIND_PROFILE';
+  attrs.SUPPORT_MAPPING_PROFILE={...profile,xmlTypes:[...types]};
+  return kind;
+}
 
 function normalizeSupportType(attrs, fallbackText = '') {
   const text = [
@@ -1081,7 +1155,9 @@ export function parseRmssStructuralMembers(content, options = {}) {
     const label = ownerTail ? `${ownerTail}/${memberName}` : memberName;
 
     const attrs = block?.attributes || {};
-    const kind = resolveKindPure(attrs, {
+    const exportMapping = options.normalizeAttRvmMdsMembers === true && canonicalComponentType(rawType) === 'SUPPORT';
+    const memberKind = exportMapping ? normalizeAttRvmMdsMember({ ...attrs },options.attRvmSupportConfig,'ATT') : '';
+    const kind = exportMapping ? memberKind : resolveKindPure(attrs, {
       userRules: [],
       defaultRules: DEFAULT_RULES,
       kindMap: DEFAULT_KIND_MAP,

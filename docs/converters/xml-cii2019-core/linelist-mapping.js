@@ -121,6 +121,7 @@ export const FIELD_RULES = {
     all: [['insulation', 'ins'], ['thickness', 'thk']],
     reject: [/insulation\s*type/i]
   },
+  insType: {all:[['insulation','ins'],['type']], reject:[/thickness|thk|density/i]},
   density: {
     all: [['density', 'den', 'kg/m', 'kg/m3', 'kg/cm', 'kg/cm3', 'kg']],
     reject: [/mixed/i, /gas/i, /liquid/i, /\bliq\b/i, /phase/i, /pressure/i, /temp/i]
@@ -164,6 +165,7 @@ export const DETECTION_ORDER = [
   't3',
   'hydroPressure',
   'insThk',
+  'insType',
   'density',
   'densityMixed',
   'densityGas',
@@ -486,7 +488,8 @@ export function normalizeLineListRow(row, fieldMap, index) {
     t2: readRowValue(row, [fieldMap.t2, ...LINE_LIST_PROCESS_VALUE_ALIASES.t2]),
     t3: readRowValue(row, [fieldMap.t3, ...LINE_LIST_PROCESS_VALUE_ALIASES.t3]),
     hydroPressure: readRowValue(row, [fieldMap.hydroPressure, ...LINE_LIST_PROCESS_VALUE_ALIASES.hydroPressure]),
-    insThk: readRowValue(row, [fieldMap.insThk]),
+    insThk: readRowValue(row, fieldMap.insThk?[fieldMap.insThk]:['insThk','InsThk','Insulation Thickness','Insulation Thickness [mm]','Insulation Thickness (mm)']),
+    insType: readRowValue(row, fieldMap.insType?[fieldMap.insType]:['insType','InsType','Insulation Type']),
     density: readRowValue(row, [fieldMap.density, ...LINE_LIST_PROCESS_VALUE_ALIASES.density]),
     densityMixed: readRowValue(row, [fieldMap.densityMixed, ...LINE_LIST_PROCESS_VALUE_ALIASES.densityMixed]),
     densityGas: readRowValue(row, [fieldMap.densityGas, ...LINE_LIST_PROCESS_VALUE_ALIASES.densityGas]),

@@ -4,7 +4,9 @@
  * provenance are re-attested before allowing user trace/CSV interaction.
  * No output is engineeringReady or Preview/Weight-approved.
  */
-import { showPreviewBlocker } from './xml-cii-adapted-preview-failure-notice.js';
+import {saveStandaloneResolverJsonTraceConfig} from '../xml-cii-resolver-json-trace.js';
+import {updateWorkflowState,saveMasterContextToLocalStorage} from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
+import { showIndependentRestraintStatus } from './xml-cii-adapted-preview-failure-notice.js';
 const SCHEMA='LFJ.O1.DomainWorker.v1';
 const HEADERS={
  node:[['xmlNode','XML Node'],['xmlBranch','XML Branch'],['matchType','Match'],
@@ -51,10 +53,46 @@ function deliver(domain,msg){
   const slot=domain.pending.get(k);if(!slot)return;
   clearTimeout(slot.timer);domain.pending.delete(k);slot.resolve(msg);
 }
+// Keep the original Step 3 controls in sync without pushing JSON or CSV
+// payloads into the UI state. Re-rendered controls use the same state fields.
+export function syncO1ResolverControls(session,patch={}){
+  const ref=session.stateRef;
+  if(!ref)return;
+  if(Object.keys(patch).length)ref.current={...ref.current,...patch};
+  const state=ref.current,root=session.container;
+  const saved=root?.querySelector('[data-resolver-writeback-status]');
+  if(saved)saved.textContent=state.resolverJsonTraceWriteBackStatus||'Resolver config not saved yet.';
+  const sidecar=root?.querySelector('[data-resolver-sidecar-status]');
+  if(sidecar)sidecar.textContent=state.jsonTraceSidecarStatus||'Build / refresh resolver index to generate a CSV sidecar from staged JSON.';
+  const button=root?.querySelector('[data-action="download-json-trace-sidecar"]');
+  if(button)button.disabled=!state.jsonTraceSidecarWorkerReady&&!state.jsonTraceSidecarCsv;
+}
+export function persistO1ResolverConfig(session,stateRef){
+  const state=stateRef.current;
+  const supportConfigJson=saveStandaloneResolverJsonTraceConfig(state.supportConfigJson,state.resolverJsonTraceConfig);
+  const next=updateWorkflowState(state,{supportConfigJson,result:null});
+  if(typeof localStorage==='undefined')throw typed('O1_RESOLVER_STORAGE_UNAVAILABLE');
+  // Persist the normalized trace and verify the write. Master persistence
+  // strips heavy independent tables; its storage receipt is checked as well.
+  localStorage.setItem('xml-cii-resolver-config-v1',JSON.stringify(next.resolverJsonTraceConfig||{}));
+  if(next.masterContext){
+    saveMasterContextToLocalStorage(next.masterContext);
+    const saved=JSON.parse(localStorage.getItem('xml-cii-import-masters-v1')||'null');
+    if(JSON.stringify(saved?.config?.resolverJsonTrace)!==JSON.stringify(JSON.parse(next.supportConfigJson).resolverJsonTrace))
+      throw typed('O1_RESOLVER_CONFIG_SAVE_FAILED');
+  }
+  stateRef.current=next;
+  session.stateRef=stateRef;
+  syncO1ResolverControls(session,{resolverJsonTraceWriteBackStatus:'Resolver config saved into standalone config.'});
+}
 function dispose(session){
+  session.domainRunSeq=(session.domainRunSeq||0)+1;
+  syncO1ResolverControls(session,{jsonTraceSidecarWorkerReady:false,jsonTraceSidecarCsv:'',jsonTraceSidecarRowCount:0,
+    jsonTraceSidecarStatus:'Build / refresh resolver index to generate a CSV sidecar from staged JSON.'});
   const d=session.domain;if(!d)return;
   for(const pending of d.pending.values()){clearTimeout(pending.timer);pending.reject(typed('O1_DOMAIN_REVOKED'));}
   d.pending.clear();d.ready=false;
+  if(d.exporting){clearTimeout(d.exporting.timer);d.exporting.reject(typed('O1_DOMAIN_REVOKED'));d.exporting=null;}
   try{d.worker?.terminate();}catch{}
   session.domain=null;
   // Invalidating the source must also remove previously rendered export
@@ -113,12 +151,17 @@ function paint(session){
       'Not approved engineering output, Preview or Weight.'
     : 'Awaiting an independently committed source index and original XML.';
   panel.append(info);
-  showPreviewBlocker(panel);
   if(!d.ready)return;
+  if(!currentBasis(session,d.job,d.basis)){
+    syncO1ResolverControls(session,{jsonTraceSidecarWorkerReady:false,jsonTraceSidecarStatus:'Source or config changed; rebuild O1.'});
+    info.textContent='Source or configuration changed. Rebuild O1 to review current restraints.';
+    return;
+  }
+  showIndependentRestraintStatus(panel,d.restraintReview);
   const tools=document.createElement('div');
   const buttons=[
     ['node','Node wise trace'],['evidence','Evidence tree'],
-    ['export-node','Download complete Node CSV'],['export-evidence','Download complete Evidence CSV']
+    ['export-node','Download complete Node CSV'],['export-evidence','Download complete Evidence CSV'],['export-sidecar','Download staged JSON trace CSV']
   ];
   for(const [kind,label] of buttons){
     const b=document.createElement('button');b.type='button';b.textContent=label;
@@ -165,10 +208,16 @@ function renderTable(d){
     pager.append(b);
   }
 }
-export async function startLfjO1Domain(session,stateRef){
-  const job=session.job;
-  if(!job||!job.summary||!job.store||job.cancelled)throw typed('O1_SOURCE_NOT_COMMITTED');
+export async function startLfjO1Domain(session,stateRef,{save=false}={}){
+  session.stateRef=stateRef;
   dispose(session);
+  const runSeq=session.domainRunSeq;
+  if(save)persistO1ResolverConfig(session,stateRef);
+  const job=session.job;
+  if(!job||!job.summary||!job.store||job.cancelled){
+    if(save)return null;
+    throw typed('O1_SOURCE_NOT_COMMITTED');
+  }
   const state=stateRef.current;
   const sourceText=state.sourceText||'';
   const sourceKind=state.sourceKind||'auto';
@@ -184,6 +233,7 @@ export async function startLfjO1Domain(session,stateRef){
   }
   const rootId=JSON.stringify(['lfj-json-value/v1',job.ref,job.basis.sourceRevision,'']);
   const root=await job.store.lookupCommittedPair(rootId);
+  if(session.domainRunSeq!==runSeq)throw typed('O1_DOMAIN_SUPERSEDED');
   if(session.job!==job||job.cancelled)throw typed('O1_SOURCE_STALE');
   if(root.open?.path!==''||root.open?.ordinal!==0||
     root.open.sourceSha256!==job.summary.sourceSha256||
@@ -202,7 +252,9 @@ export async function startLfjO1Domain(session,stateRef){
     if(m?.schema!==SCHEMA||m.jobId!==job.id||session.domain!==d)return;
     if(m.kind==='FAILED'){
       for(const p of d.pending.values()){clearTimeout(p.timer);p.reject(typed(m.code||'O1_DOMAIN_FAILED'));}
-      d.pending.clear();notify(session,'O1 Worker FAILED: '+(m.code||'UNKNOWN')+'; no export rights');return;
+      d.pending.clear();d.ready=false;syncO1ResolverControls(session,{jsonTraceSidecarWorkerReady:false,jsonTraceSidecarStatus:'Worker export unavailable; rebuild O1.'});
+      if(d.exporting){d.exporting.reject(typed(m.code||'O1_DOMAIN_FAILED'));d.exporting=null;}
+      notify(session,'O1 Worker FAILED: '+(m.code||'UNKNOWN')+'; no export rights');return;
     }
     if(m.kind==='EXPORT_CHUNK'&&d.exporting?.token===m.token){
       if(!(m.bytes instanceof Uint8Array)||m.bytes.length>65536){
@@ -224,7 +276,9 @@ export async function startLfjO1Domain(session,stateRef){
   };
   worker.onerror=()=>{
     for(const p of d.pending.values()){clearTimeout(p.timer);p.reject(typed('O1_DOMAIN_WORKER_ERROR'));}
-    d.pending.clear();notify(session,'O1 domain Worker failed; no export rights');
+    d.pending.clear();d.ready=false;syncO1ResolverControls(session,{jsonTraceSidecarWorkerReady:false,jsonTraceSidecarStatus:'Worker export unavailable; rebuild O1.'});
+    if(d.exporting){d.exporting.reject(typed('O1_DOMAIN_WORKER_ERROR'));d.exporting=null;}
+    notify(session,'O1 domain Worker failed; no export rights');
   };
   notify(session,'O1 source index committed. Running original XML matching in separate Worker…');
   try{
@@ -243,13 +297,14 @@ export async function startLfjO1Domain(session,stateRef){
     notify(session,'O1 Worker trace completed; verifying all selected original JSON paths…');
     d.provenance=await auditSourcePaths(session,d,ready);
     if(!currentBasis(session,job,basis))throw typed('O1_SOURCE_STALE');
-    d.counts=ready.counts;d.ready=true;
+    d.counts=ready.counts;d.restraintReview=ready.restraintReview;d.ready=true;
+   syncO1ResolverControls(session,{jsonTraceSidecarWorkerReady:true,jsonTraceSidecarStatus:'Original staged JSON CSV sidecar ready to download from verified Worker source.',resolverJsonTraceWriteBackStatus:save||d.supportConfigJson===saveStandaloneResolverJsonTraceConfig(d.supportConfigJson,JSON.parse(d.config))?'Resolver config saved into standalone config. O1 index verified.':'Resolver index built and source-path verified. Use Save to config to persist current settings.'});
     await viewLfjO1Page(session,'node',0);
     paint(session);
     notify(session,'O1 matched trace source-path verified ('+d.provenance.wanted+
       ' paths). Not an approved engineering output.');
     return d;
-  }catch(e){dispose(session);notify(session,'O1 domain blocked: '+(e.code||e.message)+
+  }catch(e){if(session.domainRunSeq!==runSeq)throw typed('O1_DOMAIN_SUPERSEDED');dispose(session);notify(session,'O1 domain blocked: '+(e.code||e.message)+
     '; no trace/export rights');throw e;}
 }
 export async function viewLfjO1Page(session,type='node',start=0){
@@ -264,22 +319,26 @@ export async function viewLfjO1Page(session,type='node',start=0){
 export async function exportLfjO1Csv(session,type){
   const d=session.domain;
   if(!d?.ready||!currentBasis(session,d.job,d.basis))throw typed('O1_EXPORT_SOURCE_STALE');
-  if(!['node','evidence'].includes(type))throw typed('O1_EXPORT_TYPE');
+  if(!['node','evidence','sidecar'].includes(type))throw typed('O1_EXPORT_TYPE');
   if(d.exporting)throw typed('O1_EXPORT_BUSY');
   const begin=await call(d,'EXPORT',{type},120000);
   if(begin.type!==type||!Number.isSafeInteger(begin.bytes)||begin.bytes<1)
     throw typed('O1_EXPORT_BASIS');
   let chunks;
   try{
-    chunks=await new Promise((resolve,reject)=>{d.exporting={token:begin.token,chunks:[],resolve,reject};});
+    chunks=await new Promise((resolve,reject)=>{
+       const timer=setTimeout(()=>reject(typed('O1_EXPORT_TIMEOUT')),120000);
+       d.exporting={token:begin.token,chunks:[],timer,resolve:v=>{clearTimeout(timer);resolve(v);},reject:e=>{clearTimeout(timer);reject(e);}};
+     });
   }finally{d.exporting=null;}
   if(!currentBasis(session,d.job,d.basis))throw typed('O1_EXPORT_SOURCE_STALE');
   const blob=new Blob(chunks,{type:'text/csv;charset=utf-8'});
   if(blob.size!==begin.bytes)throw typed('O1_EXPORT_INCOMPLETE');
-  const name=type==='node'?'xml-cii-node-wise-trace.csv':'xml-cii-evidence-tree.csv';
+  const name=type==='sidecar'?String(d.job.file.name||'staged-json').replace(/\.(json|txt)$/i,'').replace(/[^A-Za-z0-9._-]+/g,'_').slice(0,90)+'-trace-sidecar.csv':type==='node'?'xml-cii-node-wise-trace.csv':'xml-cii-evidence-tree.csv';
   const url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download=name;a.style.display='none';
   document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+  if(type==='sidecar')syncO1ResolverControls(session,{jsonTraceSidecarRowCount:begin.rows,jsonTraceSidecarStatus:'Downloaded '+begin.rows+' original staged JSON trace member rows as '+name+'.'});
   notify(session,'Downloaded '+begin.rows+' original '+type+' CSV rows; SHA '+
     d.job.basis.sourceSha256.slice(0,12)+'; not engineering approved.');
   return {name,rows:begin.rows,bytes:blob.size};

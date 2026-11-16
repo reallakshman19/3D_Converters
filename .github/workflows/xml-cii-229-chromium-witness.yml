@@ -17,7 +17,8 @@ permissions:
 
 jobs:
   served-browser:
-    runs-on: ubuntu-latest
+    # Playwright 1.52 has no Ubuntu 26.04 Chromium runtime.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Checkout exact PR head

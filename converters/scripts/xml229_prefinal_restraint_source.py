@@ -90,6 +90,103 @@ def tolerance(config):
     return 6
 
 
+DEFAULT_PS_SUFFIXES = ('.1.2', '.1', '-1', '_1')
+
+
+def match_mode(config):
+    options = config.get('resolverJsonTrace') or config.get('jsonTrace') or {}
+    value = options.get('matchMode', config.get('matchMode'))
+    if value is None:
+        return 'LEGACY'
+    mode = text(value).upper()
+    if mode not in ('POS', 'PS', 'ROOT'):
+        raise ValueError('Unsupported resolver match mode: ' + mode)
+    return mode
+
+
+def ps_suffixes(config):
+    options = config.get('resolverJsonTrace') or config.get('jsonTrace') or {}
+    nested = options.get('psFallback') or config.get('psFallback') or {}
+    values = nested.get('stripSuffixes', DEFAULT_PS_SUFFIXES)
+    if isinstance(values, str):
+        values = re.split(r'[,;\n]+', values)
+    if not isinstance(values, (tuple, list)) or len(values) > 32:
+        raise ValueError('Invalid PS suffix list')
+    result = []
+    for entry in values:
+        item = text(entry).upper()
+        if not item:
+            continue
+        if len(item) > 64 or not re.fullmatch(r'[._-](?:\d+|N)(?:\.(?:\d+|N))*', item):
+            raise ValueError('Invalid PS suffix: ' + item)
+        if item not in result:
+            result.append(item)
+    return result
+
+
+def ps_canonical(value, suffixes):
+    # Validate direct callers as well as configuration-loaded suffix lists.
+    suffixes = ps_suffixes({'resolverJsonTrace': {'psFallback': {'stripSuffixes': suffixes}}})
+    match = re.search(r'(?:^|[^A-Z0-9])/?(PS-?\d+(?:[._-]\d+)*)(?=$|[^A-Z0-9._-])',
+                      text(value).upper())
+    if not match:
+        return ''
+    result = match.group(1).replace('PS-', 'PS', 1)
+    for _ in range(16):
+        matched = []
+        for suffix in suffixes:
+            pattern = ''.join(r'\d+' if char == 'N' else re.escape(char)
+                              for char in suffix) + '$'
+            match_suffix = re.search(pattern, result)
+            if match_suffix:
+                matched.append(len(match_suffix.group(0)))
+        if not matched:
+            break
+        result = result[:-max(matched)]
+    return result if re.fullmatch(r'PS\d+', result) else ''
+
+
+def literal_root(value):
+    # ROOT uses lexical source identity only; never PS regex or suffix rules.
+    token = text(value).upper()
+    if '/' in token:
+        token = token.rsplit('/', 1)[-1]
+    for sep in (' ', '(', '.', '\t', '\n'):
+        if sep in token:
+            token = token.split(sep, 1)[0]
+    return token
+
+
+def identity_for_entry(entry, mode, config):
+    a = entry.get('attrs') or {}
+    if mode == 'ROOT':
+        return literal_root(attr(a, 'CMPSUPREFN', 'SUPPORT_GROUP_REF', 'SUPPORTROOT',
+                                 'SUPPORT_GROUP', 'PSROOT') or entry.get('name'))
+    suffixes = ps_suffixes(config)
+    for value in (entry.get('name'), entry.get('ps'), attr(a, 'PS', 'SupportTag'),
+                  attr(a, 'CMPSUPREFN')):
+        key = ps_canonical(value, suffixes)
+        if key:
+            return key
+    return ''
+
+
+def identity_groups(entries, mode, config):
+    groups, lookup = [], {}
+    for entry in entries:
+        identity = identity_for_entry(entry, mode, config)
+        if not identity:
+            continue
+        key = (branch_root(entry['branch']), identity)
+        if key not in lookup:
+            group = dict(point=entry['point'], branch=entry['branch'],
+                         identityKey=identity, entries=[])
+            lookup[key] = group
+            groups.append(group)
+        lookup[key]['entries'].append(entry)
+    return groups
+
+
 def source_entries(value, config, branch='', inherited=None):
     if isinstance(value, list):
         return [e for item in value for e in source_entries(item, config, branch, inherited)]
@@ -104,12 +201,13 @@ def source_entries(value, config, branch='', inherited=None):
     for alias in POSITIONS:
         direct = point(attr(a, alias))
         if direct is not None:
-            off = config.get('dtxrPositionOffset') or {}
-            if alias == 'POSI' and off.get('enabled') is True:
-                direct = tuple(v + float(off.get(k) or 0) for v, k in
-                               zip(direct, ('xOffset', 'yOffset', 'zOffset')))
             break
     direct = direct or point(value.get('position') or value.get('point'))
+    if direct is not None:
+        off = config.get('dtxrPositionOffset') or {}
+        if off.get('enabled') is True:
+            direct = tuple(v + float(off.get(k) or 0) for v, k in
+                           zip(direct, ('xOffset', 'yOffset', 'zOffset')))
     pos = direct or inherited
     raw = attr(a, 'DTXR_POS')
     desc = text((attr(a, 'DTXR', 'DESC', 'DESCRIPTION', 'RTEXT', 'SPRE') if point(raw)
@@ -118,11 +216,14 @@ def source_entries(value, config, branch='', inherited=None):
     ps = text(attr(a, 'DTXR_PS', 'DTXRPS'))
     name = text(attr(a, 'NAME', 'NodeName', 'SupportTag'))
     out = []
-    if typ != 'BRANCH' and not (direct and children and not desc and not ps) and pos and (
+    mode = match_mode(config)
+    if typ != 'BRANCH' and not (direct and children and not desc and not ps) and (
+            pos or mode in ('PS', 'ROOT')) and (
             desc or ps or text(attr(a, 'CMPSUPGAP', 'SUPPORT GAP'))):
+        tag_set = tags(' '.join([name, desc, ps,
+                        text(attr(a, 'PS', 'supportPs', 'psNo'))])) if mode == 'LEGACY' else set()
         out.append(dict(branch=branch, point=pos, attrs=a, type=typ, desc=desc,
-                        ps=ps, name=name, tags=tags(' '.join([name, desc, ps,
-                        text(attr(a, 'PS', 'supportPs', 'psNo'))]))))
+                        ps=ps, name=name, tags=tag_set))
     for child in children:
         out.extend(source_entries(child, config, branch, pos))
     return out
@@ -189,7 +290,8 @@ class _ResolutionIndex:
         self.branch_names = tuple(dict.fromkeys(g['branch'] for g in groups))
         self.score_cache = {}
         for i, group in enumerate(groups):
-            self.spatial.add(group['point'])
+            if group['point'] is not None:
+                self.spatial.add(group['point'])
             for entry in group['entries']:
                 for tag in entry['tags']:
                     self.by_tag.setdefault(tag, []).append((i, group, entry))
@@ -202,11 +304,35 @@ class _ResolutionIndex:
         return self.score_cache[branch]
 
 
-def resolve(node, branch, groups, tol, field, require, index=None):
-    pos, tag = point(field(node, 'Position')), tags(field(node, 'NodeName') or field(node, 'ComponentRefNo'))
-    tag = next(iter(tag), '')
+def resolve(node, branch, groups, tol, field, require, index=None, config=None):
+    config = config or {}
+    mode = match_mode(config)
+    name = field(node, 'NodeName') or field(node, 'ComponentRefNo')
+    pos = point(field(node, 'Position'))
+    if mode in ('PS', 'ROOT'):
+        identity = literal_root(name) if mode == 'ROOT' else ps_canonical(name, ps_suffixes(config))
+        if not identity:
+            return []
+        eligible = [(relationship(branch, g['branch']), i, g) for i, g in enumerate(groups)
+                    if g.get('identityKey') == identity and relationship(branch, g['branch'])]
+        eligible.sort(key=lambda item: (-item[0], item[1]))
+        require(not (len(eligible) > 1 and eligible[0][0] == eligible[1][0]),
+                'NATIVE_PREFINAL_RESTRAINT_MATCH_AMBIGUOUS')
+        return eligible[0][2]['entries'] if eligible else []
     if index is None:
         index = _ResolutionIndex(groups, tol)
+    if mode == 'POS':
+        hits = [(relationship(branch, g['branch']), math.dist(pos, g['point']), i, g)
+                for i in (index.spatial.nearby(pos) if pos is not None else ())
+                for g in (groups[i],)
+                if g['point'] is not None and relationship(branch, g['branch'])
+                and math.dist(pos, g['point']) <= tol]
+        hits.sort(key=lambda item: (-item[0], item[1], item[2]))
+        require(not (len(hits) > 1 and hits[0][0] == hits[1][0]
+                     and abs(hits[0][1] - hits[1][1]) < .001),
+                'NATIVE_PREFINAL_RESTRAINT_MATCH_AMBIGUOUS')
+        return hits[0][3]['entries'] if hits else []
+    tag = next(iter(tags(name)), '')
     explicit, authoritative = [], []
     scores = index.scores(branch)
     tagged = index.by_tag.get(tag, ()) if tag else ()
@@ -243,6 +369,9 @@ def resolve(node, branch, groups, tol, field, require, index=None):
 
 def calibrated_groups(source_nodes, entries, config, field):
     tol = tolerance(config)
+    mode = match_mode(config)
+    if mode in ('PS', 'ROOT'):
+        return identity_groups(entries, mode, config)
     groups = position_groups(entries, tol)
     # Auto offset is permitted only when no direct positional match exists.
     if (config.get('dtxrPositionOffset') or {}).get('enabled') is True:

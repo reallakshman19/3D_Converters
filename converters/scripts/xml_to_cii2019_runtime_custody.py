@@ -17,6 +17,7 @@ Adds four narrow mechanics on top of xml_to_cii2019_direction:
 from __future__ import annotations
 
 from collections import Counter
+import json
 import math
 import sys
 import xml.etree.ElementTree as ET
@@ -398,6 +399,9 @@ def main() -> None:
 
     _mark_native_failure_stage('RUNTIME_OPTIONS')
     args = patched._parse_args()
+    # Preserve the exact input authoring configuration separately from the
+    # native converter's hydrated/default-filled computation view.
+    original_support_config = json.loads(args.support_config_json or '{}')
     support_config = patched._load_support_config(args.support_config_json)
     if args.split_condensed_valve_flange is not None:
         support_config["splitCondensedValveFlange"] = bool(args.split_condensed_valve_flange)
@@ -416,7 +420,8 @@ def main() -> None:
         _mark_native_failure_stage('ORIGINAL_LINEAGE_STAGE')
         staged_original = stage_native_original_lineage(
             args.input, args.xml229_native_final_packet, args.staged_json,
-            support_config, authored_restraints_out=original_authored_restraints)
+            support_config, authored_restraints_out=original_authored_restraints,
+            original_support_config=original_support_config)
     _mark_native_failure_stage('STAGED_ENRICHMENT')
     _mark_native_failure_stage('STAGED_POSITION_TRANSFER')
     input_xml = patched._maybe_enrich_from_staged_json(

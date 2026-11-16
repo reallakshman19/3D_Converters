@@ -7,7 +7,11 @@
  * pair from the same original Blob, SHA, revision and job before RUN.
  * The application owns active job/selection cancellation.
  */
+import {buildStagedJsonTraceSidecar} from '../xml-cii-staged-json-trace-sidecar.js';
 import {runStandaloneResolverJsonTrace} from '../xml-cii-resolver-json-trace.js';
+import {installWeightBasisXmlDom} from './weight-basis-xml-dom.js';
+import {prepareXml229PrefinalRestraints} from '../integration/xml229-prefinal-restraints.mjs';
+installWeightBasisXmlDom(globalThis);
 import {
   buildXmlNodeWiseTraceRows,buildEvidenceTreeRows,
   buildXmlNodeWiseTraceCsv,buildEvidenceTreeCsv
@@ -43,8 +47,23 @@ async function run(m){
    supportConfigJson:m.supportConfigJson||'{}',jsonConfig:m.jsonConfig||{},
    jsonTraceScopeId:m.jsonTraceScopeId||''
  });
+ // Review uses the exact Standalone restraint config, not separate trace knobs.
+ let restraintReview={status:'NOT_ASSESSED',warnings:[],reason:'Full original source selection required'};
+ if(!m.jsonTraceScopeId||['ALL','__ALL__'].includes(m.jsonTraceScopeId)){
+   try{
+     const config=JSON.parse(m.supportConfigJson||'{}');
+     const stage=await prepareXml229PrefinalRestraints({xmlText:m.sourceText,
+       stagedJsonText:json,config,policy:'preview'});
+     restraintReview=stage.restraintReview;
+   }catch(error){
+     restraintReview={status:'REVIEW_BLOCKED',warnings:[],code:String(error?.code||'PREFINAL_RESTRAINT_REVIEW_FAILED'),
+       message:String(error?.message||error)};
+   }
+ }
  // Keep complete existing semantic data in Worker; expose only bounded pages.
  active.result=result;
+ active.originalJsonBlob=m.jsonBlob;
+ active.sidecarConfig={resolverJsonTrace:m.jsonConfig||{},dtxrPositionOffset:m.jsonConfig?.dtxrPositionOffset};
  active.rows={
    node:buildXmlNodeWiseTraceRows(result),
    evidence:buildEvidenceTreeRows(result)
@@ -52,7 +71,8 @@ async function run(m){
  active.paths=[...new Set([
    ...(result.resolutionLedger||[]).filter(r=>String(r.status).startsWith('RESOLVED_'))
      .flatMap(r=>r.sourcePaths||[]),
-   ...active.rows.evidence.map(row=>row.sourcePath)
+   ...active.rows.evidence.map(row=>row.sourcePath),
+   ...restraintReview.warnings.flatMap(row=>[row.member?.path,...(row.sourcePaths||[])])
  ].filter(Boolean))];
  send('READY',id,{
    sourceRefId:active.ref,sourceSha256:active.sha,sourceRevision:active.revision,
@@ -61,6 +81,7 @@ async function run(m){
      matched:result.matchedFacts?.length||0,rejected:result.rejectedFacts?.length||0,
      paths:active.paths.length},
    // Source-attested source-only index does not bless domain values for output.
+   restraintReview,
    rightsBasis:'SOURCE_MATCH_PENDING_ORACLE',engineeringReady:false
  });
 }
@@ -73,17 +94,27 @@ function page(m){
  send('PAGE',m.jobId,{type,start,rows:active.rows[type].slice(start,start+limit),
    total:active.rows[type].length});
 }
-function exportCsv(m){
+async function exportCsv(m){
  if(!same(m)||!active?.result)return fail(m.jobId,{code:'DOMAIN_NOT_READY'});
- const type=m.type==='evidence'?'evidence':'node';
- const rows=active.rows[type];
- if(!rows.length)return fail(m.jobId,{code:'DOMAIN_EMPTY_EXPORT'});
- const csv=type==='evidence'?buildEvidenceTreeCsv(active.result):buildXmlNodeWiseTraceCsv(active.result);
+ if(!['node','evidence','sidecar'].includes(m.type))return fail(m.jobId,{code:'DOMAIN_EXPORT_TYPE'});
+ const type=m.type;
+ let csv,rowCount;
+ if(type==='sidecar'){
+   const source=active;
+   const original=await source.originalJsonBlob.text();
+   if(active!==source||!same(m))return;
+   const sidecar=buildStagedJsonTraceSidecar(original,source.sidecarConfig);
+   csv=sidecar.csv;rowCount=sidecar.rowCount;
+ }else{
+   rowCount=active.rows[type].length;
+   if(!rowCount)return fail(m.jobId,{code:'DOMAIN_EMPTY_EXPORT'});
+   csv=type==='evidence'?buildEvidenceTreeCsv(active.result):buildXmlNodeWiseTraceCsv(active.result);
+ }
  const bytes=new TextEncoder().encode(csv);
  const token=++active.nonce;
  const stream={token,type,bytes,offset:0};
  active.exports.clear();active.exports.set(token,stream);
- send('EXPORT_BEGIN',m.jobId,{token,type,bytes:bytes.byteLength,rows:rows.length});
+ send('EXPORT_BEGIN',m.jobId,{token,type,bytes:bytes.byteLength,rows:rowCount});
  chunk(stream);
 }
 function chunk(stream){
@@ -111,7 +142,7 @@ onmessage=async({data:m})=>{
      send('PATH_PAGE',m.jobId,{start,paths:active.paths.slice(start,start+128),
        total:active.paths.length});return;
    }
-   if(m.kind==='EXPORT'){exportCsv(m);return;}
+   if(m.kind==='EXPORT'){await exportCsv(m);return;}
    if(m.kind==='EXPORT_ACK'&&same(m)){
      const stream=active.exports.get(m.token);
      if(stream)chunk(stream);

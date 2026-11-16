@@ -7,6 +7,7 @@
 // now emits deterministic evidence proving that the exact XML sent to Python
 // contains the Preview and Weight Match facts that were selected.
 
+import {normalizePreviewInsulationThickness,normalizePreviewInsulationType} from '../../converters/xml-cii2019-core/preview-insulation.js';
 import { enrichStandaloneDtxrAnnotations } from './xml-cii-standalone-dtxr-enrichment.js';
 import { createStandaloneRunParityEvidence, xmlCiiParityNodeSignature } from './xml-cii-run-parity-evidence.js?v=20261008-p0-mode-b-parity-1';
 import { applyXmlCiiStagedGeometryAuthority } from '../../converters/xml-cii2019-core/staged-geometry-authority.js';
@@ -126,7 +127,11 @@ export async function applyStandaloneProcessParity(xmlText, config, stagedJsonTe
     const pressure = ensureChild(document, branch, 'Pressure');
     const temperature = ensureChild(document, branch, 'Temperature');
 
+    const originalInsThk=childText(branch,'InsulationThickness');
+    const originalInsType=childText(branch,'InsulationType');
     const branchWrites = [
+      {owner:branch,name:'InsulationThickness',path:['InsulationThickness'],field:'insThk',value:originalInsThk?'':normalizePreviewInsulationThickness(row.insThkFallback).value,kind:'number'},
+      {owner:branch,name:'InsulationType',path:['InsulationType'],field:'insType',value:originalInsType?'':normalizePreviewInsulationType(row.insTypeFallback),kind:'text'},
       { owner: pressure, name: 'Pressure1', path: ['Pressure', 'Pressure1'], field: 'p1', value: row.p1, kind: 'number' },
       { owner: pressure, name: 'HydroPressure', path: ['Pressure', 'HydroPressure'], field: 'hydroPressure', value: row.hydroPressure, kind: 'number' },
       { owner: temperature, name: 'Temperature1', path: ['Temperature', 'Temperature1'], field: 't1', value: row.t1, kind: 'number' },
@@ -159,6 +164,8 @@ export async function applyStandaloneProcessParity(xmlText, config, stagedJsonTe
       }
       nodeOccurrenceIndex += 1;
       const nodeWrites = [
+        {name:'InsulationThickness',field:'insThk',value:childText(node,'InsulationThickness')?'':normalizePreviewInsulationThickness(row.insThkFallback).value,kind:'number'},
+        {name:'InsulationType',field:'insType',value:childText(node,'InsulationType')?'':normalizePreviewInsulationType(row.insTypeFallback),kind:'text'},
         { name: 'PipingClass', field: 'pipingClass', value: row.pipingClass, kind: 'text' },
         { name: 'Rating', field: 'rating', value: row.rating, kind: 'text' },
         { name: 'MaterialName', field: 'material', value: row.material, kind: 'text' },

@@ -265,7 +265,8 @@ def _native_lineage_probe(stage):
         print('XML229_NATIVE_STAGE:' + stage, flush=True)
 
 
-def _validate_finalized_geometry(packet, source, staged_json_path=None, support_config=None):
+def _validate_finalized_geometry(packet, source, staged_json_path=None, support_config=None,
+                                 original_support_config=None):
     """Challenge the exact pre-acceptance Worker XML and original ordinal map.
 
     A finalized snapshot may REMOVE original nodes, but may not change any
@@ -421,7 +422,8 @@ def _validate_finalized_geometry(packet, source, staged_json_path=None, support_
     from xml229_prefinal_restraints import replay_prefinal_restraints, restraint_semantics
     _native_lineage_probe('LINEAGE_PREFINAL_RESTRAINT_REPLAY')
     supports_verified = replay_prefinal_restraints(
-        expected, packet, staged_json_path, support_config, require)
+        expected, packet, staged_json_path, support_config, require,
+        provenance_config=original_support_config)
     for bi, (branch, ordinals) in enumerate(zip(branches(expected), retained)):
         keep = set(ordinals)
         for original_index, node in enumerate(nodes(branch)):
@@ -631,7 +633,8 @@ def _verify_source_physical_lineage(lineage, packet, original, finalized,
 
 
 def stage_native_original_lineage(original_path, packet_path, staged_json_path=None,
-                                  support_config=None, authored_restraints_out=None):
+                                  support_config=None, authored_restraints_out=None,
+                                  original_support_config=None):
     """Annotate exact original source occurrences BEFORE staged-JSON enrichment.
 
     These temporary private markers are carried by the XML converter's ET
@@ -646,7 +649,7 @@ def stage_native_original_lineage(original_path, packet_path, staged_json_path=N
             "NATIVE_UNTRUSTED_LINEAGE_TAG")
     _native_lineage_probe('LINEAGE_GEOMETRY_VERIFY')
     final_source, retained_by_original = _validate_finalized_geometry(
-        packet, source, staged_json_path, support_config)
+        packet, source, staged_json_path, support_config, original_support_config)
     _native_lineage_probe('LINEAGE_OWNER_CENSUS')
     source_branches = branches(source)
     if authored_restraints_out is not None:

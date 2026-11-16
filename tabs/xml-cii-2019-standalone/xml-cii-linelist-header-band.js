@@ -50,6 +50,7 @@ function fieldScore(field, profile) {
     case 't2': if (hasPhrase(profile, /\b(max|min)\b/)) return 0; return scoreLabel(profile, [[/^temp\.?$/i, 205], [/^temperature$/i, 205], [/\boperating\s+temp(?:erature)?\b/i, 215], [/^t2$/i, 210]]);
     case 't3': return scoreLabel(profile, [[/\btemp(?:erature)?\.?\s*min\b/i, 230], [/\bminimum\s+temp(?:erature)?\b/i, 220], [/^t3$/i, 210]]);
     case 'insThk': return scoreLabel(profile, [[/\binsulation\s+thickness\b/i, 230], [/\bins(?:ulation)?\s+thk\b/i, 215]]);
+    case 'insType': return scoreLabel(profile, [[/\binsulation\s+type\b/i, 230], [/\bins\s+type\b/i, 215]]);
     case 'phase': return scoreLabel(profile, [[/^fluid$/i, 220], [/^phase$/i, 215], [/\bfluid\s+phase\b/i, 230]]);
     case 'from': return scoreLabel(profile, [[/^from$/i, 240], [/^from\s+equipment$/i, 225], [/^origin$/i, 205]]);
     case 'to': return scoreLabel(profile, [[/^to$/i, 240], [/^to\s+equipment$/i, 225], [/^destination$/i, 205]]);
@@ -73,7 +74,7 @@ export function detectLineListHeaderBand(rows, options = {}) {
   const bandRows = Math.max(8, Math.min(24, Number(options.bandRows) || DEFAULT_BAND_ROWS));
   const profiles = columnKeys(rows).map((key) => profileColumn(key, rows, bandRows));
   const fieldMap = {}; const claimed = new Set();
-  const order = ['lineKey1', 'lineKey2', 'pipingClass', 'material', 'convertedBore', 'p1', 'hydroPressure', 't1', 't2', 't3', 'insThk', 'densityGas', 'densityLiquid', 'densityMixed', 'density', 'phase', 'from', 'to', 'lineSeqNo'];
+  const order = ['lineKey1', 'lineKey2', 'pipingClass', 'material', 'convertedBore', 'p1', 'hydroPressure', 't1', 't2', 't3', 'insThk', 'insType', 'densityGas', 'densityLiquid', 'densityMixed', 'density', 'phase', 'from', 'to', 'lineSeqNo'];
   for (const field of order) {
     const best = bestColumn(field, profiles, claimed); if (!best) continue;
     fieldMap[field] = best.key; claimed.add(best.key);

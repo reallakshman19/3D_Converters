@@ -33,7 +33,7 @@ const stage=(xmlText=XML,source=staged(),cfg=config)=>prepareXml229PrefinalRestr
 test('original JSON REST/GUIDE/LINESTOP and numeric gaps precede fallback; zero friction survives',async()=>{
  const r=await stage();
  assert.deepEqual(rows(r.document).slice(2).map(r=>r.restraints),[
- [['+Y','7','0']],[['GUI','6','-1.010100']],[['LIM','8','-1.010100']],[['+Y','7','0']],
+ [['+Y','0','0']],[['GUI','6','-1.010100']],[['LIM','8','-1.010100']],[['+Y','0','0']],
  ]);
  assert.equal(r.proof.originalJsonSha256,await digestUtf8(JSON.stringify(staged())));
 });
@@ -97,4 +97,32 @@ test('real Preview → Worker Final geometry → actual native enriched XML/CII 
   const result=execFileSync(python,[fileURLToPath(new URL('./xml229-json-restraint-native-check.py',import.meta.url)),folder],{encoding:'utf8'});
   assert.match(result,/SOURCE_JSON_NATIVE_TRANSFER_PASS/);
  }finally{await rm(folder,{recursive:true,force:true});}
+});
+
+test('real P4 engineering Preview quarantines GT REST conflict while Weight facts still verify',async()=>{
+ const source=staged();
+ const attrs=source[0].children[1].children[0].attributes;
+ attrs.NODETYPE='14';attrs.MDSSUPPFUNC='GT';attrs.CMPSUPTYPE='PG-S-3';
+ const stagedSource=JSON.stringify(source),sourceId='QUARANTINE-P4';
+ const basis=await createPreviewBasis({domainId:'xml-cii/2019',
+  sources:[{sourceId,mediaType:'application/xml',text:XML}],
+  masters:{},selection:[{sourceId,selectionRef:'all'}],
+  stagedSource,config,overrides:{},sha256:digestUtf8});
+ const originals=projectXmlCiiOccurrences({xmlText:XML,sourceId});
+ const preview=xmlCiiDryRunPreview(XML,structuredClone(config),stagedSource);
+ const opened=await openXml229EngineeringFactModel({
+  basis,live:{sources:{[sourceId]:XML},masters:{},
+   selection:[{sourceId,selectionRef:'all'}],stagedSource,config,overrides:{}},
+  xmlText:XML,sourceId,previewResult:{...preview,sourceOccurrences:originals,
+   engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false},
+  expectedOriginalCount:7,
+ });
+ assert.equal(opened.workerResult.engineeringAcceptance,'VERIFIED');
+ assert.equal(opened.restraintReview.status,'FOR_REVIEW');
+ assert.equal(opened.restraintReview.engineeringRestraintAcceptance,'HOLD');
+ assert.equal(opened.restraintReview.warnings.length,1);
+ assert.equal(opened.restraintReview.warnings[0].member.fields.NAME,'/PS40/DATUM');
+ assert.equal(opened.workerResult.engineeringRestraintAcceptance,'HOLD');
+ assert.equal(opened.finalizedGeometry.prefinalRestraints.restraintAudit.warnings.length,1);
+ await assert.rejects(stage(XML,source),{code:'PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT'});
 });

@@ -1,5 +1,7 @@
 import { runStandaloneRegexTester } from '../xml-cii-regex-tester.js';
 import { runStandaloneResolverJsonTrace } from '../xml-cii-resolver-json-trace.js';
+import { buildStagedJsonTraceSidecar } from '../xml-cii-staged-json-trace-sidecar.js';
+import { closeGovernedMdsPositionRestraintsXml } from '../xml-cii-mds-restraint-closure.js';
 import { runStandaloneManualElementSideload } from '../xml-cii-manual-element-sideload.js';
 import { buildStandalonePreviewDiagnosticsAudit } from '../xml-cii-preview-diagnostics-audit.js';
 import { runStandaloneWeightMatch } from '../xml-cii-weight-match.js';
@@ -9,6 +11,7 @@ import { readTextFile } from '../xml-cii-workflow-ui-adapter.js?v=20261113-x4-1'
 import { downloadTextFile } from './xml-cii-adapted-dom.js';
 import { applyPreviewDiagnosticsAuditReport, applyStandaloneManualElementSideloadResult, applyStandaloneOutputRunReadiness, applyStandaloneRegexTesterResult, applyStandaloneResolverJsonTraceResult, applyStandaloneSupportTypeMapperResult, applyStandaloneWeightMatchResult, clearWorkflowResult, patchResolverJsonTraceConfig, resetWorkflowState, updateManualElementSideloadConfig, updateRegexTesterConfig, updateResolverJsonTraceConfig, updateSupportTypeMapperConfig, updateSupportTypeMapperTestInput, updateWeightMatchOverrides, updateWorkflowOptions, updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { detectXmlCiiWorkflowSourceKind, maskedFileName } from '../xml-cii-workflow-source-detect.js';
+import { normalizePsStripSuffixes } from '../xml-cii-resolver-match-policy.js';
 import { bindImportMastersEvents, clearMasterContextFromUi, loadImportMastersFromUi } from './xml-cii-adapted-master-events.js?v=20261006-c05-5-5-persistence-retry-1';
 import { runWorkflowFromUi } from './xml-cii-adapted-run-workflow.js?v=20261113-x5a-2';
 import { bindTraceTableEvents } from './xml-cii-adapted-table-trace-events.js?v=20261001-weight-output-2';
@@ -94,7 +97,9 @@ export function bindSourceEvents(container, stateRef, render) {
     try {
       const file = event.target.files?.[0] || null;
       const text = file ? await readTextFile(file) : '';
-      replaceState(stateRef, updateWorkflowState(stateRef.current, { stagedJsonFile: file, stagedJsonText: text, result: null }), render);
+      replaceState(stateRef, updateWorkflowState(stateRef.current,
+        { stagedJsonFile: file, stagedJsonText: text, result: null,
+          jsonTraceSidecarCsv:'',jsonTraceSidecarRowCount:0,jsonTraceSidecarStatus:'' }), render);
     } catch (err) {
       console.error('Error reading staged json file:', err);
     }
@@ -162,6 +167,29 @@ export function bindResolverEvents(container, stateRef, render) {
     stateRef.current = patchResolverJsonTraceConfig(stateRef.current, { joinMode: value || 'unique' });
     render();
   });
+  onChange(container, 'resolver-match-mode', (value) => {
+    const mode = String(value || '').toUpperCase();
+    if (!['POS', 'PS', 'ROOT'].includes(mode)) return;
+    stateRef.current = patchResolverJsonTraceConfig(stateRef.current, { matchMode: mode });
+    render();
+  });
+  const autoSidecar = container.querySelector('[data-field="resolver-export-trace-sidecar"]');
+  if (autoSidecar) autoSidecar.addEventListener('change', event => {
+    stateRef.current = patchResolverJsonTraceConfig(stateRef.current,
+      {exportTraceSidecar: event.target.checked});
+    render();
+  });
+  onChange(container, 'resolver-ps-suffixes', (value) => {
+    try {
+      const suffixes = normalizePsStripSuffixes(value);
+      stateRef.current = patchResolverJsonTraceConfig(stateRef.current,
+        { psFallback: { stripSuffixes: suffixes } });
+    } catch (error) {
+      stateRef.current = updateWorkflowState(stateRef.current,
+        { resolverJsonTraceWriteBackStatus: 'Invalid PS suffix configuration: ' + error.message });
+    }
+    render();
+  });
   onChange(container, 'resolver-coordinate-tolerance', (value) => {
     const tol = parseFloat(value);
     if (Number.isFinite(tol) && tol > 0 && tol <= 1000) {
@@ -200,6 +228,15 @@ export function bindActionEvents(container, stateRef, render) {
   onClick(container, 'save-regex-config', () => testRegexFromUi(stateRef, render, true));
   onClick(container, 'build-resolver-index', () => runResolverJsonTraceFromUi(container, stateRef, render, false));
   onClick(container, 'save-resolver-json-config', () => runResolverJsonTraceFromUi(container, stateRef, render, true));
+  onClick(container, 'download-json-trace-sidecar', () => {
+    const csv=stateRef.current.jsonTraceSidecarCsv;
+    const name=stateRef.current.jsonTraceSidecarFileName || 'staged-json-trace-sidecar.csv';
+    if (!csv) return;
+    downloadTextFile(name, csv, 'text/csv;charset=utf-8');
+    stateRef.current = updateWorkflowState(stateRef.current,
+      {jsonTraceSidecarStatus:'Downloaded '+name+'.'});
+    render();
+  });
   onClick(container, 'download-evidence-tree-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'evidence-tree'));
   onClick(container, 'download-node-wise-trace-csv', () => downloadResolverTraceCsvFromUi(stateRef, render, 'node-wise-trace'));
   onClick(container, 'copy-matched-facts', () => copyMatchedFactsFromUi(stateRef, render));
@@ -226,21 +263,79 @@ export async function runResolverJsonTraceFromUi(container, stateRef, render, sa
   if (tx) stateRef.current = updateResolverJsonTraceConfig(stateRef.current, tx.value);
   const sourceText = await sourceTextFromState(stateRef.current);
   const stagedJsonText = await stagedJsonTextFromState(stateRef.current);
-  const result = runStandaloneResolverJsonTrace({ ...stateRef.current, sourceText, stagedJsonText, jsonConfig: stateRef.current.resolverJsonTraceConfig });
+  let sidecar=null,sidecarError='';
+  let sidecarFileName='staged-json-trace-sidecar.csv';
+  if (stagedJsonText.trim()) {
+    try {
+      const baseName=String(stateRef.current.stagedJsonFile?.name || 'staged-json')
+        .replace(/\.(json|txt)$/i, '').replace(/[^A-Za-z0-9._-]+/g,'_').slice(0,90);
+      sidecarFileName=baseName+'-trace-sidecar.csv';
+      const cfg=stateRef.current.resolverJsonTraceConfig || {};
+      sidecar=buildStagedJsonTraceSidecar(stagedJsonText,{resolverJsonTrace:cfg,
+        dtxrPositionOffset:cfg.dtxrPositionOffset});
+    } catch(error) { sidecarError=String(error?.message || error); }
+  }
+  const rawResult = runStandaloneResolverJsonTrace({ ...stateRef.current, sourceText, stagedJsonText, jsonConfig: stateRef.current.resolverJsonTraceConfig });
+  // Review-only quarantine: preserve original restraints and keep successful
+  // resolver indexing available even when a single source support conflicts.
+  // The native pre-Final stage remains strict and cannot consume this flag.
+  let restraintReview = { status: 'NOT_ASSESSED', warnings: [] };
+  if (sourceText.trim() && stagedJsonText.trim()) {
+    try {
+      const parsedConfig = JSON.parse(stateRef.current.supportConfigJson || '{}');
+      const cfg = parsedConfig && typeof parsedConfig === 'object' && !Array.isArray(parsedConfig)
+        ? parsedConfig : {};
+      const resolverCfg = stateRef.current.resolverJsonTraceConfig || {};
+      const effective = { ...cfg, resolverJsonTrace: { ...(cfg.resolverJsonTrace || {}), ...resolverCfg },
+        dtxrPositionOffset: resolverCfg.dtxrPositionOffset || cfg.dtxrPositionOffset };
+      const audit = closeGovernedMdsPositionRestraintsXml(sourceText, stagedJsonText, effective,
+        { requireUnambiguous: true, conflictPolicy: 'quarantine' });
+      restraintReview = { status: audit.engineeringRestraintAcceptance || 'NOT_ASSESSED',
+        warnings: audit.warnings || [], diagnosticCount: audit.diagnostics?.length || 0 };
+    } catch (error) {
+      restraintReview = { status: 'REVIEW_BLOCKED', warnings: [],
+        code: error?.code || 'PREFINAL_RESTRAINT_REVIEW_FAILED',
+        error: String(error?.message || error) };
+    }
+  }
+  const result = { ...rawResult, restraintReview };
   const benchmark = stateRef.current.resolverJsonTraceTableResult
     ? compareTraceResultsByComponentRef(result, stateRef.current.resolverJsonTraceTableResult)
     : stateRef.current.jsonTraceTableBenchmark;
+  const sidecarState={
+    jsonTraceSidecarCsv:sidecar?.csv || '',
+    jsonTraceSidecarFileName:sidecarFileName,
+    jsonTraceSidecarRowCount:sidecar?.rowCount || 0,
+    jsonTraceSidecarStatus:sidecar ?
+      'Generated '+sidecar.rowCount+' original staged JSON trace member rows. CSV sidecar ready.' :
+      sidecarError ? 'Sidecar export failed: '+sidecarError : 'No staged JSON sidecar source loaded.',
+  };
   stateRef.current = save ?
-    updateWorkflowState(applyStandaloneResolverJsonTraceResult(stateRef.current, result), { jsonTraceTableBenchmark: benchmark, resolverJsonTraceExportStatus: '' }) :
+    updateWorkflowState(applyStandaloneResolverJsonTraceResult(stateRef.current, result),
+      { jsonTraceTableBenchmark: benchmark, resolverJsonTraceExportStatus: '', ...sidecarState }) :
     updateWorkflowState(stateRef.current, {
+      ...sidecarState,
       resolverJsonTraceResult: result,
       resolverJsonTraceJsonResult: result,
       jsonTraceTableBenchmark: benchmark,
       resolverJsonTraceRunning: false,
       resolverJsonTraceExportStatus: '',
-      resolverJsonTraceWriteBackStatus: `Resolver index built: ${result.resolvedFacts.length} facts processed.`
+      resolverJsonTraceWriteBackStatus: `Resolver index built: ${result.resolvedFacts.length} facts processed. Restraint review: ${restraintReview.status}, ${restraintReview.warnings.length} quarantined conflict(s).`
     });
   render();
+  if (sidecar?.csv && stateRef.current.resolverJsonTraceConfig?.exportTraceSidecar !== false) {
+    try {
+      downloadTextFile(sidecarFileName,sidecar.csv,'text/csv;charset=utf-8');
+      stateRef.current=updateWorkflowState(stateRef.current,
+        {jsonTraceSidecarStatus:'Auto-exported '+sidecar.rowCount+
+          ' staged JSON trace members as '+sidecarFileName+'.'});
+    } catch(error) {
+      stateRef.current=updateWorkflowState(stateRef.current,
+        {jsonTraceSidecarStatus:'Sidecar ready; automatic download unavailable: '+
+          String(error?.message||error)+'. Use Download staged JSON trace CSV.'});
+    }
+    render();
+  }
 }
 export async function runManualElementSideloadFromUi(container, stateRef, render, save) {
   stateRef.current = updateWorkflowState(stateRef.current, { manualElementSideloadRunning: true });

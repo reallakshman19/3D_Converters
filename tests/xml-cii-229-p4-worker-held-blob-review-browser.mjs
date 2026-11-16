@@ -150,7 +150,22 @@ try{
      ...inputs,requestId:'owner-p4-source-bad-blob',
      originalStagedBlob:badBlob,isCurrent:()=>true,
    }).then(()=>null,e=>e.code);
-   return {...outcome,badBlob:bad,controlledEngineXml:enriched};
+   // Regression: an independently attested named JSON branch with no overlap
+   // must not block the existing original XML/Weight verification path.
+   const unrelatedRaw=JSON.stringify([{type:'BRANCH',name:'/UNRELATED/LINE/B1',children:[
+     {type:'SUPPORT',attributes:{NAME:'/SL-UNRELATED.1',REF:'=999/999',
+       POS:{x:112,y:0,z:0},MDSSUPPFUNC:'ST',MDSSUPPTYPE:'ST501',CMPSUPTYPE:'LS-S2-3',
+       NODETYPE:'14',CMPSUPGAP:'GAP=35mm'}}]}]);
+   const unrelatedBlob=new Blob([unrelatedRaw],{type:'application/json'});
+   const unrelatedSha=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await unrelatedBlob.arrayBuffer())),v=>v.toString(16).padStart(2,'0')).join('');
+   const unrelated=await openXml229WorkerHeldOriginalWeightReview({...inputs,
+     requestId:'owner-p4-unrelated-json',isCurrent:()=>true,originalStagedBlob:unrelatedBlob,
+     originalStagedSourceReceipt:{...receipt,sha256:unrelatedSha,sourceRevision:'owner:index:sha256:'+unrelatedSha,
+       generationId:'owner-generation-unrelated',byteLength:unrelatedBlob.size}});
+   const unrelatedResult={receipt:unrelated.receipt,physicalCount:unrelated.originalPhysicalOccurrences.length,
+     factsCount:(await unrelated.readFacts({limit:100})).totalCount};
+   unrelated.cancel();
+   return {...outcome,badBlob:bad,controlledEngineXml:enriched,unrelatedResult};
  });
  assert.match(data.receipt.basisId,/^[0-9a-f]{64}$/);
  assert.equal(data.receipt.originalJsonSha256?.length,64);
@@ -159,6 +174,10 @@ try{
  assert.equal(data.receipt.finalEngineeringAccepted,false);
  assert.equal(data.physCount,3);
  assert.equal(data.factsCount,21);
+ assert.equal(data.unrelatedResult.receipt.engineeringFactsVerified,true);
+ assert.equal(data.unrelatedResult.receipt.weightEngineeringAccepted,false);
+ assert.equal(data.unrelatedResult.physicalCount,3);
+ assert.equal(data.unrelatedResult.factsCount,21);
  for(const pair of [data.pairBefore,data.pairAfter]){
    assert.equal(pair.schema,'XML229.G3G4.SourceBoundAggregatePair.v1');
    assert.equal(pair.reconciliation.status,'CONSISTENT');

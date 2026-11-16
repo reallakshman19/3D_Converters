@@ -156,16 +156,20 @@ test('U3: actual Preview rows use Regex Format-2 authority for both engineering 
     ['S8822000', '91261M7', 1, 'MATCHED']);
 });
 
-test('U3: a conflicting exact Line List class cannot silently overwrite configured class', () => {
+test('U3: exact Line List class defaults selected; explicit Regex choice survives rebuild', () => {
   const config = persistedFormatConfig();
   config.linelist.masterRows = [{ lineKey: 'S8822000', pipingClass: '61440' }];
-  const preview = withMinimalPreviewDocument(() => xmlCiiDryRunPreview(sourceText, config, ''));
-  const alternative = preview.branchRows.find(row => row.branchName === alternativeBranch);
-  assert.equal(alternative?.extractionStatus, 'AMBIGUOUS');
-  assert.equal(alternative?.branchIdentityConflict, 'EXACT_LINE_LIST_CLASS_CONFLICT');
-  assert.equal(alternative?.pipingClass, '');
-  assert.equal(alternative?.materialCode, '');
-  assert.equal(alternative?.materialCodeNeedsReview, true);
+  const build=()=>withMinimalPreviewDocument(() => xmlCiiDryRunPreview(sourceText, config, '')).branchRows.find(row => row.branchName === alternativeBranch);
+  const alternative = build();
+  assert.equal(alternative.extractionStatus, 'MATCHED');
+  assert.equal(alternative.pipingClassRegex,'91261M7');
+  assert.equal(alternative.pipingClassLineList,'61440');
+  assert.equal(alternative.pipingClassConflict,true);
+  assert.equal(alternative.pipingClassSelectedSource,'line-list');
+  assert.equal(alternative.pipingClass,'61440');
+  config.overrides={...(config.overrides||{}),pipingClassSource:{[alternativeBranch]:{regex:'91261M7',lineList:'61440',source:'regex'}}};
+  assert.equal(build().pipingClass,'91261M7');
+  assert.equal(build().pipingClassSelectedSource,'regex');
 });
 
 test('U3: an explicitly mapped class column takes precedence over canonical row alias', () => {
@@ -229,4 +233,38 @@ test('U4: 4 Preview computes independent Format 1/2 review passes on identity co
   assert.deepEqual([pass2.extractionStatus,pass2.lineKey,pass2.pipingClass],
     ['MATCHED','S8822000','91261M7']);
   assert.equal(actual.pipingClass,'','conflicting passes cannot choose a class');
+});
+
+test('Step 4 insulation normalization, explicit zero, XML variation and no implicit density',async()=>{
+ const {normalizePreviewInsulationThickness:n,resolvePreviewInsulation:r}=await import('../converters/xml-cii2019-core/preview-insulation.js');
+ for(const [raw,want] of [['25–50 mm','50'],['50 to 75','75'],['25/50','50'],['25 mm','25'],['1/2 in','12.7'],['2 cm','20'],['NIL','0'],['0','0'],['N/A',''],['-3',''],['50 + 10',''],['H50','']])assert.equal(n(raw).value,want,raw);
+ const row=r({xmlThicknesses:['70','80','0',''],lineThickness:'25–50 mm',lineType:'H'});
+ assert.equal(row.insThk,'80');assert.equal(row.insThkXmlRange,'0–80');assert.equal(row.insThkFallback,'50');assert.equal(row.insType,'H');
+ const manual=r({xmlThicknesses:['70','80'],override:{insThk:'25',insType:'C'},lineThickness:'50',lineType:'H'});
+ assert.equal(manual.insThk,'25');assert.equal(manual.insThkXmlRange,'70–80');assert.equal(manual.insThkFallback,'25');assert.equal(manual.insType,'C');
+ assert.equal(r({lineThickness:'TBD 50'}).insThkNeedsReview,true);
+});
+test('Step 4 source columns inline conflict radio pair and insulation columns last',async()=>{
+ const {BRANCH_COLUMNS,XmlCiiAdaptedEditablePreviewTable}=await import('../tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-editable-preview-table.js');
+ assert.deepEqual(BRANCH_COLUMNS.slice(-2).map(c=>c.id),['insThk','insType']);
+ const i=BRANCH_COLUMNS.findIndex(c=>c.id==='pipingClass');assert.deepEqual(BRANCH_COLUMNS.slice(i-2,i+1).map(c=>c.id),['pipingClassRegex','pipingClassLineList','pipingClass']);
+ const row={branchName:'/TEST/B1',lineKey:'P100',pipingClassRegex:'A',pipingClassLineList:'B',pipingClass:'B',pipingClassConflict:true,pipingClassSelectedSource:'line-list',insThk:'0',insType:'H',insThkSource:'linelist',insTypeSource:'linelist'};
+ const t=new XmlCiiAdaptedEditablePreviewTable({branchRows:[row],nodesByBranch:new Map()});
+ const html=t.renderHTML();assert.match(html,/name="mc-pc-source-0" data-mc-pc-source="regex"/);assert.match(html,/data-mc-pc-source="line-list" data-mc-pc-row="0" checked/);assert.match(html,/data-mc-pd-field="insThk"/);assert.match(html,/data-mc-pd-field="insType"/);
+});
+
+test('Step 4 config roundtrip retains branch source choice and mapped insulation columns',async()=>{
+ const {parseXmlCiiEnrichmentConfig}=await import('../converters/xml-cii2019-core/config.js');
+ const {normalizeLineListRow}=await import('../converters/xml-cii2019-core/linelist-mapping.js');
+ const {resolvePreviewPipingClassAuthority:r}=await import('../converters/xml-cii2019-core/piping-class-source-resolver.js');
+ const choice={source:'regex',regex:'91261M7',lineList:'61440'};
+ const cfg=parseXmlCiiEnrichmentConfig(JSON.stringify({overrides:{pipingClassSource:{[alternativeBranch]:choice},processData:{S8822000:{insThk:'0',insType:'H'}}},linelist:{masterRows:[{'Insulation Thickness [mm]':'25-50','Insulation Type':'H'}]}}));
+ assert.deepEqual(cfg.overrides.pipingClassSource[alternativeBranch],choice);
+ assert.equal(cfg.overrides.processData.S8822000.insThk,'0');
+ const a={branchName:alternativeBranch,branchClass:'91261M7',lineListClass:'61440',lineListExact:true,config:cfg};
+ assert.equal(r(a).requestedPipingClass,'91261M7');
+ assert.equal(r({...a,lineListClass:'61441'}).requestedPipingClass,'61441');
+ const row=normalizeLineListRow(cfg.linelist.masterRows[0],cfg.linelist.fieldMap,0);
+ assert.equal(row.insThk,'25-50');assert.equal(row.insType,'H');
+ assert.equal(normalizeLineListRow({'Selected':'','Insulation Type':'H'},{insType:'Selected'},0).insType,'');
 });

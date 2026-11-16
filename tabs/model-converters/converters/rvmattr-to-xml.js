@@ -252,13 +252,14 @@ function buildRvmAttrResponseFromAttText(attText, inputName, options) {
   if (!hierarchy.length) {
     throw new Error(`Scope filter ${JSON.stringify(scope.pattern)} did not match any ATT/RVM branch/site.`);
   }
-  const xmlFromAtt = _buildPsiXmlFromRmssHierarchy(hierarchy, inputName, options);
+  const xmlFromAtt = _buildPsiXmlFromRmssHierarchy(hierarchy, inputName, {...options,attRvmSource:'ATT'});
   let attStpText = null;
   // Exact structural ownership comes from the original ATT NAME/OWNER graph,
   // not from wildcard-only label matching or a branch-derived prefix guess.
   const nativeFiltered = nativeScope?.mode === 'SELECTED';
   const structCandidates = parseRmssStructuralMembers(
-    attText, nativeFiltered ? { nativeRules: nativeScope.rules } : {},
+    attText, { ...(nativeFiltered ? { nativeRules: nativeScope.rules } : {}),
+      normalizeAttRvmMdsMembers: true, attRvmSupportConfig: options.attRvmSupportConfig },
   );
   const structMembers = nativeFiltered ? structCandidates
     : filterStpMembersByScope(structCandidates, scope.scope);
@@ -288,6 +289,7 @@ function buildRvmAttrResponseFromAttText(attText, inputName, options) {
         `ATT/TXT parsed into ${xmlFromAtt.branchCount} branch(es).`,
         `Generated ${xmlFromAtt.nodeCount} node(s) into PSI-style XML.`,
         `Support mapper conversion pass: scanned=${xmlFromAtt.supportMapperStats?.scanned || 0}, mapped=${xmlFromAtt.supportMapperStats?.mapped || 0}.`,
+        `Step 7 member NODETYPE corrections: ${xmlFromAtt.supportMapperStats?.correctedMdsNodeTypes || 0}; for review: ${xmlFromAtt.supportMapperStats?.forReview || 0}.`,
         ...(attStpText ? [`Generated STP for ${structMembers.length > 0 ? 'structural' : 'pipeline support'} members.`] : []),
       ].filter(Boolean),
       stderr: xmlFromAtt.skippedComponents > 0
@@ -322,7 +324,18 @@ export async function run(context) {
     };
   }
 
-  const runValues = { ...context.options };
+  // Snapshot the saved Step 7 configuration at each export. Explicit
+  // caller configuration takes precedence over the browser's saved table.
+  const options=context.options || {};
+  let saved={};
+  if (typeof localStorage !== 'undefined') {
+    const raw=localStorage.getItem('xml-cii-import-masters-v1');
+    if (raw) saved=JSON.parse(raw)?.config || {};
+  }
+  const explicit=options.attRvmSupportConfig ||
+    (options.supportConfigJson ? JSON.parse(options.supportConfigJson) : null);
+  const runValues={...options,normalizeAttRvmMdsMembers:true,
+    attRvmSupportConfig:explicit || saved,attRvmSource:rvmFile?'RVM':'ATT'};
 
   // ATT/TXT-only mode: produce XML+JSON from attributes; STP skipped (no geometry)
   if (!rvmFile && attFile) {
@@ -370,6 +383,7 @@ export async function run(context) {
                   rvmScopeLogLine(stagedResult.scopeStats),
                   `Staged hierarchy detected: ${stagedResult.branchCount} branch(es), ${stagedResult.nodeCount} node(s).`,
                   `Support mapper conversion pass: scanned=${stagedResult.supportMapperStats?.scanned || 0}, mapped=${stagedResult.supportMapperStats?.mapped || 0}.`,
+                  `Step 7 member NODETYPE corrections: ${stagedResult.supportMapperStats?.correctedMdsNodeTypes || 0}; for review: ${stagedResult.supportMapperStats?.forReview || 0}.`,
                 ].filter(Boolean),
                 stderr: stagedResult.skippedComponents > 0
                   ? [`Skipped ${stagedResult.skippedComponents} component(s) with incomplete coordinates.`]
@@ -392,7 +406,7 @@ export async function run(context) {
               let stpText = null;
               if (secondary && secondaryBytes) {
                 const attText = decodeTextUtf8(secondaryBytes);
-                const structMembers = filterStpMembersByScope(parseRmssStructuralMembers(attText), stagedResult.rvmScope || stagedResult.scopePattern);
+                const structMembers = filterStpMembersByScope(parseRmssStructuralMembers(attText, { normalizeAttRvmMdsMembers: true, attRvmSupportConfig: runValues.attRvmSupportConfig }), stagedResult.rvmScope || stagedResult.scopePattern);
                 if (structMembers.length > 0) {
                   stpText = buildStpTextFromMembers(structMembers, `${stem}_supports.stp`);
                 }
@@ -408,7 +422,9 @@ export async function run(context) {
               logs: mergeStageLogs(stages),
               endpoint: nativeJson.endpoint,
             };
-          } catch {}
+          } catch (error) {
+            if (error?.code === 'PREFINAL_RESTRAINT_CONFIG_INVALID') throw error;
+          }
 
           try {
             const parsedPayload = JSON.parse(jsonOutput.text);
@@ -464,6 +480,7 @@ export async function run(context) {
         }
       }
     } catch (error) {
+      if (error?.code === 'PREFINAL_RESTRAINT_CONFIG_INVALID') throw error;
       stages.push({ title: 'JSON -> XML fallback note', logs: { stdout: [], stderr: [toText(error?.message || error)] } });
     }
   }

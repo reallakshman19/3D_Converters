@@ -1,3 +1,4 @@
+import {normalizePreviewInsulationThickness,normalizePreviewInsulationType} from '../../../converters/xml-cii2019-core/preview-insulation.js';
 import {runPreviewButtonSession} from './xml-cii-adapted-preview-facts-button-session.js';
 import { XmlCiiAdaptedEditablePreviewTable } from './xml-cii-adapted-editable-preview-table.js';
 import { renderBranchLineMapPanel } from './xml-cii-adapted-branch-line-map-panel.js';
@@ -16,16 +17,16 @@ import {
   xmlCiiDryRunPreview
 } from './xml-cii-adapted-preview-dryrun.js?v=20261001-weight-output-2';
 
-const PV_CACHE_KEY = 'xml-cii-pv-cache-v8-dtxr';
+const PV_CACHE_KEY = 'xml-cii-pv-cache-v9-class-insulation';
 const _PV_CACHE_MAX_BYTES = 2500000;
 
 function pvCacheFingerprint(xmlText, cfg) {
   const xmlSig = `${(xmlText || '').length}:${(xmlText || '').slice(0, 80)}`;
   const llSig = cfg?.linelist?.masterRows?.length || 0;
   const pcSig = cfg?.pipingClass?.masterRows?.length || 0;
-  const fieldMapSig = JSON.stringify(cfg?.linelist?.fieldMap || {}).slice(0, 300);
+  const fieldMapSig = JSON.stringify(cfg?.linelist?.fieldMap || {});
   const defaultSig = JSON.stringify(cfg?.processDefaults || {}).slice(0, 120);
-  const overrideSig = JSON.stringify(cfg?.overrides || {}).slice(0, 300);
+  const overrideSig = JSON.stringify(cfg?.overrides || {});
   // Saved Format 1/2 click order and joiners change source identity.
   // Never reuse a Preview from a prior regex configuration.
   const regexSig = JSON.stringify(cfg?.regexTester?.formats ?? cfg?.formats ?? []);
@@ -386,10 +387,36 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     },
     processInputHtmlRenderer: (fieldKey, lineKey, val, src, ri, pcKey = '') => {
       const cls = src === 'override' ? 'mc-preview-pd-cell mc-preview-pd-override' : (src === 'linelist' || src.startsWith('linelist-density') ? 'mc-preview-pd-cell mc-preview-pd-linelist' : ((src === 'default' || src === 'default-zero') ? 'mc-preview-pd-cell mc-preview-pd-default' : 'mc-preview-pd-cell mc-preview-pd-empty'));
-      const rangeOrig = ['t1', 't2', 't3'].includes(fieldKey) ? (branchRows[Number(ri)]?.[fieldKey + 'RangeOrig'] || null) : null;
-      const inputStyle = rangeOrig ? ` style="color:#d97706;font-weight:600;" title="Range resolved to max: original value was '${_esc(rangeOrig)}'"` : (src === 'default' ? ' style="color:#7f1d1d;font-weight:600;font-style:italic;" title="Config default value"' : (src === 'default-zero' ? ' style="color:#7f1d1d;font-weight:600;font-style:italic;" title="Converter default: no value found — converter writes 0. Enter a value here to override."' : ''));
+      const rangeOrig = ['t1', 't2', 't3','insThk'].includes(fieldKey) ? (branchRows[Number(ri)]?.[fieldKey + 'RangeOrig'] || null) : null;
+      const inputStyle = rangeOrig ? ` style="color:#d97706;font-weight:600;" title="Original source value: '${_esc(rangeOrig)}'; normalized when valid"` : (src === 'default' ? ' style="color:#7f1d1d;font-weight:600;font-style:italic;" title="Config default value"' : (src === 'default-zero' ? ' style="color:#7f1d1d;font-weight:600;font-style:italic;" title="Converter default: no value found — converter writes 0. Enter a value here to override."' : ''));
       const pcKeyAttr = pcKey ? ` data-mc-pd-pckey="${_esc(pcKey)}"` : '';
-      return `<div class="${cls}"><input type="text" class="mc-preview-pd-input" value="${_esc(val)}" placeholder="${fieldKey}" data-mc-pd-field="${_esc(fieldKey)}" data-mc-pd-linekey="${_esc(lineKey)}" data-mc-row="${ri}"${pcKeyAttr}${inputStyle}><button type="button" class="mc-preview-filldown-btn mc-pd-filldown" data-mc-fill-field="${_esc(fieldKey)}" data-mc-fill-from="${ri}" title="Smart fill: hydroPressure by piping class, others by line key">↓</button></div>`;
+      return `<div class="${cls}"><input type="text" class="mc-preview-pd-input" value="${_esc(val)}" placeholder="${fieldKey}" data-mc-pd-field="${_esc(fieldKey)}" data-mc-pd-linekey="${_esc(lineKey)}" data-mc-row="${ri}" data-mc-pd-row="${ri}"${pcKeyAttr}${inputStyle}><button type="button" class="mc-preview-filldown-btn mc-pd-filldown" data-mc-fill-field="${_esc(fieldKey)}" data-mc-fill-from="${ri}" title="Smart fill: hydroPressure by piping class, others by line key">↓</button></div>`;
+    },
+    onClassSourceSelect: ({rowIndex,source}) => {
+      const row=branchRows[rowIndex];
+      if(!row?.pipingClassConflict||!['regex','line-list'].includes(source))return;
+      const value=source==='regex'?row.pipingClassRegex:row.pipingClassLineList;
+      if(!value)return;
+      _renderClassTransactionStatus(host,value);
+      void runAtomicPreviewClassTransaction({
+        config,
+        applyOverride:async()=>{
+          const overrides=ensureOverrides(config);
+          overrides.pipingClassSource={...(overrides.pipingClassSource||{}),
+            [row.branchName]:{source,regex:row.pipingClassRegex,lineList:row.pipingClassLineList}};
+        },
+        hydrateAuthority:async()=>_hydrateEffectiveClassConfig(config,xmlText),
+        persistConfig:async()=>onSaveConfig?.(config),
+        rebuildPreview:async({hydrationResult,rollback,error})=>{
+          await xmlCiiRebuildPreviewThroughWorker(rootEl,xmlText,config,options);
+          const rebuilt=rootEl?.querySelector('#mc-preview-table-host');
+          _markPreviewSaved(rebuilt,rollback?'Piping Class selection rolled back: '+_toText(error?.message||error):_classTransactionSuccessMessage(hydrationResult,value));
+        },
+      }).catch(error=>{
+        console.error('Piping Class source selection failed:',error);
+        const rebuilt=rootEl?.querySelector('#mc-preview-table-host');
+        if(error?.rollbackError&&rebuilt)_markPreviewSaved(rebuilt,'Selection failed; rebuild required: '+_toText(error.message));
+      });
     },
     onWeightCandidateSelect: ({ key, weight }) => {
       const numeric = Number(weight);
@@ -457,8 +484,13 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
       const overrides = ensureOverrides(config);
       if (!overrides.processData) overrides.processData = {};
       if (!overrides.processData[lineKey]) overrides.processData[lineKey] = {};
-      const cleanVal = _toText(value).trim();
       const actualField = field || fieldKey;
+      let cleanVal = _toText(value).trim();
+      if(actualField==='insThk'){
+        const normalized=normalizePreviewInsulationThickness(cleanVal);
+        if(normalized.status==='invalid'){input.setCustomValidity?.('Enter a nonnegative thickness, a valid range or an explicit no-insulation value.');input.reportValidity?.();return;}
+        input.setCustomValidity?.('');cleanVal=normalized.value;input.value=cleanVal;
+      }else if(actualField==='insType'){cleanVal=normalizePreviewInsulationType(cleanVal);input.value=cleanVal;}
       if (cleanVal === '') delete overrides.processData[lineKey][actualField];
       else overrides.processData[lineKey][actualField] = cleanVal;
       if (actualField === 'rating' && cleanVal) overrides.rating = overrides.rating && typeof overrides.rating === 'object' && !Array.isArray(overrides.rating) ? { ...overrides.rating, [lineKey]: cleanVal } : { [lineKey]: cleanVal };
@@ -472,6 +504,11 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
     onProcessFillDownClick: ({ fieldKey, fromRow, value, pipingClassKey }) => {
       const sourceInput = host.querySelector(`[data-mc-pd-field="${fieldKey}"][data-mc-pd-row="${fromRow}"]`);
       const lineKey = sourceInput?.dataset?.mcPdLinekey || '';
+      if(fieldKey==='insThk'){
+        const normalized=normalizePreviewInsulationThickness(value);
+        if(normalized.value==='')return;
+        value=normalized.value;if(sourceInput)sourceInput.value=value;
+      }else if(fieldKey==='insType'){value=normalizePreviewInsulationType(value);if(!value)return;}
       const isPcField = fieldKey === 'hydroPressure';
       const filled = (isPcField && pipingClassKey) ? applyAdaptedPreviewSmartProcessFillByClass({ host, config, ensureOverrides, field: fieldKey, pipingClassKey, lineKey: '', currentValue: value }) : (lineKey ? applyAdaptedPreviewSmartProcessFillByClass({ host, config, ensureOverrides, field: fieldKey, pipingClassKey: '', lineKey, currentValue: value }) : applyAdaptedPreviewProcessFillDown({ host, config, ensureOverrides, field: fieldKey, fromRow, currentValue: value }));
       if (filled > 0) {
@@ -518,7 +555,7 @@ export async function xmlCiiBuildAndRenderPreview(rootEl, xmlText, config, optio
   _bindManualPreviewButton(host, rootEl, xmlText, config, options, 'Rebuilding preview...');
   _bindParsedCustomSourceToggle(host, config, options);
 
-  const defaultFields = ['p1', 'hydroPressure', 't1', 't2', 't3', 'density', 'wallThickness', 'corrosion'];
+  const defaultFields = ['p1', 'hydroPressure', 't1', 't2', 't3', 'density', 'wallThickness', 'corrosion','insThk','insType'];
   const defaultRows = branchRows.map((row, ri) => ({ row, ri, fields: defaultFields.filter((field) => _isDefaultSource(row[`${field}Source`])) })).filter((item) => item.fields.length > 0);
 
   if (stagedSource.label) host.insertAdjacentHTML('afterbegin', `<div class="model-converters-workflow-detail-note" style="margin:0 0 8px;border-color:#2b6cb0;color:#1e3a8a;background:#eff6ff;">DTXR staged source: ${_esc(stagedSource.label)}</div>`);

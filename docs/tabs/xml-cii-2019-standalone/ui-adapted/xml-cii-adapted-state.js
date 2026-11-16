@@ -1,6 +1,7 @@
 /** Owns isolated XML→CII Standalone state, persistence, and effective config.
  * Parameters are explicit state/config values; outputs are copied state data. */
 
+import {withDefaultRestraintPrecedence} from '../../../converters/xml-cii2019-core/restraint-precedence-policy.js';
 import { defaultXmlCii2019SupportConfigJson } from '../xml-cii-standalone-default-config.js';
 import { createDefaultRegexTesterConfig } from '../xml-cii-regex-tester.js';
 import { createDefaultResolverJsonTraceConfig } from '../xml-cii-resolver-json-trace.js';
@@ -19,7 +20,7 @@ const SUPPORT_MAPPER_DEFAULTS = Object.freeze([
 
 function withStandaloneMaterialCodeDefaults(config) {
   const source = config && typeof config === 'object' && !Array.isArray(config) ? config : {};
-  return { ...source, useDefaultPipingClassMaterialCodeMap: source.useDefaultPipingClassMaterialCodeMap !== false };
+  return withDefaultRestraintPrecedence({ ...source, useDefaultPipingClassMaterialCodeMap: source.useDefaultPipingClassMaterialCodeMap !== false });
 }
 
 export function createDefaultWorkflowOptions() {
@@ -261,6 +262,7 @@ export function createXmlCiiAdaptedWorkflowState() {
     supportConfigJson: configJson,
     regexTesterConfig: getStoredRegexConfig(), regexTesterResult: null, regexTesterRunning: false, regexTesterWriteBackStatus: '',
     resolverJsonTraceConfig: getStoredResolverConfig(), resolverJsonTraceResult: null, resolverJsonTraceJsonResult: null, resolverJsonTraceTableResult: null, resolverJsonTraceRunning: false, resolverJsonTraceWriteBackStatus: '',
+    jsonTraceSidecarCsv: '', jsonTraceSidecarFileName:'staged-json-trace-sidecar.csv', jsonTraceSidecarRowCount:0, jsonTraceSidecarStatus:'',
     jsonTraceTableText: '', jsonTraceTableRows: [], jsonTraceTableFieldMap: {}, jsonTraceTableConfig: createDefaultTraceTableConfig(), jsonTraceTableSourceName: '', jsonTraceTableSheetNames: [], jsonTraceTableActiveSheet: '', jsonTraceTableWorkbookData: null, jsonTraceTableStatus: '', jsonTraceTableBenchmark: null,
     manualElementSideloadConfig: createDefaultManualElementSideloadConfig(), manualElementSideloadResult: null, manualElementSideloadRunning: false, manualElementSideloadWriteBackStatus: '',
     previewDiagnosticsAuditReport: null, previewDiagnosticsAuditStatus: '',
@@ -327,6 +329,7 @@ export function updateWorkflowState(state, patch = {}) {
   const next = { ...state, ...patch, activePhaseId: patch.activePhaseId ? normalizeAdaptedWorkflowPhaseId(patch.activePhaseId) : state.activePhaseId };
   const configChanged = Object.prototype.hasOwnProperty.call(patch, 'supportConfigJson');
   const parsedConfig = configChanged ? parseSupportConfigForState(next.supportConfigJson) : null;
+  if(configChanged&&parsedConfig)next.supportConfigJson=JSON.stringify(parsedConfig,null,2);
   if (configChanged && next.masterContext) next.masterContext = synchronizedMasterContext(next.masterContext, parsedConfig);
   const revisionConfig = parsedConfig || next.masterContext?.config || state.masterContext?.config || {};
   const dependency = advanceDependencyRevisionState(state, next, revisionConfig);
@@ -459,7 +462,9 @@ export function updateResolverJsonTraceConfig(state, value) {
     if (typeof localStorage !== 'undefined') {
       try { localStorage.setItem('xml-cii-resolver-config-v1', JSON.stringify(config)); } catch {}
     }
-    return updateWorkflowState(state, { resolverJsonTraceConfig: config });
+    return updateWorkflowState(state, { resolverJsonTraceConfig: config,
+      jsonTraceSidecarCsv:'',jsonTraceSidecarRowCount:0,
+      jsonTraceSidecarStatus:'Resolver configuration changed; rebuild staged JSON trace sidecar.' });
   }
   catch { return updateWorkflowState(state, { resolverJsonTraceWriteBackStatus: 'Resolver config JSON is invalid.' }); }
 }
@@ -469,7 +474,9 @@ export function patchResolverJsonTraceConfig(state, patch = {}) {
   if (typeof localStorage !== 'undefined') {
     try { localStorage.setItem('xml-cii-resolver-config-v1', JSON.stringify(config)); } catch {}
   }
-  return updateWorkflowState(state, { resolverJsonTraceConfig: config });
+  return updateWorkflowState(state, { resolverJsonTraceConfig: config,
+    jsonTraceSidecarCsv:'',jsonTraceSidecarRowCount:0,
+    jsonTraceSidecarStatus:'Resolver configuration changed; rebuild staged JSON trace sidecar.' });
 }
 
 
