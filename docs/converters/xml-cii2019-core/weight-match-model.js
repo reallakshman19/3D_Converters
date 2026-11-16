@@ -1,5 +1,7 @@
+import {resolvePreviewPipingClassAuthority} from './piping-class-source-resolver.js';
+import {extractBranchFieldsWithFormats} from './branch-format-extraction.js';
 import { deriveLineKeyFromBranchName, tokenAtPosition } from './regex-line-key.js';
-import { computeLineNoKey } from './linelist-mapping.js';
+import { computeLineNoKey,normalizeLineListRow } from './linelist-mapping.js';
 import { buildPipingClassIndex } from './piping-class-resolver.js?v=20260930-issue781-weight-no-staged-rewrite-1';
 import { resolveBranchProcessData } from './branch-process-resolver.js';
 import { buildDtxrContext, resolveDtxrForXmlNode } from './dtxr-resolver.js';
@@ -410,9 +412,9 @@ function lineListRowKey(row, config) {
 function buildWeightLineListIndex(config) {
   const rows = Array.isArray(config.linelist?.masterRows) ? config.linelist.masterRows : [];
   const index = new Map();
-  for (const row of rows) {
+  for (const [i,row] of rows.entries()) {
     const key = normalizeLineKey(lineListRowKey(row, config));
-    if (key && !index.has(key)) index.set(key, row);
+    if(key)index.set(key,index.has(key)?null:normalizeLineListRow(row,config.linelist?.fieldMap||{},i));
   }
   return index;
 }
@@ -487,14 +489,16 @@ function ratingOverrideForBranch(config, { lineKey, branchName, lineRow, request
 function resolveRigidWeightBranchContext(branch, config, pipingClassIndex, lineListIndex) {
   const branchName = xmlText(branch, 'Branchname');
   const { lineKey, row: lineRow } = lineListRowForBranch(branchName, config, lineListIndex);
-  const derivedClass = derivePipingClassFromBranchName(branchName, config);
-  const requestedPipingClass = rowText(lineRow, ['pipingClass', 'Piping Class', 'PIPING_CLASS']) || derivedClass;
+  const identity=Array.isArray(config?.regexTester?.formats)||Array.isArray(config?.formats)?extractBranchFieldsWithFormats(branchName,config):null;
+  const derivedClass = identity?identity.pipingClass:derivePipingClassFromBranchName(branchName, config);
+  const selection=resolvePreviewPipingClassAuthority({branchName,branchClass:derivedClass,lineListClass:lineRow?.pipingClass,lineListExact:!!lineRow,config});
+  const requestedPipingClass = selection.requestedPipingClass;
   const manualRating = ratingOverrideForBranch(config, { lineKey, branchName, lineRow, requestedPipingClass });
   const lineRating = rowText(lineRow, ['rating', 'Rating', 'RATING']);
   const resolverLineRow = { ...(lineRow || {}), pipingClass: requestedPipingClass };
   if (manualRating || lineRating) resolverLineRow.rating = manualRating || lineRating;
   const boreMm = branchBoreFromFirstUsefulNode(branch);
-  const resolved = resolveBranchProcessData({ branchName, lineKey, lineRow: resolverLineRow, boreMm, componentType: 'PIPE', rating: manualRating || lineRating, materialMap: config.material?.mapRows || [], pipingClassIndex, overrides: config.overrides || {}, xmlNode: null, xmlBranch: branch, config });
+  const resolved = resolveBranchProcessData({ branchName, lineKey, lineRow: resolverLineRow, boreMm, componentType: 'PIPE', rating: manualRating || lineRating, materialMap: config.material?.mapRows || [], pipingClassIndex, overrides: config.overrides || {}, xmlNode: null, xmlBranch: branch, config,branchIdentity:identity,pipingClassSelection:selection });
   const rating = manualRating || resolved.rating || lineRating;
   return { branchName, lineKey, lineRow: resolverLineRow, boreMm, requestedPipingClass: resolverLineRow.pipingClass, resolvedPipingClass: resolved.pipingClass, rating, pipingClassMatchMethod: resolved.pipingClassMatchMethod, pipingClassNeedsReview: resolved.pipingClassNeedsReview, pipingClassCandidates: resolved.pipingClassCandidates || [] };
 }

@@ -12,6 +12,8 @@ import { resolveBranchProcessData } from '../../../converters/xml-cii2019-core/b
 import { buildStagedDtxrIndex, resolveXmlCiiNodeDtxr } from '../../../converters/xml-cii2019-core/dtxr-resolver.js';
 import { resolveLineListDensity } from '../../../converters/xml-cii2019-core/line-density-resolver.js';
 import { resolveXmlCiiWallThicknessFromDtxr } from '../../../converters/xml-cii2019-core/dtxr-wall-thickness-resolver.js';
+import {resolvePreviewPipingClassAuthority} from '../../../converters/xml-cii2019-core/piping-class-source-resolver.js';
+import {resolvePreviewInsulation} from '../../../converters/xml-cii2019-core/preview-insulation.js';
 import { previewOverrideProvenance } from './xml-cii-adapted-preview-provenance.js';
 
 export function _toText(val) { return val === null || val === undefined ? '' : String(val); }
@@ -83,14 +85,16 @@ export function _xmlCiiFindLineListRow(branchLineKey, config) {
   const lookupAliases = new Set(_xmlCiiLineKeyAliases(branchLineKey));
   const columnRegex = config.linelist?.linelistColumnRegex || '';
   const columnGroup = config.linelist?.linelistColumnGroup || 1;
-  const aliasMatches = [];
+  const aliasMatches = [], exactMatches = [];
   for (let index = 0; index < rows.length; index += 1) {
     const row = rows[index];
     const rawKey = _lineListRowKey(row, config);
     const cleanKey = _xmlCiiNormalizeLineKey(_xmlCiiLineKeyRegexValue(rawKey, columnRegex, columnGroup));
-    if (cleanKey && cleanKey === lookupKey) return { row, index };
+    if (cleanKey && cleanKey === lookupKey) exactMatches.push({ row, index });
     if (_xmlCiiLineKeyAliases(cleanKey).some((key) => lookupAliases.has(key))) aliasMatches.push({ row, index });
   }
+  if (exactMatches.length === 1) return exactMatches[0];
+  if (exactMatches.length > 1) return null;
   if (aliasMatches.length === 1) return aliasMatches[0];
   return null;
 }
@@ -431,18 +435,15 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
     }
     const lineListMatch = _normaliseLineListMatch(lineListRawMatch, config);
     const lineFromTo = _xmlCiiRowFromTo(lineListMatch, config);
-    const lineListClass = _rowText(lineListMatch, ['pipingClass', 'Piping Class', 'PIPING_CLASS']);
+    const lineListClass = _toText(lineListMatch?.pipingClass).trim();
     const branchClass = extracted ? extracted.pipingClass : _derivePipingClassFromBranchName(branchName, config);
-    // A master class is not permitted to overwrite or silently contradict a configured format.
-    const exactClassConflict = extracted?.status === 'MATCHED' && lineKeyMethod === 'exact'
-      && !!lineListClass && lineListClass.toUpperCase() !== branchClass.toUpperCase();
-    const branchIdentity = exactClassConflict
-      ? { ...extracted, status: 'AMBIGUOUS', lineKey: '', pipingClass: '', rating: '', bore: '',
-          matchedFormatIndex: null, conflictReason: 'EXACT_LINE_LIST_CLASS_CONFLICT' }
-      : extracted;
-    const derivedClassRaw = extracted
-      ? (branchIdentity.status === 'MATCHED' ? branchClass : '')
-      : (lineListClass || branchClass);
+    // True Format 1/2 ambiguity remains blocked. An exact Line List versus
+    // unambiguous Regex class disagreement is an explicit source choice.
+    const branchIdentity = extracted;
+    const classSelection = resolvePreviewPipingClassAuthority({branchName,branchClass,
+      lineListClass,lineListExact:lineKeyMethod==='exact',config});
+    const derivedClassRaw = branchIdentity && branchIdentity.status!=='MATCHED'
+      ? '' : classSelection.requestedPipingClass;
     const formatBore = extracted
       ? (branchIdentity.status === 'MATCHED' ? _nominalDnFromNps(_numericFromSizeToken(branchIdentity.bore), config) : null)
       : _deriveBoreFromBranchName(branchName, config);
@@ -454,7 +455,7 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
     const inputRating = manualRating || rowRating || _deriveRatingFromPipingClass(derivedClassRaw, config);
     const resolverLineRow = { ...(lineListMatch || {}), pipingClass: derivedClassRaw };
     const branchXmlFacts = _branchXmlFallbackFacts(branch);
-    const resolved = resolveBranchProcessData({ branchName, lineKey, lineRow: resolverLineRow, boreMm, componentType: 'PIPE', rating: inputRating, materialMap, pipingClassIndex, overrides: config.overrides || {}, xmlNode: branchXmlFacts, xmlBranch: branchXmlFacts, branchIdentity, config });
+    const resolved = resolveBranchProcessData({ branchName, lineKey, lineRow: resolverLineRow, boreMm, componentType: 'PIPE', rating: inputRating, materialMap, pipingClassIndex, overrides: config.overrides || {}, xmlNode: branchXmlFacts, xmlBranch: branchXmlFacts, branchIdentity, pipingClassSelection:classSelection, config });
     const branchRating = branchIdentity && branchIdentity.status !== 'MATCHED'
       ? '' : (manualRating || resolved.rating || _deriveRatingFromPipingClass(resolved.pipingClass, config) || rowRating);
     const ratingSource = manualRating ? 'override' : _overrideSource(config.overrides, 'rating', lineKey);
@@ -486,6 +487,16 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
     const density = densityInfo.value || _processDefaultValue(config, 'density');
     const densitySource = densityInfo.value ? densityInfo.source : (_processDefaultValue(config, 'density') ? 'default' : 'none');
 
+    const insulationNodes = _xmlChildrenByName(branch,'Node');
+    const insulation = resolvePreviewInsulation({
+      branchThickness:_xmlText(branch,'InsulationThickness'),branchType:_xmlText(branch,'InsulationType'),
+      xmlThicknesses:insulationNodes.map(n=>_xmlText(n,'InsulationThickness')),
+      xmlTypes:insulationNodes.map(n=>_xmlText(n,'InsulationType')),
+      override:(config?.overrides?.processData?.[lineKey||branchName]||{}),
+      lineThickness:lineKeyMethod==='exact'?lineListMatch?.insThk:'',
+      lineType:lineKeyMethod==='exact'?lineListMatch?.insType:'',
+      defaultThickness:_processDefaultValue(config,'insThk'),defaultType:_processDefaultValue(config,'insType'),
+    });
     const dtxrWall = resolveXmlCiiWallThicknessFromDtxr({ boreMm, dtxrValues: _branchDtxrValues(branch, stagedIndex, config), config });
     const wallThickness = resolved.wallThicknessMm != null ? Number(resolved.wallThicknessMm.toPrecision(6)).toString() : '';
     const corrosion = resolved.corrosionAllowanceMm != null ? String(resolved.corrosionAllowanceMm) : '';
@@ -511,6 +522,12 @@ export function xmlCiiDryRunPreview(xmlText, config, stagedJsonText, runtime = {
       size: boreMm != null ? `${boreMm}mm` : '',
       sizeMm: boreMm,
       pipingClass: resolved.pipingClass || '',
+      pipingClassRegex:classSelection.regex,
+      pipingClassLineList:classSelection.lineList,
+      pipingClassSelectedSource:classSelection.source,
+      pipingClassConflict:classSelection.conflict,
+      pipingClassSelectionExplicit:classSelection.explicit,
+      ...insulation,
       pipingClassDerived: derivedClassRaw || '',
       pipingClassMethod: resolved.pipingClassMatchMethod,
       pipingClassConfidence: resolved.pipingClassConfidence,

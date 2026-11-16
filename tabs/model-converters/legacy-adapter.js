@@ -17,7 +17,7 @@ import { parseRmssAttributes, parseRmssStructuralMembers } from '../../converter
 import { openAttNativeScopePopup } from './att-native-scope-popup.js?v=20261008-txt-tree-ux-r5-1';
 import { rvmScopeRegex } from '../../converters/rvm-scope-pattern.js';
 import { parseStpSupportMembers } from '../../parser/stp-support-parser.js';
-import { getAllRules, resolveKindFromAttrs, renderSupportMapperPanel } from '../../rvm-viewer/RvmSupportMapper.js?v=20260518-support-mapper-11';
+import { getAllRules, resolveKindFromAttrs } from '../../rvm-viewer/RvmSupportMapper.js?v=20260518-support-mapper-11';
 import { parseXmlCiiEnrichmentConfig } from '../../converters/xml-cii2019-core/config.js';
 import { deriveLineKeyFromBranchName } from '../../converters/xml-cii2019-core/regex-line-key.js';
 import { buildPipingClassIndex } from '../../converters/xml-cii2019-core/piping-class-resolver.js';
@@ -6630,9 +6630,26 @@ export function renderModelConvertersTab(container) {
     if (!supportMapperWrapEl || !supportMapperPanelEl) return;
     const isSupportConversion = activeDef().id === 'rvmattr_to_xml';
     supportMapperWrapEl.hidden = !isSupportConversion;
-    if (!isSupportConversion || supportMapperPanelEl.dataset.rendered === 'true') return;
-    renderSupportMapperPanel(supportMapperPanelEl);
-    supportMapperPanelEl.dataset.rendered = 'true';
+    if (!isSupportConversion) return;
+    // This exporter reads the saved Standalone Step 7 table, not the RVM
+    // viewer's independent legacy keyword store. Keep a single edit owner.
+    let config = {};
+    try {
+      const raw = window.localStorage.getItem('xml-cii-import-masters-v1');
+      if (raw) config = JSON.parse(raw)?.config || {};
+    } catch (error) {
+      supportMapperPanelEl.textContent = 'Saved Step 7 configuration could not be read: ' + error.message;
+      return;
+    }
+    const signature = JSON.stringify(config.supportMapping || {});
+    if (supportMapperPanelEl.dataset.step7Signature === signature) return;
+    renderUnifiedSupportMappingTable(supportMapperPanelEl, config);
+    const note = document.createElement('p');
+    note.className = 'model-converters-workflow-detail-text';
+    note.textContent = 'ATT/RVM export uses this saved Step 7 support mapping. Edit rules and kind profiles in XML → CII 2019 Standalone → 7 Support Type Mapper; return here to regenerate. Explicit source gaps take priority; missing catalogue gaps use the selected profile default.';
+    supportMapperPanelEl.prepend(note);
+    for (const control of supportMapperPanelEl.querySelectorAll('input,select,button')) control.disabled = true;
+    supportMapperPanelEl.dataset.step7Signature = signature;
   }
 
   function xmlCiiLocalMasterState(masterKey) {

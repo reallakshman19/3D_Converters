@@ -1,3 +1,4 @@
+import {restraintPrecedence,nodeTypeUsesMapper,jsonNodeTypeAttrs} from './restraint-precedence-policy.js';
 import { mutateRestraintType } from './restraint-type-mutation.js';
 import { migrateSupportMappingConfig } from './support-mapping-config.js';
 
@@ -54,6 +55,15 @@ export function nodeTypeSupportKind(attrs = {}, config = {}) {
     throw refuse('PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT',
       `8 Config row ${text(row.label)} maps NODETYPE ${text(row.from)} to ${text(row.to)}, not ${labelCode}`);
   }
+  // Authored type mutations cannot contradict an independent, unambiguous
+  // DTXR/MDSDTXR kind (unmodified source NODETYPE precedence is unchanged).
+  if (row) {
+    const selectedKind = KIND_BY_CAESAR_CODE[Number(text(row.to))] || '';
+    const described = describedKinds(attrs);
+    if (selectedKind && described.length === 1 && described[0] !== selectedKind)
+      throw refuse('PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT',
+        'Authored NODETYPE mutation contradicts explicit source description');
+  }
   const code = Number(mutateRestraintType(raw, mutation));
   if(!Number.isInteger(code)||code<1||code>62)
     throw refuse('PREFINAL_RESTRAINT_TYPE_INVALID','Source NODETYPE or its configured mutation is outside CAESAR codes 1–62');
@@ -72,9 +82,9 @@ export function describedKinds(attrs = {}) {
 }
 
 // The Step 7 rows that apply to staged JSON, enabled, in priority order.
-export function tableRules(config = {}) {
+export function tableRules(config = {}, sources = STAGED_SOURCES) {
   return (migrateSupportMappingConfig(config || {}).rules || [])
-    .filter((rule) => rule && rule.enabled !== false && STAGED_SOURCES.includes(text(rule.source).toUpperCase()))
+    .filter((rule) => rule && rule.enabled !== false && sources.includes(text(rule.source).toUpperCase()))
     .map((rule) => ({ id: text(rule.id), priority: Number(rule.priority ?? 0), field: text(rule.field || '*') || '*',
       match: rule.match, pattern: text(rule.pattern), kind: text(rule.kind).toUpperCase() }))
     .sort((a, b) => a.priority - b.priority);
@@ -164,6 +174,17 @@ export function tableSupportKind(attrs = {}, config = {}, onlyUserRows = false, 
     .filter(([key])=>GENERATED_FIELDS.includes(key))),rules,observe);
 }
 
+// ATT/RVM export uses the same Step 7 rule matcher, but no NODETYPE
+// precedence or generated-label/keyword fallback may bypass disabled rows.
+export function matchAttRvmSupportTable(attrs = {}, config = {}, source = 'ATT', observe = null) {
+  const sources = [...STAGED_SOURCES, text(source).toUpperCase(), 'ATT/RVM', 'ATT-RVM'];
+  const f = fields(attrs);
+  const evidence = Object.fromEntries(Object.entries(f).filter(([key])=>
+    !GENERATED_FIELDS.includes(key) && !/^(?:SUPPORTMAPPING|SUPPORTEFFECTIVE|SUPPORTGAPSOURCE|NODETYPECLASSIFICATION|NODETYPECODES|SOURCENODETYPE|SOURCENODEGAP)/.test(key)));
+  if (!DESCRIPTION_KEYS.some(key=>evidence[key]) && evidence.MDSDTXR) evidence.DESCRIPTION = evidence.MDSDTXR;
+  return matchTableRules(attrs,evidence,tableRules(config,sources),observe);
+}
+
 // Project original scalar attributes for Preview independently of display fields.
 export function projectSupportRuleEvidence(rawValue, config = {}, baseline = []) {
   const raw=rawValue&&typeof rawValue==='object'?rawValue:{};
@@ -187,7 +208,95 @@ export function generatedSupportKind(attrs = {}) {
   return '';
 }
 
+// Explicit project policy: only the six original source fields may win over
+// a valid governed NODETYPE. No generated label, NAME/SPRE or NODETYPE rule
+// can grant this exception. Use the saved Step 7 priority/match/source rules.
+// Missing policy defaults ON in qualified V1; explicit OFF survives reload.
+// V2 has not qualified this authority: absent remains OFF, explicit ON is rejected by pre-Final.
+export function mappedCodePrecedenceEnabled(config={}) {
+  const policy=restraintPrecedence(config);
+  if(policy)return policy.nodeType.primary==='supportMapper'||policy.nodeType.fallback==='supportMapper';
+  const value=config.xml229SourceFieldPrecedence?.mappedCodes;
+  return value===true || (value===undefined && config.xml229PhysicalVertexPrefinal!==true);
+}
+export function mappedCodePrecedenceApplies(attrs={},config={}) {
+  return (nodeTypeUsesMapper(attrs,config)??mappedCodePrecedenceEnabled(config)) &&
+    (Object.hasOwn(attrs,'NODETYPE_CODES')||text(attrs.NODETYPE_CLASSIFICATION_SOURCE)==='STEP7_SUPPORT_MAPPING');
+}
+export function stagedFieldKindDecision(attrs={},config={}) {
+  const active=restraintPrecedence(config)?.nodeType;
+  const mode=nodeTypeUsesMapper(attrs,config);
+  const isSupport=['NODETYPE','SOURCE_NODETYPE','NODETYPE_CODES','MDSSUPPTYPE','MDSSUPPFUNC','CMPSUPTYPE','SUPPORT_KIND','SUPPORT_TYPE','SUPPORT_MAPPER_KIND'].some(key=>Object.hasOwn(attrs,key));
+  if(active&&!isSupport)return null;
+  if(mode===false){
+    if(active&&!nodeTypeSupportKind(jsonNodeTypeAttrs(attrs,config),config))
+      throw refuse('PREFINAL_RESTRAINT_TYPE_AMBIGUOUS','Selected JSON node type is unavailable or not a governed code');
+    return null;
+  }
+  const policy=config.xml229SourceFieldPrecedence||{};
+  const mapped=mappedCodePrecedenceApplies(attrs,config);
+  if(!mapped&&mode!==true&&policy.type!==true)return null;
+  // Mapped-code precedence is a selected policy, not permission to infer
+  // a code from generated labels or accept an incomplete exporter receipt.
+  if(mapped&&((!active&&!text(attrs.SOURCE_NODETYPE))||text(attrs.NODETYPE_CLASSIFICATION_SOURCE)!=='STEP7_SUPPORT_MAPPING'||
+    !Array.isArray(attrs.NODETYPE_CODES)||attrs.NODETYPE_CODES.length!==1)){
+    if(active)throw refuse('PREFINAL_RESTRAINT_TYPE_AMBIGUOUS','Incomplete or composite staged mapping receipt');
+    return null;
+  }
+  const rawNodeType=active?text(jsonNodeTypeAttrs(attrs,config).NODETYPE):Object.prototype.hasOwnProperty.call(attrs,'SOURCE_NODETYPE')?text(attrs.SOURCE_NODETYPE):text(attrs.NODETYPE);
+  const originalKind=nodeTypeSupportKind({...attrs,NODETYPE:rawNodeType},config);
+  if(!originalKind&&!active)return null;
+  const evidence=Object.fromEntries(Object.entries(fields(attrs)).filter(([key])=>
+    ['SKEY','DESCRIPTION','DESC','CMPSUPTYPE','DTXR','MDSSUPPTYPE'].includes(key)));
+  let receipt=null;
+  const kind=matchTableRules(attrs,evidence,tableRules(config),value=>{receipt=value;});
+  if(!kind){
+    if(!active||(active.primary==='supportMapper'&&active.fallback==='json'&&originalKind))return null;
+    throw refuse('PREFINAL_RESTRAINT_TYPE_AMBIGUOUS','No valid Support Mapper rule for this source member');
+  }
+  if(!active&&(!originalKind||kind===originalKind))return null;
+  if(!GOVERNED.includes(kind))throw refuse('PREFINAL_RESTRAINT_KIND_UNSUPPORTED','Field precedence selected an unsupported restraint kind');
+  const described=describedKinds(evidence);
+  if(described.length>1||(described.length===1&&described[0]!==kind))
+    throw refuse('PREFINAL_RESTRAINT_KIND_AMBIGUOUS','Conflicting original source descriptions and Step 7 field rule');
+  const profile=migrateSupportMappingConfig(config).kindProfiles[kind];
+  const expected={REST:'+Y',GUIDE:'GUI',LINESTOP:'LIM'}[kind];
+  if(profile?.xmlTypes?.length!==1||profile.xmlTypes[0]!==expected)
+    throw refuse('PREFINAL_RESTRAINT_CONFIG_INVALID','Field precedence requires a single matching governed XML/CII profile type');
+  // Current source rules, not the exporter proposal, confer authority.
+  const generated=text(attrs.NODETYPE_CLASSIFICATION_SOURCE)==='STEP7_SUPPORT_MAPPING';
+  const expectedCode={REST:'14',GUIDE:'8',LINESTOP:'9'}[kind];
+  if(mapped&&text(attrs.NODETYPE_CODES[0])!==expectedCode){
+    if(active)throw refuse('PREFINAL_RESTRAINT_TYPE_AMBIGUOUS','Mapped code differs from the current Support Mapper rule');
+    return null;
+  }
+  if(generated&&(text(attrs.NODETYPE)!==expectedCode||
+     (text(attrs.SUPPORT_EFFECTIVE_NODETYPE)&&text(attrs.SUPPORT_EFFECTIVE_NODETYPE)!==expectedCode)||
+     (attrs.NODETYPE_CODES!=null&&(!Array.isArray(attrs.NODETYPE_CODES)||
+       attrs.NODETYPE_CODES.length!==1||text(attrs.NODETYPE_CODES[0])!==expectedCode)))){
+    if(active)throw refuse('PREFINAL_RESTRAINT_TYPE_AMBIGUOUS','Staged scalar or effective code differs from the current Support Mapper rule');
+    return null;
+  }
+  return {kind,source:active&&(!originalKind||kind===originalKind)?'step7-support-table':'explicit-staged-field-precedence',rule:{...receipt.rule,
+    resolutionStatus:active&&(!originalKind||kind===originalKind)?'VERIFIED_BY_STEP7_POLICY':'RESOLVED_BY_STEP7_POLICY',
+    proposedNodeType:text(attrs.NODETYPE),exportedRuleId:text(attrs.SUPPORT_MAPPING_RULE_ID),
+    effectiveNodeType:expectedCode,exportedProposalVerified:generated,
+    originalKind,originalNodeType:rawNodeType,effectiveXmlType:expected,
+    mappedCodes: mapped?[...attrs.NODETYPE_CODES]:null,
+    policy:active?'xml229RestraintPrecedence.nodeType':mapped?'xml229SourceFieldPrecedence.mappedCodes':'xml229SourceFieldPrecedence.type'}};
+}
+
 export function governedSupportKind(attrs = {}, config = {}, governed = GOVERNED, observe = null) {
+  const preferred=stagedFieldKindDecision(attrs,config);
+  if(preferred&&governed.includes(preferred.kind)){observe?.(preferred);return preferred;}
+  // The physical ST/GT conflict branch already holds failed proposals.
+  // Other reclassified members must not fall through to the generated scalar.
+  if(!restraintPrecedence(config)&&mappedCodePrecedenceApplies(attrs,config)&&text(attrs.SOURCE_NODETYPE)&&
+     (text(attrs.NODETYPE)!==text(attrs.SOURCE_NODETYPE)||
+      !Array.isArray(attrs.NODETYPE_CODES)||attrs.NODETYPE_CODES.length!==1||
+      text(attrs.NODETYPE_CODES[0])!==text(attrs.SOURCE_NODETYPE)))
+    throw refuse('PREFINAL_RESTRAINT_TYPE_AMBIGUOUS','Mapped restraint codes could not be validated against the current Step 7 rule');
+  attrs=jsonNodeTypeAttrs(attrs,config);
   const byNodeType = nodeTypeSupportKind(attrs, config);
   if (byNodeType && governed.includes(byNodeType)) {
     // A user-authored Step 7 row that names this member as another governed

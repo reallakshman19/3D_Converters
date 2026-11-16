@@ -265,7 +265,7 @@ export function normalizeSupportKindProfile(profile = {}, fallback = {}) {
     directionMode: normalizeDirectionMode(profile.directionMode ?? fallback.directionMode),
     direction,
     stiffness: toText(profile.stiffness ?? fallback.stiffness ?? 'default') || 'default',
-    gap: '0',
+    gap: toText(profile.gap ?? fallback.gap ?? '0'),
     frictionMode: normalizeFrictionMode(profile.frictionMode ?? fallback.frictionMode),
     fixedFriction: toText(profile.fixedFriction ?? fallback.fixedFriction ?? ''),
     supportTagMode: normalizeSupportTagMode(profile.supportTagMode ?? fallback.supportTagMode),

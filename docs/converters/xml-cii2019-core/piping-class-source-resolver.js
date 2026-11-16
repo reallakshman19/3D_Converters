@@ -84,3 +84,19 @@ export function selectXmlCiiRequestedPipingClass({ branchName = '', lineListPipi
     source: branchPipingClass ? 'branch-name' : (lineListClass ? 'line-list' : 'none'),
   };
 }
+
+/** Source selection is separate from matching a Piping Class master.
+ * Only an exact, unambiguous Line List join can outrank the branch class.
+ * Saved choices bind to the branch and both candidates; stale choices are ignored.
+ */
+export function resolvePreviewPipingClassAuthority({branchName='', branchClass='', lineListClass='', lineListExact=false, config={}}={}) {
+  const regex=text(branchClass), ll=lineListExact?text(lineListClass):'';
+  const norm=v=>text(v).toUpperCase().replace(/\s+/g,'');
+  const conflict=!!(regex&&ll&&norm(regex)!==norm(ll));
+  const saved=config?.overrides?.pipingClassSource?.[branchName];
+  const valid=conflict&&saved&&norm(saved.regex)===norm(regex)&&norm(saved.lineList)===norm(ll)
+    && ['regex','line-list'].includes(saved.source);
+  const source=ll?(valid?saved.source:'line-list'):(regex?'regex':'none');
+  return {regex,lineList:ll,conflict,source,requestedPipingClass:source==='line-list'?ll:regex,
+    pinned:!!ll,explicit:!!valid};
+}

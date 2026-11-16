@@ -1,3 +1,4 @@
+import {selectRestraintGap,selectRestraintScalar,restraintPrecedence} from './restraint-precedence-policy.js';
 import {governedSupportKind} from './support-kind-precedence.js';
 import {
   resolveKindDescriptor,
@@ -435,7 +436,9 @@ function supportProfileForKind(kind, config = {}) {
 // Source-owned gap is independent of support classification. Explicit zero is
 // evidence, not absence; NODEGAP=0 is the established placeholder only when
 // the same source member supplies CMPSUPGAP.
-export function sourceSupportGap(attrs = {}) {
+export function sourceSupportGap(attrs = {}, config = {}, kind = '') {
+  const selected=selectRestraintGap(attrs,config,kind);
+  if(selected)return {raw:selected.attribute?toText(selected.raw):'',gap:String(selected.value),explicit:!!selected.attribute,authority:selected.authority};
   const aliases=['CMPSUPGAP','CMPSUPGAP_POS','CMPSUPGAP_PS','NODEGAP'];
   const fields=aliases.map(key=>({key,raw:toText(attrs?.[key]).trim()})).filter(f=>f.raw!=='');
   const parse=raw=>{
@@ -444,11 +447,20 @@ export function sourceSupportGap(attrs = {}) {
     if(!Number.isFinite(number))throw Error('NATIVE_PREFINAL_RESTRAINT_GAP_INVALID');
     return number;
   };
-  const authored=fields.filter(f=>!(f.key==='NODEGAP'&&fields.some(v=>v.key==='CMPSUPGAP')&&parse(f.raw)===0));
+  const prefer=config.xml229SourceFieldPrecedence?.gap===true&&!!kind&&Object.keys(attrs).length>0;
+  const catalogue=fields.filter(f=>f.key!=='NODEGAP');
+  const saved=config.supportMapping?.kindProfiles?.[kind]?.gap;
+  const authored=fields.filter(f=>!(f.key==='NODEGAP'&&
+    ((prefer&&catalogue.length)||(fields.some(v=>v.key==='CMPSUPGAP')&&parse(f.raw)===0))));
+  if(prefer&&!catalogue.length&&saved!=null&&toText(saved).trim()!==''){
+    const value=Number(toText(saved).trim());
+    if(!Number.isFinite(value)||value<0)throw Object.assign(Error('Invalid saved Step 7 gap'),{code:'PREFINAL_RESTRAINT_CONFIG_INVALID'});
+    return {raw:'',gap:String(value),explicit:false,authority:'step7-profile-gap'};
+  }
   if(!authored.length)return {raw:'',gap:'0',explicit:false};
   const first=parse(authored[0].raw);
   if(authored.some(f=>parse(f.raw)!==first))throw Error('NATIVE_PREFINAL_RESTRAINT_GAP_AMBIGUOUS');
-  return {raw:authored[0].raw,gap:String(first),explicit:true};
+  return {raw:authored[0].raw,gap:String(first),explicit:true,authority:authored[0].key};
 }
 
 function restraintTypeUsesSupportGap(type, entry = null) {
@@ -503,17 +515,39 @@ function createRestraintEntry(fields) {
   return { ...fields, toString() { return this.type || ''; }, valueOf() { return this.type || ''; }, [Symbol.toPrimitive]() { return this.type || ''; } };
 }
 
+// Numeric source fields are independent of classification. The opt-in
+// prefers direct physical fields over legacy NODE*; absent direct evidence
+// retains the selected Step 7 profile. Conflicting physical aliases fail.
+export function preferredStagedScalar(attrs,config,field,kind='') {
+  if(restraintPrecedence(config)&&kind){
+    const selected=selectRestraintScalar(attrs,config,field,kind);
+    return String(selected.value);
+  }
+  if(config.xml229SourceFieldPrecedence?.[field]!==true)return '';
+  const aliases=field==='stiffness'?['STIFFNESS','NODESTIFFNESS','CMPSUPSTIFF']:['FRICTION','CMPSUPFRICTION'];
+  const values=aliases.map(k=>toText(attrs?.[k]).trim()).filter(Boolean);
+  if(!values.length)return '';
+  const numbers=values.map(Number);
+  if(numbers.some(n=>!Number.isFinite(n)||(field==='stiffness'?n<=0:n<0&&n!==-1.0101))||
+     numbers.some(n=>n!==numbers[0]))
+    throw Object.assign(Error('Invalid or conflicting staged '+field+' fields'),{code:'PREFINAL_RESTRAINT_'+field.toUpperCase()+'_AMBIGUOUS'});
+  return values[0];
+}
+
 export function restraintEntriesFromSupportKind(kind, attrs = {}, nodeElement = null, config = {}) {
   const upperKind = normalizeSupportKind(kind);
   if (!upperKind) return [];
   const profile = supportProfileForKind(upperKind, config);
   const values = normalizeXmlTypes(profile.xmlTypes || config.supportKindToXmlType?.[upperKind] || []);
   const direction = resolveSupportDirectionCosines({ profile, attrs, nodeElement });
-  const sourceGap = sourceSupportGap(attrs);
+  const sourceGap = sourceSupportGap(attrs,config,upperKind);
+  const preferredStiffness=preferredStagedScalar(attrs,config,'stiffness',upperKind);
+  const preferredFriction=preferredStagedScalar(attrs,config,'friction',upperKind);
   const gap = sourceGap.gap;
   return values.map(normalizeXmlType).filter(Boolean).map((type) => createRestraintEntry({
     type,
-    stiffness: profile.stiffness && profile.stiffness !== 'default' ? profile.stiffness : config.defaultStiffness,
+    stiffness: preferredStiffness || (profile.stiffness && profile.stiffness !== 'default' ? profile.stiffness : config.defaultStiffness),
+    ...(preferredFriction?{friction:preferredFriction}:{}),
     gap,
     cmpSupGap: sourceGap.raw,
     sourceGapPolicy: true,

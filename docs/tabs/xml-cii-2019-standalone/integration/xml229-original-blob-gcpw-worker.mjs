@@ -50,11 +50,12 @@ import {exportXml229SourceBoundReviewBackup,restoreXml229SourceBoundReviewBackup
  from './xml229-source-weight-review-transfer.mjs';
 
 import {resolveXml229ReviewSourceInput} from './xml229-review-source-input.mjs';
+import {assertNativeXml229RestraintReviewClear} from './xml229-native-restraint-review-gate.mjs';
 installWeightBasisXmlDom(globalThis);
 const PROTOCOL='XML229.P4.WorkerHeldOriginalJsonGC-PW.v1';
 const MAX_ORIGINAL_COUNT=250000,MAX_PHYSICAL=10000;
 const fail=(code,message)=>{const e=new Error(message);e.code=code;e.retryable=false;throw e;};
-let started=false,active='',cancelled=false,ready=null,sourceReceipt=null,physicalIdentityList=null,originalXmlCustody=null,verifiedPreviewResult=null,finalizedGeometry=null;
+let started=false,active='',cancelled=false,ready=null,sourceReceipt=null,physicalIdentityList=null,originalXmlCustody=null,verifiedPreviewResult=null,finalizedGeometry=null,restraintReview=null;
 let weightProjection=null,pendingBulk=null,bulkSequence=0,previewAbortController=null;
 // Only contemporaneous successful Worker RPCs prove bulk confirmation.
 let confirmedBulkCommands=new Set(),restoringReview=false;
@@ -100,6 +101,8 @@ async function start(req){
  progress(req.requestId,sourceInput.kind==='XML_ONLY'?'original-xml-sha256':'original-json-blob-sha256');
  if(cancelled)return;
  const stagedSource=sourceInput.stagedSource;
+ // Optional JSON can cover a different scope. Existing source-bound matching,
+ // restraint review and physical census decide which facts may be used.
  const sources=[{sourceId,mediaType:'application/xml',text:xmlText}];
  progress(req.requestId,'full-original-source-master-basis');
  const basis=await createPreviewBasis({domainId:'xml-cii/2019',sources,selection,masters,
@@ -135,6 +138,7 @@ async function start(req){
  const produced=await openXml229EngineeringFactModel({
   basis,live,xmlText,sourceId,previewResult,expectedOriginalCount,
   maxPhysical:Math.min(req.maxPhysical??MAX_PHYSICAL,MAX_PHYSICAL),
+   onProgress:stage=>progress(req.requestId,stage),
  });
  exactCensus(produced,req,original);
  if(cancelled)return;
@@ -178,13 +182,17 @@ async function start(req){
      originalNodeCount:original.nodeCount,engineeringBranchCount:computed.branchRows.length,
      legacyReviewNodeCount:computed.nodeRows.length},
    originalStagedSourceSha256:r.sha256,originalStagedSourceGeneration:r.generationId,
-   engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false};
+   engineeringAcceptance:'NOT_ASSESSED',fullFactPopulationAccepted:false,
+   // A restraint HOLD never promotes these source/Weight facts to Final CII.
+   restraintReview:produced.restraintReview,
+   engineeringRestraintAcceptance:produced.restraintReview.engineeringRestraintAcceptance};
  const display=buildXml229VerifiedWeightRowProjection({
    session,sourceId,physicalOccurrences:produced.physicalOccurrences,
    originalOccurrences:original,previewResult:verifiedPreviewResult,config,
  });
  ready=session;sourceReceipt=r;originalXmlCustody=xmlText;
  finalizedGeometry=produced.finalizedGeometry;
+ restraintReview=produced.restraintReview;
  physicalIdentityList=produced.physicalOccurrences;weightProjection=display;
  flow(req.requestId,'GC_PW_READY',{physical:produced.physicalOccurrences.length,
    facts:session.openedFacts});
@@ -194,6 +202,8 @@ async function start(req){
    sourceId,originalCount:produced.workerOriginalCount,
    physicalCount:produced.physicalOccurrences.length,
    physicalFactCount:session.openedFacts,engineeringFactsVerified:true,
+   engineeringRestraintAcceptance:restraintReview?.engineeringRestraintAcceptance||'NOT_ASSESSED',
+   restraintWarningCount:restraintReview?.warnings?.length||0,
    weightEngineeringAccepted:false,finalEngineeringAccepted:false,
    stageRevisions:{
      match1:session.review.getDecisionState({basisId:basis.basisId,scopeId:sourceId,
@@ -233,6 +243,9 @@ function currentRunAdvisory(){
      verifiedFactCount:full.verifiedFactCount,
      stageRevisions:full.revisionBySource,
      counts,engineeringFactsVerified:true,
+     restraintReview:restraintReview?.status||'CLEAR',
+     engineeringRestraintAcceptance:restraintReview?.engineeringRestraintAcceptance||'NOT_ASSESSED',
+     restraintWarningCount:restraintReview?.warnings?.length||0,
      previewStatus:'FULL_SOURCE_FACTS_VERIFIED',
      weightStatus:counts.unresolved>0?'PROPOSED_OR_UNRESOLVED':'REVIEWED_SOURCE_MASSES',
      ciiReleaseAuthorized:false,
@@ -289,6 +302,7 @@ async function rpc(req){
      });
    }
    if(req.what==='native-final-intent'){
+     assertNativeXml229RestraintReviewClear(restraintReview);
      return commitXml229NativeFinalIntent(ready,{
        ...(sourceReceipt.schema==='XML229.XmlOnlyReviewSource.v1'?{reviewSourceKind:'XML_ONLY',sourceXmlSha256:ready.basis.sourceRefs[0].sha256}:{}),
        originalJsonSha256:sourceReceipt.sha256,
@@ -296,6 +310,7 @@ async function rpc(req){
      });
    }
    if(req.what==='native-final-packet'){
+     assertNativeXml229RestraintReviewClear(restraintReview);
      // Private Worker-owned weight input to the native converter. This is
      // actual accepted Source/Final mass, never candidate or localStorage.
      const intent=await commitXml229NativeFinalIntent(ready,{

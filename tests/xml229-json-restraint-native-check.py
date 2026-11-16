@@ -79,7 +79,7 @@ def native(kg):
     nodes = {int(n.findtext('NodeNumber')): n for n in ET.parse(enriched).iter('Node')}
     assert float(nodes[20].findtext('Weight')) == kg
     assert nodes[40].findtext('Position') == '300 0 0'
-    expected = {30: ('+Y', 7), 40: ('GUI', 6), 50: ('LIM', 8), 60: ('+Y', 7)}
+    expected = {30: ('+Y', 0), 40: ('GUI', 6), 50: ('LIM', 8), 60: ('+Y', 0)}
     for number, (typ, gap) in expected.items():
         restraint = nodes[number].find('Restraint')
         assert restraint.findtext('Type') == typ
@@ -92,7 +92,7 @@ def native(kg):
     actual = {int(row[0]): row for i in range(0, len(lines), 4)
               if (row := list(map(float, lines[i].split())))[0]}
     assert set(actual) == {30, 40, 50, 60}
-    for number, code, gap in [(30, 14, 7), (40, 8, 6), (50, 9, 8), (60, 14, 7)]:
+    for number, code, gap in [(30, 14, 0), (40, 8, 6), (50, 9, 8), (60, 14, 0)]:
         assert actual[number][1:5] == [code, 123456, gap, 0]
     proof = json.loads((folder / 'proof.json').read_text())
     assert len(proof['claims']) == 1

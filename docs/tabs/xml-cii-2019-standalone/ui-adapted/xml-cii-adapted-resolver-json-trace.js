@@ -1,4 +1,7 @@
+import {restraintPrecedence,DEFAULT_RESTRAINT_PRECEDENCE} from '../../../converters/xml-cii2019-core/restraint-precedence-policy.js';
 import { createElement, appendLabeledControl } from './xml-cii-adapted-dom.js';
+import { saveMasterContextToLocalStorage,updateWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
+import { recordPreviewRestraintReview,recordPreviewFailure } from './xml-cii-adapted-preview-failure-notice.js';
 import { buildAdaptedJsonTraceTree } from './xml-cii-adapted-regex-results.js';
 import { renderStandaloneTraceTableImportPanel } from './xml-cii-adapted-table-trace-panel.js';
 import {
@@ -198,6 +201,58 @@ function renderDelimiterControls(parent, state) {
   if (note.style) note.style.fontSize = '11px';
   bar.appendChild(note);
 
+
+  // Explicit grouping modes. ROOT deliberately bypasses PS regex and suffix rules.
+  const matchLabel = createElement('label');
+  if (matchLabel.style) Object.assign(matchLabel.style, { display: 'flex', alignItems: 'center', gap: '4px' });
+  matchLabel.appendChild(createElement('span', 'Group via:'));
+  const matchSelect = createElement('select');
+  matchSelect.dataset.field = 'resolver-match-mode';
+  matchSelect.title = 'POS: aligned 3D coordinate within tolerance. PS: configurable suffix-normalized PS identifier. Root: literal support root, without regex or position matching.';
+  for (const [value, label] of [
+    ['POS', 'POS — coordinate (preferred)'],
+    ['PS', 'PS — suffix-normalized'],
+    ['ROOT', 'Root — support reference (no regex)'],
+  ]) {
+    const option = createElement('option', label);
+    option.value = value;
+    option.selected = (cfg.matchMode || 'POS').toUpperCase() === value;
+    matchSelect.appendChild(option);
+  }
+  matchLabel.appendChild(matchSelect);
+  bar.appendChild(matchLabel);
+
+
+  const exportLabel = createElement('label');
+  if (exportLabel.style) Object.assign(exportLabel.style,
+    { display: 'flex', alignItems: 'center', gap: '4px' });
+  const exportCheckbox = createElement('input');
+  exportCheckbox.type = 'checkbox';
+  exportCheckbox.dataset.field = 'resolver-export-trace-sidecar';
+  exportCheckbox.checked = cfg.exportTraceSidecar !== false;
+  exportLabel.append(exportCheckbox, createElement('span', 'Export CSV trace sidecar when building from JSON'));
+  exportLabel.title = 'Keeps one source row per staged JSON member, including coincident ST/GT/REST members. A separate download remains available.';
+  bar.appendChild(exportLabel);
+
+  const suffixLabel = createElement('label');
+  if (suffixLabel.style) Object.assign(suffixLabel.style, { display: 'flex', alignItems: 'center', gap: '4px' });
+  suffixLabel.appendChild(createElement('span', 'PS strip suffixes:'));
+  const suffixInput = createElement('input');
+  suffixInput.type = 'text';
+  suffixInput.dataset.field = 'resolver-ps-suffixes';
+  suffixInput.value = (cfg.psFallback?.stripSuffixes || ['.1.2', '.1', '-1', '_1']).join(', ');
+  suffixInput.disabled = (cfg.matchMode || 'POS').toUpperCase() !== 'PS';
+  suffixInput.title = 'Comma-separated terminal PS suffixes. Numeric wildcard N is supported, e.g. .N, .N.N, -N, _N. No suffix rules are applied in POS or Root mode.';
+  if (suffixInput.style) Object.assign(suffixInput.style,
+    { width: '215px', padding: '2px 6px', fontFamily: 'monospace', fontSize: '12px',
+      background: '#1a2840', color: '#d7e6ff', border: '1px solid #2a3f5f', borderRadius: '4px' });
+  suffixLabel.appendChild(suffixInput);
+  bar.appendChild(suffixLabel);
+  const modeNote = createElement('span',
+    'POS uses datum + tolerance; PS uses only suffix rules; Root uses literal source root (no regex).',
+    'xml-cii-phase-help');
+  bar.appendChild(modeNote);
+
   const tolLabel = createElement('label');
   if (tolLabel.style) Object.assign(tolLabel.style, { display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '6px', borderLeft: '1px solid rgba(148,163,184,0.15)', paddingLeft: '10px' });
   tolLabel.appendChild(createElement('span', '📏 Coord tolerance (mm):'));
@@ -233,7 +288,7 @@ function renderDelimiterControls(parent, state) {
   datumValue.dataset.field = 'resolver-datum-offset-u-mm';
   datumValue.value = String(datum.zOffset ?? 100000);
   datumValue.step = '0.1';
-  datumValue.title = 'Adds this signed U/Z offset to staged POSI before source-coordinate matching; leaves pipe geometry untouched.';
+  datumValue.title = 'Adds this signed U/Z offset to the selected staged coordinate (POS, POSI, or other position alias) before POS matching; leaves pipe geometry untouched.';
   if (datumValue.style) Object.assign(datumValue.style,
     {width:'100px',padding:'2px 6px',fontFamily:'monospace',fontSize:'12px',
      background:'#1a2840',color:'#d7e6ff',border:'1px solid #2a3f5f',borderRadius:'4px'});
@@ -256,13 +311,53 @@ function renderResolverIndex(parent, state, stateRef, render, scopeState) {
     Object.assign(buildBtn.style, { background: '#7f1d1d', border: '1px solid #ef4444', color: '#fecaca', fontWeight: '700' });
     buildBtn.title = 'Resolver index has not been built yet — click to build.';
   }
-  actions.append(buildBtn, actionButton('save-resolver-json-config', 'Save to config'), createElement('span', state.resolverJsonTraceWriteBackStatus || 'Resolver config not saved yet.', 'xml-cii-phase-help'));
+  const writeStatus=createElement('span', state.resolverJsonTraceWriteBackStatus || 'Resolver config not saved yet.', 'xml-cii-phase-help');
+  writeStatus.dataset.resolverWritebackStatus='true';
+  actions.append(buildBtn, actionButton('save-resolver-json-config', 'Save to config'), writeStatus);
   section.appendChild(actions);
   renderDelimiterControls(section, state);
+  const sidecar = createElement('div', '', 'xml-cii-resolver-actions');
+  sidecar.append(actionButton('download-json-trace-sidecar', 'Download staged JSON trace CSV',
+    !state.jsonTraceSidecarCsv&&!state.jsonTraceSidecarWorkerReady));
+  const sidecarStatus=createElement('span', state.jsonTraceSidecarStatus ||
+    'Build / refresh resolver index to generate a CSV sidecar from staged JSON.','xml-cii-phase-help');
+  sidecarStatus.dataset.resolverSidecarStatus='true';
+  sidecar.append(sidecarStatus);
+  section.appendChild(sidecar);
 
   const metrics = createElement('div', '', 'xml-cii-resolver-metrics');
   metrics.append(metric('XML nodes', stat(result, 'xmlNodeCount')), metric('Node keys', stat(result, 'nodeKeyCount')), metric('PS keys', stat(result, 'psKeyCount')), metric('POS keys', stat(result, 'posKeyCount')));
   section.appendChild(metrics);
+
+  const review = result?.restraintReview || null;
+  if (review) {
+    const reviewSection = createElement('section', '', 'xml-cii-resolver-panel');
+    reviewSection.appendChild(createElement('h4',
+      'Engineering restraint source review — ' + (review.status || 'NOT_ASSESSED')));
+    reviewSection.appendChild(createElement('p',
+      review.status === 'HOLD'
+        ? 'Preview continues. Original XML restraints are preserved; disputed LIM/GUI are not automatically approved for Final.'
+        : review.status === 'REVIEW_BLOCKED'
+          ? 'Review could not run; this is not an engineering PASS: ' + (review.code || '') +
+            ' — ' + (review.error || '')
+          : 'No independently qualified engineering PASS is asserted by this source review.',
+      'xml-cii-phase-help'));
+    const warnings = Array.isArray(review.warnings) ? review.warnings : [];
+    if (warnings.length) {
+      const rows = warnings.map((item) => ({
+        nodeKey: item.nodeNumber || '',
+        Member: item.member?.name || item.member?.fields?.NAME || item.members?.join(' / ') || '',
+        'NODETYPE kind': item.sourceKind || '',
+        'Proposed kind': item.candidateKind || item.kind || '',
+        'Gap (source)': item.member?.fields?.CMPSUPGAP || (item.gaps || []).join(' / '),
+        Code: item.code || '',
+      }));
+      reviewSection.appendChild(table(
+        ['Node','Member','NODETYPE kind','Proposed kind','Gap (source)','Code'], rows,
+        'No local restraint conflicts found.'));
+    }
+    section.appendChild(reviewSection);
+  }
 
   const diagnostics = result?.diagnostics || [];
   if (diagnostics.length) {
@@ -273,6 +368,55 @@ function renderResolverIndex(parent, state, stateRef, render, scopeState) {
     diagSection.appendChild(table(['Type', 'Rows'], diagData, 'No diagnostics available.'));
     section.appendChild(diagSection);
   }
+  parent.appendChild(section);
+}
+
+export function renderMappedCodePrecedence(parent,stateRef,render){
+  let config,policy;
+  try{config=JSON.parse(stateRef.current.supportConfigJson||'{}');policy=restraintPrecedence(config)||DEFAULT_RESTRAINT_PRECEDENCE;}catch{return;}
+  const section=createElement('section','','xml-cii-resolver-panel');
+  const heading=createElement('h3','Mapped restraint code precedence ');
+  const info=createElement('button','(i)');
+  info.type='button';info.title='Defaults: Node Type = Support Mapper; Gap = JSON, fallback to Support Mapper if NULL or unavailable (explicit zero is valid); Stiffness = Support Mapper; Friction = JSON, fallback to Support Mapper if zero, NULL or unavailable. Missing Node Type or Stiffness defaults to Engineering Review. Invalid or contradictory evidence is held. Original source values remain unchanged.';
+  info.setAttribute('aria-label','Default restraint authority rules');
+  heading.appendChild(info);section.appendChild(heading);
+  const disabled=config.xml229PhysicalVertexPrefinal===true;
+  const grid=createElement('div');grid.style.display='grid';grid.style.gridTemplateColumns='repeat(2,minmax(0,1fr))';grid.style.gap='12px';
+  const labels={nodeType:'Node Type',gap:'Gap',stiffness:'Stiffness',friction:'Friction'};
+  const sources={supportMapper:'Support Mapper',json:'JSON',review:'Engineering Review'};
+  const save=(nextPolicy)=>{
+    if(disabled)return;
+    const current=stateRef.current;
+    let next;try{next=JSON.parse(current.supportConfigJson||'{}');}catch{return;}
+    next={...next,xml229RestraintPrecedence:nextPolicy};
+    const masterContext=current.masterContext?{...current.masterContext,config:next}:current.masterContext;
+    stateRef.current=updateWorkflowState(current,{supportConfigJson:JSON.stringify(next,null,2),masterContext});
+    if(stateRef.current.masterContext)saveMasterContextToLocalStorage(stateRef.current.masterContext);
+    recordPreviewRestraintReview(null);recordPreviewFailure(null);
+    if(typeof render==='function')render();
+  };
+  for(const [field,p] of Object.entries(policy)){
+    const panel=createElement('section','','xml-cii-resolver-panel');
+    panel.appendChild(createElement('h4',labels[field]));
+    for(const prop of ['primary','fallback']){
+      const select=appendLabeledControl(panel,prop==='primary'?'Priority':'Fallback',createElement('select'));
+      const options=prop==='primary'?['supportMapper','json']:['supportMapper','json','review'].filter(v=>v!==p.primary);
+      for(const value of options){const option=createElement('option',sources[value]);option.value=value;select.appendChild(option);}
+      select.value=p[prop];select.disabled=disabled;select.dataset.field='xml229-source-field-precedence-'+field+'-'+prop;
+      select.addEventListener('change',()=>{
+        const next={...policy,[field]:{...p,[prop]:select.value}};
+        if(next[field].primary===next[field].fallback)next[field].fallback='review';
+        save(next);
+      });
+    }
+    panel.appendChild(createElement('p',field==='gap'?'NULL / missing falls back; explicit zero is valid.':field==='friction'?'Zero / NULL / missing falls back.':field==='nodeType'?'Generic classification; mapped codes are verified.':'Generic stiffness profile.','xml-cii-phase-help'));
+    grid.appendChild(panel);
+  }
+  section.appendChild(grid);
+  const reset=createElement('button','Reset to Defaults');reset.type='button';reset.disabled=disabled;
+  reset.dataset.field='xml229-source-field-precedence-reset';
+  reset.addEventListener('click',()=>save(DEFAULT_RESTRAINT_PRECEDENCE));section.appendChild(reset);
+  section.appendChild(createElement('p',disabled?'Unavailable in physical-vertex V2.':'Changes save immediately. Rebuild O1 and Preview. Step 7 owns the support profiles; these controls own authority.','xml-cii-phase-help'));
   parent.appendChild(section);
 }
 
@@ -405,6 +549,7 @@ export function renderStandaloneResolverJsonTracePanel(card, state, stateRef, re
 
   const workspace = createElement('div', '', 'xml-cii-sub-workspace');
   if (subTabId === 'index') {
+    renderMappedCodePrecedence(workspace,stateRef,render);
     renderResolverIndex(workspace, state, stateRef, render, scopeState);
     renderJsonConfig(workspace, state);
   } else if (subTabId === 'tableImport') {

@@ -1,10 +1,14 @@
+import {restraintPrecedence,selectRestraintGap,jsonNodeTypeAttrs,nodeTypeUsesMapper} from '../../converters/xml-cii2019-core/restraint-precedence-policy.js';
 import {
   applyXmlRestraints,
-  restraintEntriesFromSupportKind,
+  restraintEntriesFromSupportKind,sourceSupportGap,preferredStagedScalar,
 } from '../../converters/xml-cii2019-core/support-mapping.js';
 import { migrateSupportMappingConfig } from '../../converters/xml-cii2019-core/support-mapping-config.js';
-import { governedSupportKind, SUPPORT_KIND_EVIDENCE_FIELDS } from '../../converters/xml-cii2019-core/support-kind-precedence.js';
+import { governedSupportKind, stagedFieldKindDecision, mappedCodePrecedenceApplies, SUPPORT_KIND_EVIDENCE_FIELDS } from '../../converters/xml-cii2019-core/support-kind-precedence.js';
 import {mutateRestraintType} from '../../converters/xml-cii2019-core/restraint-type-mutation.js';
+import {identifyXml229MdsKindConflict, approvedXml229MdsKindResolution,
+  isQuarantinableXml229RestraintError, xml229RestraintConflictError}
+  from '../../converters/xml-cii2019-core/xml229-restraint-kind-conflicts.js';
 import {classifySupportText,parseSupportTypeMapperConfig,createDefaultSupportTypeMapperConfig}
   from './xml-cii-support-type-mapper.js';
 import { buildStandaloneDtxrResolutionLedger } from './xml-cii-trace-resolution-ledger.js';
@@ -161,13 +165,36 @@ function supportKindFromMember(member,config={},observe=null) {
     observe?.({kind,source,rule});
     return kind;
   };
+  const physicalConflict=identifyXml229MdsKindConflict(attrs,config);
+  if (physicalConflict) {
+    const resolution=approvedXml229MdsKindResolution(attrs,config,physicalConflict);
+    if(resolution)return decidedBy(resolution.kind,resolution.source,resolution.rule);
+    const preferred=stagedFieldKindDecision(attrs,config);
+    // Physical MDS corroboration cannot be contradicted by a generic rule.
+    // Gapless reclassification needs a separately selected gap policy and
+    // an explicitly saved profile gap (not an implicit zero).
+    const catalogue=['CMPSUPGAP','CMPSUPGAP_POS','CMPSUPGAP_PS'].some(k=>text(attrs[k]));
+    const saved=config.supportMapping?.kindProfiles?.[physicalConflict.candidateKind]?.gap;
+    if(!preferred||preferred.kind!==physicalConflict.candidateKind||
+       (!restraintPrecedence(config)&&!catalogue&&!(config.xml229SourceFieldPrecedence?.gap===true&&saved!=null&&text(saved)!==''))){
+      const reason=config.xml229SourceFieldPrecedence?.type!==true&&nodeTypeUsesMapper(attrs,config)!==true&&!mappedCodePrecedenceApplies(attrs,config)?'STEP7_TYPE_PRECEDENCE_OFF':
+        !preferred||preferred.kind!==physicalConflict.candidateKind?'STEP7_RULE_OR_EXPORTED_PROPOSAL_MISMATCH':
+        'STEP7_GAP_POLICY_OR_SAVED_GAP_REQUIRED';
+      const error=xml229RestraintConflictError(physicalConflict);
+      error.resolutionReason=reason;
+      error.message+=' [ '+reason+' ]';
+      throw error;
+    }
+    assertTab7Compatible(attrs,member,config,preferred.kind);
+    return decidedBy(preferred.kind,preferred.source,preferred.rule);
+  }
   // Owner rule (12 Nov, RCA-04): source NODETYPE wins when present; otherwise
   // the Step 7 support table decides. The chain below is the fallback only.
   let decision=null;
   const decided = governedSupportKind({...safeObject(member?.capturedFields), ...attrs}, config,
     GOVERNED_KINDS,value=>{decision=value;});
   // A Step 7 table answer must still agree with edited Tab 7 keywords.
-  if (decided.source === 'step7-support-table') assertTab7Compatible(attrs, member, config, decided.kind);
+  if (decided.source === 'step7-support-table'||decided.source==='explicit-staged-field-precedence') assertTab7Compatible(attrs, member, config, decided.kind);
   if (decided.kind) return decidedBy(decided.kind,decision?.source||decided.source,decision?.rule);
   // An explicit source description wins over abbreviated MDS code aliases.
   // This mirrors the old confidence mapper, not its legacy axis defaults.
@@ -238,7 +265,11 @@ function sourceGapText(attrs){
     .map(key=>text(attrs?.[key])).find(Boolean)||'';
 }
 
-function supportGapNumber(attrs){
+function supportGapNumber(attrs,config={},kind=''){
+  if((restraintPrecedence(config)||config.xml229SourceFieldPrecedence?.gap===true)&&kind){
+    try{return Number(sourceSupportGap(attrs,config,kind).gap);}
+    catch(error){if(error.code)throw error;throw Object.assign(error,{code:String(error.message).includes('AMBIGUOUS')?'PREFINAL_RESTRAINT_GAP_AMBIGUOUS':'PREFINAL_RESTRAINT_GAP_INVALID'});}
+  }
   // A legacy NODEGAP=0 is a placeholder only when an explicit
   // CMPSUPGAP is supplied on the SAME source member. Do not treat
   // two distinct nonzero source claims as equivalent or silently choose one.
@@ -258,7 +289,9 @@ function supportGapNumber(attrs){
 }
 
 function sourceNodeType(attrs,config){
-  const raw=text(attrs?.NODETYPE);
+  const preferred=stagedFieldKindDecision(attrs,config);
+  if(preferred)return preferred.rule.effectiveXmlType;
+  const raw=text(jsonNodeTypeAttrs(attrs,config)?.NODETYPE);
   if(!raw)return '';
   const selected=mutateRestraintType(raw,
     config.inputXmlRestraintTypeMutation||config.restraintTypeMutation||{});
@@ -277,19 +310,41 @@ function isRestHardwareMember(attrs,kind) {
          (code==='AT05'&&/\bWEAR\s+PLATE\b/.test(desc));
 }
 
-function evidenceByKind(record, config = {}, requireUnambiguous = false, selected=new Map(), evaluations=[]) {
-  const result=new Map();
+function evidenceByKind(record, config = {}, requireUnambiguous = false, selected=new Map(),
+                        evaluations=[],warnings=[],quarantine=false) {
+  const result=new Map(),blockedKinds=new Set();
   for(const member of Array.isArray(record?.positionMembers)?record.positionMembers:[]){
-    let decision=null;
-    const kind=supportKindFromMember(member,config,value=>{decision=value;});
+    let decision=null,kind='';
+    try { kind=supportKindFromMember(member,config,value=>{decision=value;}); }
+    catch(error) {
+      if(!quarantine||!isQuarantinableXml229RestraintError(error))throw error;
+      warnings.push({code:error.code,member:restraintAuditMember(member,null,'quarantined-kind-conflict'),
+        candidateKind:error.candidateKind||null,sourceKind:error.sourceKind||null,
+         resolutionReason:error.resolutionReason||null,
+        message:String(error.message||error)});
+      evaluations.push({xmlIndex:record.xmlIndex,kind:'QUARANTINED',
+        source:restraintAuditMember(member,null,'quarantined-source-conflict')});
+      continue;
+    }
     evaluations.push({xmlIndex:record.xmlIndex,kind,source:restraintAuditMember(member,decision,'evaluated-member')});
-    if(!kind)continue;
+    if(!kind||blockedKinds.has(kind))continue;
     const original=memberAttributes(member);
-    const numeric=requireUnambiguous?supportGapNumber(original):null;
+    let numeric=null;
+    try {
+      numeric=requireUnambiguous?supportGapNumber(original,config,kind):null;
+      preferredStagedScalar(original,config,'stiffness',kind);preferredStagedScalar(original,config,'friction',kind);
+    }
+    catch(error) {
+      if(!quarantine||!isQuarantinableXml229RestraintError(error))throw error;
+      warnings.push({code:error.code,kind,member:restraintAuditMember(member,decision,'quarantined-gap'),
+        message:String(error.message||error)});
+      blockedKinds.add(kind);result.delete(kind);selected.delete(kind);
+      continue;
+    }
     const raw=sourceGapText(original);
     // The current XML writer understands CMPSUPGAP; the older source also
     // stored the same gap in NODEGAP. Preserve its value, including zero.
-    const attrs=raw&&!text(original.CMPSUPGAP)&&!text(original.CMPSUPGAP_POS)
+    const attrs=!restraintPrecedence(config)&&config.xml229SourceFieldPrecedence?.gap!==true&&raw&&!text(original.CMPSUPGAP)&&!text(original.CMPSUPGAP_POS)
       &&!text(original.CMPSUPGAP_PS)?{...original,CMPSUPGAP:raw}:original;
     const choose=reason=>{
       result.set(kind,attrs);
@@ -309,13 +364,19 @@ function evidenceByKind(record, config = {}, requireUnambiguous = false, selecte
         continue;
       }
     }
-    if(requireUnambiguous&&previous&&sourceGapText(previous)&&raw&&
-       supportGapNumber(previous)!==numeric)
-      throw Object.assign(new Error('Conflicting JSON gaps for the same support kind '+kind+': '+
-        sourceGapText(previous)+' vs '+raw+(text(previous.NAME)||text(attrs.NAME)
-          ?' (members '+[text(previous.NAME)||'?',text(attrs.NAME)||'?'].join(' / ')+')':'')),
-        {code:'PREFINAL_RESTRAINT_GAP_AMBIGUOUS',supportKind:kind,
-          gaps:[sourceGapText(previous),raw],members:[text(previous.NAME),text(attrs.NAME)]});
+    if(requireUnambiguous&&previous&&(restraintPrecedence(config)||(sourceGapText(previous)&&raw))&&
+       supportGapNumber(previous,config,kind)!==numeric)
+      {
+        const error=Object.assign(new Error('Conflicting JSON gaps for the same support kind '+kind+': '+
+          sourceGapText(previous)+' vs '+raw+(text(previous.NAME)||text(attrs.NAME)
+            ?' (members '+[text(previous.NAME)||'?',text(attrs.NAME)||'?'].join(' / ')+')':'')),
+          {code:'PREFINAL_RESTRAINT_GAP_AMBIGUOUS',supportKind:kind,
+            gaps:[sourceGapText(previous),raw],members:[text(previous.NAME),text(attrs.NAME)]});
+        if(!quarantine)throw error;
+        warnings.push({code:error.code,kind,member:restraintAuditMember(member,decision,'quarantined-same-kind-gap'),
+          gaps:error.gaps,members:error.members,message:error.message});
+        blockedKinds.add(kind);result.delete(kind);selected.delete(kind);continue;
+      }
     if(requireUnambiguous&&previous&&text(previous.NODETYPE)&&text(attrs.NODETYPE)&&
        sourceNodeType(previous,config)!==sourceNodeType(attrs,config)){
       const earlierHardware=isRestHardwareMember(previous,kind);
@@ -324,14 +385,22 @@ function evidenceByKind(record, config = {}, requireUnambiguous = false, selecte
         if(earlierHardware)choose('structural-rest-owner-over-hardware');
         continue;
       }
-      throw Object.assign(new Error('Conflicting staged NODETYPE mutations for the same support kind'),
+      if(!quarantine)throw Object.assign(new Error('Conflicting staged NODETYPE mutations for the same support kind'),
         {code:'PREFINAL_RESTRAINT_TYPE_AMBIGUOUS'});
+      warnings.push({code:'PREFINAL_RESTRAINT_TYPE_AMBIGUOUS',kind,
+        member:restraintAuditMember(member,decision,'quarantined-same-kind-type'),
+        message:'Conflicting staged NODETYPE mutations for the same support kind'});
+      blockedKinds.add(kind);result.delete(kind);selected.delete(kind);continue;
+    }
+    if(previous&&requireUnambiguous)for(const field of ['stiffness','friction']){
+      const a=preferredStagedScalar(previous,config,field,kind),b=preferredStagedScalar(attrs,config,field,kind);
+      if(a&&b&&Number(a)!==Number(b))throw Object.assign(Error('Conflicting same-kind '+field+' source members'),{code:'PREFINAL_RESTRAINT_'+field.toUpperCase()+'_AMBIGUOUS'});
     }
     if(!previous||(!sourceGapText(previous)&&raw))choose(previous?'explicit-source-gap':'first-qualified-kind-member');
   }
   // Aggregated trace kinds can contain a lower-confidence GT/ST alias that
   // the resolved source member explicitly contradicted. Never re-add it.
-  if(!result.size){
+  if(!result.size&&!warnings.length){
     for(const kind of Array.isArray(record?.derivedSupportTypes)?record.derivedSupportTypes:[]){
       const normalized=text(kind).toUpperCase().replace(/\s+/g,'');
       if(GOVERNED_KINDS.includes(normalized))result.set(normalized,{});
@@ -383,7 +452,8 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
     mdsGuideRestraintsAdded: 0,
     mdsLineStopRestraintsAdded: 0,
   };
-  const diagnostics = [];
+  const diagnostics = [],warnings=[];
+  const quarantine = runtime.conflictPolicy === 'quarantine' && runtime.requireUnambiguous === true;
   const supportMapping = migrateSupportMappingConfig(config);
   if (supportMapping.useJsonForRestraints === false) {
     return { xmlText: source, changed: false, stats, diagnostics: [{ type: 'mds-position-restraint-closure-skipped', reason: 'json-restraints-disabled' }] };
@@ -413,18 +483,26 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
       const componentType = childText(node, 'ComponentType').toUpperCase();
       if (!CARRIER_TYPES.has(componentType)) continue;
       const record = byIndex.get(xmlIndex);
-      if(runtime.requireUnambiguous&&record?.status==='AMBIGUOUS_REVIEW')
-        throw Object.assign(new Error('Ambiguous source support match'),
+      if(runtime.requireUnambiguous&&record?.status==='AMBIGUOUS_REVIEW'){
+        const error=Object.assign(new Error('Ambiguous source support match'),
           {code:'PREFINAL_RESTRAINT_MATCH_AMBIGUOUS'});
+        if(!quarantine)throw error;
+        const warning={code:error.code,xmlIndex,nodeNumber:childText(node,'NodeNumber'),
+          branchName:childText(branch,'Branchname'),groupId:record.groupId||null,
+          sourcePaths:record.sourcePaths||[],message:error.message};
+        warnings.push(warning);diagnostics.push({type:'xml229-restraint-review-warning',...warning});
+        continue;
+      }
       if (!record || !String(record.status || '').startsWith('RESOLVED_')) continue;
       let evidence;
-      const selected=new Map(),evaluations=[];
-      const note={evaluations,selections:[],match:{method:record.matchType,status:record.status,
+      const selected=new Map(),evaluations=[],nodeWarnings=[];
+      const note={evaluations,selections:[],warnings:nodeWarnings,match:{method:record.matchType,status:record.status,
         groupId:record.groupId||null,matchedPosition:record.matchedPosition||null,
         distanceMm:record.positionDistanceMm,toleranceMm:record.coordinateToleranceMm,
         branchRelationship:record.branchRelationship}};
       auditNotes.set(xmlIndex,note);
-      try { evidence = evidenceByKind(record,config,runtime.requireUnambiguous===true,selected,evaluations); }
+      try { evidence = evidenceByKind(record,config,runtime.requireUnambiguous===true,
+        selected,evaluations,nodeWarnings,quarantine); }
       catch (error) {
         // Name the XML node so the conflict can be found in the JSON Trace.
         const where = ' at XML Node '+(childText(node,'NodeNumber')||'?')+' ('+componentType+', '+
@@ -434,11 +512,17 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
           code:error?.code,xmlIndex,nodeNumber:childText(node,'NodeNumber'),
           componentRefNo:childText(node,'ComponentRefNo'),branchName:childText(branch,'Branchname')});
       }
+      for(const warning of nodeWarnings){
+        const row={...warning,xmlIndex,nodeNumber:childText(node,'NodeNumber'),
+          nodeName:childText(node,'NodeName'),branchName:childText(branch,'Branchname'),
+          groupId:record.groupId||null,sourcePaths:record.sourcePaths||[]};
+        warnings.push(row);diagnostics.push({type:'xml229-restraint-review-warning',...row});
+      }
       if (!evidence.size) continue;
       for (const [kind, attrs] of evidence) {
         const authored = text(attrs.CMPSUPGAP);
         const legacy = text(attrs.NODEGAP);
-        if (authored && legacy && Number(legacy) === 0 && supportGapNumber(attrs) !== 0) {
+        if (authored && legacy && Number(legacy) === 0 && supportGapNumber(attrs,config,kind) !== 0) {
           diagnostics.push({
             type: 'xml229-gap-authority-receipt',
             nodeNumber: childText(node, 'NodeNumber'),
@@ -451,7 +535,7 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
         }
       }
 
-      if(runtime.requireUnambiguous){
+      if(runtime.requireUnambiguous&&!quarantine){
         for(const restraint of childrenByName(node,'Restraint')){
           if(isZeroInformationLimitRestraintElement(restraint))node.removeChild(restraint);
         }
@@ -464,14 +548,16 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
         if (!evidence.has(kind)) continue;
         const attrs=evidence.get(kind);
         const explicitGap=sourceGapText(attrs);
-        const selectedType=sourceNodeType(attrs,config);
+        const physicalConflict=identifyXml229MdsKindConflict(attrs,config);
+        const approved=approvedXml229MdsKindResolution(attrs,config,physicalConflict);
+        const selectedType=approved?EXPECTED_XML_TYPE[kind]:sourceNodeType(attrs,config);
         if (['+Y','GUI','LIM'].includes(selectedType)&&selectedType!==EXPECTED_XML_TYPE[kind])
           throw Object.assign(new Error('Configured NODETYPE mutation contradicts Step 7 support kind'),
             {code:'PREFINAL_RESTRAINT_TYPE_KIND_CONFLICT'});
         const candidates=restraintEntriesFromSupportKind(kind, attrs, node, config)
           .map(entry=>({
             ...entry,type:selectedType||entry.type,
-            gap:kind==='REST'&&explicitGap?String(supportGapNumber(attrs)):entry.gap,
+            gap:(restraintPrecedence(config)||config.xml229SourceFieldPrecedence?.gap===true)?entry.gap:explicitGap?String(supportGapNumber(attrs)):entry.gap,
           }));
         note.selections.push({kind,types:candidates.map(entry=>normalizeXmlType(entry?.type||entry)),
           source:selected.get(kind)||null});
@@ -499,8 +585,11 @@ export function closeGovernedMdsPositionRestraintsXml(xmlText, stagedJsonText, c
     changed,
     stats,
     diagnostics,
+    warnings,
+    engineeringRestraintAcceptance: warnings.length ? 'HOLD' : 'NOT_ASSESSED',
     ledger: ledger.records || [],
     restraintAudit:{...collectRestraintAudit(auditBefore,document,auditNotes,ledger.records||[],config),
+      warnings,engineeringRestraintAcceptance:warnings.length?'HOLD':'NOT_ASSESSED',
       matching:{schema:rawLedger.schema,toleranceMm:rawLedger.toleranceMm,
         calibration:rawLedger.calibration||null}},
   };

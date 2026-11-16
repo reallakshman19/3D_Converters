@@ -13,9 +13,9 @@ const config={defaultGap:17,supportMapping:{version:2,kindProfiles:Object.fromEn
 const samples=[[{},0], [{CMPSUPGAP:'25MM GAP'},25],[{CMPSUPGAP:0,CMPSUPGAP_POS:'0mm'},0],
   [{CMPSUPGAP_POS:'5mm'},5],[{CMPSUPGAP_PS:'10MM GAP'},10],[{NODEGAP:'6.5'},6.5],
   [{CMPSUPGAP:'10mm',NODEGAP:0},10],[{NODEGAP:0},0]];
-test('all mapper profiles consume own JSON gap or zero, even with stale nonzero defaults',()=>{
+test('generic XML/CII source-gap replay remains source-owned while saved profile gap is retained for ATT/RVM export',()=>{
  for(const kind of kinds){
-  assert.equal(migrate(config).kindProfiles[kind].gap,'0');
+  assert.equal(migrate(config).kindProfiles[kind].gap,'23');
   for(const [attrs,want] of samples)for(const engine of [root,active,served]){
    const doc=new DOMParser().parseFromString('<Node><CMPSUPGAP>99</CMPSUPGAP></Node>','application/xml');
    const node=doc.documentElement;

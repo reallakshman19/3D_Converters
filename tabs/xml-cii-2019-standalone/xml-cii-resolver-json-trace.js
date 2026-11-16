@@ -1,4 +1,6 @@
 import { detectXmlCiiWorkflowSourceKind } from './xml-cii-workflow-source-detect.js';
+import { DEFAULT_PS_STRIP_SUFFIXES, normalizeResolverMatchMode,
+  normalizePsStripSuffixes } from './xml-cii-resolver-match-policy.js';
 import {
   buildStandaloneDtxrResolutionLedger,
   parseStandaloneDtxrXmlNodes,
@@ -21,6 +23,9 @@ export function createDefaultResolverJsonTraceConfig() {
     posAliases: ['DTXR_POS', 'POSI', 'POS', 'APOS', 'LPOS', 'BPOS', 'HPOS', 'TPOS', 'SPOS', 'EPOS', 'SUPPORTCOORD'],
     captureFields: DEFAULT_JSON_TRACE_CAPTURE_FIELDS.map((field) => ({ ...field })),
     coordinateTolerance: 6.0,
+    exportTraceSidecar: true,
+    matchMode: 'POS',
+    psFallback: { stripSuffixes: [...DEFAULT_PS_STRIP_SUFFIXES] },
     dtxrPositionOffset: {enabled:false,xOffset:0,yOffset:0,zOffset:100000},
     sourceSchema: {},
     coordinateAlignment: {},
@@ -49,12 +54,24 @@ function configFrom(input = {}) {
     posAliases: arrayOr(source.posAliases, defaults.posAliases),
     captureFields: normalizeJsonTraceCaptureFields(source.captureFields),
     coordinateTolerance: Number(source.coordinateTolerance ?? defaults.coordinateTolerance) || defaults.coordinateTolerance,
+    exportTraceSidecar: source.exportTraceSidecar !== false,
+    matchMode: normalizeResolverMatchMode(source.matchMode ?? defaults.matchMode),
+    psFallback: {
+      stripSuffixes: normalizePsStripSuffixes(
+        source.psFallback?.stripSuffixes ?? defaults.psFallback.stripSuffixes),
+    },
     dtxrPositionOffset: safeObject(source.dtxrPositionOffset || parsed.dtxrPositionOffset || defaults.dtxrPositionOffset),
     sourceSchema: safeObject(source.sourceSchema || parsed.sourceSchema),
     coordinateAlignment: safeObject(source.coordinateAlignment || parsed.coordinateAlignment),
   };
 }
 
+// Save trace settings without reading original JSON on the foreground thread.
+export function saveStandaloneResolverJsonTraceConfig(supportConfigJson,jsonConfig){
+  const parsed=JSON.parse(String(supportConfigJson||'{}'));
+  if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw new Error('Invalid standalone support config');
+  return writeSupportConfig(supportConfigJson,configFrom({supportConfigJson,jsonConfig}));
+}
 function writeSupportConfig(supportConfigJson, jsonConfig) {
   const config = parseSupportConfig(supportConfigJson);
   const { sourceSchema, coordinateAlignment, ...traceConfig } = jsonConfig;
@@ -106,7 +123,8 @@ export function buildStandaloneXmlResolverIndex(sourceText) {
 function matchedByForRecord(record) {
   if (record.matchType === 'POS_PS') return ['pos', 'ps'];
   if (record.matchType === 'POS') return ['pos'];
-  if (record.matchType === 'PS_FALLBACK') return ['ps'];
+  if (record.matchType === 'PS_FALLBACK' || record.matchType === 'PS') return ['ps'];
+  if (record.matchType === 'ROOT') return ['root'];
   return [];
 }
 

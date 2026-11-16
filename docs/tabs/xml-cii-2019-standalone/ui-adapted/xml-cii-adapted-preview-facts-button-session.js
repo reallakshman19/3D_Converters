@@ -10,7 +10,7 @@ import {assertBasisDigest,assertContentDigest,digestUtf8,digestCanonical,canonic
   from '../../../contracts/gc-pw-v1/contract.mjs';
 
 import {executeXml229OriginalPreview} from '../integration/xml229-preview-original-blob-execution.mjs';
-import { recordPreviewFailure } from './xml-cii-adapted-preview-failure-notice.js';
+import { recordPreviewFailure,recordPreviewRestraintReview,showRestraintPolicySummary } from './xml-cii-adapted-preview-failure-notice.js';
 
 const jobs=new WeakMap();
 const esc=(v)=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
@@ -135,6 +135,7 @@ export async function runPreviewButtonSession({
   };
   const retry=()=>void runPreviewButtonSession({host,rootEl,xmlText,config,options,renderResult});
   const begun=Date.now();
+  recordPreviewRestraintReview(null);recordPreviewFailure(null);
   try {
     // Validate explicit original scope before reading JSON or dispatching any Worker.
     const scope=sourceScope(host,config,options);
@@ -190,6 +191,8 @@ export async function runPreviewButtonSession({
         const rendered=await renderResult(result,{text:'',
           label:r?'original JSON source-verified engineering Worker':'XML source-verified engineering Worker'});
         if(!current())return null;
+        recordPreviewRestraintReview(result.restraintReview||null);
+        recordPreviewFailure(null);
         host.__xmlCiiPreviewOriginalOccurrences=result.sourceOccurrences;
         host.__xmlCiiVerifiedEngineeringReceipt=proof;
         host.dataset.mcPreviewBasisId=verified.receipt.basisId;
@@ -204,6 +207,24 @@ export async function runPreviewButtonSession({
           proof.verifiedFactCount+' complete FactRecords. '+
           'Weight Match uses this same session; native CII Run remains HELD.';
         host.prepend(evidence);
+        showRestraintPolicySummary(host,result.restraintReview);
+        if(result.restraintReview?.status==='FOR_REVIEW'){
+          const warning=document.createElement('div');
+          warning.setAttribute('data-mc-preview-restraint-review','');
+          warning.setAttribute('role','status');
+          warning.className='model-converters-workflow-detail-note';
+          warning.style.cssText='border:1px solid #d97706;padding:8px;color:#fbbf24;';
+          const rows=result.restraintReview.warnings||[];
+          const details=rows.slice(0,8).map(w=>
+            'Node '+String(w.nodeNumber||'?')+' / '+
+            String(w.member?.name||w.member?.path||'source member')+
+            ': '+String(w.code||'FOR_REVIEW')+(w.resolutionReason?' ('+w.resolutionReason+')':'')).join(' | ');
+          warning.textContent='For Review: '+rows.length+
+            ' restraint source conflict(s) quarantined. Independent Weight continues; '+
+            'engineering acceptance HOLD and native Final CII blocked. '+
+            details+(rows.length>8?' | additional conflicts in O1 review':'');
+          host.prepend(warning);
+        }
         if(r)options.onOriginalWorkerPreviewCompleted?.({
           result,sourceReceipt:r,basisId:verified.receipt.basisId});
         // This completed session belongs to the shared GC-PW review, not to
@@ -269,6 +290,7 @@ export async function runPreviewButtonSession({
       host.dataset.mcPreviewBasisId=basis.basisId;
       host.dataset.mcPreviewOriginalJsonSha256=r.sha256;
       host.dataset.mcPreviewJsonSource='O1_WORKER_VERIFIED';
+      recordPreviewRestraintReview(null);recordPreviewFailure(null);
       options.onOriginalWorkerPreviewCompleted?.({result,sourceReceipt:r,basis});
       return rendered;
     }
@@ -310,6 +332,7 @@ export async function runPreviewButtonSession({
       host.__xmlCiiPreviewOriginalOccurrences=committed.result.sourceOccurrences;
       host.dataset.mcPreviewBasisId=committed.basis.basisId;
       host.dataset.mcPreviewSourceMode='B';
+      recordPreviewRestraintReview(null);recordPreviewFailure(null);
       return rendered;
     }
     notice(host,{title:'Checking input and master revisions…',showCancel:true,cancel});
@@ -352,11 +375,12 @@ export async function runPreviewButtonSession({
     installActualPreviewSourceFactPanel(host,sourcePages);
     host.__xmlCiiPreviewOriginalOccurrences=result.sourceOccurrences;
     host.dataset.mcPreviewBasisId=basis.basisId;
-    recordPreviewFailure(null);
+    recordPreviewRestraintReview(null);recordPreviewFailure(null);
     return rendered;
   }catch(error) {
     if(!current())return null;
     const code=String(error?.code||'PREVIEW_BUILD_FAILED');
+    recordPreviewRestraintReview(null);
     recordPreviewFailure({code,message:String(error?.message||error)});
     notice(host,{title:'Preview failed',code,
       message:String(error?.message||error),retry});

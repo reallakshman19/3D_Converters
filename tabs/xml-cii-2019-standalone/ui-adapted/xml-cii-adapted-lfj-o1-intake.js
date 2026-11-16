@@ -7,7 +7,7 @@
 import {openIndexedPageRecordStore} from '../../../lfj/storage/browser/indexed-page-record-store.mjs';
 import {createLfjSourceProgress,advanceLfjSourceProgress,mountLfjSourceProgress,updateLfjSourceProgress} from './xml-cii-adapted-lfj-o1-progress.js';
 import {SOURCE_WORKER_SCHEMA,O1_SOURCE_MAX_BYTES} from '../../../lfj/ports/source-worker-port.mjs';
-import {startLfjO1Domain,exportLfjO1Csv,mountLfjO1DomainUi,revokeLfjO1Domain} from './xml-cii-adapted-lfj-o1-domain-ui.js';
+import {startLfjO1Domain,exportLfjO1Csv,mountLfjO1DomainUi,revokeLfjO1Domain,syncO1ResolverControls} from './xml-cii-adapted-lfj-o1-domain-ui.js';
 import {xmlCiiProcessingMode} from './xml-cii-adapted-processing-mode.js?v=20261113-x5a-2';
 import {detectXmlCiiWorkflowSourceKind} from '../xml-cii-workflow-source-detect.js';
 import {refreshResolverHierarchyScopeControl} from './xml-cii-adapted-resolver-scope.js';
@@ -261,6 +261,7 @@ export function installLfjO1SourceIntake(container,stateRef){
   const field=container.querySelector('[data-mode-a-staged-json-all], [data-field="staged-json-file"]');
   if(!field)return;
   const session=getSession(stateRef);
+  session.stateRef=stateRef;session.container=container;
   const supported=eligibleSource(stateRef.current);
   if(!supported&&session.job){
     revokeJsonSourceReceipt(stateRef,container);
@@ -306,7 +307,7 @@ export function installLfjO1SourceIntake(container,stateRef){
     if(!(el instanceof Element))return;
     if(el.matches('[data-field="source-file"], [data-field="source-kind"],'+
       ' [data-field="support-config"], [data-field="resolver-json-config"],'+
-      ' [data-field^="resolver-"], [data-field*="scope"],'+
+      ' [data-field^="resolver-"], [data-field^="xml229-source-field-precedence-"], [data-field*="scope"],'+
       ' [data-branch-select], [data-branch-scope], [data-mode-a-enable]')){
       const originalXmlChanged=el.matches('[data-field="source-file"], [data-field="source-kind"]');
       // XML file/source kind is part of the job's user selection. Cancel
@@ -318,6 +319,7 @@ export function installLfjO1SourceIntake(container,stateRef){
         void revoke(old);
       }
       revokeLfjO1Domain(session);
+      if(el.matches('[data-field^="resolver-"]'))syncO1ResolverControls(session,{resolverJsonTraceWriteBackStatus:'Resolver config changed; Save to config to persist.'});
       sourceProgress(session,'REVOKED');
       status(session,'O1 source/config/selection changed; prior trace and CSV revoked. Build again.');
     }
@@ -342,15 +344,18 @@ export function installLfjO1SourceIntake(container,stateRef){
   // Opt-in is a distinct O1 owned Worker flow. Capture Build/CSV before
   // legacy listeners; never synchronously parse staged JSON in the UI.
   for(const action of ['build-resolver-index','save-resolver-json-config',
-    'download-node-wise-trace-csv','download-evidence-tree-csv']){
+    'download-node-wise-trace-csv','download-evidence-tree-csv','download-json-trace-sidecar']){
     container.querySelector('[data-action="'+action+'"]')?.addEventListener('click',e=>{
       if(!session.optIn||!eligibleSource(stateRef.current))return;
       e.preventDefault();e.stopImmediatePropagation();
       if(action==='build-resolver-index'||action==='save-resolver-json-config'){
-        void startLfjO1Domain(session,stateRef).catch(err=>
-          status(session,'O1 domain blocked: '+safeCode(err)+'; no output rights.'));
+        void startLfjO1Domain(session,stateRef,{save:action==='save-resolver-json-config'}).catch(err=>{
+          if(err?.code==='O1_DOMAIN_SUPERSEDED')return;
+          syncO1ResolverControls(session,{resolverJsonTraceWriteBackStatus:'Resolver action failed: '+safeCode(err)});
+          status(session,'O1 domain blocked: '+safeCode(err)+'; no output rights.');
+        });
       }else{
-        const kind=action==='download-node-wise-trace-csv'?'node':'evidence';
+        const kind=action==='download-json-trace-sidecar'?'sidecar':action==='download-node-wise-trace-csv'?'node':'evidence';
         void exportLfjO1Csv(session,kind).catch(err=>
           status(session,'O1 CSV blocked: '+safeCode(err)+'; no output rights.'));
       }

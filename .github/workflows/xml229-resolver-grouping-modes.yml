@@ -1,0 +1,99 @@
+name: XML229 Resolver POS PS Root Regression
+
+on:
+  pull_request:
+    paths:
+      - 'tabs/xml-cii-2019-standalone/**'
+      - 'docs/tabs/xml-cii-2019-standalone/**'
+      - 'converters/scripts/xml229_prefinal_restraint_source.py'
+      - 'converters/scripts/xml229_prefinal_restraints.py'
+      - 'docs/converters/scripts/xml229_prefinal_restraint_source.py'
+      - 'docs/converters/scripts/xml229_prefinal_restraints.py'
+      - 'converters/scripts/xml229_native_final_mass_binding.py'
+      - 'docs/converters/scripts/xml229_native_final_mass_binding.py'
+      - 'converters/scripts/xml_to_cii2019_runtime_custody.py'
+      - 'docs/converters/scripts/xml_to_cii2019_runtime_custody.py'
+      - 'tests/xml-cii-resolver-grouping-modes.test.mjs'
+      - 'tests/test_xml229_resolver_grouping_modes.py'
+      - 'tests/test_xml229_bm3_kind_quarantine.py'
+      - 'tests/xml-cii-mds-position-restraints.test.mjs'
+      - 'tests/xml-cii-staged-json-trace-sidecar.test.mjs'
+      - 'tests/xml229-preview-restraint-review-policy.test.mjs'
+      - 'tests/xml229-json-restraint-body-transfer.test.mjs'
+      - 'tabs/xml-cii-2019-standalone/integration/xml229-native-restraint-review-gate.mjs'
+      - 'docs/tabs/xml-cii-2019-standalone/integration/xml229-native-restraint-review-gate.mjs'
+      - 'tabs/xml-cii-2019-standalone/xml-cii-staged-json-trace-sidecar.js'
+      - 'docs/tabs/xml-cii-2019-standalone/xml-cii-staged-json-trace-sidecar.js'
+      - 'converters/xml-cii2019-core/xml229-restraint-kind-conflicts.js'
+      - 'docs/converters/xml-cii2019-core/xml229-restraint-kind-conflicts.js'
+      - '.github/workflows/xml229-resolver-grouping-modes.yml'
+  workflow_dispatch:
+
+jobs:
+  grouping-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate JavaScript source syntax
+        run: |
+          node --check tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js
+          node --check tabs/xml-cii-2019-standalone/xml-cii-resolver-match-policy.js
+          node --check tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-json-trace.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-prefinal-restraints.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs
+          node --check tabs/xml-cii-2019-standalone/integration/xml229-native-restraint-review-gate.mjs
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-failure-notice.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js
+          node --check tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-domain-ui.js
+      - name: Validate native source syntax
+        run: |
+          python -m py_compile converters/scripts/xml229_prefinal_restraint_source.py converters/scripts/xml229_prefinal_restraints.py
+      - name: Run POS PS Root JS tests
+        run: node --test tests/xml-cii-resolver-grouping-modes.test.mjs
+      - name: Run POS PS Root native tests
+        run: python -m unittest discover -s tests -p 'test_xml229_resolver_grouping_modes.py' -v
+      - name: Replay inherited Datum and NODETYPE regression tests
+        run: |
+          python -m unittest discover -s tests -p 'test_xml229_datum_node_type_mutation.py' -v
+          node --test tests/xml-cii-support-kind-owner-precedence.test.mjs
+      - name: Validate original JSON restraint body transfer and native forgery challenges
+        run: node --test tests/xml229-json-restraint-body-transfer.test.mjs
+      - name: Verify actual Preview quarantine, O1 warnings and native Final guards
+        run: node --test tests/xml229-preview-restraint-review-policy.test.mjs
+      - name: Verify JSON trace CSV sidecar roundtrip
+        run: node --test tests/xml-cii-staged-json-trace-sidecar.test.mjs
+      - name: Run BM3 restraint source conflict and quarantine tests
+        run: |
+          node --test tests/xml-cii-mds-position-restraints.test.mjs
+          python -m unittest discover -s tests -p 'test_xml229_bm3_kind_quarantine.py' -v
+          node --check converters/xml-cii2019-core/xml229-restraint-kind-conflicts.js
+          node --check tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js
+      - name: Verify source and Pages mirrors
+        run: |
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-resolver-match-policy.js docs/tabs/xml-cii-2019-standalone/xml-cii-resolver-match-policy.js
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js docs/tabs/xml-cii-2019-standalone/xml-cii-trace-resolution-ledger.js
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js docs/tabs/xml-cii-2019-standalone/xml-cii-resolver-json-trace.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-json-trace.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-resolver-json-trace.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-events.js
+          diff -u converters/scripts/xml229_prefinal_restraint_source.py docs/converters/scripts/xml229_prefinal_restraint_source.py
+          diff -u converters/scripts/xml229_prefinal_restraints.py docs/converters/scripts/xml229_prefinal_restraints.py
+          diff -u converters/scripts/xml229_native_final_mass_binding.py docs/converters/scripts/xml229_native_final_mass_binding.py
+          diff -u converters/scripts/xml_to_cii2019_runtime_custody.py docs/converters/scripts/xml_to_cii2019_runtime_custody.py
+          diff -u converters/xml-cii2019-core/xml229-restraint-kind-conflicts.js docs/converters/xml-cii2019-core/xml229-restraint-kind-conflicts.js
+          diff -u converters/xml-cii2019-core/support-kind-precedence.js docs/converters/xml-cii2019-core/support-kind-precedence.js
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js docs/tabs/xml-cii-2019-standalone/xml-cii-mds-restraint-closure.js
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-restraint-audit.js docs/tabs/xml-cii-2019-standalone/xml-cii-restraint-audit.js
+          diff -u tabs/xml-cii-2019-standalone/xml-cii-staged-json-trace-sidecar.js docs/tabs/xml-cii-2019-standalone/xml-cii-staged-json-trace-sidecar.js
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-prefinal-restraints.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-prefinal-restraints.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-preview-engineering-fact-producer.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-original-blob-gcpw-worker.mjs
+          diff -u tabs/xml-cii-2019-standalone/integration/xml229-native-restraint-review-gate.mjs docs/tabs/xml-cii-2019-standalone/integration/xml229-native-restraint-review-gate.mjs
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-failure-notice.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-failure-notice.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-preview-facts-button-session.js
+          diff -u tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-domain-ui.js docs/tabs/xml-cii-2019-standalone/ui-adapted/xml-cii-adapted-lfj-o1-domain-ui.js

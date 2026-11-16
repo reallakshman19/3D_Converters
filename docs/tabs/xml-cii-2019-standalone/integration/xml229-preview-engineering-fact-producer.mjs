@@ -66,13 +66,14 @@ export const XML229_ENGINEERING_FIELDS=Object.freeze([
  */
 export async function openXml229EngineeringFactModel({
   basis,live,xmlText,sourceId,previewResult,
-  expectedOriginalCount,maxPhysical=10000,
+  expectedOriginalCount,maxPhysical=10000,onProgress=()=>{},
 }={}){
   if(!good(sourceId)||typeof xmlText!=='string'||!xmlText.trim()||
     !basis||!live||!previewResult||typeof previewResult!=='object')
     fail('ORIGINAL_INPUT_REQUIRED','Original XML, basis, live master bytes and real Preview result required');
   if(!Number.isSafeInteger(maxPhysical)||maxPhysical<1||maxPhysical>100000)
     fail('INVALID_BOUNDED_POPULATION','Physical Worker window cap must be 1..100000');
+  onProgress('physical-field-source-master-attestation');
   await attestLiveBasis({...live,basis});
   if(live.sources?.[sourceId]!==xmlText||basis.sourceRefs?.length!==1||
     basis.sourceRefs[0]?.sourceId!==sourceId||basis.scope?.length!==1||
@@ -100,9 +101,12 @@ export async function openXml229EngineeringFactModel({
   // Independent source-cleanup calculation cannot mutate the original
  // master/config buffers whose full content is attested by GC-PW.
  const workConfig=isolatedOriginalPreviewWorkConfig(live.config||{});
+ onProgress('physical-field-prefinal-restraint-replay');
  const restraintStage=await prepareXml229PrefinalRestraints({
    xmlText,stagedJsonText:live.stagedSource||'',config:workConfig,
+   policy:'preview',
  });
+ onProgress('physical-field-source-cleanup');
  const prepared=preparePreviewNodeOccurrenceDocument({
    xmlText,sourceDocument:restraintStage.document,config:workConfig,
  });
@@ -112,6 +116,7 @@ export async function openXml229EngineeringFactModel({
   const sourceNodeByOrdinal=new Map(projection.nodes.map(row=>[
     JSON.stringify([row.branchOccurrenceIndex,row.nodeOrdinal]),row]));
   const boreRows=indexXml229PhysicalBores(previewResult.nodeBoreWallRows,sourceNodeByOrdinal,fail);
+  onProgress('physical-field-component-body-bore-index');
   const bodyBores=indexXml229ComponentBodyBores({
     xmlText,config:workConfig,sourceDocument:restraintStage.document,
   });
@@ -175,6 +180,7 @@ export async function openXml229EngineeringFactModel({
       nonOwnerEndpointStarts.add(JSON.stringify([bi,original.sourceNodeOrdinal]));
     }
   }
+  onProgress('physical-field-record-construction');
   const originalCensus=[],physical=[],expected=[];
   const records=[];
   const add=(occ,fieldId,val,authority,unit,detail)=>{
@@ -275,6 +281,7 @@ export async function openXml229EngineeringFactModel({
     'physical-component':['bore.mm','length.mm','rating','mass.kg','component.type','component.ref'],
   };
   const ports={assertBasisDigest,canonicalJson,digestCanonical,validateFactRecord,validatePage};
+  onProgress('physical-field-fact-model-verification');
   const model=await openPreviewFactReadModel({
     basis,expectedOccurrences:expected,records,ports,requiredEngineeringFields,
     verifyEngineeringComplete:({records:verified,expectedOccurrences:originals})=>
@@ -289,6 +296,7 @@ export async function openXml229EngineeringFactModel({
   // retained-by-branch ledger; the Worker binds it to the GC-PW source basis.
   if(typeof XMLSerializer!=='function')
     fail('FINALIZED_GEOMETRY_SERIALIZER_REQUIRED','XML serializer unavailable');
+  onProgress('physical-field-finalized-geometry');
   const finalizedGeometry=await finalizeXml229WeightGeometry({
     basis,projection,branches,prepared,physical,sourceNodeByOrdinal,
     nonOwnerEndpointStarts,componentSuppressionPairs:canonicalEndpointPairs,sourceId,
@@ -305,12 +313,17 @@ export async function openXml229EngineeringFactModel({
       verifiedPhysicalOwnerCount:physical.length,
       verifiedPhysicalFactCount:physical.length*XML229_ENGINEERING_FIELDS.length,
     },
+    // Physical Weight facts can be verified while restraint classifications
+    // remain independently held for engineering review.
     engineeringAcceptance:'VERIFIED',
+    engineeringRestraintAcceptance:restraintStage.restraintReview.engineeringRestraintAcceptance,
+    restraintReview:restraintStage.restraintReview,
     fullFactPopulationAccepted:true,
     engineeringFactSnapshotId:model.info.snapshotId,
     engineeringFactCount:records.length,
   });
   return Object.freeze({model,workerResult,finalizedGeometry,
+    restraintReview:restraintStage.restraintReview,
     sourceOccurrenceCensus:sourceOriginals,
     workerOriginalCount:sourceOriginals.length,
     originalOccurrences:projection.nodes.map(({sourceId,branchOccurrenceIndex,nodeOrdinal})=>({

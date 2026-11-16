@@ -1,6 +1,8 @@
 /** Release custody for explicitly configured branch formats.
  * Evaluates every selected occurrence, independently of Regex's interactive sample cap. */
 import { extractBranchFieldsWithFormats } from '../../converters/xml-cii2019-core/branch-format-extraction.js';
+import {resolvePreviewPipingClassAuthority} from '../../converters/xml-cii2019-core/piping-class-source-resolver.js';
+import {_xmlCiiFindLineListRow,_normaliseLineListMatch} from './ui-adapted/xml-cii-adapted-preview-dryrun-core.js';
 import { deriveMappedLineKeyForBranch } from '../../converters/xml-cii2019-core/regex-line-key.js';
 
 function text(value) { return String(value ?? '').trim(); }
@@ -62,10 +64,14 @@ export function auditConfiguredBranchFormats(branchOccurrences = [], config = {}
         continue;
       }
       const expectedLineKey = deriveMappedLineKeyForBranch(branch.branchName, config) || identity.lineKey;
-      const authorizedClassOverride = actual.pipingClassMethod === 'override';
+      const lineMatch=_normaliseLineListMatch(_xmlCiiFindLineListRow(expectedLineKey,config),config);
+      const selection=resolvePreviewPipingClassAuthority({branchName:branch.branchName,branchClass:identity.pipingClass,
+        lineListClass:lineMatch?.pipingClass,lineListExact:!!lineMatch,config});
+      const authorizedClassOverride = actual.pipingClassMethod === 'override'&&!selection.pinned;
       if (text(actual.lineKey) !== text(expectedLineKey)
         || (!authorizedClassOverride
-          && text(actual.pipingClass).toUpperCase() !== text(identity.pipingClass).toUpperCase())
+          && text(actual.pipingClass).toUpperCase() !== text(selection.requestedPipingClass).toUpperCase())
+        || (selection.pinned && (actual.pipingClassSelectedSource!==selection.source || !!actual.pipingClassConflict!==selection.conflict))
         || actual.matchedFormatIndex !== identity.matchedFormatIndex) {
         failures.push({ branchName: branch.branchName, occurrenceIndex: index,
           status: 'PREVIEW_DIVERGENCE', reason: 'ENGINEERING_IDENTITY_MISMATCH' });

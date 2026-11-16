@@ -130,7 +130,8 @@ jobs:
           retention-days: 14
 
   original-blob-chromium:
-    runs-on: ubuntu-latest
+    # Playwright 1.52 has no Ubuntu 26.04 Chromium runtime.
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4

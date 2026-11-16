@@ -1,3 +1,4 @@
+import {DEFAULT_RESTRAINT_PRECEDENCE} from '../../converters/xml-cii2019-core/restraint-precedence-policy.js';
 import { DEFAULT_RESTRAINT_TYPE_MUTATION_ROWS } from '../../converters/xml-cii2019-core/restraint-type-mutation.js';
 
 export const DEFAULT_XML_CII_2019_SUPPORT_CONFIG = Object.freeze({
@@ -9,6 +10,7 @@ export const DEFAULT_XML_CII_2019_SUPPORT_CONFIG = Object.freeze({
   convertDensityKgM3ToKgCm3: true,
   defaultStiffness: 1751270000000,
   defaultGap: 0,
+  xml229RestraintPrecedence: DEFAULT_RESTRAINT_PRECEDENCE,
   defaultFriction: 0.3,
   defaultTeeSifType: 0,
   useDefaultPipingClassMaterialCodeMap: true,

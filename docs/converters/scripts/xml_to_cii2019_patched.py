@@ -307,7 +307,7 @@ def _regex_tester_format_disabled(fmt: dict[str, Any], index: int) -> bool:
             and not _safe_text(fmt.get("lineKeyJoiner")))
 
 
-def _regex_tester_branch_line_key(branch: str, config: dict[str, Any]) -> str | None:
+def _regex_tester_branch_line_key(branch: str, config: dict[str, Any], *, return_class: bool = False) -> str | None:
     """Saved Smart Regex formats govern source Line List identity in native CII.
 
     None means no explicit formats were saved; an explicit formats=[] means
@@ -360,7 +360,7 @@ def _regex_tester_branch_line_key(branch: str, config: dict[str, Any]) -> str | 
         if config.get("requireVerifiedMasterCompleteness") is True:
             raise ValueError("XML229_BRANCH_FORMAT_AMBIGUOUS")
         return ""  # don't pick a competing source master
-    return candidates[0][0]
+    return candidates[0][1 if return_class else 0]
 
 
 def _line_key_from_branch(branch_name: str, config: dict[str, Any]) -> str:
@@ -417,6 +417,105 @@ def _matching_linelist_rows(line_key: str, config: dict[str, Any]) -> list[dict[
     # A single numeric source row may qualify; never guess among duplicates.
     alias = [row for row in rows if isinstance(row, dict) and _line_key_from_row(row, config) == wanted[1:]]
     return alias if len(alias) == 1 else []
+
+
+def _selected_source_class(branch_name: str, config: dict[str, Any]) -> str:
+    """Exact Line List authority with a candidate-bound branch-local radio selection."""
+    configured_class = _regex_tester_branch_line_key(branch_name, config, return_class=True)
+    if configured_class == "":
+        return ""  # real competing/invalid configured formats remain unresolved
+    regex_class = configured_class or ""
+    if configured_class is None:
+        rating = config.get("rating") or {}
+        pattern = _safe_text(rating.get("pipingClassRegex"))
+        if pattern:
+            try:
+                match = re.search(pattern, branch_name, re.I)
+                if match:
+                    regex_class = _safe_text(match.group(int(rating.get("pipingClassGroup") or 1)))
+            except (ValueError, TypeError, IndexError, re.error):
+                regex_class = ""
+        if not regex_class:
+            match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", branch_name, re.I)
+            if match:
+                regex_class = match.group(1)
+            elif rating.get("pipingClassTokenIndex"):
+                parts = branch_name.lstrip("/").split("/")[0].split(_safe_text(rating.get("tokenDelimiter")) or "-")
+                try:
+                    regex_class = _safe_text(parts[int(rating["pipingClassTokenIndex"]) - 1])
+                except (ValueError, TypeError, IndexError):
+                    pass
+    line = _line_key_from_branch(branch_name, config)
+    rows = _matching_linelist_rows(line, config)
+    fields = (config.get("linelist") or {}).get("fieldMap") or {}
+    ll_class = ""
+    if len(rows) == 1:
+        mapped = _safe_text(fields.get("pipingClass"))
+        for key in ([mapped] if mapped else ["pipingClass", "Piping Class", "PIPING_CLASS"]):
+            ll_class = _row_value(rows[0], key)
+            if ll_class:
+                break
+    if not ll_class:
+        return regex_class
+    norm = lambda v: re.sub(r"\s+", "", _safe_text(v).upper())
+    choice = ((config.get("overrides") or {}).get("pipingClassSource") or {}).get(branch_name) or {}
+    if (regex_class and norm(regex_class) != norm(ll_class)
+            and isinstance(choice, dict) and choice.get("source") == "regex"
+            and norm(choice.get("regex")) == norm(regex_class)
+            and norm(choice.get("lineList")) == norm(ll_class)):
+        return regex_class
+    return ll_class
+
+
+def _normalized_insulation_thickness(value: object) -> str:
+    """Mirror Step 4: nonnegative thickness in mm; range -> max, invalid -> blank."""
+    raw = _safe_text(value)
+    if re.fullmatch(r"(?i)(?:nil|none|no(?: insulation)?|uninsulated|bare|not insulated)", raw):
+        return "0"
+    s = re.sub(r"[–—−]", "-", raw)
+    s = re.sub(r"^(?:approx\.?|nominal|thk\.?|thickness)\s*[:=~]?\s*|^~\s*", "", s, flags=re.I).strip()
+    n = r"(\d+(?:\.\d+)?|\.\d+)"
+    u = r'(mm|cm|inches|inch|in|")?'
+    def convert(v, unit):
+        return float(v) * (25.4 if (unit or "").lower() in {"in", "inch", "inches", '"'} else 10 if (unit or "").lower() == "cm" else 1)
+    value = None
+    fraction = re.fullmatch(r'(\d+)\s*/\s*(\d+)\s*(?:"|in(?:ch(?:es)?)?)', s, re.I)
+    if fraction and int(fraction[2]) > 0:
+        value = float(fraction[1]) / float(fraction[2]) * 25.4
+    else:
+        pair = re.fullmatch(n + r"\s*" + u + r"\s*(?:-|/|to|~)\s*" + n + r"\s*" + u, s, re.I)
+        single = re.fullmatch(n + r"\s*" + u, s, re.I)
+        if pair:
+            value = max(convert(pair[1], pair[2] or pair[4]), convert(pair[3], pair[4] or pair[2]))
+        elif single:
+            value = convert(single[1], single[2])
+    return format(value, ".12g") if value is not None and math.isfinite(value) and value >= 0 else ""
+
+
+def _insulation_fallback(branch, namespace, line_key, config, field, aliases):
+    """Never replace a nonblank XML source value, including zero."""
+    branch_name = _child_text(branch, namespace, "Branchname")
+    tag = "InsulationThickness" if field == "insThk" else "InsulationType"
+    def normalize(value):
+        if field == "insThk":
+            return _normalized_insulation_thickness(value)
+        raw = _safe_text(value)
+        return "" if re.fullmatch(r"(?i)(?:n/?a|not applicable|not available|unknown|tbd|null|[-–—]+)?", raw) else raw
+    original = normalize(_child_text(branch, namespace, tag))
+    if original:
+        return original
+    pd = ((config.get("overrides") or {}).get("processData") or {}).get(line_key or branch_name) or {}
+    if field in pd:
+        return normalize(pd[field])
+    rows = _matching_linelist_rows(line_key, config)
+    if len(rows) == 1:
+        fmap = (config.get("linelist") or {}).get("fieldMap") or {}
+        mapped = _safe_text(fmap.get(field))
+        for key in ([mapped] if mapped else [field, *aliases]):
+            raw = _row_value(rows[0], key)
+            if raw:
+                return normalize(raw)
+    return normalize((config.get("processDefaults") or {}).get(field))
 
 
 def _mapped_process_value(line_key: str, config: dict[str, Any], field: str, fallbacks: list[str]) -> str:
@@ -589,13 +688,13 @@ def _source_class_wall_index(config: dict[str, Any], requested: set[str] | None 
 
 
 def _apply_source_class_wall(branch: ET.Element, namespace: str,
-                             index: dict[tuple[str, int], float]) -> bool:
+                             index: dict[tuple[str, int], float], selected_class: str | None = None) -> bool:
     """A node's real OD, not only the branch header size, controls its wall."""
     name = _child_text(branch, namespace, "Branchname")
     match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", name, re.I)
-    if not match or not index or addon is None:
+    class_code = selected_class if selected_class is not None else (match.group(1) if match else '')
+    if not class_code or not index or addon is None:
         return False
-    class_code = match.group(1)
     changed = False
     for node in _branch_nodes(branch, namespace):
         existing = _numeric_text(_child_text(node, namespace, "WallThickness"))
@@ -740,10 +839,11 @@ def _source_class_meta_index(config: dict[str, Any],
 def _apply_source_material_rating(branch: ET.Element, namespace: str,
                                   specs: dict[tuple[str, int], tuple[str, str]],
                                   material_ids: dict[str, int],
-                                  process_material: str = "") -> bool:
+                                  process_material: str = "", selected_class: str | None = None) -> bool:
     name = _child_text(branch, namespace, "Branchname")
     match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", name, re.I)
-    if not match or addon is None:
+    class_code = selected_class if selected_class is not None else (match.group(1) if match else '')
+    if not class_code or addon is None:
         return False
     changed = False
     for node in _branch_nodes(branch, namespace):
@@ -753,7 +853,7 @@ def _apply_source_material_rating(branch: ET.Element, namespace: str,
             continue
         od = _numeric_text(_child_text(node, namespace, "OutsideDiameter"))
         dn = addon.od_to_dn(od) if od is not None else None
-        metadata = specs.get((match.group(1), dn)) if dn is not None else None
+        metadata = specs.get((class_code, dn)) if dn is not None else None
         if metadata is None and not process_material:
             continue
         material, rating = metadata if metadata is not None else ("", "")
@@ -765,7 +865,7 @@ def _apply_source_material_rating(branch: ET.Element, namespace: str,
                 " ".join(existing_name.upper().split()) !=
                 " ".join(process_material.upper().split())):
             raise ValueError("XML229_PROCESS_MATERIAL_NAME_CONFLICT")
-        for key, value in (("PipingClass", match.group(1)),
+        for key, value in (("PipingClass", class_code),
                            ("MaterialName", selected_material), ("PipingClassRating", rating)):
             if value and not _child_text(node, namespace, key):
                 _set_child(node, namespace, key, value)
@@ -971,11 +1071,12 @@ def _source_class_corrosion_index(
 
 def _apply_source_class_corrosion(
         branch: ET.Element, namespace: str,
-        index: dict[tuple[str, int], float]) -> bool:
+        index: dict[tuple[str, int], float], selected_class: str | None = None) -> bool:
     """Fill only absent pipe corrosion claims; preserve original explicit 0."""
     name = _child_text(branch, namespace, "Branchname")
     match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", name, re.I)
-    if not match or addon is None:
+    class_code = selected_class if selected_class is not None else (match.group(1) if match else '')
+    if not class_code or addon is None:
         return False
     changed = False
     for node in _branch_nodes(branch, namespace):
@@ -986,7 +1087,7 @@ def _apply_source_class_corrosion(
             continue
         od = _numeric_text(_child_text(node, namespace, "OutsideDiameter"))
         dn = addon.od_to_dn(od) if od is not None else None
-        key = (match.group(1), dn)
+        key = (class_code, dn)
         if key not in index:
             continue
         _set_child(node, namespace, "CorrosionAllowance",
@@ -1022,10 +1123,9 @@ def _assert_verified_master_completeness(
         if not nodes:
             continue
         name = _child_text(branch, namespace, "Branchname")
-        class_match = re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$", name, re.I)
-        if class_match is None:
+        cls = _selected_source_class(name, support_config)
+        if not cls:
             raise ValueError("XML229_VERIFIED_PIPING_CLASS_UNRESOLVED")
-        cls = class_match.group(1)
         line = _line_key_from_branch(name, support_config)
         if not line or len(_matching_linelist_rows(line, support_config)) != 1:
             raise ValueError("XML229_VERIFIED_LINE_LIST_UNRESOLVED")
@@ -1121,11 +1221,9 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
     insulation_density_default = _to_float(support_config.get("insulationDensityDefault"), 210.0)
     # Source-authority hydration: index only class/material identities present
     # in this physical XML, never mix a class grade into a valve or support.
-    source_classes = {match.group(1) for branch in root.iter()
-                      if _local_name(branch.tag) == "Branch"
-                      for match in [re.search(r"-(\d{4,8})-\d+(?:/B\d+)?$",
-                                              _child_text(branch, namespace, "Branchname"), re.I)]
-                      if match}
+    source_classes = {_selected_source_class(_child_text(branch, namespace, "Branchname"), support_config)
+                      for branch in root.iter() if _local_name(branch.tag) == "Branch"}
+    source_classes.discard("")
     # Masters only enrich the XML. A bad master never prevents diagnostic
     # conversion, but the governed verified-authority gate still rejects it.
     strict = support_config.get("requireVerifiedMasterCompleteness") is True
@@ -1171,12 +1269,13 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
             continue
         # Class enrichment runs on exactly the XML that the native parser sees.
         # It is independent of staged JSON and of Preview-only presentation.
+        selected_class = _selected_source_class(_child_text(branch, namespace, 'Branchname'), support_config)
         class_branch = ET.fromstring(ET.tostring(branch))
         try:
             class_changed = _apply_source_class_wall(
-                class_branch, namespace, class_wall_index)
+                class_branch, namespace, class_wall_index, selected_class)
             class_changed = _apply_source_class_corrosion(
-                class_branch, namespace, class_corrosion_index) or class_changed
+                class_branch, namespace, class_corrosion_index, selected_class) or class_changed
         except (ValueError, TypeError):
             if strict:
                 raise
@@ -1202,7 +1301,7 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
         material_branch = ET.fromstring(ET.tostring(branch))
         try:
             updated_material = _apply_source_material_rating(
-                material_branch, namespace, class_meta_index, material_ids, process_material)
+                material_branch, namespace, class_meta_index, material_ids, process_material, selected_class)
         except (ValueError, TypeError):
             if strict:
                 raise
@@ -1261,6 +1360,13 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
         _set_child(pressure, namespace, "HydroPressure", hydro if hydro else _child_text(pressure, namespace, "HydroPressure") or 0)
         changed = True
         branch_name = _child_text(branch, namespace, "Branchname")
+        ins_thk = _insulation_fallback(branch, namespace, line_key, support_config, "insThk", ["InsThk", "Insulation Thickness", "Insulation Thickness [mm]"])
+        ins_type = _insulation_fallback(branch, namespace, line_key, support_config, "insType", ["InsType", "Insulation Type"])
+        for owner in [branch, *_branch_nodes(branch, namespace)]:
+            for tag, value in (("InsulationThickness", ins_thk), ("InsulationType", ins_type)):
+                if value and not _child_text(owner, namespace, tag):
+                    _set_child(owner, namespace, tag, value)
+                    changed = True
         max_insulation = _numeric_text(_child_text(branch, namespace, "InsulationThickness")) or 0.0
         for node in _branch_nodes(branch, namespace):
             max_insulation = max(max_insulation, _numeric_text(_child_text(node, namespace, "InsulationThickness")) or 0.0)
