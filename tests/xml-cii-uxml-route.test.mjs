@@ -27,11 +27,11 @@ test('the pin holds the whole import closure of the stage, and the route names t
   assert.ok(UXML_ROUTE_VENDOR.includes(pin.commit.slice(0, 8)), `${UXML_ROUTE_VENDOR} vs ${pin.commit}`);
 });
 
-test('the UXML route is off unless this browser turned it on', () => {
+test('the UXML route is on unless this browser turned it off (Owner, 17 Nov); without browser storage it is off', () => {
   const storage = (value) => ({ getItem: (key) => (key === UXML_ROUTE_STORAGE_KEY ? value : null) });
   assert.equal(uxmlRouteOn(undefined), false);
-  assert.equal(uxmlRouteOn(storage(null)), false);
-  assert.equal(uxmlRouteOn(storage('off')), false);
+  assert.equal(uxmlRouteOn(storage(null)), true);
   assert.equal(uxmlRouteOn(storage('on')), true);
-  assert.equal(uxmlRouteOn({ getItem: () => { throw new Error('blocked'); } }), false);
+  assert.equal(uxmlRouteOn(storage('off')), false);
+  assert.equal(uxmlRouteOn({ getItem: () => { throw new Error('blocked'); } }), true);
 });
