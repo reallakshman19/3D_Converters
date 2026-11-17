@@ -1,4 +1,5 @@
-// Step-10 "UXML route" (UXML plan step 5; off by default, the Owner turns it on in step 10 to test it).
+// Step-10 "UXML route" (UXML plan step 5). On by default since 17 Nov 2026 (Owner, after the live test passed);
+// unticking it in step 10 runs today's route in that browser.
 // Today's route runs first, unchanged: its holds, journal, parity rows and warnings stay. With the switch on, the CII
 // engine then gets the XML from the UXML supports stage (vendor/uxml-v2, XML_Compare_Utilities, pinned in PIN.json)
 // instead: the stage starts where today's branch pass starts (after the gasket drop) and runs every step after it.
@@ -17,12 +18,16 @@ import { compareUxmlRouteXml } from './xml-cii-uxml-route-compare.js';
 export const UXML_ROUTE_STORAGE_KEY = 'xmlCii.uxmlRoute';
 export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities cfea5beb)';
 
-/** The step-10 switch; off unless the Owner turned it on in this browser. */
+/**
+ * The step-10 switch: in a browser, on unless it was turned off there (blocked storage: on, the default).
+ * Without a browser's storage (Node, scripts, workers) it is off: today's route, as the callers there expect.
+ */
 export function uxmlRouteOn(storage = globalThis.localStorage) {
+  if (!storage) return false;
   try {
-    return storage?.getItem?.(UXML_ROUTE_STORAGE_KEY) === 'on';
+    return storage?.getItem?.(UXML_ROUTE_STORAGE_KEY) !== 'off';
   } catch {
-    return false;
+    return true;
   }
 }
 
