@@ -1,4 +1,6 @@
-# WIP-uxml-route-20261117 — step 10 "UXML route" switch (UXML plan step 5)
+# WIP-uxml-route-20261117 = PR 426 — step 10 "UXML route" switch (UXML plan step 5)
+
+Kept under its WIP name: agents/PR426_workreport.md already holds an unrelated report (Add files via upload, 17 Aug 2026, empirical weight sandbox).
 
 ## Mission and scope
 Owner, 17 Nov 2026: "Start step 5" of the UXML revamp plan: a step-10 switch "UXML route", **off by default**, that the Owner tests live.
@@ -34,4 +36,4 @@ Classification: ENGINEERING_CRITICAL (XML/CII engineering semantics), behind an 
 - The stage works on the PSI116 XML as plain data; it is not yet a UXML-document stage with a revision delta (later plan step).
 
 ## EXACT_NEXT_ACTION
-Owner: merge on their word; then tick "UXML route (test)" in step 10 and Run a model; the log shows the comparison with today's route.
+Draft PR 426 is open. Owner: merge on their word; then tick "UXML route (test)" in step 10 and Run a model; the log shows the comparison with today's route.
