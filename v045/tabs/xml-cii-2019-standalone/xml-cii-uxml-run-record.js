@@ -33,6 +33,9 @@ export async function buildUxmlRunRecord({ job, stageInputXml, stage, evidence, 
   return {
     format: UXML_RUN_RECORD_FORMAT, version: UXML_RUN_RECORD_VERSION, model: String(job?.sourceName || 'model'),
     createdAt: new Date().toISOString(), stage: vendor, ms,
+    // Written before the CII engine runs: 'held' = parity failed, no CII; otherwise the input went to the engine
+    // (the record does not say whether the engine then wrote the CII). Review 17 Nov.
+    outcome: evidence?.ok === true ? 'released-to-engine' : 'held',
     hashes: { sourceXml: await sha(job?.sourceText), stageInputXml: await sha(stageInputXml), ciiInputXml: await sha(stage.xmlText),
       stagedJson: await sha(job?.stagedJsonText), supportConfig: await sha(job?.supportConfigJson) },
     parity: { ok: evidence?.ok === true, comparisons: evidence?.comparisons ?? null, mismatches: evidence?.mismatchCount ?? null },

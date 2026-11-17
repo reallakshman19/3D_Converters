@@ -29,7 +29,7 @@ export async function runXmlCii2019Workflow(job, runtime = {}) {
     : workflowJob.sourceKind;
   const serviceRuntime = resolvedSourceKind === 'xml'
     && typeof runtime.runParityEnricher !== 'function'
-    // Step-10 switch "UXML route" (off by default): the CII input comes from the UXML supports stage.
+    // Step-10 switch "UXML route" (on by default in a browser since 17 Nov): the CII input comes from the UXML supports stage.
     ? { ...runtime, runParityEnricher: uxmlRouteOn() ? enrichStandaloneXmlForUxmlRoute : enrichStandaloneXmlForRun }
     : runtime;
 
