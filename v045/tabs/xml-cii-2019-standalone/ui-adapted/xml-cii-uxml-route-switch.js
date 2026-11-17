@@ -3,6 +3,7 @@ import { UXML_ROUTE_STORAGE_KEY, uxmlRouteOn } from '../xml-cii-uxml-route.js';
 
 function saveSwitch(on, storage) {
   try {
+    storage ??= globalThis.localStorage;
     if (on) storage?.removeItem?.(UXML_ROUTE_STORAGE_KEY);
     else storage?.setItem?.(UXML_ROUTE_STORAGE_KEY, 'off');
   } catch {
@@ -11,7 +12,7 @@ function saveSwitch(on, storage) {
 }
 
 /** Adds the switch after the Run buttons (once per render). */
-export function appendUxmlRouteSwitch(actions, storage = globalThis.localStorage) {
+export function appendUxmlRouteSwitch(actions, storage) {
   if (!actions || actions.querySelector?.('[data-uxml-route-switch]')) return null;
   const label = document.createElement('label');
   label.dataset.uxmlRouteSwitch = 'true';

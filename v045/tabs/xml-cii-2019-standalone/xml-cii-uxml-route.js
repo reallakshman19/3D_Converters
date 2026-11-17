@@ -23,10 +23,12 @@ export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities cfea5beb
  * The step-10 switch: in a browser, on unless it was turned off there (blocked storage: on, the default).
  * Without a browser's storage (Node, scripts, workers) it is off: today's route, as the callers there expect.
  */
-export function uxmlRouteOn(storage = globalThis.localStorage) {
-  if (!storage) return false;
+export function uxmlRouteOn(storage) {
   try {
-    return storage?.getItem?.(UXML_ROUTE_STORAGE_KEY) !== 'off';
+    // Read inside the try: with site data blocked the localStorage getter itself throws (review 17 Nov).
+    const store = storage === undefined ? globalThis.localStorage : storage;
+    if (!store) return false;
+    return store.getItem?.(UXML_ROUTE_STORAGE_KEY) !== 'off';
   } catch {
     return true;
   }

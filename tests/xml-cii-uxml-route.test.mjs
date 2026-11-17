@@ -34,4 +34,10 @@ test('the UXML route is on unless this browser turned it off (Owner, 17 Nov); wi
   assert.equal(uxmlRouteOn(storage('on')), true);
   assert.equal(uxmlRouteOn(storage('off')), false);
   assert.equal(uxmlRouteOn({ getItem: () => { throw new Error('blocked'); } }), true);
+  // Site data blocked: reading globalThis.localStorage itself throws; the Run must still start, with the default (on).
+  const before = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, get() { throw new Error('SecurityError'); } });
+  try { assert.equal(uxmlRouteOn(), true); } finally {
+    if (before) Object.defineProperty(globalThis, 'localStorage', before); else delete globalThis.localStorage;
+  }
 });
