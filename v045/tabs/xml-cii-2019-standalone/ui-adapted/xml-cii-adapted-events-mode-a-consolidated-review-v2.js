@@ -2,6 +2,8 @@ import { bindAdaptedWorkflowEvents as bindBaseModeAEvents } from './xml-cii-adap
 import { modeARawRef } from './xml-cii-adapted-mode-a-propagation.js?v=20260813-mode-a-rigid-review-1';
 import { runModeABatchFastFromUi } from './xml-cii-adapted-run-workflow-mode-a-fast.js?v=20261113-x5a-2';
 import { appendUxmlRouteSwitch } from './xml-cii-uxml-route-switch.js';
+import { appendUxmlRunRecordButton } from './xml-cii-uxml-run-record-button.js';
+import { clearUxmlRunRecords } from '../xml-cii-uxml-run-record.js';
 
 function styleRunButton(button, primary = false) {
   if (!button?.style) return;
@@ -57,14 +59,18 @@ export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   replacement.insertAdjacentElement('afterend', finalize);
 
   appendUxmlRouteSwitch(actions);
+  const refreshRunRecord = appendUxmlRunRecordButton(actions);
   const progress = createProgress(actions);
   const run = (downloadZip) => {
     replacement.disabled = true;
     finalize.disabled = true;
+    clearUxmlRunRecords();
+    refreshRunRecord();
     void runModeABatchFastFromUi(rawRef, render, { downloadZip, progressElement: progress })
       .finally(() => {
         replacement.disabled = false;
         finalize.disabled = false;
+        refreshRunRecord();
       });
   };
 

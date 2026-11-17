@@ -1,0 +1,63 @@
+// Run record (Owner 17 Nov 2026, "Yes, build it"): what one Run on the UXML route changed, with rule and source.
+// It holds the supports stage's own provenance from that Run (no re-run), the XML the CII engine received, and the
+// hashes the review page (XML_Compare_Utilities, section 4 "Open a Run record") uses to check it is the right file.
+// Kept in memory for the last Run only; step 10 offers it as one download. Nothing is uploaded.
+
+import { carryTransferNote, snapshotTransferProtection } from './xml-cii-transfer-protection.js';
+
+export const UXML_RUN_RECORD_FORMAT = 'uxml-run-record';
+export const UXML_RUN_RECORD_VERSION = 1;
+
+let lastRun = [];
+
+/** SHA-256 (hex) of the text's UTF-8 bytes. */
+export async function sha256Text(text) {
+  const bytes = new TextEncoder().encode(String(text ?? ''));
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Values the source's transfer note protects, and whether the CII input XML still has each one. null: no note. */
+export function transferKept(sourceText, ciiInputXml) {
+  const before = snapshotTransferProtection(sourceText);
+  if (!before) return null;
+  if (before.error) return { error: before.error, values: [] };
+  const key = (v) => `${v.scope}|${v.branchName}|${v.nodeNumber ?? ''}|${v.path}`;
+  const after = new Map((snapshotTransferProtection(carryTransferNote(sourceText, ciiInputXml))?.values || []).map((v) => [key(v), v.value]));
+  return { values: before.values.map((v) => ({ ...v, now: after.get(key(v)) ?? null, kept: after.get(key(v)) === v.value })) };
+}
+
+/** One model's record. `stage` is runSupportsStage's result on `stageInputXml`; `evidence` today's parity on its XML. */
+export async function buildUxmlRunRecord({ job, stageInputXml, stage, evidence, compare, vendor, ms }) {
+  const sha = (text) => (text ? sha256Text(text) : null);
+  return {
+    format: UXML_RUN_RECORD_FORMAT, version: UXML_RUN_RECORD_VERSION, model: String(job?.sourceName || 'model'),
+    createdAt: new Date().toISOString(), stage: vendor, ms,
+    hashes: { sourceXml: await sha(job?.sourceText), stageInputXml: await sha(stageInputXml), ciiInputXml: await sha(stage.xmlText),
+      stagedJson: await sha(job?.stagedJsonText), supportConfig: await sha(job?.supportConfigJson) },
+    parity: { ok: evidence?.ok === true, comparisons: evidence?.comparisons ?? null, mismatches: evidence?.mismatchCount ?? null },
+    compare: { equal: compare?.equal === true, nodesDiffer: compare?.nodesDiffer ?? null, fields: compare?.fields || {} },
+    transferProtected: transferKept(job?.sourceText, stage.xmlText),
+    ciiInputXml: stage.xmlText,
+    provenance: stage.provenance,
+    engineeringProvenance: stage.engineeringProvenance,
+    // The review page's warnings: staged supports that became no restraint, duplicate supports removed.
+    diagnostics: (stage.diagnostics || []).filter((d) => d.type === 'staged-support-unmatched' || d.type === 'duplicate-support-removed'),
+  };
+}
+
+/** Called when a Run starts: records of the previous Run are dropped. */
+export function clearUxmlRunRecords() {
+  lastRun = [];
+}
+
+export function rememberUxmlRunRecord(record) {
+  lastRun = [...lastRun.filter((r) => r.model !== record.model), record];
+}
+
+export const uxmlRunRecords = () => lastRun;
+
+/** The download: every model of the last Run in one file. */
+export function uxmlRunRecordFileText(records = lastRun) {
+  return JSON.stringify({ format: `${UXML_RUN_RECORD_FORMAT}s`, version: UXML_RUN_RECORD_VERSION, records });
+}
