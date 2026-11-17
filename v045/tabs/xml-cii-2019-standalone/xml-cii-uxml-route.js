@@ -14,6 +14,7 @@ import { parseXmlCiiEnrichmentConfig } from '../../converters/xml-cii2019-core/c
 import { loadXmlCiiMaterialMap } from '../../converters/xml-cii2019-core/master-context.js';
 import { runSupportsStage } from '../../../vendor/uxml-v2/supports/SupportsStage.js';
 import { compareUxmlRouteXml } from './xml-cii-uxml-route-compare.js';
+import { buildUxmlRunRecord, rememberUxmlRunRecord } from './xml-cii-uxml-run-record.js';
 
 export const UXML_ROUTE_STORAGE_KEY = 'xmlCii.uxmlRoute';
 export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities cfea5beb)';
@@ -52,7 +53,7 @@ export async function runUxmlSupportsStage(job, extraOptions = {}) {
     supportConfig: parseConfig(options.supportConfigJson),
     masters: { materialMapRows },
   });
-  return { xmlText: stage.xmlText, ms: Date.now() - started };
+  return { xmlText: stage.xmlText, ms: Date.now() - started, stageInputXml: prepared.xmlText, result: stage };
 }
 
 function compareLog(compare) {
@@ -88,6 +89,9 @@ export async function enrichStandaloneXmlForUxmlRoute(job, extraOptions = {}) {
   });
   out.uxmlRoute = { vendor: UXML_ROUTE_VENDOR, ms: stage.ms, compare, parityOk: evidence.ok };
   out.diagnostics = [...(out.diagnostics || []), { type: 'uxml-route', ...out.uxmlRoute, message: compareLog(compare) }];
+  // Run record (Owner 17 Nov): this Run's own provenance, kept for the step-10 download; held Runs are recorded too.
+  rememberUxmlRunRecord(await buildUxmlRunRecord({ job, stageInputXml: stage.stageInputXml, stage: stage.result, evidence, compare,
+    vendor: UXML_ROUTE_VENDOR, ms: stage.ms }));
   if (!evidence.ok) return holdRun(out, evidence);
   out.xmlText = stage.xmlText;
   out.evidence = evidence;
