@@ -26,7 +26,7 @@ import xml_to_cii2019 as base
 import xml_to_cii2019_patched as patched
 import xml_to_cii2019_direction as direction
 from xml_to_cii2019_bend_radius_policy import apply_bend_radius_policy, publish_one_point_five_d
-from xml_cii_weight_output_custody import require_rigid_weight_owners
+from xml_cii_weight_output_custody import apply_flange_weight_rules, require_rigid_weight_owners
 
 
 OPEN_END_COINCIDENT_TOLERANCE_MM = 0.5
@@ -503,7 +503,14 @@ def main() -> None:
         assert_native_model_geometry_unchanged(staged_original, document, model,
             island_joins=base.COINCIDENT_ISLAND_JOINS)
     _mark_native_failure_stage('RIGID_WEIGHT_OWNER_CHECK')
-    require_rigid_weight_owners(input_xml, model)
+    weight_rules = []
+    if xml229_native_owners is None:
+        # Owner 17 Nov 2026: blind-flange weight onto the flange before it; a flange weight on both ends once.
+        model, weight_rules = apply_flange_weight_rules(input_xml, model, base._build_rigid_indices)
+        for row in weight_rules:
+            print(f"CII_WEIGHT_RULE {row['rule']} {row['branch']}::{row['nodeNumber']} {row['weight']} kg -> CII element "
+                  f"{row['ciiElement'][0]}-{row['ciiElement'][1]}")
+    require_rigid_weight_owners(input_xml, model, weight_rules)
     temperature_map, pressure_map = patched._branch_case_maps(document)
     base._build_restraint_payload = direction._direction_enabled_restraint_payload_factory(support_config)
     base._build_elements_payload = patched._patched_elements_payload_factory(
