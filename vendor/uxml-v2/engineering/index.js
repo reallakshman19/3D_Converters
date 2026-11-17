@@ -1,0 +1,25 @@
+// UXML step 4: the engineering resolvers the branch pass calls (24 recorded functions).
+export { deriveLineKeyFromBranchName } from './RegexLineKey.js';
+export { computeLineNoKey } from './LineListRows.js';
+export { tokenAtPosition } from './RegexLineKey.js';
+export { normalizeLineListRow } from './LineListRows.js';
+export { buildPipingClassIndex } from './PipingClassIndexPart2.js';
+export { deriveXmlCiiPipingClassFromBranchName } from './PipingClassSource.js';
+export { findBestPipingClassRow } from './PipingClassIndexPart2.js';
+export { xmlCiiClassSizeKey } from './BranchProcess.js';
+export { resolveXmlCiiRatingAuthority } from './DtxrRating.js';
+export { resolveXmlCiiAutomaticRating } from './DtxrRating.js';
+export { resolveConfiguredMaterialCode } from './ClassMaterialCode.js';
+export { resolveBranchProcessData } from './BranchProcessPart3.js';
+export { xmlCiiNumberText } from './WeightMatch.js';
+export { qualifiedXmlCiiNominalBoreFromOd } from './WeightMatch.js';
+export { xmlCiiForwardElementLengths } from './WeightMatch.js';
+export { xmlCiiRigidWeightOverrideForNode } from './WeightMatch.js';
+export { isXmlCiiWeightReviewNode } from './WeightMatch.js';
+export { xmlCiiWeightReviewNodeOverrideKey } from './WeightMatch.js';
+export { createXmlCiiWeightBoreIndex } from './WeightValveHintsPart2.js';
+export { rankXmlCiiWeightCandidates } from './WeightValveHintsPart2.js';
+export { formatValveHint } from './WeightValveHints.js';
+export { detectLineListFieldMap } from '../supports/config/LineListMapping.js';
+export { resolveLineListDensity } from '../supports/config/LineDensityResolver.js';
+export { buildStagedComponentIndex } from '../supports/parent/StagedComponentIndex.js';

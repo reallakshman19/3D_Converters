@@ -164,7 +164,8 @@ function dropGasketNodesFromDocument(document, statsTarget, diagnosticsTarget, s
   return dropped;
 }
 
-function dropGasketNodesFromXmlText(xmlTextVal, options = {}) {
+// Exported for the step-10 UXML route: the UXML supports stage starts from this XML, as today's branch pass does.
+export function dropGasketNodesFromXmlText(xmlTextVal, options = {}) {
   const config = configWithRuntimeOptions({}, options);
   if (!shouldDropGasketNodes(config, options)) return { xmlText: xmlTextVal, stats: {}, diagnostics: [] };
   if (typeof DOMParser !== 'undefined' && typeof XMLSerializer !== 'undefined') {

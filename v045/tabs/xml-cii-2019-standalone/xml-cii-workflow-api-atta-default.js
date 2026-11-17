@@ -2,6 +2,7 @@ import { detectXmlCiiWorkflowSourceKind, workflowOutputKindForSource } from '../
 import { normalizeWorkflowJob, normalizeWorkflowResult } from './xml-cii-workflow-types.js?v=20261113-x4-1';
 import { runXmlCii2019WorkflowService } from './xml-cii-workflow-service.js?v=20261113-x5a-2';
 import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity-mds-restraints.js?v=20261113-x4-1';
+import { enrichStandaloneXmlForUxmlRoute, uxmlRouteOn } from './xml-cii-uxml-route.js';
 import {activeAuditJobIdentity,activeAuditJobManifest} from '../../../tabs/xml-cii-2019-standalone/xml-cii-active-restraint-audit.js';
 
 export async function runXmlCii2019Workflow(job, runtime = {}) {
@@ -28,7 +29,8 @@ export async function runXmlCii2019Workflow(job, runtime = {}) {
     : workflowJob.sourceKind;
   const serviceRuntime = resolvedSourceKind === 'xml'
     && typeof runtime.runParityEnricher !== 'function'
-    ? { ...runtime, runParityEnricher: enrichStandaloneXmlForRun }
+    // Step-10 switch "UXML route" (off by default): the CII input comes from the UXML supports stage.
+    ? { ...runtime, runParityEnricher: uxmlRouteOn() ? enrichStandaloneXmlForUxmlRoute : enrichStandaloneXmlForRun }
     : runtime;
 
   try {
