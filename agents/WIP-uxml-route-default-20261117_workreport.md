@@ -1,4 +1,4 @@
-# WIP-uxml-route-default-20261117 — step 10 "UXML route" on by default (UXML plan step 6, second half)
+# WIP-uxml-route-default-20261117 = PR 427 — step 10 "UXML route" on by default (UXML plan step 6, second half)
 
 ## Mission and scope
 Owner, 17 Nov 2026: "ok proceed" on (1) the live test of the step-10 switch and (2) making the UXML route the default once that test passes.
@@ -24,4 +24,4 @@ Earlier (PR 426): 7 models (G30, G30-NOJSON, G30-CUSTOM, RMS-BLOW-1, ACTIVE-AUDI
 | Browser, local server: full Run of EF-05 with no stored choice | PASS | UXML route ON in the log, CII SHA b22e012c… (same as today) |
 
 ## EXACT_NEXT_ACTION
-Local commit on branch feat/uxml-route-default-20261117 (base main 6ede0bf3d). Owner word to push + open a draft PR, then merge word; then check live step 10 shows "UXML route" ticked.
+Draft PR 427 open (base main 6ede0bf3d). Owner merge word; then check live step 10 shows "UXML route" ticked.
