@@ -870,9 +870,15 @@ def _merge_coincident_orphan_nodes(
             "positions": [(bi, ni) for bi, branch in enumerate(branches)
                           for ni, node in enumerate(branch.nodes) if node.node_number == old],
         })
+        # Owner 18 Nov 2026: the joined node takes the target's position, so the island's first
+        # element is measured from the node it now starts at (a dropped 3 mm gasket at a branch
+        # tail goes into the next branch's first element, as inside a branch). Keeping the old
+        # position left that element short by the gap (EF-05: 4 pipes 3 mm short, COORDS drift).
+        target_position = positions[new]
         branches = [
             replace(branch, nodes=[
-                replace(node, node_number=new, restraint_specs=merged_specs)
+                replace(node, node_number=new, restraint_specs=merged_specs,
+                        position=target_position if node.node_number == old else node.position)
                 if node.node_number in (old, new) else node
                 for node in branch.nodes
             ]) if any(node.node_number in (old, new) for node in branch.nodes) else branch
