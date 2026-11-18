@@ -17,7 +17,7 @@ import { compareUxmlRouteXml } from './xml-cii-uxml-route-compare.js';
 import { buildUxmlRunRecord, rememberUxmlRunRecord } from './xml-cii-uxml-run-record.js';
 
 export const UXML_ROUTE_STORAGE_KEY = 'xmlCii.uxmlRoute';
-export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities cfea5beb)';
+export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities 870c7daf)';
 
 /**
  * The step-10 switch: in a browser, on unless it was turned off there (blocked storage: on, the default).
@@ -100,7 +100,10 @@ export async function enrichStandaloneXmlForUxmlRoute(job, extraOptions = {}) {
   out.stats = { ...out.stats, parityComparisons: evidence.comparisons, parityMismatches: evidence.mismatchCount, uxmlRouteNodesDiffer: compare.nodesDiffer };
   recordActiveRestraintStage(out.restraintAuditJournal, 'uxml-route', stage.xmlText, { vendor: UXML_ROUTE_VENDOR });
   refreshUnmatchedSupportWarnings(out);
-  out.logs = [...(out.logs || []),
+  // Support locks in step 10 (Owner 18 Nov): the stage's own line for nodes that keep their transferred supports.
+  const keptSupports = (stage.result?.diagnostics || []).filter((d) => d?.type === 'transfer-supports');
+  out.diagnostics = [...out.diagnostics, ...keptSupports];
+  out.logs = [...(out.logs || []), ...keptSupports.map((d) => `UXML route: ${d.message}`),
     `UXML route ON: CII input from the UXML supports stage (${UXML_ROUTE_VENDOR}, ${stage.ms} ms); parity PASS, input ${evidence.engineInputDigest}.`,
     compareLog(compare)];
   return out;

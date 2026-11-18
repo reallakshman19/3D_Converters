@@ -1,7 +1,7 @@
 {
  "source": "reallakshman19/XML_Compare_Utilities",
  "path": "uxml/v2",
- "commit": "cfea5beb5d61c9ac0f1437f3e5e1518aa20c3f82",
+ "commit": "870c7dafbf0bc591fcf921bdec70b92a0ae89780",
  "entry": "supports/SupportsStage.js",
  "files": {
   "engineering/AdaptedPreview.js": "af99d614bb98d65982e7c3892d7342589e204e5c5e526a9c7c474d63c7445653",
@@ -37,7 +37,7 @@
   "supports/SupportProvenance.js": "ecf2e9fd24623ad167106cb50562153d1eff2c236cd17ee13dfc6eeb2664ff54",
   "supports/SupportTable.js": "601c80ed43df3f92420c0e60823fdde7e333a989b78f776efcf04830fe8aec40",
   "supports/SupportsChain.js": "e6953420fc39d2bd867347d3b759a100c1488c168d40e807020974589b02592d",
-  "supports/SupportsStage.js": "fd76357770f5caed32a8e0dc5c10eb4a3eca8d42e6e13e0b6e807a3b6be41a12",
+  "supports/SupportsStage.js": "44048c980e507f1738d50aeaa773587517c1d0f5dc3ff782a91f4453d6d673e9",
   "supports/UnmatchedSupports.js": "9ff3ea6b1da6735d9d1055c967795bce308b870c465f062153027ec43886cc61",
   "supports/closures/AttaDefaultClosure.js": "e4c14edb6f06541d96ff60daa89154293e38ab3d9d7e184f06fc5c6a82f1a3cb",
   "supports/closures/MdsClosure.js": "66f3309b6b390443d453d46b968f461956a78eb270953d5bf8afd0af2952e9b3",
@@ -84,6 +84,7 @@
   "supports/parent/StagedComponentIndex.js": "563c94d5114d66380a45fadf353844efe28332c3187d8a69225c7d9af4050001",
   "supports/process/ProcessParityFinish.js": "1a3325db05d523da9460f9f3b99ee862654cdf72a040448ebc5f7beaad891480",
   "supports/process/ProcessParityStep.js": "3e78696f66894cd0fe9a6aeee53b02afdf53041a831ae4a09f6b064a252effff",
-  "supports/process/StandaloneProcessParity.js": "d8638f6fe5f6be402e03d99b328410dd61e2a031435e82ca6edae7c66f22123a"
+  "supports/process/StandaloneProcessParity.js": "d8638f6fe5f6be402e03d99b328410dd61e2a031435e82ca6edae7c66f22123a",
+  "supports/process/TransferSupportsKeep.js": "81849746dfdb588e3e4134a4b10d23a748960716325a867bff301fc9b4259b14"
  }
 }

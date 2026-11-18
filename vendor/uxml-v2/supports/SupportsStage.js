@@ -14,6 +14,7 @@ import { applyPreviewRunParityRows, previewParityConfig } from './parent/Preview
 import { supportProvenance } from './SupportProvenance.js';
 import { engineeringProvenance } from '../engineering/EngineeringProvenance.js';
 import { runProcessParityStep } from './process/ProcessParityStep.js';
+import { restoreTransferSupports, snapshotTransferSupports } from './process/TransferSupportsKeep.js';
 import { unmatchedStagedSupportWarnings } from './UnmatchedSupports.js';
 import {
   closeGovernedAttaDefaultRestraintsXml, closeGovernedMdsPositionRestraintsXml, createRealCore, enrichStandaloneDtxrAnnotations,
@@ -58,6 +59,8 @@ export function runSupportsStage({ xmlText, stagedJsonText = '', supportConfig =
   const tolerance = toFiniteNumber(config.coordinateTolerance, 1);
   const stats = {};
 
+  // Support locks in step 10 (Owner 18 Nov): the note's `supports` nodes keep their input restraints (last step below).
+  const transferSupports = snapshotTransferSupports(xmlText);
   const doc = parsePlainXml(xmlText);
   branchEngineeringPass({ root: doc.root, config, tolerance, stats, diagnostics });
   const loopStartXmlText = serializePlainXml(doc);
@@ -108,5 +111,8 @@ export function runSupportsStage({ xmlText, stagedJsonText = '', supportConfig =
   const engineering = engineeringProvenance({ inputXml: xmlText, snapshots, previewRows: preview.rows, processRows: processed.branchRows,
     processNodeRows: processed.nodeRows, wallBySize: processed.nodeWallBySize, config: supportConfig,
     diagnostics });
-  return { xmlText: stages['04-mds-closure'], stages, config, stats, diagnostics, provenance, engineeringProvenance: engineering };
+  const keptSupports = restoreTransferSupports(stages['04-mds-closure'], transferSupports);
+  stats.transferSupportsKept = keptSupports.kept.length;
+  diagnostics.push(...keptSupports.diagnostics);
+  return { xmlText: keptSupports.xmlText, stages, config, stats, diagnostics, provenance, engineeringProvenance: engineering };
 }
