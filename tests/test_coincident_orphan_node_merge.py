@@ -34,9 +34,30 @@ class CoincidentOrphanNodeMergeTest(unittest.TestCase):
         b = branch("B", node(760, 1003.2), node(770, 1003.2, 500))
         out = base._merge_coincident_orphan_nodes([a, b])
         self.assertEqual(numbers(out), [[10, 759, 20], [759, 770]])
-        self.assertEqual(out[1].nodes[0].position, (1003.2, 0.0, 0.0))  # geometry kept
+        # Owner 18 Nov 2026: the joined node sits at 759, so B's first element is measured from 759
+        # and takes the 3.2 mm (it was left 3.2 mm short before).
+        self.assertEqual(out[1].nodes[0].position, (1000.0, 0.0, 0.0))
+        self.assertEqual(out[1].nodes[1].position, (1003.2, 500, 0.0))  # nodes after the joint stay put
         self.assertEqual(len(base.MERGED_COINCIDENT_ORPHAN_NODES), 1)
         self.assertIn("760 renamed to 759", base.MERGED_COINCIDENT_ORPHAN_NODES[0])
+
+    def test_v045_copy_step10_loads_joins_the_same_way(self):
+        # Step 10 in the app loads v045/converters/scripts; it must get the same fix.
+        import importlib.util
+        path = Path(__file__).resolve().parents[1] / "v045" / "converters" / "scripts" / "xml_to_cii2019.py"
+        spec = importlib.util.spec_from_file_location("xml_to_cii2019_v045", path)
+        v045 = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = v045
+        spec.loader.exec_module(v045)
+        mk = lambda n, x, z=0.0: v045.XmlNode(node_number=n, node_name="", endpoint=None, component_type="PIPE", rigid=None,
+            weight=0.0, material_code=None, outside_diameter=100.0, alpha_angle=None, wall_thickness=5.0,
+            corrosion_allowance=0.0, insulation_thickness=0.0, bend_radius=0.0, bend_type=None, position=(x, 0.0, z),
+            restraint_specs=(), **({"component_ref_no": ""} if "component_ref_no" in v045.XmlNode.__dataclass_fields__ else {}))
+        a = v045.XmlBranch("A", 20.0, 0.0, 0.0, None, (), (), [mk(10, 0), mk(759, 1000), mk(20, 2000)])
+        b = v045.XmlBranch("B", 20.0, 0.0, 0.0, None, (), (), [mk(760, 1003.0), mk(770, 1003.0, 500)])
+        out = v045._merge_coincident_orphan_nodes([a, b])
+        self.assertEqual([n.node_number for n in out[1].nodes], [759, 770])
+        self.assertEqual(out[1].nodes[0].position, (1000.0, 0.0, 0.0))
 
     def test_any_island_node_not_only_its_start(self):
         a = branch("A", node(10, 0), node(20, 1000))
