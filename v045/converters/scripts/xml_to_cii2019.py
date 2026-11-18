@@ -530,6 +530,8 @@ def _parse_xml_document(path: Path) -> XmlDocument:
 
     namespace = _namespace(root.tag)
     metadata = _metadata_from_root(root, namespace, root_name)
+    UNNUMBERED_RESTRAINTS_PLACED.clear()
+    UNNUMBERED_RESTRAINTS_NOT_WRITTEN.clear()
 
     branches: list[XmlBranch] = []
     for branch_element in _branch_elements_from_root(root, namespace, root_name):
@@ -543,12 +545,35 @@ def _parse_xml_document(path: Path) -> XmlDocument:
         branch_temperatures = _parse_branch_temperatures(branch_element, namespace)
         branch_pressures = _parse_branch_pressures(branch_element, namespace)
         parsed_nodes: list[XmlNode] = []
+        unnumbered_restraints: list[tuple[XmlNode, int, bool]] = []
+        previous_unnumbered_bend_end: tuple[float, float, float] | None = None
         for node_element in branch_element.findall(_q(namespace, "Node")):
             node_number = _parse_optional_int(
                 _child_text(node_element, namespace, "NodeNumber"), "Node/NodeNumber"
             )
             if node_number is None or node_number <= 0:
+                # An unnumbered node is not a CAESAR II node, but its supports are real (EF-05: 11 ATTA points
+                # numbered -2 that step 10's ATTA default gives a +Y): they go to a numbered node at that point.
+                bend_end = previous_unnumbered_bend_end
+                previous_unnumbered_bend_end = None
+                position_text = _child_text(node_element, namespace, "Position")
+                if not position_text:
+                    continue
+                position = _parse_position(position_text)
+                if (
+                    _child_text(node_element, namespace, "ComponentType").upper() == "ELBO"
+                    and _parse_optional_int(_child_text(node_element, namespace, "Endpoint"), "Node/Endpoint") == 2
+                ):
+                    previous_unnumbered_bend_end = position
+                specs = _parse_restraints(node_element, namespace)
+                if specs:
+                    unnumbered_restraints.append((
+                        _unnumbered_restraint_holder(node_element, namespace, node_number, position, specs),
+                        len(parsed_nodes),
+                        bend_end is not None and math.dist(bend_end, position) <= UNNUMBERED_RESTRAINT_TOLERANCE_MM,
+                    ))
                 continue
+            previous_unnumbered_bend_end = None
 
             position_text = _child_text(node_element, namespace, "Position")
             if not position_text:
@@ -621,6 +646,7 @@ def _parse_xml_document(path: Path) -> XmlDocument:
                 )
             )
 
+        parsed_nodes = _place_unnumbered_restraints(branch_name, parsed_nodes, unnumbered_restraints)
         if parsed_nodes:
             branches.append(
                 XmlBranch(
@@ -651,6 +677,55 @@ def _parse_xml_document(path: Path) -> XmlDocument:
     branches = _merge_coincident_orphan_nodes(branches)
 
     return XmlDocument(metadata=metadata, branches=branches)
+
+
+UNNUMBERED_RESTRAINT_TOLERANCE_MM: Final[float] = 1.0
+UNNUMBERED_RESTRAINTS_PLACED: list[str] = []
+UNNUMBERED_RESTRAINTS_NOT_WRITTEN: list[str] = []
+
+
+def _unnumbered_restraint_holder(node_element, namespace, node_number, position, specs) -> XmlNode:
+    """A stand-in XmlNode that only carries an unnumbered node's supports to their numbered node."""
+    return XmlNode(
+        node_number=node_number if node_number is not None else 0,
+        node_name=_child_text(node_element, namespace, "NodeName"),
+        endpoint=None, component_type=_child_text(node_element, namespace, "ComponentType").upper(), rigid=None,
+        weight=0.0, material_code=None, outside_diameter=0.0, alpha_angle=None, wall_thickness=0.0,
+        corrosion_allowance=0.0, insulation_thickness=0.0, bend_radius=0.0, bend_type=None,
+        position=position, restraint_specs=specs,
+    )
+
+
+def _place_unnumbered_restraints(
+    branch_name: str, nodes: list[XmlNode], pending: list[tuple[XmlNode, int, bool]]
+) -> list[XmlNode]:
+    """Put each unnumbered node's supports on a numbered node of the same branch (Owner 18 Nov: "Fix the -2 supports").
+
+    - The numbered node at the same point (within 1 mm), the nearest; on a tie the one before it.
+    - Else, at a bend's far end (the unnumbered node follows the bend's unnumbered far tangent point): the bend's own
+      node, the numbered ELBO before it, because CAESAR II puts a bend's To node at the end of the bend.
+    - A numbered node with supports of its own keeps them; the moved ones are added, as a dropped short piece's are.
+    - Otherwise the supports are not written, and the run log lists them (as before this rule, but no longer silently).
+    """
+    out = list(nodes)
+    for holder, before_index, at_bend_end in pending:
+        label = f"{branch_name}: NodeNumber {holder.node_number} {holder.component_type}"
+        near = [
+            (math.dist(holder.position, node.position), 0 if index < before_index else 1, index)
+            for index, node in enumerate(out)
+            if math.dist(holder.position, node.position) <= UNNUMBERED_RESTRAINT_TOLERANCE_MM
+        ]
+        target = min(near)[2] if near else None
+        how = "same point"
+        if target is None and at_bend_end and before_index > 0 and out[before_index - 1].component_type == "ELBO":
+            target, how = before_index - 1, "bend end"
+        if target is None:
+            UNNUMBERED_RESTRAINTS_NOT_WRITTEN.append(f"{label}: no numbered node at that point")
+            continue
+        node = out[target]
+        out[target] = replace(node, restraint_specs=_merge_restraint_specs(node.restraint_specs, holder.restraint_specs))
+        UNNUMBERED_RESTRAINTS_PLACED.append(f"{label} -> NodeNumber {node.node_number} ({how})")
+    return out
 
 
 SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM: Final[float] = 6.0
@@ -2049,6 +2124,14 @@ def main() -> None:
             f"element length <= {SHORT_ELEMENT_LENGTH_DROP_THRESHOLD_MM}mm:"
         )
         for entry in DROPPED_SHORT_ELEMENT_NODES:
+            print(f"  - {entry}")
+    if UNNUMBERED_RESTRAINTS_PLACED:
+        print(f"Placed the supports of {len(UNNUMBERED_RESTRAINTS_PLACED)} unnumbered node(s) on a numbered node:")
+        for entry in UNNUMBERED_RESTRAINTS_PLACED:
+            print(f"  - {entry}")
+    if UNNUMBERED_RESTRAINTS_NOT_WRITTEN:
+        print(f"Warning: the supports of {len(UNNUMBERED_RESTRAINTS_NOT_WRITTEN)} unnumbered node(s) were not written:")
+        for entry in UNNUMBERED_RESTRAINTS_NOT_WRITTEN:
             print(f"  - {entry}")
     if MERGED_COINCIDENT_ORPHAN_NODES:
         print(f"Joined {len(MERGED_COINCIDENT_ORPHAN_NODES)} unconnected island node(s):")
