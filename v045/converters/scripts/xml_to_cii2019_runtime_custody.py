@@ -221,6 +221,10 @@ def main() -> None:
         f"use_restraint_type_based_on_json={args.use_restraint_type_based_on_json}; "
         f"split_condensed_valve_flange={support_config.get('splitCondensedValveFlange')}"
     )
+    for entry in base.UNNUMBERED_RESTRAINTS_PLACED:
+        print(f"UNNUMBERED_SUPPORT_PLACED {entry}")
+    for entry in base.UNNUMBERED_RESTRAINTS_NOT_WRITTEN:
+        print(f"UNNUMBERED_SUPPORT_NOT_WRITTEN {entry}")
     for entry in base.MERGED_COINCIDENT_ORPHAN_NODES:
         print(f"COINCIDENT_ISLAND_NODE_JOINED {entry}")
     for entry in base.COINCIDENT_ISLAND_JOINS_BLOCKED:
