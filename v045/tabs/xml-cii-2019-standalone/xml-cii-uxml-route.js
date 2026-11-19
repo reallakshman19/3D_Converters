@@ -14,6 +14,7 @@ import { parseXmlCiiEnrichmentConfig } from '../../converters/xml-cii2019-core/c
 import { loadXmlCiiMaterialMap } from '../../converters/xml-cii2019-core/master-context.js';
 import { runSupportsStage } from '../../../vendor/uxml-v2/supports/SupportsStage.js';
 import { compareUxmlRouteXml } from './xml-cii-uxml-route-compare.js';
+import { carryTransferNote } from './xml-cii-transfer-protection.js';
 import { buildUxmlRunRecord, rememberUxmlRunRecord } from './xml-cii-uxml-run-record.js';
 
 export const UXML_ROUTE_STORAGE_KEY = 'xmlCii.uxmlRoute';
@@ -85,9 +86,12 @@ export async function enrichStandaloneXmlForUxmlRoute(job, extraOptions = {}) {
     return out;
   }
   const stage = await runUxmlSupportsStage(job, extraOptions);
+  // The stage writes plain XML, which has no comments: carry the source's transfer protection note again, so step 10's
+  // Enriched XML (and a second step 10 run on it) keeps the protection (Owner 19 Nov, group 1).
+  const stageXml = carryTransferNote(String(job?.sourceText || ''), stage.xmlText);
   const compare = compareUxmlRouteXml(out.xmlText, stage.xmlText);
   const evidence = createStandaloneRunParityEvidence({
-    xmlText: stage.xmlText, expectedEntries: out.expectedEntries, branchRows: out.branchRows, nodeRows: out.nodeRows,
+    xmlText: stageXml, expectedEntries: out.expectedEntries, branchRows: out.branchRows, nodeRows: out.nodeRows,
   });
   out.uxmlRoute = { vendor: UXML_ROUTE_VENDOR, ms: stage.ms, compare, parityOk: evidence.ok };
   out.diagnostics = [...(out.diagnostics || []), { type: 'uxml-route', ...out.uxmlRoute, message: compareLog(compare) }];
@@ -95,10 +99,10 @@ export async function enrichStandaloneXmlForUxmlRoute(job, extraOptions = {}) {
   rememberUxmlRunRecord(await buildUxmlRunRecord({ job, stageInputXml: stage.stageInputXml, stage: stage.result, evidence, compare,
     vendor: UXML_ROUTE_VENDOR, ms: stage.ms }));
   if (!evidence.ok) return holdRun(out, evidence);
-  out.xmlText = stage.xmlText;
+  out.xmlText = stageXml;
   out.evidence = evidence;
   out.stats = { ...out.stats, parityComparisons: evidence.comparisons, parityMismatches: evidence.mismatchCount, uxmlRouteNodesDiffer: compare.nodesDiffer };
-  recordActiveRestraintStage(out.restraintAuditJournal, 'uxml-route', stage.xmlText, { vendor: UXML_ROUTE_VENDOR });
+  recordActiveRestraintStage(out.restraintAuditJournal, 'uxml-route', stageXml, { vendor: UXML_ROUTE_VENDOR });
   refreshUnmatchedSupportWarnings(out);
   // Support locks in step 10 (Owner 18 Nov): the stage's own line for nodes that keep their transferred supports.
   const keptSupports = (stage.result?.diagnostics || []).filter((d) => d?.type === 'transfer-supports');
