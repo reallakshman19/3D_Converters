@@ -164,6 +164,12 @@ function dropGasketNodesFromDocument(document, statsTarget, diagnosticsTarget, s
   return dropped;
 }
 
+// Exported for the step-10 UXML route (end-to-end plan E1, 19 Nov 2026): whether this Run's options drop the GASK
+// nodes, so the UXML document's gasket-drop stage follows the same switch as today's drop below.
+export function gasketDropOn(options = {}) {
+  return shouldDropGasketNodes(configWithRuntimeOptions({}, options), options);
+}
+
 // Exported for the step-10 UXML route: the UXML supports stage starts from this XML, as today's branch pass does.
 export function dropGasketNodesFromXmlText(xmlTextVal, options = {}) {
   const config = configWithRuntimeOptions({}, options);

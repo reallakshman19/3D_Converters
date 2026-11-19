@@ -9,16 +9,17 @@ import { refreshUnmatchedSupportWarnings } from './xml-cii-unmatched-supports.js
 import { recordActiveRestraintStage } from '../../../tabs/xml-cii-2019-standalone/xml-cii-active-restraint-journal.js';
 import { createStandaloneRunParityEvidence } from './xml-cii-run-parity-evidence.js';
 import { enrichStandaloneXmlForRun, standaloneParityOptions } from './xml-cii-standalone-run-parity-mds-restraints.js?v=20261113-x4-1';
-import { dropGasketNodesFromXmlText } from '../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js';
+import { dropGasketNodesFromXmlText, gasketDropOn } from '../model-converters/converters/xmltocii2019_helper/enrichment-run-parity.js';
 import { parseXmlCiiEnrichmentConfig } from '../../converters/xml-cii2019-core/config.js';
 import { loadXmlCiiMaterialMap } from '../../converters/xml-cii2019-core/master-context.js';
 import { runSupportsStage } from '../../../vendor/uxml-v2/supports/SupportsStage.js';
+import { documentRecord, step10Document } from '../../../vendor/uxml-v2/topology/GasketDropStage.js';
 import { compareUxmlRouteXml } from './xml-cii-uxml-route-compare.js';
 import { carryTransferNote } from './xml-cii-transfer-protection.js';
 import { buildUxmlRunRecord, rememberUxmlRunRecord } from './xml-cii-uxml-run-record.js';
 
 export const UXML_ROUTE_STORAGE_KEY = 'xmlCii.uxmlRoute';
-export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities 870c7daf)';
+export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities a31a581f)';
 
 /**
  * The step-10 switch: in a browser, on unless it was turned off there (blocked storage: on, the default).
@@ -44,10 +45,29 @@ function parseConfig(raw) {
   }
 }
 
-/** The supports stage on today's inputs: the XML after the gasket drop, the job config, today's material map rows. */
+/**
+ * The source as a UXML document with the gasket drop recorded (end-to-end plan E1). A file the UXML reader refuses
+ * (for example a PSI116 file without its namespace, which today's route reads) gets today's gasket drop on the XML
+ * text instead; the Run log and the Run record name the refusal, so the Run is never stopped by the document.
+ */
+function prepareSource(text, options) {
+  try {
+    const out = step10Document(text, { drop: gasketDropOn(options) });
+    return { xmlText: out.xmlText, document: documentRecord(out) };
+  } catch (error) {
+    if (!/^(PSI116|UXML)_/.test(String(error?.code || ''))) throw error;
+    return { xmlText: dropGasketNodesFromXmlText(text, options).xmlText, document: { made: false, refusal: error.code } };
+  }
+}
+
+/**
+ * The supports stage on today's inputs: the job config, today's material map rows, and the XML after the gasket drop.
+ * End-to-end plan E1 (Owner 19 Nov 2026): the source is read once into a UXML document and the gasket drop is a UXML
+ * stage on it, so each removed node is recorded; the supports stage reads the XML written from that document.
+ */
 export async function runUxmlSupportsStage(job, extraOptions = {}) {
   const options = { ...standaloneParityOptions(job?.supportConfigJson, job?.options || {}), ...extraOptions };
-  const prepared = dropGasketNodesFromXmlText(String(job?.sourceText ?? ''), options);
+  const prepared = prepareSource(String(job?.sourceText ?? ''), options);
   const materialMapRows = await loadXmlCiiMaterialMap(parseXmlCiiEnrichmentConfig(options.supportConfigJson), []);
   const started = Date.now();
   const stage = runSupportsStage({
@@ -56,7 +76,7 @@ export async function runUxmlSupportsStage(job, extraOptions = {}) {
     supportConfig: parseConfig(options.supportConfigJson),
     masters: { materialMapRows },
   });
-  return { xmlText: stage.xmlText, ms: Date.now() - started, stageInputXml: prepared.xmlText, result: stage };
+  return { xmlText: stage.xmlText, ms: Date.now() - started, stageInputXml: prepared.xmlText, result: stage, document: prepared.document };
 }
 
 function compareLog(compare) {
@@ -97,7 +117,7 @@ export async function enrichStandaloneXmlForUxmlRoute(job, extraOptions = {}) {
   out.diagnostics = [...(out.diagnostics || []), { type: 'uxml-route', ...out.uxmlRoute, message: compareLog(compare) }];
   // Run record (Owner 17 Nov): this Run's own provenance, kept for the step-10 download; held Runs are recorded too.
   rememberUxmlRunRecord(await buildUxmlRunRecord({ job, stageInputXml: stage.stageInputXml, stage: stage.result, evidence, compare,
-    vendor: UXML_ROUTE_VENDOR, ms: stage.ms }));
+    vendor: UXML_ROUTE_VENDOR, ms: stage.ms, document: stage.document }));
   if (!evidence.ok) return holdRun(out, evidence);
   out.xmlText = stageXml;
   out.evidence = evidence;
@@ -108,6 +128,8 @@ export async function enrichStandaloneXmlForUxmlRoute(job, extraOptions = {}) {
   const keptSupports = (stage.result?.diagnostics || []).filter((d) => d?.type === 'transfer-supports');
   out.diagnostics = [...out.diagnostics, ...keptSupports];
   out.logs = [...(out.logs || []), ...keptSupports.map((d) => `UXML route: ${d.message}`),
+    stage.document.refusal ? `UXML route: no UXML document (${stage.document.refusal}); today's gasket drop ran on the XML text.`
+      : `UXML route: the source was read into a UXML document; the gasket drop removed ${stage.document.removed.length} node(s) (recorded in the Run record).`,
     `UXML route ON: CII input from the UXML supports stage (${UXML_ROUTE_VENDOR}, ${stage.ms} ms); parity PASS, input ${evidence.engineInputDigest}.`,
     compareLog(compare)];
   return out;

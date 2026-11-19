@@ -28,7 +28,7 @@ export function transferKept(sourceText, ciiInputXml) {
 }
 
 /** One model's record. `stage` is runSupportsStage's result on `stageInputXml`; `evidence` today's parity on its XML. */
-export async function buildUxmlRunRecord({ job, stageInputXml, stage, evidence, compare, vendor, ms }) {
+export async function buildUxmlRunRecord({ job, stageInputXml, stage, evidence, compare, vendor, ms, document = null }) {
   const sha = (text) => (text ? sha256Text(text) : null);
   return {
     format: UXML_RUN_RECORD_FORMAT, version: UXML_RUN_RECORD_VERSION, model: String(job?.sourceName || 'model'),
@@ -41,6 +41,8 @@ export async function buildUxmlRunRecord({ job, stageInputXml, stage, evidence, 
     parity: { ok: evidence?.ok === true, comparisons: evidence?.comparisons ?? null, mismatches: evidence?.mismatchCount ?? null },
     compare: { equal: compare?.equal === true, nodesDiffer: compare?.nodesDiffer ?? null, fields: compare?.fields || {} },
     transferProtected: transferKept(job?.sourceText, stage.xmlText),
+    // End-to-end plan E1 (19 Nov 2026): the step-10 UXML document's revisions and the nodes its gasket drop removed.
+    document,
     ciiInputXml: stage.xmlText,
     provenance: stage.provenance,
     engineeringProvenance: stage.engineeringProvenance,
