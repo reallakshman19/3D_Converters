@@ -18,11 +18,12 @@ function filesUnder(dir, base = dir) {
 
 test('every vendored UXML file matches its pinned SHA-256, and nothing else is there', () => {
   for (const [rel, hash] of Object.entries(pin.files)) assert.equal(sha256(fs.readFileSync(path.join(VENDOR, rel))), hash, rel);
-  assert.deepEqual(filesUnder(VENDOR).filter((f) => f !== 'PIN.json').sort(), Object.keys(pin.files).sort());
+  // Files the UXML reader imports from one level up sit beside vendor/uxml-v2 (pinned as '../<file>').
+  assert.deepEqual(filesUnder(VENDOR).filter((f) => f !== 'PIN.json').sort(), Object.keys(pin.files).filter((f) => !f.startsWith('../')).sort());
 });
 
 test('the pin holds the whole import closure of the stage, and the route names the pinned commit', () => {
-  assert.deepEqual(importClosure(VENDOR, pin.entry), Object.keys(pin.files).sort());
+  assert.deepEqual(importClosure(VENDOR, pin.entries), Object.keys(pin.files).sort());
   assert.match(pin.commit, /^[0-9a-f]{40}$/);
   assert.ok(UXML_ROUTE_VENDOR.includes(pin.commit.slice(0, 8)), `${UXML_ROUTE_VENDOR} vs ${pin.commit}`);
 });

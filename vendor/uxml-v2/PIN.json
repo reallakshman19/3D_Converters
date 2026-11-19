@@ -1,9 +1,20 @@
 {
  "source": "reallakshman19/XML_Compare_Utilities",
  "path": "uxml/v2",
- "commit": "870c7dafbf0bc591fcf921bdec70b92a0ae89780",
- "entry": "supports/SupportsStage.js",
+ "commit": "90ad8938f5bdaffe0f76e2de3ce2c3540c1b1cff",
+ "entries": [
+  "supports/SupportsStage.js",
+  "topology/GasketDropStage.js"
+ ],
  "files": {
+  "../UxmlConstants.js": "f53478cc9921b1e6318208972eccf6fb16a111f8990a67fed5eafbe76d0b1c22",
+  "../UxmlProfileDetector.js": "9e696565efd6fd86620fb655b7bfbee15eb4020f0dc308f0c454511d11c90daf",
+  "../UxmlPsi116SchemaMapper.js": "3758b787a9ac9b778acfb110afafbd639a1f3cf679b629707e90aae3fe2c6a80",
+  "../UxmlTypes.js": "bb515d18246b8238216cdf83dc36ee7f9f37ba737cc9bfe602793a877721fe34",
+  "../UxmlValidationGate.js": "d2ca3cfcd085996ff2190f499b0a8c4cd5e68d9e155fe755b85fcc5cd027c1cb",
+  "UxmlV2Kernel.js": "5c911bfc1c36f7645175b849fd29662ce19f933fc4d6e83795172ad0b41b6f6f",
+  "UxmlV2Psi116Reader.js": "574cb758eaef038de0f7ea1342317fbfe1fc635e1ab3427fe7356e02718fec52",
+  "UxmlV2Psi116Writer.js": "9bcd87587e1db044af7a67aa361dccc6ae95123b0cb5a97608145864d7efc036",
   "engineering/AdaptedPreview.js": "af99d614bb98d65982e7c3892d7342589e204e5c5e526a9c7c474d63c7445653",
   "engineering/AdaptedPreviewAuthorities.js": "85d6cd74d03908d73bfe38ab9c211d47036734f1e05345ab0966ec51503c4130",
   "engineering/AdaptedPreviewCore.js": "8309c4dcb1f8aa1474688a22639261b008292ce84dcf034d4ec19f6fd35f2bc1",
@@ -85,6 +96,7 @@
   "supports/process/ProcessParityFinish.js": "1a3325db05d523da9460f9f3b99ee862654cdf72a040448ebc5f7beaad891480",
   "supports/process/ProcessParityStep.js": "3e78696f66894cd0fe9a6aeee53b02afdf53041a831ae4a09f6b064a252effff",
   "supports/process/StandaloneProcessParity.js": "d8638f6fe5f6be402e03d99b328410dd61e2a031435e82ca6edae7c66f22123a",
-  "supports/process/TransferSupportsKeep.js": "81849746dfdb588e3e4134a4b10d23a748960716325a867bff301fc9b4259b14"
+  "supports/process/TransferSupportsKeep.js": "81849746dfdb588e3e4134a4b10d23a748960716325a867bff301fc9b4259b14",
+  "topology/GasketDropStage.js": "ebc42781ee114dee95f34074089d982779d389075446923af57c551f7d0a0be6"
  }
 }
