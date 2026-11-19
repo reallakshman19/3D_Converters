@@ -19,7 +19,7 @@ import { carryTransferNote } from './xml-cii-transfer-protection.js';
 import { buildUxmlRunRecord, rememberUxmlRunRecord } from './xml-cii-uxml-run-record.js';
 
 export const UXML_ROUTE_STORAGE_KEY = 'xmlCii.uxmlRoute';
-export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities a31a581f)';
+export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities 90ad8938)';
 
 /**
  * The step-10 switch: in a browser, on unless it was turned off there (blocked storage: on, the default).
@@ -55,8 +55,10 @@ function prepareSource(text, options) {
     const out = step10Document(text, { drop: gasketDropOn(options) });
     return { xmlText: out.xmlText, document: documentRecord(out) };
   } catch (error) {
-    if (!/^(PSI116|UXML)_/.test(String(error?.code || ''))) throw error;
-    return { xmlText: dropGasketNodesFromXmlText(text, options).xmlText, document: { made: false, refusal: error.code } };
+    // The reader's XML parser puts its code only in the message (e.g. PSI116_XML_DTD_OR_DECLARATION_FORBIDDEN).
+    const refusal = String(error?.code || error?.message || '').match(/^(PSI116|UXML)_[A-Z0-9_]+/)?.[0];
+    if (!refusal) throw error;
+    return { xmlText: dropGasketNodesFromXmlText(text, options).xmlText, document: { made: false, refusal } };
   }
 }
 

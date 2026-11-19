@@ -45,10 +45,29 @@ const removedRow = (op, branchNames) => ({uid: op.uid, branchName: branchNames.g
 
 const branchNames = doc => new Map(doc.pipelines.map(p => [p.uid, p.values?.Branchname?.v ?? null]));
 
+/**
+ * The writer keeps only the text between kept nodes, so removing a node in a branch whose node gaps hold more than
+ * whitespace (another element, text) would lose that content; today's text drop keeps it. Such a file is refused
+ * here with a UXML_ code, and step 10 then runs today's gasket drop on the XML text (review of 19 Nov 2026, B2).
+ */
+function refuseLostGaps(source, delta) {
+  const removed = new Set(delta.ops.filter(op => op.op === 'remove').map(op => op.uid));
+  for (const p of source.pipelines) {
+    if (!p.components.some(c => removed.has(c.uid))) continue;
+    const bad = p.components.find(c => !/^\s*$/.test(source.custody[c.uid]?.gapAfter ?? ''));
+    if (bad) {
+      const error = new Error(`UXML_GASKET_DROP_GAP_CONTENT: branch ${p.values?.Branchname?.v ?? p.uid} has content between nodes`);
+      error.code = 'UXML_GASKET_DROP_GAP_CONTENT';
+      throw error;
+    }
+  }
+}
+
 /** Step 10's start in UXML: read the source, drop the gaskets, write the XML the supports stage reads. */
 export function step10Document(xmlText, {drop = true, fileSha256 = sha256Hex(String(xmlText))} = {}) {
   const source = readPsi116V2(String(xmlText), {fileSha256});
   const step = runStage(gasketDropStage, source, {}, {drop}, {inputHashes: [fileSha256]});
+  refuseLostGaps(source, step.delta);
   const written = writePsi116FromUxmlV2(step.uxml);
   const names = branchNames(source);
   return {source, result: step.uxml, delta: step.delta, diagnostics: step.diagnostics, xmlText: written.text,

@@ -39,3 +39,18 @@ test('no PSI116 namespace: today\'s gasket drop runs, and the log names the refu
   const out = await enrichStandaloneXmlForUxmlRoute(job(xml('')));
   assert.ok(out.logs.some((l) => l.includes('no UXML document (PSI116_VERIFIED_NAMESPACE_REQUIRED)')), out.logs.join('\n'));
 });
+
+test('a DOCTYPE (the reader\'s parser refuses it): today\'s gasket drop runs, the Run is not stopped', async () => {
+  const text = xml(NS).replace('<?xml version="1.0"?>\n', '<?xml version="1.0"?>\n<!DOCTYPE PipeStressExport>\n');
+  const stage = await runUxmlSupportsStage(job(text));
+  assert.deepEqual(stage.document, { made: false, refusal: 'PSI116_XML_DTD_OR_DECLARATION_FORBIDDEN' });
+  assert.deepEqual(types(stage.stageInputXml), ['PIPE', 'FLAN', 'PIPE']);
+});
+
+test('content between nodes next to a gasket: refused, today\'s drop keeps the content', async () => {
+  const text = xml(NS).replace(`${node(20, 'FLAN', 100)}`, `<Extra>keep</Extra>${node(20, 'FLAN', 100)}`);
+  const stage = await runUxmlSupportsStage(job(text));
+  assert.deepEqual(stage.document, { made: false, refusal: 'UXML_GASKET_DROP_GAP_CONTENT' });
+  assert.ok(stage.stageInputXml.includes('<Extra>keep</Extra>'));
+  assert.deepEqual(types(stage.stageInputXml), ['PIPE', 'FLAN', 'PIPE']);
+});
