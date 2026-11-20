@@ -17,6 +17,7 @@ import { documentRecord, step10Document } from '../../../vendor/uxml-v2/topology
 import { runStage, sha256Hex } from '../../../vendor/uxml-v2/UxmlV2Kernel.js';
 import { firstNameParts } from './xml-cii-joined-names.js';
 import { runSupportsUnderLocks } from '../../../vendor/uxml-v2/supports/SupportsUnderLocks.js';
+import { changeList } from '../../../vendor/uxml-v2/supports/ChangeList.js';
 import { noteLockStage } from '../../../vendor/uxml-v2/transfer/TransferStage.js';
 import { readTransferNote, withoutTransferNote } from '../../../vendor/uxml-v2/transfer/TransferNote.js';
 import { parsePlainXml, serializePlainXml } from '../../../vendor/uxml-v2/supports/PlainDom.js';
@@ -27,7 +28,7 @@ import { carryTransferNote } from './xml-cii-transfer-protection.js';
 import { buildUxmlRunRecord, rememberUxmlRunRecord } from './xml-cii-uxml-run-record.js';
 
 export const UXML_ROUTE_STORAGE_KEY = 'xmlCii.uxmlRoute';
-export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities 5b4875d9)';
+export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities 0753470c)';
 
 /**
  * The step-10 switch: in a browser, on unless it was turned off there (blocked storage: on, the default).
@@ -90,10 +91,11 @@ export async function runUxmlSupportsStage(job, extraOptions = {}) {
   if (prepared.uxml) {
     let last = null;
     try {
-      const under = runSupportsUnderLocks(withNoteLocks(prepared.uxml, job?.sourceText), (t) => (last = runToday(t)));
+      const locked = withNoteLocks(prepared.uxml, job?.sourceText);
+      const under = runSupportsUnderLocks(locked, (t) => (last = runToday(t)));
       const lockedWithBar = firstNameParts(prepared.xmlText, lockedNames(job?.sourceText)).locked;
       return { xmlText: asToday(under.engineXmlText), ms: Date.now() - started,
-        stageInputXml: prepared.xmlText, result: { ...last, xmlText: asToday(under.engineXmlText) }, document: prepared.document, changes: { ...changesRecord(under), lockedWithBar } };
+        stageInputXml: prepared.xmlText, result: { ...last, xmlText: asToday(under.engineXmlText) }, document: prepared.document, changes: { ...changesRecord(under, locked), lockedWithBar } };
     } catch (error) {
       const refusal = String(error?.code || error?.message || '').match(/^(PSI116|UXML)_[A-Z0-9_]+/)?.[0];
       if (!refusal) throw error;
@@ -128,11 +130,22 @@ function withNoteLocks(doc, sourceText) {
  * one recorded stage per sub-step (rule, op count), the locked duplicates joined, the kept nodes given the "|" names
  * (their history, NodeName.1, .2 ...), and the lock conflicts.
  */
-function changesRecord(under) {
+/** Review N1 (PR 437): the change list only reports; if it cannot be built the record says why and the run goes on. */
+function listOf(before, deltas) {
+  try {
+    return { list: changeList(before, deltas) };
+  } catch (err) {
+    return { list: null, listError: String(err?.message || err) };
+  }
+}
+
+function changesRecord(under, before) {
   return {
     made: true,
     rules: under.rules,
     steps: under.deltas.map((d) => ({ stage: d.stage, rule: d.rulesVersion, base: d.base, result: d.result, ops: d.ops.length })),
+    // E2c step 3 (Owner 20 Nov): each recorded stage's changes, listed for the review page (vendor supports/ChangeList.js).
+    ...listOf(before, under.deltas),
     joined: under.joined,
     names: under.names.map((n) => ({ branch: n.branch, nodeNumber: n.nodeNumber, node: n.node, from: n.from,
       NodeName: n.NodeName, ComponentRefNo: n.ComponentRefNo, written: n.written, notWritten: n.notWritten })),
