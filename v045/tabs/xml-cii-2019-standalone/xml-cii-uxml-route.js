@@ -28,7 +28,7 @@ import { carryTransferNote } from './xml-cii-transfer-protection.js';
 import { buildUxmlRunRecord, rememberUxmlRunRecord } from './xml-cii-uxml-run-record.js';
 
 export const UXML_ROUTE_STORAGE_KEY = 'xmlCii.uxmlRoute';
-export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities 844f3a41)';
+export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities 0753470c)';
 
 /**
  * The step-10 switch: in a browser, on unless it was turned off there (blocked storage: on, the default).
@@ -130,13 +130,22 @@ function withNoteLocks(doc, sourceText) {
  * one recorded stage per sub-step (rule, op count), the locked duplicates joined, the kept nodes given the "|" names
  * (their history, NodeName.1, .2 ...), and the lock conflicts.
  */
+/** Review N1 (PR 437): the change list only reports; if it cannot be built the record says why and the run goes on. */
+function listOf(before, deltas) {
+  try {
+    return { list: changeList(before, deltas) };
+  } catch (err) {
+    return { list: null, listError: String(err?.message || err) };
+  }
+}
+
 function changesRecord(under, before) {
   return {
     made: true,
     rules: under.rules,
     steps: under.deltas.map((d) => ({ stage: d.stage, rule: d.rulesVersion, base: d.base, result: d.result, ops: d.ops.length })),
     // E2c step 3 (Owner 20 Nov): each recorded stage's changes, listed for the review page (vendor supports/ChangeList.js).
-    list: changeList(before, under.deltas),
+    ...listOf(before, under.deltas),
     joined: under.joined,
     names: under.names.map((n) => ({ branch: n.branch, nodeNumber: n.nodeNumber, node: n.node, from: n.from,
       NodeName: n.NodeName, ComponentRefNo: n.ComponentRefNo, written: n.written, notWritten: n.notWritten })),
