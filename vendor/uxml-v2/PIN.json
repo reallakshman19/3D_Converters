@@ -1,12 +1,13 @@
 {
  "source": "reallakshman19/XML_Compare_Utilities",
  "path": "uxml/v2",
- "commit": "5b4875d9a46e69d04f2088f8bf2bba1b72c6c596",
+ "commit": "844f3a41d0120bf8bfb55fb5bb9567697ffb512c",
  "entries": [
   "supports/SupportsStage.js",
   "topology/GasketDropStage.js",
   "supports/SupportsUnderLocks.js",
-  "transfer/TransferStage.js"
+  "transfer/TransferStage.js",
+  "supports/ChangeList.js"
  ],
  "files": {
   "../UxmlConstants.js": "f53478cc9921b1e6318208972eccf6fb16a111f8990a67fed5eafbe76d0b1c22",
@@ -46,6 +47,7 @@
   "engineering/WeightValveHints.js": "d0f8eb75dbe1f1e9d9efdeaa8971529da163573af1740ff5d1336bcf4da236ad",
   "engineering/WeightValveHintsPart2.js": "a87de0840731705d65845fdaf7e0d713ba03cb6bb39cfd0f073ed40dd1d1a229",
   "engineering/index.js": "a636744373f98988eeaf2b22593354c237055cbf45c59a1a2b21e2c7f2c52c8b",
+  "supports/ChangeList.js": "dedd4d40d3ebc5be13fa2e528ef6cba539e04eb361d86c8a78688288de3f6888",
   "supports/JoinDuplicates.js": "bc841df228934485a59e158b840f60b1d141231b17ba93027833c2fc4fa2e589",
   "supports/JoinNames.js": "84c4afb694bac676b3567004a443bac45e91e257ea659970e01d6e361f411612",
   "supports/PlainDom.js": "42b655985371809f36c957491da7bb5715ccb9254440721cb701056df09e8303",
