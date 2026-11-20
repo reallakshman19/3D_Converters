@@ -10,7 +10,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-export const ENTRIES = Object.freeze(['supports/SupportsStage.js', 'topology/GasketDropStage.js']);
+export const ENTRIES = Object.freeze(['supports/SupportsStage.js', 'topology/GasketDropStage.js', 'supports/SupportsUnderLocks.js', 'transfer/TransferStage.js']);
 const IMPORT = /(?:import|export)[^'"]*?from\s*['"](\.[^'"]+)['"]|import\(\s*['"](\.[^'"]+)['"]/g;
 
 /** Every file the entries import, directly or not (relative imports only). */

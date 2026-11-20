@@ -1,10 +1,12 @@
 {
  "source": "reallakshman19/XML_Compare_Utilities",
  "path": "uxml/v2",
- "commit": "90ad8938f5bdaffe0f76e2de3ce2c3540c1b1cff",
+ "commit": "db574a21c851753de23dd938e76c962a6e499abd",
  "entries": [
   "supports/SupportsStage.js",
-  "topology/GasketDropStage.js"
+  "topology/GasketDropStage.js",
+  "supports/SupportsUnderLocks.js",
+  "transfer/TransferStage.js"
  ],
  "files": {
   "../UxmlConstants.js": "f53478cc9921b1e6318208972eccf6fb16a111f8990a67fed5eafbe76d0b1c22",
@@ -12,9 +14,9 @@
   "../UxmlPsi116SchemaMapper.js": "3758b787a9ac9b778acfb110afafbd639a1f3cf679b629707e90aae3fe2c6a80",
   "../UxmlTypes.js": "bb515d18246b8238216cdf83dc36ee7f9f37ba737cc9bfe602793a877721fe34",
   "../UxmlValidationGate.js": "d2ca3cfcd085996ff2190f499b0a8c4cd5e68d9e155fe755b85fcc5cd027c1cb",
-  "UxmlV2Kernel.js": "5c911bfc1c36f7645175b849fd29662ce19f933fc4d6e83795172ad0b41b6f6f",
+  "UxmlV2Kernel.js": "dae30f9337198ac51b8effcae31b8dc56450d7bc47c4c91c01cba3b4ba0538ce",
   "UxmlV2Psi116Reader.js": "574cb758eaef038de0f7ea1342317fbfe1fc635e1ab3427fe7356e02718fec52",
-  "UxmlV2Psi116Writer.js": "9bcd87587e1db044af7a67aa361dccc6ae95123b0cb5a97608145864d7efc036",
+  "UxmlV2Psi116Writer.js": "6e327c136a7ff0edd703e15cf67748213afb605ea2144b206c5f4a86bd1c3a3b",
   "engineering/AdaptedPreview.js": "af99d614bb98d65982e7c3892d7342589e204e5c5e526a9c7c474d63c7445653",
   "engineering/AdaptedPreviewAuthorities.js": "85d6cd74d03908d73bfe38ab9c211d47036734f1e05345ab0966ec51503c4130",
   "engineering/AdaptedPreviewCore.js": "8309c4dcb1f8aa1474688a22639261b008292ce84dcf034d4ec19f6fd35f2bc1",
@@ -44,11 +46,15 @@
   "engineering/WeightValveHints.js": "d0f8eb75dbe1f1e9d9efdeaa8971529da163573af1740ff5d1336bcf4da236ad",
   "engineering/WeightValveHintsPart2.js": "a87de0840731705d65845fdaf7e0d713ba03cb6bb39cfd0f073ed40dd1d1a229",
   "engineering/index.js": "a636744373f98988eeaf2b22593354c237055cbf45c59a1a2b21e2c7f2c52c8b",
+  "supports/JoinDuplicates.js": "bc841df228934485a59e158b840f60b1d141231b17ba93027833c2fc4fa2e589",
+  "supports/JoinNames.js": "b14e026f78e38681e3e4882e8474d693d36ee7256073b8746c3c32eb7ec72b19",
   "supports/PlainDom.js": "42b655985371809f36c957491da7bb5715ccb9254440721cb701056df09e8303",
   "supports/SupportProvenance.js": "ecf2e9fd24623ad167106cb50562153d1eff2c236cd17ee13dfc6eeb2664ff54",
   "supports/SupportTable.js": "601c80ed43df3f92420c0e60823fdde7e333a989b78f776efcf04830fe8aec40",
+  "supports/SupportsAsChanges.js": "88c9fb5f2522e79ffa4922fe609efba2835da732f3ed282922930aa8a4fc8bee",
   "supports/SupportsChain.js": "e6953420fc39d2bd867347d3b759a100c1488c168d40e807020974589b02592d",
   "supports/SupportsStage.js": "44048c980e507f1738d50aeaa773587517c1d0f5dc3ff782a91f4453d6d673e9",
+  "supports/SupportsUnderLocks.js": "ce8411f2f2984fc7a5a3fd12f9873177dda616de8676b2c140818c8b63cc4fa2",
   "supports/UnmatchedSupports.js": "9ff3ea6b1da6735d9d1055c967795bce308b870c465f062153027ec43886cc61",
   "supports/closures/AttaDefaultClosure.js": "e4c14edb6f06541d96ff60daa89154293e38ab3d9d7e184f06fc5c6a82f1a3cb",
   "supports/closures/MdsClosure.js": "66f3309b6b390443d453d46b968f461956a78eb270953d5bf8afd0af2952e9b3",
@@ -97,6 +103,9 @@
   "supports/process/ProcessParityStep.js": "3e78696f66894cd0fe9a6aeee53b02afdf53041a831ae4a09f6b064a252effff",
   "supports/process/StandaloneProcessParity.js": "d8638f6fe5f6be402e03d99b328410dd61e2a031435e82ca6edae7c66f22123a",
   "supports/process/TransferSupportsKeep.js": "81849746dfdb588e3e4134a4b10d23a748960716325a867bff301fc9b4259b14",
-  "topology/GasketDropStage.js": "ebc42781ee114dee95f34074089d982779d389075446923af57c551f7d0a0be6"
+  "topology/GasketDropStage.js": "ebc42781ee114dee95f34074089d982779d389075446923af57c551f7d0a0be6",
+  "transfer/LockedEngineering.js": "864150a2b8db6c7faf388a7630fefa18be9b6274ad072b340afaf2f7d03e1221",
+  "transfer/TransferNote.js": "13ab134032fb8d30409167a6fe5828e7779e9ad38b68d2e6129a98431cc6b84d",
+  "transfer/TransferStage.js": "0238f099f6b3c9c72fbf3a231971f99477aaff146510e986a670422b37acafb6"
  }
 }
