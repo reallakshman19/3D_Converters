@@ -15,6 +15,7 @@ import { loadXmlCiiMaterialMap } from '../../converters/xml-cii2019-core/master-
 import { runSupportsStage } from '../../../vendor/uxml-v2/supports/SupportsStage.js';
 import { documentRecord, step10Document } from '../../../vendor/uxml-v2/topology/GasketDropStage.js';
 import { runStage, sha256Hex } from '../../../vendor/uxml-v2/UxmlV2Kernel.js';
+import { firstNameParts } from './xml-cii-joined-names.js';
 import { runSupportsUnderLocks } from '../../../vendor/uxml-v2/supports/SupportsUnderLocks.js';
 import { noteLockStage } from '../../../vendor/uxml-v2/transfer/TransferStage.js';
 import { readTransferNote, withoutTransferNote } from '../../../vendor/uxml-v2/transfer/TransferNote.js';
@@ -26,7 +27,7 @@ import { carryTransferNote } from './xml-cii-transfer-protection.js';
 import { buildUxmlRunRecord, rememberUxmlRunRecord } from './xml-cii-uxml-run-record.js';
 
 export const UXML_ROUTE_STORAGE_KEY = 'xmlCii.uxmlRoute';
-export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities db574a21)';
+export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities 5b4875d9)';
 
 /**
  * The step-10 switch: in a browser, on unless it was turned off there (blocked storage: on, the default).
@@ -90,17 +91,30 @@ export async function runUxmlSupportsStage(job, extraOptions = {}) {
     let last = null;
     try {
       const under = runSupportsUnderLocks(withNoteLocks(prepared.uxml, job?.sourceText), (t) => (last = runToday(t)));
-      return { xmlText: asToday(under.engineXmlText), namedXmlText: asToday(under.xmlText), ms: Date.now() - started,
-        stageInputXml: prepared.xmlText, result: { ...last, xmlText: asToday(under.engineXmlText) }, document: prepared.document, changes: changesRecord(under) };
+      const lockedWithBar = firstNameParts(prepared.xmlText, lockedNames(job?.sourceText)).locked;
+      return { xmlText: asToday(under.engineXmlText), ms: Date.now() - started,
+        stageInputXml: prepared.xmlText, result: { ...last, xmlText: asToday(under.engineXmlText) }, document: prepared.document, changes: { ...changesRecord(under), lockedWithBar } };
     } catch (error) {
       const refusal = String(error?.code || error?.message || '').match(/^(PSI116|UXML)_[A-Z0-9_]+/)?.[0];
       if (!refusal) throw error;
       changes = { made: false, refusal };
     }
   }
-  const stage = runToday(prepared.xmlText);
-  return { xmlText: stage.xmlText, ms: Date.now() - started, stageInputXml: prepared.xmlText, result: stage, document: prepared.document, changes };
+  // PR 436 review B3: without the document route, a "|" history in a name is cut to its first part for today's stage.
+  const plain = firstNameParts(prepared.xmlText, lockedNames(job?.sourceText));
+  const stage = runToday(plain.xmlText);
+  if (plain.cut || plain.locked) changes = { ...(changes || { made: false, refusal: null }), historyCut: plain.cut, lockedWithBar: plain.locked };
+  return { xmlText: stage.xmlText, ms: Date.now() - started, stageInputXml: plain.xmlText, result: stage, document: prepared.document, changes };
 }
+
+/** The node values the source's transfer note protects: 'branch|node' -> [key] ({} without a note). */
+function lockedNames(sourceText) {
+  return readTransferNote(String(sourceText || ''))?.note?.nodes || {};
+}
+
+/** Review N9: a "|" in a name the transfer locked goes to the CII as the transfer set it; say so. */
+const lockedBarLog = (changes) => (changes?.lockedWithBar
+  ? [`UXML route: ${changes.lockedWithBar} name(s) the transfer locked hold "|"; they went to the CII as the transfer set them (the lock wins).`] : []);
 
 /** The source's transfer protection note as locks on the document (E2b; today's stage reads the note from the text). */
 function withNoteLocks(doc, sourceText) {
@@ -138,12 +152,17 @@ function keptSupportsDiagnostics(changes) {
 
 function changesLog(changes) {
   if (!changes) return [];
-  if (!changes.made) return [`UXML route: the supports could not be recorded on the document (${changes.refusal}); today's supports stage XML went to the engine.`];
+  if (!changes.made) {
+    return [
+      ...(changes.refusal ? [`UXML route: the supports could not be recorded on the document (${changes.refusal}); today's supports stage XML went to the engine.`] : []),
+      ...(changes.historyCut ? [`UXML route: ${changes.historyCut} name(s) holding a "|" history were cut to their first part for the supports stage and the CII; the Enriched XML of this run has no "|" history.`] : []),
+      ...lockedBarLog(changes)];
+  }
   const ops = changes.steps.reduce((n, s) => n + s.ops, 0);
   const named = changes.names.filter((n) => n.written.length).length;
   return [`UXML route: the supports and engineering were recorded on the UXML document (${ops} change(s) in ${changes.steps.length} recorded stage(s)); `
-    + `${changes.joined.length} locked duplicate node(s) joined; ${named} kept node(s) carry the joined names with "|" in the Enriched XML (not in the CII); `
-    + `${changes.conflicts.length} lock conflict(s).`];
+    + `${changes.joined.length} locked duplicate node(s) joined; ${named} node(s) listed for "|" names in the Enriched XML, written after the engine (not in the CII); `
+    + `${changes.conflicts.length} lock conflict(s).`, ...lockedBarLog(changes)];
 }
 
 function compareLog(compare) {
@@ -195,7 +214,7 @@ export async function enrichStandaloneXmlForUxmlRoute(job, extraOptions = {}) {
   const keptSupports = stage.changes?.made ? keptSupportsDiagnostics(stage.changes)
     : (stage.result?.diagnostics || []).filter((d) => d?.type === 'transfer-supports');
   // E2c step 2: the "|" names go into step 10's Enriched XML after the engine (xml-cii-joined-names.js), never into its input.
-  if (stage.changes?.made) { out.uxmlNames = stage.changes.names.filter((n) => n.written.length); out.uxmlChanges = stage.changes; }
+  if (stage.changes?.made) out.uxmlNames = stage.changes.names.filter((n) => n.written.length);
   out.diagnostics = [...out.diagnostics, ...keptSupports];
   out.logs = [...(out.logs || []), ...keptSupports.map((d) => `UXML route: ${d.message}`),
     stage.document.refusal ? `UXML route: no UXML document (${stage.document.refusal}); today's gasket drop ran on the XML text.`
