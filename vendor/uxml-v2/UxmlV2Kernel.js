@@ -265,8 +265,11 @@ function applyOps(doc, ops) {
       if (op.op === 'set') {
         if (!same(current, op.before)) refuse(CODES.DELTA_BEFORE_MISMATCH, {uid: op.uid, key});
         if (op.after == null) delete values[key]; else values[key] = clone(op.after);
-        if (op.after != null && !(item.entity.fieldOrder || []).includes(key))
-          (item.entity.fieldOrder ||= []).push(key);
+        if (op.after != null && !(item.entity.fieldOrder || []).includes(key)) {
+          // A new key goes after `afterKey` when the op names one that is there (E2a: today's tag order), else last.
+          const order = (item.entity.fieldOrder ||= []), at = op.afterKey == null ? -1 : order.indexOf(op.afterKey);
+          order.splice(at < 0 ? order.length : at + 1, 0, key);
+        }
       } else {
         if (!current) refuse(CODES.UID_UNKNOWN, {uid: op.uid, key});
         if (!same(current.lock, op.before)) refuse(CODES.DELTA_BEFORE_MISMATCH, {uid: op.uid, key});

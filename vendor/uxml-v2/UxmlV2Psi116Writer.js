@@ -3,8 +3,10 @@
  *
  *   - Source records are written from their custody text; a value is replaced only when
  *     its `rev` is newer than read revision 0, so an unchanged file comes out byte for byte.
- *   - A value a stage added (no span in the source record) is inserted before the record's
- *     close tag. Removing a source value is refused (set it to '' instead).
+ *   - A value a stage added (no span in the source record) goes where its fieldOrder puts it: after the
+ *     last value before it in the text (inside its group for a grouped key), else before the group's first
+ *     value, else before the record's close tag (a branch: after its nodes; a whole new branch group is one
+ *     new element there). Removing a source value is refused (set it to '' instead).
  *   - A node a stage made (lineage insert/split, no custody) is written from the template of
  *     its first lineage source with EVERY tag taken from its own modelled values; a template
  *     tag with no value is refused (PS116_WRITE_REQUIRED_VALUE_MISSING).
@@ -46,25 +48,72 @@ function patch(text, edits) {
 }
 const wsBefore = (text, at) => /[ \t\r\n]*$/.exec(text.slice(0, at))[0];
 
-/** Edits for the changed values of one entity (spans relative to its raw text). */
-function valueEdits(entity, spans, insertAt, ws, stats) {
+/** End of a value's whole element, from its span (a value span ends where its close tag starts). */
+const elementEnd = (key, span) => (span[2] ? span[1] : span[1] + tagOf(key).length + 3);
+const groupOf = key => key.split('#')[0].split('.').slice(0, -1).join('.');
+
+/**
+ * Value edits for one node, restraint or branch. A new value goes where its fieldOrder puts it (E2a, 19 Nov 2026: as
+ * today's supports output has it): right after the last value before it that is in the text, so it lands before the
+ * node's restraints; a new value in a group (Pressure.HydroPressure) goes after the group's last value before it.
+ * `place.tail` (branches): a new top-level value goes at `insertAt` (after the branch's nodes, as today) instead.
+ * With no value before it in the text, a new value goes at `insertAt`, as before.
+ */
+function valueEdits(entity, spans, insertAt, ws, stats, place = {}) {
   const edits = [];
   for (const key of Object.keys(spans)) {
     if (!Object.hasOwn(entity.values, key))
       fail('PS116_WRITE_VALUE_REMOVED_UNSUPPORTED', {uid: entity.uid, key});
   }
+  const lastIn = new Map(); // group ('' = top level) -> {end, ws} of the last element in the text seen so far
+  const newGroups = new Map(); // group -> its one new element (branches only)
+  const firstIn = new Map(); // group -> {start, ws} of its first element in the text (a new key before it goes there)
+  for (const [key, span] of place.raw == null ? [] : Object.entries(spans)) {
+    const start = span[2] ? span[0] : span[0] - tagOf(key).length - 2, group = groupOf(key);
+    if (group && !(firstIn.get(group)?.start <= start)) firstIn.set(group, {start, ws: wsBefore(place.raw, start)});
+  }
   for (const key of entity.fieldOrder || Object.keys(entity.values)) {
     const value = entity.values[key];
-    if (!value || !changed(value)) continue;
     const span = spans[key];
+    if (span && place.raw != null) {
+      const start = span[2] ? span[0] : span[0] - tagOf(key).length - 2;
+      lastIn.set(groupOf(key), {end: elementEnd(key, span), ws: wsBefore(place.raw, start)});
+    }
+    if (!value || !changed(value)) continue;
     if (span) {
       edits.push({start: span[0], end: span[1], text: span[2] ? element(key, value) : renderValue(value)});
     } else {
-      if (key.includes('.')) fail('PS116_WRITE_NESTED_INSERT_UNSUPPORTED', {uid: entity.uid, key});
-      if (insertAt == null) fail('PS116_WRITE_INSERT_POSITION_UNKNOWN', {uid: entity.uid, key});
-      edits.push({start: insertAt, end: insertAt, text: element(key, value) + ws});
+      const group = groupOf(key);
+      const after = place.tail && !group ? undefined : lastIn.get(group);
+      if (group && !after && firstIn.has(group)) {
+        // A new key ordered before its group's keys in the text (PR 299 review): inside the group, before its first key.
+        const first = firstIn.get(group);
+        edits.push({start: first.start, end: first.start, text: element(key, value) + first.ws});
+        stats.patchedValues += 1;
+        continue;
+      }
+      if (group && !after && place.tail && !group.includes('.') && insertAt != null) {
+        // A whole new group on a branch (Pressure with no <Pressure> in the text): one element after the nodes, as today.
+        let made = newGroups.get(group);
+        if (!made) { made = {start: insertAt, end: insertAt, kids: [], group}; newGroups.set(group, made); edits.push(made); }
+        made.kids.push(element(key, value));
+        stats.patchedValues += 1;
+        continue;
+      }
+      if (group && !after) fail('PS116_WRITE_NESTED_INSERT_UNSUPPORTED', {uid: entity.uid, key});
+      if (after) {
+        edits.push({start: after.end, end: after.end, text: after.ws + element(key, value)});
+      } else {
+        if (insertAt == null) fail('PS116_WRITE_INSERT_POSITION_UNKNOWN', {uid: entity.uid, key});
+        edits.push({start: insertAt, end: insertAt, text: place.tail ? ws + element(key, value) : element(key, value) + ws});
+      }
     }
     stats.patchedValues += 1;
+  }
+  for (const made of newGroups.values()) {
+    made.text = ws + '<' + made.group + '>' + made.kids.join('') + '</' + made.group + '>';
+    delete made.kids;
+    delete made.group;
   }
   return edits;
 }
@@ -127,7 +176,7 @@ function renderNode(comp, doc, stats) {
     }
     for (const original of xref.restraints) edits.push(cut(raw, original.span));
   } else {
-    edits = valueEdits(comp, xref.spans, closeAt, ws, stats);
+    edits = valueEdits(comp, xref.spans, closeAt, ws, stats, {raw});
     const kept = new Map(comp.restraints.map(r => [r.uid, r]));
     for (const original of xref.restraints) {
       const r = kept.get(original.uid);
@@ -157,7 +206,9 @@ export function writePsi116FromUxmlV2(doc) {
     const c = doc.custody[p.uid];
     if (!c) fail('PS116_WRITE_PIPELINE_INSERT_UNSUPPORTED', {uid: p.uid});
     const {spans, closeOffset} = c;
-    const branchEdits = valueEdits(p, spans, p.components.length ? c.open.length : null, wsBefore(c.open, c.open.length) || '\n', stats);
+    // New top-level branch values go after the branch's nodes, where today's supports output has them (E2a).
+    const branchEdits = valueEdits(p, spans, p.components.length ? closeOffset : null, wsBefore(c.open, c.open.length) || '\n', stats,
+      {raw: c.open, tail: true});
     const openEdits = [], closeEdits = [];
     for (const e of branchEdits) {
       if (e.end <= c.open.length) openEdits.push(e);
