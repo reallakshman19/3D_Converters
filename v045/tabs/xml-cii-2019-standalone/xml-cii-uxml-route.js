@@ -28,7 +28,7 @@ import { carryTransferNote } from './xml-cii-transfer-protection.js';
 import { buildUxmlRunRecord, rememberUxmlRunRecord } from './xml-cii-uxml-run-record.js';
 
 export const UXML_ROUTE_STORAGE_KEY = 'xmlCii.uxmlRoute';
-export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities e403ca92)';
+export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities 7b2cd3f3)';
 
 /**
  * The step-10 switch: in a browser, on unless it was turned off there (blocked storage: on, the default).

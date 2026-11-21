@@ -8,7 +8,7 @@ import { runUxmlSupportsStage } from '../v045/tabs/xml-cii-2019-standalone/xml-c
 import { applyEffectiveFactsToJob } from '../v045/tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js';
 import { normalizeWorkflowJob } from '../v045/tabs/xml-cii-2019-standalone/xml-cii-workflow-types.js';
 import { buildUxmlStageFile, settingsParts, stageJob, STAGES_OF_PHASE } from '../v045/tabs/xml-cii-2019-standalone/xml-cii-uxml-stage-files.js';
-import { EMPTY_SETTINGS_SHA256, readStageFile } from '../vendor/uxml-v2/UxmlV2StageFile.js';
+import { EMPTY_SETTINGS_SHA256, readStageFile, stageFileSeal } from '../vendor/uxml-v2/UxmlV2StageFile.js';
 import { writePsi116FromUxmlV2 } from '../vendor/uxml-v2/UxmlV2Psi116Writer.js';
 import { parsePlainXml, serializePlainXml } from '../vendor/uxml-v2/supports/PlainDom.js';
 
@@ -54,8 +54,16 @@ test('S2 leaves out Preview edits and weight choices, S3 weight choices; S4 keep
   assert.equal(files.S3.inputs.weightChoices, EMPTY_SETTINGS_SHA256);
   assert.notEqual(files.S4.inputs.weightChoices, EMPTY_SETTINGS_SHA256);
   for (const s of ['S2', 'S3', 'S4']) readStageFile(JSON.parse(JSON.stringify(files[s])));
+  // PR 438 review B3: the branch-to-line map and the "use JSON Trace staged source" switches are Preview edits too.
+  const mapped = { ...job(xml(NS), { linelist: { branchLineKeyMap: { '/G/B1': 'L9' } }, useJsonTraceStagedSource: true }) };
+  assert.deepEqual(settingsParts(stageJob(mapped, 'S2')).previewEdits, {});
+  assert.deepEqual(JSON.parse(stageJob(mapped, 'S2').supportConfigJson).linelist, {});
+  assert.deepEqual(settingsParts(stageJob(mapped, 'S3')).previewEdits, { branchLineKeyMap: { '/G/B1': 'L9' }, useJsonTraceStagedSource: true });
+  // PR 438 review B4: each file says whether step 10's UXML route is on (off without a browser's storage, as here).
+  assert.equal(files.S4.producer.routeOn, false);
   // Wrong mode: an S2 made without leaving the choices out is refused when opened.
   const wrong = JSON.parse(JSON.stringify({ ...files.S4, stage: 'S2' }));
+  wrong.seal = stageFileSeal(wrong);
   assert.throws(() => readStageFile(wrong), (e) => e.code === 'UXML_STAGE_SETTINGS_NOT_LEFT_OUT');
 });
 

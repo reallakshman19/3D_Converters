@@ -99,8 +99,8 @@ function renderWorkflow(container, stateRef, render) {
     installModeAConsolidatedWeightEasyUiFromWorkspace(main, effectiveRef);
     installModeACompactMultiUi(main, stateRef.current);
   }
-  // E2c step 4: UXML stage downloads on steps 1, 3, 4, 6, from the same state view step 10's Run uses.
-  installUxmlStageDownloads(main, v045Ref || v045ViewRef(effectiveRef, stateRef.current));
+  // E2c step 4: UXML stage downloads on steps 1, 3, 4, 6; the job is built as step 10's Run builds it.
+  installUxmlStageDownloads(main, stateRef, effectiveRef);
   workspace.appendChild(main);
   root.appendChild(workspace);
   container.appendChild(root);
