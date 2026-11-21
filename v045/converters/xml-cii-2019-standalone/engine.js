@@ -176,7 +176,8 @@ async function runCiiFromUxml(pyodide, job, paths, jobDir, stdout, stderr) {
   stdout.push(`Engine reads UXML: the CII engine read the UXML document (revision ${job.engineUxml?.revision?.id || '?'}), no XML file; `
     + `its prepare steps changed ${rows.length} value(s).`);
   return { ciiText: pyodide.FS.readFile(invocation.outputPath, { encoding: 'utf8' }), ciiName: invocation.outputName, argv: argv.slice(1),
-    engineUxml: { used: true, revision: job.engineUxml?.revision?.id || null, changes: rows } };
+    // E4b step 2: which UXML node ids made each CII node number (the engine's node map), for the CII sidecar.
+    engineUxml: { used: true, revision: job.engineUxml?.revision?.id || null, changes: rows, nodeMap: changes?.nodeMap || null } };
 }
 
 export async function runXmlCii2019StandaloneEngine(job) {

@@ -37,7 +37,8 @@ function cii(dir, name, input, uxml) {
   const out = path.join(dir, name + '.cii'), changes = path.join(dir, name + '.changes.json');
   python([path.join(SCRIPTS, 'xml_to_cii2019_runtime_custody.py'), '--input', input, '--output', out, ...ARGV,
     ...(uxml ? ['--input-uxml', '--uxml-changes-out', changes] : [])], dir);
-  return { cii: fs.readFileSync(out, 'utf8'), rows: uxml ? JSON.parse(fs.readFileSync(changes, 'utf8')).rows : null };
+  const got = uxml ? JSON.parse(fs.readFileSync(changes, 'utf8')) : null;
+  return { cii: fs.readFileSync(out, 'utf8'), rows: got?.rows ?? null, nodeMap: got?.nodeMap ?? null };
 }
 /** Today's Enriched XML pass (engine.js ENRICH_XML_SNIPPET), natively, on the engine's input XML. */
 function todayEnrichedPass(dir, input) {
@@ -94,7 +95,7 @@ test('an engine change the document cannot hold gives no Enriched XML from the d
 });
 
 /** Step 10's engine (engine.js) as the workflow calls it, run natively: the document when handed one, else the XML. */
-function nativeEngine(dir, { spoilRows = false } = {}) {
+function nativeEngine(dir, { spoilRows = false, noMap = false } = {}) {
   let n = 0;
   return async (job) => {
     const k = n++;
@@ -112,7 +113,7 @@ function nativeEngine(dir, { spoilRows = false } = {}) {
       // As engine.js: "CII only" makes no Enriched XML; with the document path the pass is left to the service.
       const enrichedText = job.enrichedFromUxml || job.options.outputMode === 'cii-only' ? '' : carryTransferNote(job.sourceText, todayEnrichedPass(dir, path.join(dir, `x${k}.xml`)));
       return { ok: true, ciiText: got.cii, ciiName: `${name}.cii`, enrichedText, enrichedName: `${name}_enriched.xml`, logs: [],
-        engineUxml: { used: true, revision: job.engineUxml.revision.id, changes: rows } };
+        engineUxml: { used: true, revision: job.engineUxml.revision.id, changes: rows, nodeMap: noMap ? null : got.nodeMap } };
     }
     const enrichedText = job.options.outputMode === 'cii-only' ? '' : carryTransferNote(job.sourceText, todayEnrichedPass(dir, path.join(dir, `x${k}.xml`)));
     return { ok: true, ciiText: cii(dir, `c${k}`, path.join(dir, `x${k}.xml`), false).cii, ciiName: `${name}.cii`, enrichedText, enrichedName: `${name}_enriched.xml`, logs: [] };
@@ -131,7 +132,7 @@ test('step 10 workflow: box on writes the Enriched XML from the document (same c
       rec.clearUxmlRunRecords();
       const r = await api.runXmlCii2019Workflow({ sourceText: SOURCE, sourceName: 'WSW-2-RE-AFC.xml', sourceKind: 'auto',
         options: { ...api.DEFAULT_XML_CII_WORKFLOW_OPTIONS, outputMode } }, { engineRunner: nativeEngine(dir, opts) });
-      return { r, record: rec.uxmlRunRecords().at(-1) };
+      return { r, record: rec.uxmlRunRecords().at(-1), sidecars: rec.ciiSidecars() };
     };
     const off = await run(false), on = await run(true);
     assert.ok(off.r.ok && on.r.ok, on.r.error || off.r.error);
@@ -141,6 +142,16 @@ test('step 10 workflow: box on writes the Enriched XML from the document (same c
     assert.equal(off.record.enriched, undefined, 'box off: the record is as before');
     assert.ok(on.r.logs.some((l) => /Enriched XML written from the UXML document/.test(l)));
     assert.equal(on.record.changes.steps.at(-1).base, on.record.changes.steps.at(-2).result, 'the engine steps follow the names step');
+    // E4b step 3: box on, the CII gets its sidecar (kept for the download, named on the record); box off, none.
+    assert.equal(on.record.sidecar.made, true, JSON.stringify(on.record.sidecar));
+    assert.equal(on.record.sidecar.fileName, 'WSW-2-RE-AFC.cii.sidecar.json');
+    assert.equal(on.sidecars.length, 1);
+    assert.equal(on.sidecars[0].nodes.length, on.record.sidecar.nodes);
+    assert.equal(off.record.sidecar, undefined);
+    assert.equal(off.sidecars.length, 0);
+    const noMap = await run(true, { noMap: true });
+    assert.ok(noMap.r.ok && noMap.r.ciiText === off.r.ciiText, 'no node map: the run is not affected');
+    assert.deepEqual([noMap.record.sidecar.made, noMap.sidecars.length], [false, 0]);
     const spoiled = await run(true, { spoilRows: true });
     assert.ok(spoiled.r.ok, spoiled.r.error);
     assert.equal(spoiled.record.enriched.fromDocument, false);
