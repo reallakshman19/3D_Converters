@@ -36,13 +36,15 @@ export const SUPPORTS_SUB_STEPS = Object.freeze(['branch-pass', '01-parent-enric
   '03-atta-default', '04-mds-closure']);
 export const INPUT_KEYS = Object.freeze(['sourceXml', 'stagedJson', 'config', 'previewEdits', 'weightChoices', 'runConfig']);
 
-/** True when a chain's stage ids are the ones the stage must hold (optional: transfer-note locks, joins, "|" names). */
+/** True when a chain's stage ids are the ones the stage must hold. Optional, in this order: transfer-note locks, the
+ *  "|" name history read from the source (supports:name-history, PR 304 review B5), joins, and the "|" names. */
 export function chainFitsStage(stage, stages) {
   if (stage === 'S0') return stages.length === 0;
   if (stage === 'S1') return stages.length === 1 && stages[0] === 'gasket-drop';
   const rest = [...stages];
   if (rest.shift() !== 'gasket-drop') return false;
   if (rest[0] === 'transfer-note') rest.shift();
+  if (rest[0] === 'supports:name-history') rest.shift();
   while (rest[0] === 'supports:join') rest.shift();
   if (rest.at(-1) === 'supports:names') rest.pop();
   return rest.length === SUPPORTS_SUB_STEPS.length && rest.every((id, i) => id === 'supports:' + SUPPORTS_SUB_STEPS[i]);

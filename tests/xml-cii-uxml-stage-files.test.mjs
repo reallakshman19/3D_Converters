@@ -67,6 +67,14 @@ test('S2 leaves out Preview edits and weight choices, S3 weight choices; S4 keep
   assert.throws(() => readStageFile(wrong), (e) => e.code === 'UXML_STAGE_SETTINGS_NOT_LEFT_OUT');
 });
 
+test('PR 304 review B5: a source whose names hold "|" history (a second step 10 run) gives stage files that open', async () => {
+  const named = xml(NS).replace('<NodeName></NodeName>', '<NodeName>N10|OLD</NodeName>');
+  for (const s of ['S2', 'S4']) {
+    const o = await opened(job(named), s);
+    assert.ok(o.revisions.some((r) => r.doc.revision.stage === 'supports:name-history'), `${s} holds the history step`);
+  }
+});
+
 test('a file the UXML reader refuses gives a stage file that says why; an InputXML source gives none', async () => {
   for (const s of ['S1', 'S3']) {
     const { file } = await buildUxmlStageFile(job(xml('')), s);
