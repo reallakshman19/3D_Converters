@@ -33,6 +33,8 @@ export function engineChangeSteps(doc, rows) {
       const op = opOf(row);
       if (op) ops.push(op); else notRecorded += 1;
     }
+    // E4: a prepare step that changed nothing records no step (each recorded step costs a full document check).
+    if (!ops.length) continue;
     const stage = { id: rule, rulesVersion: ENGINE_CHANGES_RULES, reads: ['topology'], writes: LAYERS, run: () => ({ ops: structuredClone(ops) }) };
     const step = runStage(stage, uxml);
     // A change to a value the transfer locked is not recorded (the kernel refuses it); the record counts it.

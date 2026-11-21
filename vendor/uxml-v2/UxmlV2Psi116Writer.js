@@ -62,8 +62,15 @@ const groupOf = key => key.split('#')[0].split('.').slice(0, -1).join('.');
 function valueEdits(entity, spans, insertAt, ws, stats, place = {}) {
   const edits = [];
   for (const key of Object.keys(spans)) {
-    if (!Object.hasOwn(entity.values, key))
-      fail('PS116_WRITE_VALUE_REMOVED_UNSUPPORTED', {uid: entity.uid, key});
+    if (Object.hasOwn(entity.values, key)) continue;
+    // E4 (Owner 21 Nov 2026, "Yes, as suggested"): a value the document removed (the CII engine's bend-radius step
+    // drops zero BendRadius tags) loses its element and the whitespace run just before it, as a removed restraint does.
+    if (place.raw == null) fail('PS116_WRITE_VALUE_REMOVED_UNSUPPORTED', {uid: entity.uid, key});
+    const span = spans[key], start = span[2] ? span[0] : span[0] - tagOf(key).length - 2;
+    // A branch value after the branch's nodes lies outside the text measured here: still refused.
+    if (elementEnd(key, span) > place.raw.length) fail('PS116_WRITE_VALUE_REMOVED_UNSUPPORTED', {uid: entity.uid, key});
+    edits.push({start: start - wsBefore(place.raw, start).length, end: elementEnd(key, span), text: ''});
+    stats.removedValues += 1;
   }
   const lastIn = new Map(); // group ('' = top level) -> {end, ws} of the last element in the text seen so far
   const newGroups = new Map(); // group -> its one new element (branches only)
@@ -200,7 +207,7 @@ function cut(raw, span) {
 /** Write PS116 text from a sealed UXML v2 document. Returns {text, stats}. */
 export function writePsi116FromUxmlV2(doc) {
   assertValid(doc);
-  const stats = {patchedValues: 0, insertedNodes: 0, insertedRestraints: 0, removedRestraints: 0, nodes: 0};
+  const stats = {patchedValues: 0, insertedNodes: 0, insertedRestraints: 0, removedRestraints: 0, removedValues: 0, nodes: 0};
   let out = '';
   for (const p of doc.pipelines) {
     const c = doc.custody[p.uid];

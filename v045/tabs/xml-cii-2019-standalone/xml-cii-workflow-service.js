@@ -8,7 +8,8 @@ import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity.js';
 import { ciiSha256 } from './xml-cii-final-property-reader.js';
 import { captureModeBStagedSources } from './xml-cii-frozen-run-package.js';
 import { writeJoinedNames } from './xml-cii-joined-names.js';
-import { noteEngineOnRunRecord } from './xml-cii-uxml-run-record.js';
+import { noteEngineOnRunRecord, noteEnrichedOnRunRecord } from './xml-cii-uxml-run-record.js';
+import { enrichedFromDocument } from './xml-cii-uxml-enriched.js';
 import {captureActiveRestraintAudit} from '../../../tabs/xml-cii-2019-standalone/xml-cii-active-restraint-audit.js';
 
 function parseSupportConfig(raw) {
@@ -132,12 +133,34 @@ async function runWorkflow(job, runtime) {
 
   assertModeBRunRestraints(factedJob, parity.xmlText, 'Run engine input XML', { allowAdditions: true });
   // E3 (Owner 21 Nov 2026): with "Engine reads UXML" on, the route also hands the document parity.xmlText is written from.
-  const engineJob = { ...factedJob, sourceText: parity.xmlText, ...(parity.engineUxml ? { engineUxml: parity.engineUxml } : {}) };
+  const engineJob = { ...factedJob, sourceText: parity.xmlText, ...(parity.engineUxml ? { engineUxml: parity.engineUxml } : {}),
+    // E4: the engine then skips its Enriched XML pass over the XML; the Enriched XML is written from the document below.
+    ...(parity.engineUxml && parity.enrichedUxml ? { enrichedFromUxml: true } : {}) };
   const result = await runXmlCii2019StandaloneEngineJob(engineJob, runtime);
   assertModeBRunResult(factedJob, result, engineJob.sourceText);
-  if (parity.engineUxml) noteEngineOnRunRecord(engineJob.sourceName, parity.engineUxml, result?.engineUxml);
+  // E4: the engine's steps are recorded after the "|" names step (the Enriched XML's document), built once for both.
+  const recorded = parity.engineUxml
+    ? noteEngineOnRunRecord(engineJob.sourceName, parity.enrichedUxml || parity.engineUxml, result?.engineUxml) : null;
+  // E4 (Owner 21 Nov 2026, "Yes, as suggested"): the engine read the document, so the Enriched XML is written from the
+  // route's final document plus the engine's recorded steps ("|" names and note included). If that cannot be written,
+  // today's Enriched XML pass runs on the XML and the joined names go in as before; the log says which.
+  let enrichedFromDoc = false;
+  if (engineJob.enrichedFromUxml && result?.ok && result.engineUxml?.used) {
+    const written = enrichedFromDocument(parity.enrichedUxml, result.engineUxml.changes, { sourceText: factedJob.sourceText, sifFacts: factedJob.sifFacts, recorded });
+    if (written.ok) {
+      result.enrichedText = written.xmlText;
+      enrichedFromDoc = true;
+      parity.logs = [...(parity.logs || []), `Enriched XML written from the UXML document (revision ${written.revision}; ${written.removedValues} value(s) the engine removed).`];
+      noteEnrichedOnRunRecord(engineJob.sourceName, { fromDocument: true, revision: written.revision, sha256: await ciiSha256(written.xmlText) });
+    } else {
+      const again = await runXmlCii2019StandaloneEngineJob({ ...factedJob, sourceText: parity.xmlText, options: { ...factedJob.options, outputMode: 'enriched-only' } }, runtime);
+      result.enrichedText = again?.enrichedText || '';
+      parity.logs = [...(parity.logs || []), `Enriched XML: could not be written from the UXML document (${written.error}); made from the XML as before.`];
+      noteEnrichedOnRunRecord(engineJob.sourceName, { fromDocument: false, error: written.error });
+    }
+  }
   // E2c step 2 (Owner 20 Nov 2026, "Write | in output"): the joined names go into the Enriched XML, never the CII input.
-  if (parity.uxmlNames?.length && result?.enrichedText) {
+  if (!enrichedFromDoc && parity.uxmlNames?.length && result?.enrichedText) {
     const named = writeJoinedNames(result.enrichedText, parity.uxmlNames);
     if (named.ok) result.enrichedText = named.xmlText;
     parity.logs = [...(parity.logs || []), named.message];
