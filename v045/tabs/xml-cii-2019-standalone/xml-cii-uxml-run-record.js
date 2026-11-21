@@ -64,27 +64,39 @@ export function rememberUxmlRunRecord(record) {
   lastRun = [...lastRun.filter((r) => r.model !== record.model), record];
 }
 
+/** End-to-end plan E4 (Owner 21 Nov 2026): how step 10 made this model's Enriched XML: from the document (its final
+ *  revision and the file's SHA-256), or from the XML because the document could not be written (why). */
+export function noteEnrichedOnRunRecord(model, enriched) {
+  const i = lastRun.findIndex((r) => r.model === String(model || 'model'));
+  if (i < 0) return null;
+  const record = { ...lastRun[i], enriched: { ...enriched } };
+  lastRun = lastRun.map((r, k) => (k === i ? record : r));
+  return record;
+}
+
 /**
  * End-to-end plan E3 (Owner 21 Nov 2026): after the CII engine read the UXML document `doc`, its own changes
  * (`engine.changes`, by uid and rule) become recorded steps in that model's record, listed with the supports sub-steps.
  * `engine` is the engine's engineUxml result ({used, revision, changes} or {used: false, refusal}).
  */
-export function noteEngineOnRunRecord(model, doc, engine) {
-  const i = lastRun.findIndex((r) => r.model === String(model || 'model'));
-  if (i < 0) return null;
+export function noteEngineOnRunRecord(model, doc, engine, given = null) {
   const seen = engine || { used: false, refusal: 'the engine gave no UXML result' };
   let recorded = null, error = null;
   if (seen.used) {
     try {
-      recorded = engineChangeSteps(doc, seen.changes);
+      recorded = given || engineChangeSteps(doc, seen.changes);
     } catch (err) {
       error = String(err?.code || err?.message || err);
     }
   }
-  const record = withEngineChanges(lastRun[i], seen, recorded);
-  if (error) record.engine.recordError = error;
-  lastRun = lastRun.map((r, k) => (k === i ? record : r));
-  return record;
+  const i = lastRun.findIndex((r) => r.model === String(model || 'model'));
+  if (i >= 0) {
+    const record = withEngineChanges(lastRun[i], seen, recorded);
+    if (error) record.engine.recordError = error;
+    lastRun = lastRun.map((r, k) => (k === i ? record : r));
+  }
+  // E4: the engine's recorded steps (null if none), so the Enriched XML is written from the same steps.
+  return recorded;
 }
 
 export const uxmlRunRecords = () => lastRun;
