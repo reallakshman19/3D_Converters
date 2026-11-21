@@ -209,15 +209,25 @@ export async function runXmlCii2019StandaloneEngine(job) {
       postprocess.push({ branch: 'psi116-topology-sidecars', ...topology.topologySummary, findingsName: topology.topologyFindingsName, planName: topology.topologyFixPlanName });
     }
 
+    const xmlEnrichedPass = async () => {
+      const enriched = await runEnrichedXml(pyodide, normalizedJob, paths, jobDir, stdout);
+      const sif = applyStandaloneSifFacts(enriched.enrichedText, 'xml', normalizedJob.sifFacts);
+      enrichedText = carryTransferNote(normalizedJob.sourceText, sif.text);
+      enrichedName = enriched.enrichedName;
+      partial.enrichedText = enrichedText;
+      partial.enrichedName = enrichedName;
+      postprocess.push({ branch: 'psi116-enriched-xml', outputName: enrichedName, sifDiagnostics: sif.diagnostics });
+    };
+    // E4 (Owner 21 Nov 2026): when the engine reads the UXML document, step 10 writes the Enriched XML from the
+    // document after the engine (xml-cii-uxml-enriched.js), so this pass over the XML is skipped; it still runs if the
+    // engine did not read the document after all (a refusal, a TopoFix-fixed input).
+    const deferEnriched = sourceKind === 'xml' && outputMode === 'both' && normalizedJob.engineUxml && normalizedJob.enrichedFromUxml;
     if (outputMode !== 'cii-only') {
-      if (sourceKind === 'xml') {
-        const enriched = await runEnrichedXml(pyodide, normalizedJob, paths, jobDir, stdout);
-        const sif = applyStandaloneSifFacts(enriched.enrichedText, 'xml', normalizedJob.sifFacts);
-        enrichedText = carryTransferNote(normalizedJob.sourceText, sif.text);
-        enrichedName = enriched.enrichedName;
-        partial.enrichedText = enrichedText;
+      if (sourceKind === 'xml' && deferEnriched) {
+        enrichedName = enrichedNameFor(normalizedJob);
         partial.enrichedName = enrichedName;
-        postprocess.push({ branch: 'psi116-enriched-xml', outputName: enrichedName, sifDiagnostics: sif.diagnostics });
+      } else if (sourceKind === 'xml') {
+        await xmlEnrichedPass();
       } else {
         enrichedText = normalizedJob.sourceText;
         enrichedName = enrichedNameFor(normalizedJob);
@@ -235,6 +245,8 @@ export async function runXmlCii2019StandaloneEngine(job) {
         : await runCii(pyodide, normalizedJob, ciiPaths, jobDir, stdout, stderr);
       if (normalizedJob.engineUxml && !fromUxml) stdout.push('Engine reads UXML: not used for this input (the engine read the XML).');
       if (cii.engineUxml) partial.engineUxml = cii.engineUxml;
+      if (deferEnriched && cii.engineUxml?.used) stdout.push('Engine reads UXML: no Enriched XML pass on the XML; step 10 writes the Enriched XML from the document.');
+      else if (deferEnriched) await xmlEnrichedPass();
       ciiText = cii.ciiText;
       ciiName = cii.ciiName;
       postprocess.push({ branch: `${sourceKind}-cii`, outputName: ciiName, argv: cii.argv, inputSource: topology.ciiInputSource || 'original' });

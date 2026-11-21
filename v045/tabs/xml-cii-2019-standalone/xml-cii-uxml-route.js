@@ -30,7 +30,7 @@ import { buildUxmlRunRecord, rememberUxmlRunRecord } from './xml-cii-uxml-run-re
 export const UXML_ROUTE_STORAGE_KEY = 'xmlCii.uxmlRoute';
 /** End-to-end plan E3 (Owner 21 Nov 2026): "Engine reads UXML", off unless turned on in step 10 of this browser. */
 export const ENGINE_UXML_STORAGE_KEY = 'xmlCii.engineReadsUxml';
-export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities 93ec28d9)';
+export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities 01d7b72d)';
 
 /**
  * The step-10 switch: in a browser, on unless it was turned off there (blocked storage: on, the default).
@@ -121,7 +121,8 @@ export async function runUxmlSupportsStage(job, extraOptions = {}) {
       // E2c step 4: the whole chain from the source read, for the stage files (the Run record does not keep it).
       const chain = { base: prepared.source, deltas: [...prepared.deltas, ...(note.delta ? [note.delta] : []), ...under.deltas] };
       // E3: engineUxml is the document engineXmlText (the CII engine's input) is written from, before the "|" names.
-      return { xmlText: asToday(under.engineXmlText), ms: Date.now() - started, chain, engineUxml: under.engineUxml,
+      // E4: namesUxml is the final document (the "|" names included), the Enriched XML's document.
+      return { xmlText: asToday(under.engineXmlText), ms: Date.now() - started, chain, engineUxml: under.engineUxml, namesUxml: under.uxml,
         stageInputXml: prepared.xmlText, result: { ...last, xmlText: asToday(under.engineXmlText) }, document: prepared.document, changes: { ...changesRecord(under, locked), lockedWithBar } };
     } catch (error) {
       const refusal = String(error?.code || error?.message || '').match(/^(PSI116|UXML)_[A-Z0-9_]+/)?.[0];
@@ -259,14 +260,18 @@ export async function enrichStandaloneXmlForUxmlRoute(job, extraOptions = {}) {
   // E3: with "Engine reads UXML" on, the CII engine reads the document this XML is written from (same values, checked
   // by today's parity above), not the XML. Without a document (refused, or not recorded) the engine reads the XML.
   const engineFromUxml = engineReadsUxmlOn() && stage.engineUxml;
-  if (engineFromUxml) out.engineUxml = stage.engineUxml;
+  if (engineFromUxml) {
+    out.engineUxml = stage.engineUxml;
+    // E4 (Owner 21 Nov 2026): the Enriched XML is then written from the final document after the engine.
+    if (stage.namesUxml) out.enrichedUxml = stage.namesUxml;
+  }
   out.diagnostics = [...out.diagnostics, ...keptSupports];
   out.logs = [...(out.logs || []), ...keptSupports.map((d) => `UXML route: ${d.message}`),
     stage.document.refusal ? `UXML route: no UXML document (${stage.document.refusal}); today's gasket drop ran on the XML text.`
       : `UXML route: the source was read into a UXML document; the gasket drop removed ${stage.document.removed.length} node(s) (recorded in the Run record).`,
     `UXML route ON: CII input from the UXML supports stage (${UXML_ROUTE_VENDOR}, ${stage.ms} ms); parity PASS, input ${evidence.engineInputDigest}.`,
     ...changesLog(stage.changes),
-    ...(engineReadsUxmlOn() ? [engineFromUxml ? 'Engine reads UXML ON: the CII engine gets the UXML document, not the XML (its Enriched XML pass still reads the XML).'
+    ...(engineReadsUxmlOn() ? [engineFromUxml ? 'Engine reads UXML ON: the CII engine gets the UXML document, not the XML; the Enriched XML is written from the document.'
       : 'Engine reads UXML ON, but this Run has no UXML document: the CII engine reads the XML.'] : []),
     compareLog(compare)];
   return out;

@@ -74,7 +74,8 @@ test('the CII from the document equals the CII from the XML; no XML file is give
     assert.notEqual(engine(docDir, write('swap.uxml.json', swap), true).cii, fromXml.cii, 'two swapped nodes change the CII');
     // The engine's changes become recorded steps, listed with their rule.
     const rec = engineChangeSteps(run.engineUxml, fromDoc.changes);
-    assert.deepEqual(rec.steps.map((s) => s.stage), ['engine:process-data', 'engine:bend-radius']);
+    // WSW: process data changes nothing, so only the bend radius step is recorded (E4: no empty steps).
+    assert.deepEqual(rec.steps.map((s) => s.stage), ['engine:bend-radius']);
     assert.equal(rec.steps.reduce((n, s) => n + s.ops, 0) + rec.notRecorded + rec.conflicts.length, fromDoc.changes.length);
     assert.deepEqual(rec.list.map((s) => s.listed), rec.steps.map((s) => s.ops));
   } finally {
@@ -91,8 +92,8 @@ test('the Run record gets the engine steps after the supports sub-steps; a refus
   assert.equal(rec.notRecorded, 1, 'a support the engine adds is counted, not recorded');
   const record = { model: 'm', changes: { made: true, steps: [{ stage: 'supports:branch-pass', ops: 1 }], list: [{ stage: 'supports:branch-pass', listed: 1 }] } };
   const after = withEngineChanges(record, { used: true, revision: run.engineUxml.revision.id, changes: rows }, rec);
-  assert.deepEqual(after.changes.steps.map((s) => s.stage), ['supports:branch-pass', 'engine:process-data', 'engine:bend-radius']);
-  assert.equal(after.changes.list.length, 3);
+  assert.deepEqual(after.changes.steps.map((s) => s.stage), ['supports:branch-pass', 'engine:bend-radius']);
+  assert.equal(after.changes.list.length, 2);
   assert.deepEqual([after.engine.readUxml, after.engine.changes, after.engine.notRecorded], [true, 2, 1]);
   const refused = withEngineChanges(record, { used: false, refusal: 'UXML_TREE_HEADER' }, null);
   assert.deepEqual([refused.engine.readUxml, refused.engine.refusal, refused.changes], [false, 'UXML_TREE_HEADER', record.changes]);
