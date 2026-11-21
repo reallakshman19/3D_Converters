@@ -97,3 +97,25 @@ test('the Run record gets the engine steps after the supports sub-steps; a refus
   const refused = withEngineChanges(record, { used: false, refusal: 'UXML_TREE_HEADER' }, null);
   assert.deepEqual([refused.engine.readUxml, refused.engine.refusal, refused.changes], [false, 'UXML_TREE_HEADER', record.changes]);
 });
+
+test('PR 439 review N1: a second tree in the same engine process carries only its own uids (Pyodide keeps one process)', async () => {
+  const run = await runUxmlSupportsStage(job());
+  const one = { ...structuredClone(run.engineUxml), pipelines: [structuredClone(run.engineUxml.pipelines[0])] };
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'e3-uids-'));
+  try {
+    fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify(run.engineUxml));
+    fs.writeFileSync(path.join(dir, 'b.json'), JSON.stringify(one));
+    const py = ['import gc, json, sys', `sys.path.insert(0, ${JSON.stringify(path.dirname(SCRIPT))})`, 'import uxml_tree',
+      `a = uxml_tree.tree_from_uxml(json.load(open(${JSON.stringify(path.join(dir, 'a.json'))}, encoding="utf-8")))`, 'del a', 'gc.collect()',
+      `b = uxml_tree.tree_from_uxml(json.load(open(${JSON.stringify(path.join(dir, 'b.json'))}, encoding="utf-8")))`,
+      'mine = {id(e) for e in b.getroot().iter()}',
+      'print(json.dumps({"map": len(uxml_tree._UIDS), "stale": sum(1 for k in uxml_tree._UIDS if k not in mine)}))'].join('\n');
+    const r = spawnSync(process.env.PYTHON || 'python', ['-B', '-c', py], { encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    const got = JSON.parse(r.stdout);
+    const entities = one.pipelines.reduce((n, p) => n + 1 + p.components.reduce((m, c) => m + 1 + (c.restraints?.length || 0), 0), 0);
+    assert.deepEqual(got, { map: entities, stale: 0 });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

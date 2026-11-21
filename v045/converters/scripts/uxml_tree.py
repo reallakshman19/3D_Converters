@@ -145,6 +145,9 @@ def changes(before: dict[str, dict[str, str]], after: dict[str, dict[str, str]],
 def tree_from_uxml(doc: dict[str, Any]) -> ET.ElementTree:
     if doc.get("schemaVersion") != SCHEMA:
         raise UxmlTreeRefusal(f"UXML_TREE_SCHEMA: expected {SCHEMA}, got {doc.get('schemaVersion')!r}")
+    # PR 439 review N1: one Python process serves every Run in a browser tab (Pyodide); ids of freed elements are
+    # reused, so the uids of an earlier tree must not stay behind for this one.
+    _UIDS.clear()
     root, slots = _skeleton(doc)
     namespace = root.tag[1:].split("}")[0] if root.tag.startswith("{") else ""
     q = (lambda name: f"{{{namespace}}}{name}") if namespace else (lambda name: name)

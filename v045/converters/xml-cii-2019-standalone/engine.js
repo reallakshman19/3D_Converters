@@ -165,8 +165,11 @@ async function runCiiFromUxml(pyodide, job, paths, jobDir, stdout, stderr) {
   } catch (error) {
     const why = String(error?.message || error).slice(0, 300);
     stderr.splice(before);
-    stdout.push(`Engine reads UXML: the engine refused the document (${why}); the CII was made from the XML instead.`);
-    return { ...await runCii(pyodide, job, paths, jobDir, stdout, stderr), engineUxml: { used: false, refusal: why } };
+    stdout.push(`Engine reads UXML: the engine refused the document (${why}); making the CII from the XML instead.`);
+    // PR 439 review N5: a failing XML run throws as today; the line above then names only the refusal.
+    const cii = await runCii(pyodide, job, paths, jobDir, stdout, stderr);
+    stdout.push('Engine reads UXML: the CII was made from the XML.');
+    return { ...cii, engineUxml: { used: false, refusal: why } };
   }
   const changes = JSON.parse(pyodide.FS.readFile(changesPath, { encoding: 'utf8' }));
   const rows = Array.isArray(changes?.rows) ? changes.rows : [];
