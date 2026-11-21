@@ -4,6 +4,7 @@
 // Kept in memory for the last Run only; step 10 offers it as one download. Nothing is uploaded.
 
 import { carryTransferNote, snapshotTransferProtection } from './xml-cii-transfer-protection.js';
+import { engineChangeSteps, withEngineChanges } from './xml-cii-uxml-engine-changes.js';
 
 export const UXML_RUN_RECORD_FORMAT = 'uxml-run-record';
 export const UXML_RUN_RECORD_VERSION = 1;
@@ -61,6 +62,29 @@ export function clearUxmlRunRecords() {
 
 export function rememberUxmlRunRecord(record) {
   lastRun = [...lastRun.filter((r) => r.model !== record.model), record];
+}
+
+/**
+ * End-to-end plan E3 (Owner 21 Nov 2026): after the CII engine read the UXML document `doc`, its own changes
+ * (`engine.changes`, by uid and rule) become recorded steps in that model's record, listed with the supports sub-steps.
+ * `engine` is the engine's engineUxml result ({used, revision, changes} or {used: false, refusal}).
+ */
+export function noteEngineOnRunRecord(model, doc, engine) {
+  const i = lastRun.findIndex((r) => r.model === String(model || 'model'));
+  if (i < 0) return null;
+  const seen = engine || { used: false, refusal: 'the engine gave no UXML result' };
+  let recorded = null, error = null;
+  if (seen.used) {
+    try {
+      recorded = engineChangeSteps(doc, seen.changes);
+    } catch (err) {
+      error = String(err?.code || err?.message || err);
+    }
+  }
+  const record = withEngineChanges(lastRun[i], seen, recorded);
+  if (error) record.engine.recordError = error;
+  lastRun = lastRun.map((r, k) => (k === i ? record : r));
+  return record;
 }
 
 export const uxmlRunRecords = () => lastRun;

@@ -211,6 +211,12 @@ def _child_text(parent: ET.Element, namespace: str, name: str) -> str:
     return _safe_text(element.text)
 
 
+def _xml_tree(source) -> ET.ElementTree:
+    """The engine input as an ElementTree: a file path (read here, as always) or a tree already built from a UXML
+    document (UXML step 7, uxml_tree.py; Owner 19 Nov 2026: today's engine reads UXML and keeps all its rules)."""
+    return source if isinstance(source, ET.ElementTree) else ET.parse(source)
+
+
 PARSE_WARNINGS: list[str] = []
 
 
@@ -521,7 +527,7 @@ def _branch_elements_from_root(root: ET.Element, namespace: str, root_name: str)
 
 
 def _parse_xml_document(path: Path) -> XmlDocument:
-    root = ET.parse(path).getroot()
+    root = _xml_tree(path).getroot()
     root_name = _local_name(root.tag)
     if root_name not in {"PipeStressExport", "CleanXML"}:
         raise ValueError(

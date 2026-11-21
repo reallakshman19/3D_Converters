@@ -105,8 +105,9 @@ def apply_bend_radius_policy(
     config: dict | None,
     output_path: Path | None = None,
 ) -> tuple[Path, dict]:
-    source = Path(input_path)
-    root = ET.parse(source).getroot()
+    # A tree built from a UXML document (UXML step 7) is changed in place and returned; a path is read as always.
+    in_place = isinstance(input_path, ET.ElementTree)
+    root = input_path.getroot() if in_place else ET.parse(Path(input_path)).getroot()
     namespace = _namespace(root.tag)
     if namespace:
         ET.register_namespace("", namespace)
@@ -163,6 +164,8 @@ def apply_bend_radius_policy(
             "bendRadius": radius,
         })
 
+    if in_place and output_path is None:
+        return input_path, stats
     if output_path is None:
         fd, name = tempfile.mkstemp(prefix="xml_cii_bend_radius_", suffix=".xml")
         import os

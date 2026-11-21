@@ -19,6 +19,7 @@ const SCRIPT_FILE_NAMES = Object.freeze([
   'inputxml_to_cii2019_config.json',
   'cii2019_hanger_miscel_control.py',
   'cii2019_reparse_proof.py', // R1 independent CII reparser for R4A bridge
+  'uxml_tree.py', // E3: the engine's input tree built from the UXML document (--input-uxml)
 ]);
 
 const RUN_SNIPPET = `
@@ -146,6 +147,38 @@ async function runCii(pyodide, job, paths, jobDir, stdout, stderr) {
   return { ciiText: pyodide.FS.readFile(invocation.outputPath, { encoding: 'utf8' }), ciiName: invocation.outputName, argv: invocation.argv.slice(1) };
 }
 
+/**
+ * End-to-end plan E3 (Owner 21 Nov 2026, "Yes, build E3"): the CII engine reads the UXML document step 10's route
+ * made (job.engineUxml, the revision the engine XML is written from, before the "|" names), not that XML. The engine's
+ * prepare steps change the tree it builds and list what they changed by UXML uid and rule (engine:process-data,
+ * engine:bend-radius). If the engine refuses the document, the CII is made from the XML as before and the log says why.
+ */
+async function runCiiFromUxml(pyodide, job, paths, jobDir, stdout, stderr) {
+  const docPath = `${jobDir}/engine-input.uxml.json`;
+  const changesPath = `${jobDir}/engine-changes.json`;
+  pyodide.FS.writeFile(docPath, JSON.stringify(job.engineUxml), { encoding: 'utf8' });
+  const invocation = buildStandaloneCiiInvocation(job, { ...paths, inputPath: docPath }, jobDir);
+  const argv = [...invocation.argv, '--input-uxml', '--uxml-changes-out', changesPath];
+  const before = stderr.length;
+  try {
+    await runPythonScript(pyodide, invocation.scriptPath, argv, stdout, stderr);
+  } catch (error) {
+    const why = String(error?.message || error).slice(0, 300);
+    stderr.splice(before);
+    stdout.push(`Engine reads UXML: the engine refused the document (${why}); making the CII from the XML instead.`);
+    // PR 439 review N5: a failing XML run throws as today; the line above then names only the refusal.
+    const cii = await runCii(pyodide, job, paths, jobDir, stdout, stderr);
+    stdout.push('Engine reads UXML: the CII was made from the XML.');
+    return { ...cii, engineUxml: { used: false, refusal: why } };
+  }
+  const changes = JSON.parse(pyodide.FS.readFile(changesPath, { encoding: 'utf8' }));
+  const rows = Array.isArray(changes?.rows) ? changes.rows : [];
+  stdout.push(`Engine reads UXML: the CII engine read the UXML document (revision ${job.engineUxml?.revision?.id || '?'}), no XML file; `
+    + `its prepare steps changed ${rows.length} value(s).`);
+  return { ciiText: pyodide.FS.readFile(invocation.outputPath, { encoding: 'utf8' }), ciiName: invocation.outputName, argv: argv.slice(1),
+    engineUxml: { used: true, revision: job.engineUxml?.revision?.id || null, changes: rows } };
+}
+
 export async function runXmlCii2019StandaloneEngine(job) {
   const sourceKind = job.sourceKind === 'inputxml' ? 'inputxml' : 'xml';
   const outputMode = ['cii-only', 'both'].includes(job.options?.outputMode) ? job.options.outputMode : 'enriched-only';
@@ -196,7 +229,12 @@ export async function runXmlCii2019StandaloneEngine(job) {
     }
     if (outputMode === 'cii-only' || outputMode === 'both') {
       const ciiPaths = { ...paths, inputPath: topology.ciiInputPath || paths.inputPath };
-      const cii = await runCii(pyodide, normalizedJob, ciiPaths, jobDir, stdout, stderr);
+      // E3: the document only when the engine would read the route's own XML (not a TopoFix-fixed input).
+      const fromUxml = sourceKind === 'xml' && normalizedJob.engineUxml && !topology.ciiInputPath;
+      const cii = fromUxml ? await runCiiFromUxml(pyodide, normalizedJob, ciiPaths, jobDir, stdout, stderr)
+        : await runCii(pyodide, normalizedJob, ciiPaths, jobDir, stdout, stderr);
+      if (normalizedJob.engineUxml && !fromUxml) stdout.push('Engine reads UXML: not used for this input (the engine read the XML).');
+      if (cii.engineUxml) partial.engineUxml = cii.engineUxml;
       ciiText = cii.ciiText;
       ciiName = cii.ciiName;
       postprocess.push({ branch: `${sourceKind}-cii`, outputName: ciiName, argv: cii.argv, inputSource: topology.ciiInputSource || 'original' });
@@ -211,6 +249,7 @@ export async function runXmlCii2019StandaloneEngine(job) {
       ciiText,
       ciiName,
       ...topology,
+      ...(partial.engineUxml ? { engineUxml: partial.engineUxml } : {}),
       diagnostics: diagnostics(normalizedJob, { postprocess, warnings, topology: topology.topologySummary }),
       logs: [...logs(stdout), ...logs(stderr).map((line) => `stderr: ${line}`)],
       error: null,

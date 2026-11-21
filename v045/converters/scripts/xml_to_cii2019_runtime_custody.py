@@ -160,10 +160,31 @@ def main() -> None:
     _PUBLISH_BEND_RADIUS_1_5D = publish_one_point_five_d(support_config)
 
     # Read before any temp copy: ElementTree rewrites drop the transfer protection comment.
-    support_config["_transferProtect"] = patched._load_transfer_protection(args.input)
-    input_xml = patched._maybe_enrich_from_staged_json(args.input, args.staged_json, support_config)
-    input_xml = patched._apply_process_data_to_xml(input_xml, support_config)
-    input_xml, bend_policy = apply_bend_radius_policy(input_xml, support_config)
+    if args.input_uxml:
+        # UXML step 7 (Owner 19 Nov 2026): the input is a UXML document; no XML file goes in.
+        import json
+        import uxml_tree
+        document_json = json.loads(args.input.read_text(encoding="utf-8"))
+        source = uxml_tree.tree_from_uxml(document_json)
+        support_config["_transferProtect"] = patched._transfer_protection_from_text(uxml_tree.custody_text(document_json))
+    else:
+        source = args.input
+        support_config["_transferProtect"] = patched._load_transfer_protection(args.input)
+    input_xml = patched._maybe_enrich_from_staged_json(source, args.staged_json, support_config)
+    if args.input_uxml:
+        # Each prepare step changes the UXML tree in place; its changes are reported by UXML uid and rule.
+        uxml_changes = []
+        seen = uxml_tree.values_by_uid(input_xml)
+        input_xml = patched._apply_process_data_to_xml(input_xml, support_config)
+        now = uxml_tree.values_by_uid(input_xml)
+        uxml_changes += uxml_tree.changes(seen, now, "engine:process-data")
+        input_xml, bend_policy = apply_bend_radius_policy(input_xml, support_config)
+        uxml_changes += uxml_tree.changes(now, uxml_tree.values_by_uid(input_xml), "engine:bend-radius")
+        if args.uxml_changes_out:
+            args.uxml_changes_out.write_text(json.dumps({"schema": "uxml-engine-changes/v1", "rows": uxml_changes}, indent=1), encoding="utf-8")
+    else:
+        input_xml = patched._apply_process_data_to_xml(input_xml, support_config)
+        input_xml, bend_policy = apply_bend_radius_policy(input_xml, support_config)
     for row in bend_policy.get("rows", []):
         print(
             "BEND_RADIUS_POLICY "

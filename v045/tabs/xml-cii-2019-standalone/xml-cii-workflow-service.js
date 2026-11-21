@@ -8,6 +8,7 @@ import { enrichStandaloneXmlForRun } from './xml-cii-standalone-run-parity.js';
 import { ciiSha256 } from './xml-cii-final-property-reader.js';
 import { captureModeBStagedSources } from './xml-cii-frozen-run-package.js';
 import { writeJoinedNames } from './xml-cii-joined-names.js';
+import { noteEngineOnRunRecord } from './xml-cii-uxml-run-record.js';
 import {captureActiveRestraintAudit} from '../../../tabs/xml-cii-2019-standalone/xml-cii-active-restraint-audit.js';
 
 function parseSupportConfig(raw) {
@@ -130,9 +131,11 @@ async function runWorkflow(job, runtime) {
   }
 
   assertModeBRunRestraints(factedJob, parity.xmlText, 'Run engine input XML', { allowAdditions: true });
-  const engineJob = { ...factedJob, sourceText: parity.xmlText };
+  // E3 (Owner 21 Nov 2026): with "Engine reads UXML" on, the route also hands the document parity.xmlText is written from.
+  const engineJob = { ...factedJob, sourceText: parity.xmlText, ...(parity.engineUxml ? { engineUxml: parity.engineUxml } : {}) };
   const result = await runXmlCii2019StandaloneEngineJob(engineJob, runtime);
   assertModeBRunResult(factedJob, result, engineJob.sourceText);
+  if (parity.engineUxml) noteEngineOnRunRecord(engineJob.sourceName, parity.engineUxml, result?.engineUxml);
   // E2c step 2 (Owner 20 Nov 2026, "Write | in output"): the joined names go into the Enriched XML, never the CII input.
   if (parity.uxmlNames?.length && result?.enrichedText) {
     const named = writeJoinedNames(result.enrichedText, parity.uxmlNames);
