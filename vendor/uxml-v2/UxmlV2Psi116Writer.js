@@ -69,6 +69,12 @@ function valueEdits(entity, spans, insertAt, ws, stats, place = {}) {
     const span = spans[key], start = span[2] ? span[0] : span[0] - tagOf(key).length - 2;
     // A branch value after the branch's nodes lies outside the text measured here: still refused.
     if (elementEnd(key, span) > place.raw.length) fail('PS116_WRITE_VALUE_REMOVED_UNSUPPORTED', {uid: entity.uid, key});
+    // PR 306 review N1: only a bare <Tag>..</Tag> or a self-closing <Tag .../> is cut. Any other spelling (an attribute,
+    // `</Tag >`) is refused, so no fragment of the element is left in the text.
+    const tag = tagOf(key), cut = place.raw.slice(start, elementEnd(key, span));
+    const bare = span[2] ? cut.startsWith('<' + tag) && /^[\s/>]/.test(cut.slice(tag.length + 1)) && cut.endsWith('/>')
+      : cut.startsWith('<' + tag + '>') && cut.endsWith('</' + tag + '>');
+    if (!bare) fail('PS116_WRITE_VALUE_REMOVED_UNSUPPORTED', {uid: entity.uid, key, reason: 'element-spelling'});
     edits.push({start: start - wsBefore(place.raw, start).length, end: elementEnd(key, span), text: ''});
     stats.removedValues += 1;
   }

@@ -135,7 +135,8 @@ async function runWorkflow(job, runtime) {
   // E3 (Owner 21 Nov 2026): with "Engine reads UXML" on, the route also hands the document parity.xmlText is written from.
   const engineJob = { ...factedJob, sourceText: parity.xmlText, ...(parity.engineUxml ? { engineUxml: parity.engineUxml } : {}),
     // E4: the engine then skips its Enriched XML pass over the XML; the Enriched XML is written from the document below.
-    ...(parity.engineUxml && parity.enrichedUxml ? { enrichedFromUxml: true } : {}) };
+    // Only when an Enriched XML is asked for (PR 440 review N2: "CII only" gives none, as today; engine.js checks the same).
+    ...(parity.engineUxml && parity.enrichedUxml && factedJob.options?.outputMode === 'both' ? { enrichedFromUxml: true } : {}) };
   const result = await runXmlCii2019StandaloneEngineJob(engineJob, runtime);
   assertModeBRunResult(factedJob, result, engineJob.sourceText);
   // E4: the engine's steps are recorded after the "|" names step (the Enriched XML's document), built once for both.

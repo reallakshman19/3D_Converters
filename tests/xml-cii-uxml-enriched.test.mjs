@@ -109,11 +109,12 @@ function nativeEngine(dir, { spoilRows = false } = {}) {
       fs.writeFileSync(path.join(dir, `d${k}.json`), JSON.stringify(job.engineUxml));
       const got = cii(dir, `c${k}`, path.join(dir, `d${k}.json`), true);
       const rows = spoilRows ? [...got.rows, { uid: job.engineUxml.pipelines[0].components[0].uid, field: 'Restraint+1.Type', after: 'X', rule: 'engine:bend-radius' }] : got.rows;
-      const enrichedText = job.enrichedFromUxml ? '' : carryTransferNote(job.sourceText, todayEnrichedPass(dir, path.join(dir, `x${k}.xml`)));
+      // As engine.js: "CII only" makes no Enriched XML; with the document path the pass is left to the service.
+      const enrichedText = job.enrichedFromUxml || job.options.outputMode === 'cii-only' ? '' : carryTransferNote(job.sourceText, todayEnrichedPass(dir, path.join(dir, `x${k}.xml`)));
       return { ok: true, ciiText: got.cii, ciiName: `${name}.cii`, enrichedText, enrichedName: `${name}_enriched.xml`, logs: [],
         engineUxml: { used: true, revision: job.engineUxml.revision.id, changes: rows } };
     }
-    const enrichedText = carryTransferNote(job.sourceText, todayEnrichedPass(dir, path.join(dir, `x${k}.xml`)));
+    const enrichedText = job.options.outputMode === 'cii-only' ? '' : carryTransferNote(job.sourceText, todayEnrichedPass(dir, path.join(dir, `x${k}.xml`)));
     return { ok: true, ciiText: cii(dir, `c${k}`, path.join(dir, `x${k}.xml`), false).cii, ciiName: `${name}.cii`, enrichedText, enrichedName: `${name}_enriched.xml`, logs: [] };
   };
 }
@@ -125,11 +126,11 @@ test('step 10 workflow: box on writes the Enriched XML from the document (same c
   const saved = globalThis.localStorage;
   const storage = (engineOn) => ({ getItem: (k) => (k === 'xmlCii.engineReadsUxml' && engineOn ? 'on' : null), setItem() {}, removeItem() {} });
   try {
-    const run = async (engineOn, opts) => {
+    const run = async (engineOn, opts, outputMode = 'both') => {
       globalThis.localStorage = storage(engineOn);
       rec.clearUxmlRunRecords();
       const r = await api.runXmlCii2019Workflow({ sourceText: SOURCE, sourceName: 'WSW-2-RE-AFC.xml', sourceKind: 'auto',
-        options: { ...api.DEFAULT_XML_CII_WORKFLOW_OPTIONS, outputMode: 'both' } }, { engineRunner: nativeEngine(dir, opts) });
+        options: { ...api.DEFAULT_XML_CII_WORKFLOW_OPTIONS, outputMode } }, { engineRunner: nativeEngine(dir, opts) });
       return { r, record: rec.uxmlRunRecords().at(-1) };
     };
     const off = await run(false), on = await run(true);
@@ -144,6 +145,13 @@ test('step 10 workflow: box on writes the Enriched XML from the document (same c
     assert.ok(spoiled.r.ok, spoiled.r.error);
     assert.equal(spoiled.record.enriched.fromDocument, false);
     assert.equal(plain(spoiled.r.enrichedText), plain(off.r.enrichedText), 'the fallback gives today\'s Enriched XML');
+    // PR 440 review N2: "CII only" with the box on gives no Enriched XML and records none, as with the box off.
+    const ciiOff = await run(false, {}, 'cii-only'), ciiOn = await run(true, {}, 'cii-only');
+    assert.ok(ciiOff.r.ok && ciiOn.r.ok, ciiOn.r.error || ciiOff.r.error);
+    assert.equal(ciiOn.r.ciiText, ciiOff.r.ciiText);
+    assert.equal(ciiOn.r.enrichedText || '', '', 'no Enriched XML');
+    assert.equal(ciiOn.record.enriched, undefined, 'no Enriched XML on the record');
+    assert.ok(!ciiOn.r.logs.some((l) => /Enriched XML written from the UXML document/.test(l)));
   } finally {
     globalThis.localStorage = saved;
     fs.rmSync(dir, { recursive: true, force: true });

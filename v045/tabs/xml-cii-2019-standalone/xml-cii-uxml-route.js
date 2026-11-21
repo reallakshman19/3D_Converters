@@ -30,7 +30,7 @@ import { buildUxmlRunRecord, rememberUxmlRunRecord } from './xml-cii-uxml-run-re
 export const UXML_ROUTE_STORAGE_KEY = 'xmlCii.uxmlRoute';
 /** End-to-end plan E3 (Owner 21 Nov 2026): "Engine reads UXML", off unless turned on in step 10 of this browser. */
 export const ENGINE_UXML_STORAGE_KEY = 'xmlCii.engineReadsUxml';
-export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities f2382ff5)';
+export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities 01d7b72d)';
 
 /**
  * The step-10 switch: in a browser, on unless it was turned off there (blocked storage: on, the default).
