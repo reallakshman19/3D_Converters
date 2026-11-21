@@ -1,13 +1,14 @@
 {
  "source": "reallakshman19/XML_Compare_Utilities",
  "path": "uxml/v2",
- "commit": "0753470c9bbc01f065ebbe35f600f8877af8d028",
+ "commit": "e403ca926ddba8083d3a2aeda2dcb8c1780a2616",
  "entries": [
   "supports/SupportsStage.js",
   "topology/GasketDropStage.js",
   "supports/SupportsUnderLocks.js",
   "transfer/TransferStage.js",
-  "supports/ChangeList.js"
+  "supports/ChangeList.js",
+  "UxmlV2StageFile.js"
  ],
  "files": {
   "../UxmlConstants.js": "f53478cc9921b1e6318208972eccf6fb16a111f8990a67fed5eafbe76d0b1c22",
@@ -18,6 +19,7 @@
   "UxmlV2Kernel.js": "dae30f9337198ac51b8effcae31b8dc56450d7bc47c4c91c01cba3b4ba0538ce",
   "UxmlV2Psi116Reader.js": "574cb758eaef038de0f7ea1342317fbfe1fc635e1ab3427fe7356e02718fec52",
   "UxmlV2Psi116Writer.js": "6e327c136a7ff0edd703e15cf67748213afb605ea2144b206c5f4a86bd1c3a3b",
+  "UxmlV2StageFile.js": "e6e377ab8e9fbab0738fe40de73d29c7cae09dc889ee5e884a227b090c6c7d68",
   "engineering/AdaptedPreview.js": "af99d614bb98d65982e7c3892d7342589e204e5c5e526a9c7c474d63c7445653",
   "engineering/AdaptedPreviewAuthorities.js": "85d6cd74d03908d73bfe38ab9c211d47036734f1e05345ab0966ec51503c4130",
   "engineering/AdaptedPreviewCore.js": "8309c4dcb1f8aa1474688a22639261b008292ce84dcf034d4ec19f6fd35f2bc1",

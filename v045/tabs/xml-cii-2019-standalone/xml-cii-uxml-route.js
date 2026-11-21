@@ -28,7 +28,7 @@ import { carryTransferNote } from './xml-cii-transfer-protection.js';
 import { buildUxmlRunRecord, rememberUxmlRunRecord } from './xml-cii-uxml-run-record.js';
 
 export const UXML_ROUTE_STORAGE_KEY = 'xmlCii.uxmlRoute';
-export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities 0753470c)';
+export const UXML_ROUTE_VENDOR = 'vendor/uxml-v2 (XML_Compare_Utilities e403ca92)';
 
 /**
  * The step-10 switch: in a browser, on unless it was turned off there (blocked storage: on, the default).
@@ -62,7 +62,8 @@ function parseConfig(raw) {
 function prepareSource(text, options) {
   try {
     const out = step10Document(text, { drop: gasketDropOn(options) });
-    return { xmlText: out.xmlText, document: documentRecord(out), uxml: out.result };
+    // E2c step 4: the source read and the gasket drop's delta start a stage file's chain.
+    return { xmlText: out.xmlText, document: documentRecord(out), uxml: out.result, source: out.source, deltas: [out.delta] };
   } catch (error) {
     // The reader's XML parser puts its code only in the message (e.g. PSI116_XML_DTD_OR_DECLARATION_FORBIDDEN).
     const refusal = String(error?.code || error?.message || '').match(/^(PSI116|UXML)_[A-Z0-9_]+/)?.[0];
@@ -76,6 +77,16 @@ function prepareSource(text, options) {
  * End-to-end plan E1 (Owner 19 Nov 2026): the source is read once into a UXML document and the gasket drop is a UXML
  * stage on it, so each removed node is recorded; the supports stage reads the XML written from that document.
  */
+/**
+ * E2c step 4 (Owner 20 Nov 2026, "Yes, build it"): the source read and the gasket drop as step 10 makes them, for the
+ * stage files S0 and S1: {base, deltas: [gasket drop]} or {refusal} when the UXML reader refuses the file.
+ */
+export function uxmlSourceChain(job, extraOptions = {}) {
+  const options = { ...standaloneParityOptions(job?.supportConfigJson, job?.options || {}), ...extraOptions };
+  const prepared = prepareSource(String(job?.sourceText ?? ''), options);
+  return prepared.uxml ? { base: prepared.source, deltas: prepared.deltas } : { refusal: prepared.document.refusal };
+}
+
 export async function runUxmlSupportsStage(job, extraOptions = {}) {
   const options = { ...standaloneParityOptions(job?.supportConfigJson, job?.options || {}), ...extraOptions };
   const prepared = prepareSource(String(job?.sourceText ?? ''), options);
@@ -91,10 +102,13 @@ export async function runUxmlSupportsStage(job, extraOptions = {}) {
   if (prepared.uxml) {
     let last = null;
     try {
-      const locked = withNoteLocks(prepared.uxml, job?.sourceText);
+      const note = noteLocks(prepared.uxml, job?.sourceText);
+      const locked = note.uxml;
       const under = runSupportsUnderLocks(locked, (t) => (last = runToday(t)));
       const lockedWithBar = firstNameParts(prepared.xmlText, lockedNames(job?.sourceText)).locked;
-      return { xmlText: asToday(under.engineXmlText), ms: Date.now() - started,
+      // E2c step 4: the whole chain from the source read, for the stage files (the Run record does not keep it).
+      const chain = { base: prepared.source, deltas: [...prepared.deltas, ...(note.delta ? [note.delta] : []), ...under.deltas] };
+      return { xmlText: asToday(under.engineXmlText), ms: Date.now() - started, chain,
         stageInputXml: prepared.xmlText, result: { ...last, xmlText: asToday(under.engineXmlText) }, document: prepared.document, changes: { ...changesRecord(under, locked), lockedWithBar } };
     } catch (error) {
       const refusal = String(error?.code || error?.message || '').match(/^(PSI116|UXML)_[A-Z0-9_]+/)?.[0];
@@ -119,10 +133,11 @@ const lockedBarLog = (changes) => (changes?.lockedWithBar
   ? [`UXML route: ${changes.lockedWithBar} name(s) the transfer locked hold "|"; they went to the CII as the transfer set them (the lock wins).`] : []);
 
 /** The source's transfer protection note as locks on the document (E2b; today's stage reads the note from the text). */
-function withNoteLocks(doc, sourceText) {
+function noteLocks(doc, sourceText) {
   const found = readTransferNote(String(sourceText || ''));
-  if (!found?.note) return doc;
-  return runStage(noteLockStage, doc, { note: found.note, noteSha256: sha256Hex(found.raw) }).uxml;
+  if (!found?.note) return { uxml: doc, delta: null };
+  const step = runStage(noteLockStage, doc, { note: found.note, noteSha256: sha256Hex(found.raw) });
+  return { uxml: step.uxml, delta: step.delta };
 }
 
 /**
