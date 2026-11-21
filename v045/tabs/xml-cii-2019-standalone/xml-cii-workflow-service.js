@@ -19,7 +19,8 @@ function parseSupportConfig(raw) {
   }
 }
 
-function applyEffectiveFactsToJob(job) {
+// Exported for the stage files (E2c step 4): a snapshot applies the same facts step 10 does.
+export function applyEffectiveFactsToJob(job) {
   const config = parseSupportConfig(job.supportConfigJson);
   const weightOverrides = job.weightOverrides && typeof job.weightOverrides === 'object' ? job.weightOverrides : {};
   if (Object.keys(weightOverrides).length) {

@@ -140,6 +140,23 @@ function stagedInputGate(stateRef,render) {
   return card;
 }
 
+/**
+ * E2c step 4 (PR 438 review B2): load now what the gate below loads before steps 6-10 render (the full master rows and
+ * the original staged JSON), for a UXML stage download on any step. Throws a plain message when they cannot be loaded.
+ */
+export async function ensureV045Inputs(stateRef, materialize = materializeMasterDatasetRows) {
+  const state = stateRef.current, receipt = state?.xml229StagedSourceReceipt;
+  if ((receipt || state?.xml229StagedSourceStatus) && !(receipt?.phase === 'INDEX_COMMITTED' && receipt.sha256)) {
+    throw new Error(`the staged JSON is not ready (${receipt?.phase || state.xml229StagedSourceStatus}); wait for INDEX_COMMITTED in step 3.`);
+  }
+  const signature = signatureOf(state);
+  if (!signature) return stateRef.current;
+  gate = { signature, status: 'loading', error: '' };
+  await loadPending(stateRef, signature, null, materialize);
+  if (gate.status === 'error') throw new Error(`the full master rows or the staged JSON could not be loaded: ${gate.error}`);
+  return stateRef.current;
+}
+
 export function v055MasterGate(stateRef, render, materialize = materializeMasterDatasetRows) {
   const stagedGate=stagedInputGate(stateRef,render);
   if(stagedGate)return stagedGate;

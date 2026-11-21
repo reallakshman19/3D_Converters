@@ -1,4 +1,5 @@
 import { runWorkflowFromUi as runSingleWorkflow } from './xml-cii-adapted-run-workflow-atta-default.js?v=20261113-x5a-2';
+import { buildXmlCiiWorkflowJobFromUiState } from '../xml-cii-workflow-ui-adapter.js?v=20261113-x4-1';
 import {
   activateModeASource,
   buildModeABatchManifest,
@@ -153,6 +154,19 @@ async function consolidatedRigidReview(stateRef, state, enabled, preflight, prog
  * source conversions. A lightweight progress node is repainted between files,
  * then the normal workspace is rendered once at completion.
  */
+/**
+ * E2c step 4 (PR 438 review B2): the job this Run would build now for the active source, from the same state and the
+ * same per-source execution state, without running anything or changing the state. The UXML stage downloads use it,
+ * so a snapshot reads exactly what the Run reads (staged JSON included).
+ */
+export async function modeARunJobFromUi(stateRef) {
+  const state = syncActiveModeASource(normalizeModeABatchState(stateRef.current));
+  const enabled = (state.sourceBatch?.sources || []).filter((source) => source.enabled !== false);
+  const active = enabled.find((source) => source.sourceId === state.sourceBatch?.activeSourceId) || (enabled.length === 1 ? enabled[0] : null);
+  if (!active) throw new Error('select one enabled source first.');
+  return buildXmlCiiWorkflowJobFromUiState(executionState(state, active));
+}
+
 export async function runModeABatchFastFromUi(stateRef, render, options = {}) {
   let state = syncActiveModeASource(normalizeModeABatchState(stateRef.current));
   const progressElement = options.progressElement || null;

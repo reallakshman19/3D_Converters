@@ -2,6 +2,7 @@ import { clearElement, createElement } from './xml-cii-adapted-dom.js?v=20260813
 import { renderHeader, renderPhaseRail } from './xml-cii-adapted-workflow-shell-mode-a-core.js?v=20261113-x5a-2';
 import { createXmlCiiAdaptedWorkflowState } from './xml-cii-adapted-state.js?v=20261001-weight-output-2';
 import { renderActivePhase } from './xml-cii-adapted-phase-panels-mode-a.js?v=20261113-x5a-2';
+import { installUxmlStageDownloads } from './xml-cii-adapted-uxml-stage-downloads.js';
 import { bindAdaptedWorkflowEvents } from './xml-cii-adapted-events-mode-a-consolidated-review-v2.js?v=20261113-x5a-2';
 import { createXmlCiiBranchScopedStateRef, ensureXmlCiiBranchSelectionInRef } from './xml-cii-adapted-branch-scope-state.js?v=20260930-issue781-branch-scope-1';
 import { createXmlCiiModeAStateRef } from './xml-cii-adapted-mode-a-state.js?v=20261001-weight-output-2';
@@ -98,6 +99,8 @@ function renderWorkflow(container, stateRef, render) {
     installModeAConsolidatedWeightEasyUiFromWorkspace(main, effectiveRef);
     installModeACompactMultiUi(main, stateRef.current);
   }
+  // E2c step 4: UXML stage downloads on steps 1, 3, 4, 6; the job is built as step 10's Run builds it.
+  installUxmlStageDownloads(main, stateRef, effectiveRef);
   workspace.appendChild(main);
   root.appendChild(workspace);
   container.appendChild(root);
