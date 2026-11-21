@@ -240,7 +240,7 @@ def _direction_enabled_restraint_payload_factory(support_config: dict):
 
 
 def _tee_description_by_node(xml_path) -> dict[int, str]:
-    root = ET.parse(xml_path).getroot()
+    root = base._xml_tree(xml_path).getroot()
     namespace = base._namespace(root.tag)
     out: dict[int, str] = {}
     names = (

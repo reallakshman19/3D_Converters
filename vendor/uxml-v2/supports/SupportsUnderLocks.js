@@ -21,7 +21,9 @@
  * history plus any new join. `nameHistory: false` (gate control only) leaves the "|" names in.
  *
  *   runSupportsUnderLocks(doc, runStageFull, options) -> {uxml, deltas, conflicts, joined, names, xmlText (with the note
- *     and the joined names), engineXmlText (with the note, plain names), stageXmlText}
+ *     and the joined names), engineXmlText (with the note, plain names), engineUxml, stageXmlText}
+ * engineUxml (end-to-end plan E3, Owner 21 Nov 2026 "Yes, build E3") is the document engineXmlText is written from:
+ * the revision before the "|" names, which the CII engine reads instead of that XML.
  *   runStageFull(psi116Text) -> {xmlText, stages} (SupportsStage.js runSupportsStage's result)
  */
 import {runStage, sha256Hex, LAYERS} from '../UxmlV2Kernel.js';
@@ -153,6 +155,7 @@ export function runSupportsUnderLocks(doc, runStageFull, options = {}) {
   const conflicts = residualConflicts(uxml, tagged.xmlText, firstStep, options);
   const withNote = d => withTransferNote(writePsi116FromUxmlV2(d).text, noteFromLocks(d));
   const engineXmlText = withNote(uxml);
+  const engineUxml = uxml;
   let names = [];
   if (options.names !== false) {
     const step = joinNames(uxml, joinNamesPlan(doc, tagged.stages['branch-pass'], {tolerance, history: options.history}));
@@ -161,6 +164,6 @@ export function runSupportsUnderLocks(doc, runStageFull, options = {}) {
     if (step.delta) deltas.push(step.delta);
   }
   const xmlText = names.some(n => n.written.length) ? withNote(uxml) : engineXmlText;
-  return {uxml, deltas, conflicts, joined: options.joinedFrom?.joined || [], names, xmlText, engineXmlText, stageXmlText: today.xmlText,
+  return {uxml, deltas, conflicts, joined: options.joinedFrom?.joined || [], names, xmlText, engineXmlText, engineUxml, stageXmlText: today.xmlText,
     rules: SUPPORTS_UNDER_LOCKS_RULES};
 }

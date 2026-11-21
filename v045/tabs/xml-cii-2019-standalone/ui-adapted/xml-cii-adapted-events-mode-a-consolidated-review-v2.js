@@ -1,7 +1,7 @@
 import { bindAdaptedWorkflowEvents as bindBaseModeAEvents } from './xml-cii-adapted-events-mode-a-cii-zip.js?v=20261113-x5a-2';
 import { modeARawRef } from './xml-cii-adapted-mode-a-propagation.js?v=20260813-mode-a-rigid-review-1';
 import { runModeABatchFastFromUi } from './xml-cii-adapted-run-workflow-mode-a-fast.js?v=20261113-x5a-2';
-import { appendUxmlRouteSwitch } from './xml-cii-uxml-route-switch.js';
+import { appendEngineUxmlSwitch, appendUxmlRouteSwitch } from './xml-cii-uxml-route-switch.js';
 import { appendUxmlRunRecordButton } from './xml-cii-uxml-run-record-button.js';
 import { clearUxmlRunRecords } from '../xml-cii-uxml-run-record.js';
 
@@ -59,6 +59,7 @@ export function bindAdaptedWorkflowEvents(container, stateRef, render) {
   replacement.insertAdjacentElement('afterend', finalize);
 
   appendUxmlRouteSwitch(actions);
+  appendEngineUxmlSwitch(actions);
   const refreshRunRecord = appendUxmlRunRecordButton(actions);
   const progress = createProgress(actions);
   const run = (downloadZip) => {

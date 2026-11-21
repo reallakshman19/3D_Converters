@@ -393,7 +393,13 @@ _TRANSFER_PROTECT_RE = re.compile(r"<!--\s*TOPOFIX-TRANSFER-PROTECT\s*(.*?)-->",
 def _load_transfer_protection(xml_path: Path) -> dict[str, set[str]]:
     """Owner D5 (13 Nov 2026): values a TopoFix transfer moved in win over the line list.
     Branchname -> protected paths, read from the XML text (ElementTree drops comments)."""
-    found = _TRANSFER_PROTECT_RE.search(Path(xml_path).read_text(encoding="utf-8-sig", errors="replace"))
+    if isinstance(xml_path, ET.ElementTree):
+        raise ValueError("UXML_TRANSFER_PROTECT_NOT_READ: a tree has no comments; read the note from the UXML text first")
+    return _transfer_protection_from_text(Path(xml_path).read_text(encoding="utf-8-sig", errors="replace"))
+
+
+def _transfer_protection_from_text(text: str) -> dict[str, set[str]]:
+    found = _TRANSFER_PROTECT_RE.search(text)
     if not found:
         return {}
     note = json.loads(found.group(1))
@@ -407,7 +413,7 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
     if "_transferProtect" not in support_config:
         support_config["_transferProtect"] = _load_transfer_protection(xml_path)
     protected_by_branch = support_config["_transferProtect"]
-    tree = ET.parse(xml_path)
+    tree = base._xml_tree(xml_path)
     root = tree.getroot()
     namespace = _namespace(root.tag)
     if namespace:
@@ -457,21 +463,21 @@ def _apply_process_data_to_xml(xml_path: Path, support_config: dict[str, Any]) -
         changed = True
     if _truthy(support_config.get("splitCondensedValveFlange")) and _renumber_length_bearing_negative_nodes(root, namespace):
         changed = True
-    if not changed:
-        return xml_path
+    if not changed or isinstance(xml_path, ET.ElementTree):
+        return xml_path  # a tree is changed in place: no file is written
     temp_path = Path(tempfile.gettempdir()) / f"{xml_path.stem}_final_enriched.xml"
     tree.write(temp_path, encoding="unicode", xml_declaration=False)
     return temp_path
 
 
 def _branch_insulation_density_map(xml_path: Path) -> dict[str, float]:
-    root = ET.parse(xml_path).getroot()
+    root = base._xml_tree(xml_path).getroot()
     namespace = _namespace(root.tag)
     return {_child_text(branch, namespace, "Branchname"): _to_float(_child_text(branch, namespace, "InsulationDensity"), 0.0) for branch in root.iter() if _local_name(branch.tag) == "Branch"}
 
 
 def _branch_hydro_pressure_map(xml_path: Path) -> dict[str, float]:
-    root = ET.parse(xml_path).getroot()
+    root = base._xml_tree(xml_path).getroot()
     namespace = _namespace(root.tag)
     out: dict[str, float] = {}
     for branch in root.iter():
@@ -541,7 +547,7 @@ def _specs_from_dtxr_text(text: str, support_config: dict[str, Any], gap_by_kind
 
 
 def _node_dtxr_texts(xml_path: Path) -> dict[int, str]:
-    root = ET.parse(xml_path).getroot()
+    root = base._xml_tree(xml_path).getroot()
     namespace = _namespace(root.tag)
     out: dict[int, str] = {}
     for node in root.iter():
@@ -560,7 +566,7 @@ def _build_keyword_restraint_specs(xml_path: Path, support_config: dict[str, Any
     specs_by_node: dict[int, tuple[base.RestraintSpec, ...]] = {}
     support_map: dict[str, str] = {}
     node_gaps: dict[int, float] = {}
-    root = ET.parse(xml_path).getroot()
+    root = base._xml_tree(xml_path).getroot()
     namespace = _namespace(root.tag)
     for node in root.iter():
         if _local_name(node.tag) != "Node":
@@ -734,6 +740,8 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
     if _xml_has_dtxr_annotations(input_xml):
         support_config["_inputAlreadyEnriched"] = True
         return input_xml
+    if isinstance(input_xml, ET.ElementTree):
+        raise ValueError("UXML_STAGED_JSON_NOT_APPLIED: the UXML document has no DTXR annotations; apply the staged JSON in UXML first")
     if addon is None:
         raise ValueError("--staged-json requires xml_to_cii2019_master_addon.py to be available.")
     result = addon.enrich_xml_addons(input_xml, linelist=None, overrides=None, staged_json=staged_json.read_text(encoding="utf-8-sig"), dtxr_position_offset=support_config.get("dtxrPositionOffset") if isinstance(support_config, dict) else None)
@@ -744,7 +752,7 @@ def _maybe_enrich_from_staged_json(input_xml: Path, staged_json: Path | None, su
 
 
 def _xml_has_dtxr_annotations(xml_path: Path) -> bool:
-    root = ET.parse(xml_path).getroot()
+    root = base._xml_tree(xml_path).getroot()
     namespace = _namespace(root.tag)
     for node in root.iter():
         if _local_name(node.tag) != "Node":
@@ -780,6 +788,7 @@ def _build_conversion_model(
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Patched PSI116 XML to CII(2019) converter.")
     parser.add_argument("--input", required=True, type=Path)
+    parser.add_argument("--input-uxml", action="store_true", help="--input is a UXML v2 document (JSON), not an XML file")
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--template-cii", required=False, type=Path, default=None)
     parser.add_argument("--coords-mode", required=False, default="first", choices=["first", "all", "none"])
@@ -787,6 +796,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--support-config-json", required=False, default="")
     parser.add_argument("--staged-json", required=False, type=Path, default=None)
     parser.add_argument("--diagnostics-out", required=False, type=Path, default=None)
+    parser.add_argument("--uxml-changes-out", required=False, type=Path, default=None, help="with --input-uxml: what the prepare steps changed, by UXML uid (JSON)")
     parser.add_argument("--use-restraint-type-based-on-json", dest="use_restraint_type_based_on_json", action="store_true", default=True)
     parser.add_argument("--no-use-restraint-type-based-on-json", dest="use_restraint_type_based_on_json", action="store_false")
     parser.add_argument("--split-condensed-valve-flange", dest="split_condensed_valve_flange", action="store_true", default=None)

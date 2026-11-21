@@ -1,5 +1,6 @@
 // Step 10 checkbox "UXML route", on by default (Owner, 17 Nov 2026); unticking it is remembered in this browser only.
-import { UXML_ROUTE_STORAGE_KEY, uxmlRouteOn } from '../xml-cii-uxml-route.js';
+// End-to-end plan E3 (Owner 21 Nov 2026): a second checkbox, "Engine reads UXML", off by default.
+import { ENGINE_UXML_STORAGE_KEY, engineReadsUxmlOn, UXML_ROUTE_STORAGE_KEY, uxmlRouteOn } from '../xml-cii-uxml-route.js';
 
 function saveSwitch(on, storage) {
   try {
@@ -28,6 +29,37 @@ export function appendUxmlRouteSwitch(actions, storage) {
   box.checked = uxmlRouteOn(storage);
   box.addEventListener('change', () => saveSwitch(box.checked, storage));
   label.append(box, document.createTextNode('UXML route'));
+  actions.appendChild(label);
+  return label;
+}
+
+function saveEngineSwitch(on, storage) {
+  try {
+    storage ??= globalThis.localStorage;
+    if (on) storage?.setItem?.(ENGINE_UXML_STORAGE_KEY, 'on');
+    else storage?.removeItem?.(ENGINE_UXML_STORAGE_KEY);
+  } catch {
+    // Storage blocked: the switch cannot be remembered and the Run uses the default (the engine reads the XML).
+  }
+}
+
+/** Adds "Engine reads UXML" after the UXML route switch (once per render). */
+export function appendEngineUxmlSwitch(actions, storage) {
+  if (!actions || actions.querySelector?.('[data-engine-uxml-switch]')) return null;
+  const label = document.createElement('label');
+  label.dataset.engineUxmlSwitch = 'true';
+  label.className = 'xml-cii-phase-help';
+  label.title = 'Off (default): the CII engine reads the CII input XML. On: with the UXML route on and its parity check passed, '
+    + 'the CII engine reads the UXML document that XML is written from (the same values), and its own changes (process data, '
+    + 'bend radius) are recorded in the Run record. The Enriched XML is still made from the XML.';
+  Object.assign(label.style, { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '6px',
+    margin: '6px 0', fontSize: '12px', cursor: 'pointer' });
+  const box = document.createElement('input');
+  box.type = 'checkbox';
+  box.style.alignSelf = 'center';
+  box.checked = engineReadsUxmlOn(storage);
+  box.addEventListener('change', () => saveEngineSwitch(box.checked, storage));
+  label.append(box, document.createTextNode('Engine reads UXML'));
   actions.appendChild(label);
   return label;
 }
