@@ -159,6 +159,8 @@ def main() -> None:
     support_config.setdefault("defaultTeeSifType", 0)
     _PUBLISH_BEND_RADIUS_1_5D = publish_one_point_five_d(support_config)
 
+    # End-to-end plan T1: on the UXML route each node the engine reads keeps its UXML node id (None resets it).
+    base.NODE_SOURCE_ID = None
     # Read before any temp copy: ElementTree rewrites drop the transfer protection comment.
     if args.input_uxml:
         # UXML step 7 (Owner 19 Nov 2026): the input is a UXML document; no XML file goes in.
@@ -166,6 +168,7 @@ def main() -> None:
         import uxml_tree
         document_json = json.loads(args.input.read_text(encoding="utf-8"))
         source = uxml_tree.tree_from_uxml(document_json)
+        base.NODE_SOURCE_ID = uxml_tree.uid_of
         support_config["_transferProtect"] = patched._transfer_protection_from_text(uxml_tree.custody_text(document_json))
     else:
         source = args.input
@@ -240,6 +243,11 @@ def main() -> None:
             nodes, map_error = uxml_tree.node_map(input_xml, cii_numbers, list(base.MERGED_COINCIDENT_ORPHAN_NODES)), None
         except Exception as exc:  # noqa: BLE001
             nodes, map_error = None, f"{type(exc).__name__}: {exc}"
+        if nodes is not None:
+            # T1: each CII element in order, with the node ids its two ends were written from (follows a renumbering
+            # in CAESAR II; names the id the engine took a node's values from).
+            nodes["elements"] = [{"from": e.from_node.node_number, "to": e.to_node.node_number,
+                                  "fromId": e.from_node.source_id, "toId": e.to_node.source_id} for e in model.edges]
         args.uxml_changes_out.write_text(json.dumps({"schema": "uxml-engine-changes/v1", "rows": uxml_changes, "nodeMap": nodes,
                                                      **({"nodeMapError": map_error} if map_error else {})}, indent=1), encoding="utf-8")
     if args.diagnostics_out:

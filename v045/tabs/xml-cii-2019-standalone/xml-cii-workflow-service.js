@@ -170,6 +170,8 @@ async function runWorkflow(job, runtime) {
       const sidecar = buildCiiSidecar({ model: engineJob.sourceName, cii: { name: ciiName, sha256: await ciiSha256(result.ciiText) }, chain: parity.uxmlChain,
         engineDeltas: recorded?.deltas || [], finalDoc: recorded?.uxml || parity.enrichedUxml || parity.engineUxml, nodeMap: result.engineUxml.nodeMap,
         names: parity.uxmlChanges?.names || [], notRecorded: recorded?.notRecorded || 0,
+        // T1: places only in an Enriched XML written from the document (its structure is the document's).
+        enriched: enrichedFromDoc && result.enrichedText ? { sha256: await ciiSha256(result.enrichedText), xmlText: result.enrichedText } : null,
         conflicts: [...(parity.uxmlChanges?.conflicts || []), ...(recorded?.conflicts || []).map((c) => ({ ...c, stage: c.stage || 'engine' }))] });
       noteSidecarOnRunRecord(engineJob.sourceName, sidecar, { made: true, fileName: sidecarFileName(ciiName), nodes: sidecar.nodes.length, revision: sidecar.document.revision });
       parity.logs = [...(parity.logs || []), `CII sidecar made: ${sidecar.nodes.length} CII node(s) with their node ids, name history and recorded changes (Download CII sidecar).`];

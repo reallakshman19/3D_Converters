@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 import json
 import math
 from pathlib import Path
@@ -100,6 +100,8 @@ class XmlNode:
     bend_type: int | None
     position: tuple[float, float, float]
     restraint_specs: tuple[RestraintSpec, ...]
+    # The UXML node id the node was read from ('' on the XML route). Not compared: the CII is not affected.
+    source_id: str = field(default="", compare=False, repr=False)
 
 
 @dataclass(frozen=True)
@@ -648,6 +650,7 @@ def _parse_xml_document(path: Path) -> XmlDocument:
                     bend_radius=bend_radius_value,
                     bend_type=bend_type_value,
                     position=_parse_position(position_text),
+                    source_id=_source_id(node_element),
                     restraint_specs=_parse_restraints(node_element, namespace),
                 )
             )
@@ -688,6 +691,12 @@ def _parse_xml_document(path: Path) -> XmlDocument:
 UNNUMBERED_RESTRAINT_TOLERANCE_MM: Final[float] = 1.0
 UNNUMBERED_RESTRAINTS_PLACED: list[str] = []
 UNNUMBERED_RESTRAINTS_NOT_WRITTEN: list[str] = []
+# Set by the UXML route (end-to-end plan T1): element -> the UXML node id it came from.
+NODE_SOURCE_ID = None
+
+
+def _source_id(node_element) -> str:
+    return NODE_SOURCE_ID(node_element) if NODE_SOURCE_ID else ""
 
 
 def _unnumbered_restraint_holder(node_element, namespace, node_number, position, specs) -> XmlNode:

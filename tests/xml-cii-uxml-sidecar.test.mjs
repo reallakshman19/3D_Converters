@@ -13,7 +13,8 @@ import { runUxmlSupportsStage } from '../v045/tabs/xml-cii-2019-standalone/xml-c
 import { applyEffectiveFactsToJob } from '../v045/tabs/xml-cii-2019-standalone/xml-cii-workflow-service.js';
 import { normalizeWorkflowJob } from '../v045/tabs/xml-cii-2019-standalone/xml-cii-workflow-types.js';
 import { engineChangeSteps } from '../v045/tabs/xml-cii-2019-standalone/xml-cii-uxml-engine-changes.js';
-import { buildCiiSidecar, sidecarFileName } from '../v045/tabs/xml-cii-2019-standalone/xml-cii-uxml-sidecar.js';
+import { buildCiiSidecar, enrichedPlaces, sidecarFileName } from '../v045/tabs/xml-cii-2019-standalone/xml-cii-uxml-sidecar.js';
+import { enrichedFromDocument } from '../v045/tabs/xml-cii-2019-standalone/xml-cii-uxml-enriched.js';
 
 installWeightBasisXmlDom(globalThis);
 
@@ -152,3 +153,54 @@ test('EF-05: the supports of joined-away duplicate nodes are listed with them (r
   assert.deepEqual([...listed(sc)].sort(), [...directDiff(run.chain.base, rec.uxml)].sort(), 'values as before');
   assert.equal(sc.document.notRecorded, rec.notRecorded);
 });
+
+/** The CII's elements in order: [from, to] of each 15-line block of #$ ELEMENTS. */
+function ciiElements(text) {
+  const lines = String(text).split(/\r?\n/), at = lines.findIndex((l) => /^#\$ ELEMENTS/.test(l));
+  const end = lines.findIndex((l, i) => i > at && /^#\$ /.test(l));
+  const rows = lines.slice(at + 1, end);
+  assert.equal(rows.length % 15, 0);
+  return Array.from({ length: rows.length / 15 }, (_, k) => rows[k * 15].trim().split(/\s+/).slice(0, 2).map(Number));
+}
+const kidsOf = (el, tag) => [...el.childNodes].filter((c) => c.nodeType === 1 && String(c.localName || c.nodeName).replace(/^.*:/, '') === tag);
+
+for (const name of ['WSW-2-RE-AFC.xml', 'EF-05-PRO.TEST.xml']) {
+  test(`T1 ${name}: the engine names the node id behind each CII element end; the sidecar places every id in the Enriched XML`, async () => {
+    const { run, doc, rec } = await setup(name, false);
+    // Each CII element, in order, with its two ends' ids: the CII's own numbers, each id under its number in the map.
+    const els = ciiElements(doc.cii);
+    assert.deepEqual(doc.nodeMap.elements.map((e) => [e.from, e.to]), els, 'the CII elements in order');
+    const under = new Map(doc.nodeMap.nodes.map((n) => [n.cii, new Set(n.ids)]));
+    for (const e of doc.nodeMap.elements) for (const end of ['from', 'to']) assert.ok(under.get(e[end])?.has(e[end + 'Id']), JSON.stringify(e));
+    // At a point with several ids the engine may use different ones for different elements: the transfer follows each end.
+    const used = new Map();
+    for (const e of doc.nodeMap.elements) for (const end of ['from', 'to']) used.set(e[end], new Set([...(used.get(e[end]) || []), e[end + 'Id']]));
+    assert.ok([...used.values()].some((ids) => ids.size > 1), 'several ids used at one CII node');
+    // Places: the Enriched XML written from the document, counted as the transfer counts (n-th Branch, its n-th Node).
+    const enriched = enrichedFromDocument(run.namesUxml, doc.rows, { sourceText: fs.readFileSync(path.join(repo, 'Benchmarks', name), 'utf8') });
+    assert.ok(enriched.ok, enriched.error);
+    const sc = buildCiiSidecar({ model: name, chain: run.chain, engineDeltas: rec.deltas, finalDoc: rec.uxml, nodeMap: doc.nodeMap,
+      names: run.changes.names, enriched: { sha256: 'abc', xmlText: enriched.xmlText } });
+    assert.equal(sc.enriched.sha256, 'abc');
+    assert.ok(!sc.enriched.error, sc.enriched.error);
+    assert.deepEqual(sc.elements, doc.nodeMap.elements);
+    const dom = new DOMParser().parseFromString(enriched.xmlText, 'application/xml');
+    const branches = kidsOf(dom.documentElement, 'Pipe').flatMap((p) => kidsOf(p, 'Branch'));
+    const all = [...sc.nodes.flatMap((n) => n.ids), ...sc.notInCii];
+    assert.equal(all.length, rec.uxml.pipelines.flatMap((p) => p.components).length);
+    assert.equal(new Set(all.map((n) => n.at.join(':'))).size, all.length, 'one place per id');
+    for (const n of all) {
+      const x = kidsOf(branches[n.at[0]], 'Node')[n.at[1]];
+      assert.equal(kidsOf(x, 'NodeName')[0]?.textContent ?? '', n.NodeName.join('|'), n.id);
+    }
+    assert.equal(sc.enriched.branches.length, branches.length);
+    // Wrong modes: an Enriched XML that is not the document's gives no places, and says why.
+    const one = enriched.xmlText.replace(/<Node>[\s\S]*?<\/Node>/, '');
+    assert.equal(enrichedPlaces(one, rec.uxml).ok, false);
+    const first = rec.uxml.pipelines[0].components[0].values.NodeName?.text;
+    if (first) assert.equal(enrichedPlaces(enriched.xmlText.replace(`<NodeName>${first}</NodeName>`, '<NodeName>X-OTHER</NodeName>'), rec.uxml).ok, false);
+    const bad = buildCiiSidecar({ chain: run.chain, finalDoc: rec.uxml, nodeMap: doc.nodeMap, enriched: { sha256: 'abc', xmlText: one } });
+    assert.ok(bad.enriched.error && !bad.nodes.some((n) => n.ids.some((i) => i.at)), 'no places at all');
+    assert.equal(buildCiiSidecar({ chain: run.chain, finalDoc: rec.uxml, nodeMap: doc.nodeMap }).enriched, null, 'no Enriched XML (CII only)');
+  });
+}
