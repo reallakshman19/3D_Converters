@@ -61,7 +61,39 @@ const locksOf = (entity) => Object.entries(entity?.values || {})
  *   steps (xml-cii-uxml-engine-changes.js); finalDoc: the document after them; nodeMap: the engine's
  *   {nodes: [{cii, ids}], notInCii: [{id, nodeNumber}]}; names: the route's "|" names ({node, from, ...}).
  */
-export function buildCiiSidecar({ model, cii = {}, chain, engineDeltas = [], finalDoc, nodeMap, names = [], conflicts = [], notRecorded = 0, createdAt = new Date().toISOString() }) {
+const localName = (el) => String(el.localName || el.nodeName || '').replace(/^.*:/, '');
+const kids = (el, tag) => [...(el?.childNodes || [])].filter((c) => c.nodeType === 1 && localName(c) === tag);
+const leafText = (el, tag) => (kids(el, tag)[0]?.textContent ?? '').trim();
+
+/**
+ * End-to-end plan T1 (Owner 22 Nov 2026, "Yes, as suggested"): where each branch and node id of `finalDoc` is in the
+ * Enriched XML written from it, as the transfer counts places (u2d_plan.read_target: the n-th Branch, its n-th Node).
+ * Checked, never guessed: the branch and node counts and every NodeNumber and NodeName must be the document's.
+ */
+export function enrichedPlaces(xmlText, finalDoc) {
+  const dom = new DOMParser().parseFromString(String(xmlText || ''), 'application/xml');
+  const root = dom.documentElement;
+  if (!root || dom.getElementsByTagName('parsererror').length) return { ok: false, error: 'the Enriched XML does not parse' };
+  const pipes = kids(root, 'Pipe');
+  const branches = pipes.length ? pipes.flatMap((p) => kids(p, 'Branch')) : kids(root, 'Branch');
+  const pipelines = finalDoc?.pipelines || [];
+  if (branches.length !== pipelines.length) return { ok: false, error: `${branches.length} branch(es) in the XML, ${pipelines.length} in the document` };
+  const nodes = new Map(), branchAt = [];
+  for (let bi = 0; bi < branches.length; bi += 1) {
+    const xmlNodes = kids(branches[bi], 'Node'), comps = pipelines[bi].components || [];
+    if (xmlNodes.length !== comps.length) return { ok: false, error: `branch ${bi + 1}: ${xmlNodes.length} node(s) in the XML, ${comps.length} in the document` };
+    for (let ni = 0; ni < comps.length; ni += 1) {
+      for (const f of ['NodeNumber', 'NodeName']) {
+        if (leafText(xmlNodes[ni], f) !== String(comps[ni].values?.[f]?.text ?? '').trim()) return { ok: false, error: `branch ${bi + 1} node ${ni + 1}: ${f} differs` };
+      }
+      nodes.set(comps[ni].uid, [bi, ni]);
+    }
+    branchAt.push({ id: pipelines[bi].uid, branch: textOf(pipelines[bi].values?.Branchname) ?? '', at: bi });
+  }
+  return { ok: true, nodes, branches: branchAt };
+}
+
+export function buildCiiSidecar({ model, cii = {}, chain, engineDeltas = [], finalDoc, nodeMap, names = [], conflicts = [], notRecorded = 0, enriched = null, createdAt = new Date().toISOString() }) {
   if (!chain?.base || !finalDoc || !Array.isArray(nodeMap?.nodes)) throw new Error('CII_SIDECAR_INPUT: the document chain, final document and node map are needed');
   const deltas = [...(chain.deltas || []), ...engineDeltas];
   const at = indexInto(finalDoc, indexInto(chain.base, new Map()));
@@ -78,6 +110,8 @@ export function buildCiiSidecar({ model, cii = {}, chain, engineDeltas = [], fin
     }
     return out.map((s) => (s.changed?.length === 0 ? (({ changed, ...rest }) => rest)(s) : s));
   };
+  // T1: places in the Enriched XML delivered with this CII ({sha256, xmlText}); none when it was not written from the document.
+  const places = enriched?.xmlText ? enrichedPlaces(enriched.xmlText, finalDoc) : null;
   const node = (id) => {
     const e = at.get(id)?.entity;
     const out = { id, branch: at.get(id)?.branch ?? '', NodeName: history(e?.values?.NodeName), ComponentRefNo: history(e?.values?.ComponentRefNo) };
@@ -87,6 +121,7 @@ export function buildCiiSidecar({ model, cii = {}, chain, engineDeltas = [], fin
     if (locks.length) out.locks = locks;
     if (supports.length) out.supports = supports;
     if (added.has(id)) out.added = { stage: added.get(id).stage, rule: added.get(id).rule };
+    if (places?.ok && places.nodes.has(id)) out.at = places.nodes.get(id);
     return out;
   };
   // A removed node's supports went with it (E4b review B2: EF-05's type Z supports on joined-away duplicates): those it
@@ -119,6 +154,11 @@ export function buildCiiSidecar({ model, cii = {}, chain, engineDeltas = [], fin
     branches: (finalDoc.pipelines || []).map((p) => ({ id: p.uid, branch: textOf(p.values?.Branchname) ?? '', changed: changedOf(values, p.uid) }))
       .filter((b) => b.changed.length),
     conflicts,
+    // T1: the CII's elements in order with the node ids their ends were written from (the engine's), and the Enriched
+    // XML the places are in. The transfer by node id refuses another Enriched XML.
+    elements: (nodeMap.elements || []).map((e) => ({ from: e.from, to: e.to, fromId: e.fromId, toId: e.toId })),
+    enriched: !enriched ? null : places?.ok ? { sha256: enriched.sha256 || null, branches: places.branches }
+      : { sha256: enriched.sha256 || null, error: places?.error || 'no Enriched XML text' },
   };
 }
 

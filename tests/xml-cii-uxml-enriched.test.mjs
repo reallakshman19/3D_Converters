@@ -149,6 +149,11 @@ test('step 10 workflow: box on writes the Enriched XML from the document (same c
     assert.equal(on.sidecars[0].nodes.length, on.record.sidecar.nodes);
     assert.equal(off.record.sidecar, undefined);
     assert.equal(off.sidecars.length, 0);
+    // T1: the sidecar names the delivered Enriched XML and places every node id in it.
+    assert.equal(on.sidecars[0].enriched.sha256, on.record.enriched.sha256, 'the delivered Enriched XML');
+    assert.ok(!on.sidecars[0].enriched.error, on.sidecars[0].enriched.error);
+    assert.ok(on.sidecars[0].nodes.every((n) => n.ids.every((i) => Array.isArray(i.at))));
+    assert.ok(on.sidecars[0].elements.length > 0);
     const noMap = await run(true, { noMap: true });
     assert.ok(noMap.r.ok && noMap.r.ciiText === off.r.ciiText, 'no node map: the run is not affected');
     assert.deepEqual([noMap.record.sidecar.made, noMap.sidecars.length], [false, 0]);
@@ -156,12 +161,14 @@ test('step 10 workflow: box on writes the Enriched XML from the document (same c
     assert.ok(spoiled.r.ok, spoiled.r.error);
     assert.equal(spoiled.record.enriched.fromDocument, false);
     assert.equal(plain(spoiled.r.enrichedText), plain(off.r.enrichedText), 'the fallback gives today\'s Enriched XML');
+    assert.equal(spoiled.sidecars[0].enriched, null, 'T1: no places in an Enriched XML not written from the document');
     // PR 440 review N2: "CII only" with the box on gives no Enriched XML and records none, as with the box off.
     const ciiOff = await run(false, {}, 'cii-only'), ciiOn = await run(true, {}, 'cii-only');
     assert.ok(ciiOff.r.ok && ciiOn.r.ok, ciiOn.r.error || ciiOff.r.error);
     assert.equal(ciiOn.r.ciiText, ciiOff.r.ciiText);
     assert.equal(ciiOn.r.enrichedText || '', '', 'no Enriched XML');
     assert.equal(ciiOn.record.enriched, undefined, 'no Enriched XML on the record');
+    assert.equal(ciiOn.sidecars[0].enriched, null, 'T1: no Enriched XML, no places');
     assert.ok(!ciiOn.r.logs.some((l) => /Enriched XML written from the UXML document/.test(l)));
   } finally {
     globalThis.localStorage = saved;
