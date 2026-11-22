@@ -167,3 +167,50 @@ def tree_from_uxml(doc: dict[str, Any]) -> ET.ElementTree:
         parent = parents[slot]
         parent[list(parent).index(slot)] = branch
     return ET.ElementTree(root)
+
+
+_JOINED = re.compile(r"^NodeNumber (-?\d+) renamed to (-?\d+):")
+
+
+def _number(text: str) -> int | None:
+    # The engine's reading (xml_to_cii2019._parse_optional_int): "110.0" or "1e2" is no node number (E4b review B3).
+    try:
+        return int(text)
+    except ValueError:
+        return None
+
+
+def node_map(tree: ET.ElementTree, cii_numbers: set[int], joined: list[str]) -> dict[str, Any]:
+    """E4b step 2 (Owner 21 Nov 2026, "Yes, as suggested"): which UXML node ids made each CII node number, for the
+    sidecar. A node's number is its NodeNumber after the engine's prepare steps (the split valve/flange renumbering
+    changes the tree in place), then the engine's joins of unconnected island nodes (`joined`, its own log lines
+    "NodeNumber <old> renamed to <new>: ..."). A CII node number can come from several ids (a branch's first node on its
+    parent's node); every id is listed once, in `nodes` or in `notInCii` (unnumbered, or not written to the CII)."""
+    renamed: dict[int, int] = {}
+    for entry in joined:
+        m = _JOINED.match(entry)
+        if not m:
+            raise UxmlTreeRefusal(f"UXML_NODE_MAP_JOIN: {entry!r}")
+        renamed[int(m.group(1))] = int(m.group(2))
+
+    def final(n: int) -> int:
+        seen = set()
+        while n in renamed and n not in seen:
+            seen.add(n)
+            n = renamed[n]
+        return n
+
+    by_number: dict[int, list[str]] = {}
+    outside: list[dict[str, str]] = []
+    for element in tree.getroot().iter():
+        uid = _UIDS.get(id(element))
+        if not uid or element.tag.split("}")[-1] != "Node":
+            continue
+        text = next(((c.text or "").strip() for c in element if c.tag.split("}")[-1] == "NodeNumber"), "")
+        number = _number(text)
+        if number is not None and number > 0 and final(number) in cii_numbers:
+            by_number.setdefault(final(number), []).append(uid)
+        else:
+            outside.append({"id": uid, "nodeNumber": text})
+    return {"schema": "uxml-cii-node-map/v1", "nodes": [{"cii": n, "ids": by_number.get(n, [])} for n in sorted(cii_numbers)],
+            "notInCii": outside}

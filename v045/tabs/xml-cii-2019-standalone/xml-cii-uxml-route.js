@@ -264,6 +264,9 @@ export async function enrichStandaloneXmlForUxmlRoute(job, extraOptions = {}) {
     out.engineUxml = stage.engineUxml;
     // E4 (Owner 21 Nov 2026): the Enriched XML is then written from the final document after the engine.
     if (stage.namesUxml) out.enrichedUxml = stage.namesUxml;
+    // E4b step 3: the recorded steps from the source read, the "|" names and the conflicts, for the CII sidecar.
+    if (stage.chain) out.uxmlChain = stage.chain;
+    if (stage.changes?.made) out.uxmlChanges = { names: stage.changes.names, conflicts: stage.changes.conflicts };
   }
   out.diagnostics = [...out.diagnostics, ...keptSupports];
   out.logs = [...(out.logs || []), ...keptSupports.map((d) => `UXML route: ${d.message}`),

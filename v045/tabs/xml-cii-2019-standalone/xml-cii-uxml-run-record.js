@@ -58,6 +58,7 @@ export async function buildUxmlRunRecord({ job, stageInputXml, stage, evidence, 
 /** Called when a Run starts: records of the previous Run are dropped. */
 export function clearUxmlRunRecords() {
   lastRun = [];
+  lastSidecars = [];
 }
 
 export function rememberUxmlRunRecord(record) {
@@ -100,6 +101,17 @@ export function noteEngineOnRunRecord(model, doc, engine, given = null) {
 }
 
 export const uxmlRunRecords = () => lastRun;
+
+// End-to-end plan E4b step 3 (Owner 21 Nov 2026): the last Run's CII sidecars, one per model (xml-cii-uxml-sidecar.js).
+let lastSidecars = [];
+/** Keeps the sidecar for its download; the model's record names it (or why there is none). */
+export function noteSidecarOnRunRecord(model, sidecar, summary) {
+  const name = String(model || 'model');
+  if (sidecar) lastSidecars = [...lastSidecars.filter((s) => s.model !== name), sidecar];
+  const i = lastRun.findIndex((r) => r.model === name);
+  if (i >= 0) lastRun = lastRun.map((r, k) => (k === i ? { ...r, sidecar: { ...summary } } : r));
+}
+export const ciiSidecars = () => lastSidecars;
 
 /** The download: every model of the last Run in one file. */
 export function uxmlRunRecordFileText(records = lastRun) {

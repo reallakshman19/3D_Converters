@@ -180,8 +180,6 @@ def main() -> None:
         uxml_changes += uxml_tree.changes(seen, now, "engine:process-data")
         input_xml, bend_policy = apply_bend_radius_policy(input_xml, support_config)
         uxml_changes += uxml_tree.changes(now, uxml_tree.values_by_uid(input_xml), "engine:bend-radius")
-        if args.uxml_changes_out:
-            args.uxml_changes_out.write_text(json.dumps({"schema": "uxml-engine-changes/v1", "rows": uxml_changes}, indent=1), encoding="utf-8")
     else:
         input_xml = patched._apply_process_data_to_xml(input_xml, support_config)
         input_xml, bend_policy = apply_bend_radius_policy(input_xml, support_config)
@@ -234,6 +232,16 @@ def main() -> None:
         support_config,
     )
     args.output.write_text(cii_text, encoding="utf-8")
+    if args.input_uxml and args.uxml_changes_out:
+        # E4b step 2: with the changes, which UXML node ids made each CII node number (for the sidecar).
+        cii_numbers = {edge.from_node.node_number for edge in model.edges} | {edge.to_node.node_number for edge in model.edges}
+        # A node map failure only means no sidecar: the CII is written and stays the document's (E4b review N3).
+        try:
+            nodes, map_error = uxml_tree.node_map(input_xml, cii_numbers, list(base.MERGED_COINCIDENT_ORPHAN_NODES)), None
+        except Exception as exc:  # noqa: BLE001
+            nodes, map_error = None, f"{type(exc).__name__}: {exc}"
+        args.uxml_changes_out.write_text(json.dumps({"schema": "uxml-engine-changes/v1", "rows": uxml_changes, "nodeMap": nodes,
+                                                     **({"nodeMapError": map_error} if map_error else {})}, indent=1), encoding="utf-8")
     if args.diagnostics_out:
         args.diagnostics_out.write_text(base._build_diagnostics_report(model), encoding="utf-8")
     print(
