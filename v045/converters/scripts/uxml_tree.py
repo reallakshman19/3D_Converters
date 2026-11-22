@@ -173,11 +173,11 @@ _JOINED = re.compile(r"^NodeNumber (-?\d+) renamed to (-?\d+):")
 
 
 def _number(text: str) -> int | None:
+    # The engine's reading (xml_to_cii2019._parse_optional_int): "110.0" or "1e2" is no node number (E4b review B3).
     try:
-        value = float(text)
+        return int(text)
     except ValueError:
         return None
-    return int(value) if value.is_integer() else None
 
 
 def node_map(tree: ET.ElementTree, cii_numbers: set[int], joined: list[str]) -> dict[str, Any]:

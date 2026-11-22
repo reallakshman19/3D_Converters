@@ -61,7 +61,7 @@ const locksOf = (entity) => Object.entries(entity?.values || {})
  *   steps (xml-cii-uxml-engine-changes.js); finalDoc: the document after them; nodeMap: the engine's
  *   {nodes: [{cii, ids}], notInCii: [{id, nodeNumber}]}; names: the route's "|" names ({node, from, ...}).
  */
-export function buildCiiSidecar({ model, cii = {}, chain, engineDeltas = [], finalDoc, nodeMap, names = [], conflicts = [], createdAt = new Date().toISOString() }) {
+export function buildCiiSidecar({ model, cii = {}, chain, engineDeltas = [], finalDoc, nodeMap, names = [], conflicts = [], notRecorded = 0, createdAt = new Date().toISOString() }) {
   if (!chain?.base || !finalDoc || !Array.isArray(nodeMap?.nodes)) throw new Error('CII_SIDECAR_INPUT: the document chain, final document and node map are needed');
   const deltas = [...(chain.deltas || []), ...engineDeltas];
   const at = indexInto(finalDoc, indexInto(chain.base, new Map()));
@@ -89,6 +89,16 @@ export function buildCiiSidecar({ model, cii = {}, chain, engineDeltas = [], fin
     if (added.has(id)) out.added = { stage: added.get(id).stage, rule: added.get(id).rule };
     return out;
   };
+  // A removed node's supports went with it (E4b review B2: EF-05's type Z supports on joined-away duplicates): those it
+  // held when removed, and any removed on their own from it.
+  const removedSupportsOf = (id, r) => {
+    const out = new Map();
+    for (const s of r.entity?.restraints || []) out.set(s.uid, { id: s.uid, type: textOf(s.values?.Type), removed: { stage: r.stage, rule: r.rule } });
+    for (const [sid, s] of removed) {
+      if (s.parent === id && s.entity?.kind !== 'component') out.set(sid, { id: sid, type: textOf(s.entity?.values?.Type), removed: { stage: s.stage, rule: s.rule } });
+    }
+    return [...out.values()];
+  };
   const last = deltas.at(-1);
   return {
     format: SIDECAR_FORMAT, version: SIDECAR_VERSION, model: String(model || 'model'), createdAt,
@@ -97,12 +107,15 @@ export function buildCiiSidecar({ model, cii = {}, chain, engineDeltas = [], fin
       source: chain.base.revision?.id || null, sourceSha256: chain.base.revision?.inputs?.[0]?.sha256 || null,
       revision: finalDoc.revision?.id || last?.result || null,
       steps: deltas.map((d) => ({ stage: d.stage, rule: d.rulesVersion, base: d.base, result: d.result, ops: (d.ops || []).length })),
+      // Engine changes the document could not record (an added support row): counted here, not listed (E4b review N5).
+      notRecorded: Number(notRecorded) || 0,
     },
     nodes: nodeMap.nodes.map((n) => ({ cii: n.cii, ids: n.ids.map(node) })),
     notInCii: (nodeMap.notInCii || []).map((n) => ({ ...node(n.id), nodeNumber: n.nodeNumber })),
     removed: [...removed].filter(([, r]) => r.entity?.kind === 'component').map(([id, r]) => ({ id, branch: at.get(r.parent)?.branch ?? '',
       NodeName: history(r.entity?.values?.NodeName), ComponentRefNo: history(r.entity?.values?.ComponentRefNo), stage: r.stage, rule: r.rule,
-      ...(joinedInto.has(id) ? { joinedInto: joinedInto.get(id) } : {}) })),
+      ...(joinedInto.has(id) ? { joinedInto: joinedInto.get(id) } : {}),
+      ...((s) => (s.length ? { supports: s } : {}))(removedSupportsOf(id, r)) })),
     branches: (finalDoc.pipelines || []).map((p) => ({ id: p.uid, branch: textOf(p.values?.Branchname) ?? '', changed: changedOf(values, p.uid) }))
       .filter((b) => b.changed.length),
     conflicts,

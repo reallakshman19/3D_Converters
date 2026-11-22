@@ -177,7 +177,8 @@ async function runCiiFromUxml(pyodide, job, paths, jobDir, stdout, stderr) {
     + `its prepare steps changed ${rows.length} value(s).`);
   return { ciiText: pyodide.FS.readFile(invocation.outputPath, { encoding: 'utf8' }), ciiName: invocation.outputName, argv: argv.slice(1),
     // E4b step 2: which UXML node ids made each CII node number (the engine's node map), for the CII sidecar.
-    engineUxml: { used: true, revision: job.engineUxml?.revision?.id || null, changes: rows, nodeMap: changes?.nodeMap || null } };
+    engineUxml: { used: true, revision: job.engineUxml?.revision?.id || null, changes: rows, nodeMap: changes?.nodeMap || null,
+      ...(changes?.nodeMapError ? { nodeMapError: String(changes.nodeMapError) } : {}) } };
 }
 
 export async function runXmlCii2019StandaloneEngine(job) {

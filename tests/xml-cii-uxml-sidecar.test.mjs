@@ -19,8 +19,8 @@ installWeightBasisXmlDom(globalThis);
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
 const SCRIPT = path.join(repo, 'v045/converters/scripts/xml_to_cii2019_runtime_custody.py');
-const SOURCE = fs.readFileSync(path.join(repo, 'Benchmarks/WSW-2-RE-AFC.xml'), 'utf8');
-const job = () => applyEffectiveFactsToJob(normalizeWorkflowJob({ sourceKind: 'xml', sourceName: 'WSW-2-RE-AFC.xml', sourceText: SOURCE,
+const job = (name = 'WSW-2-RE-AFC.xml') => applyEffectiveFactsToJob(normalizeWorkflowJob({ sourceKind: 'xml', sourceName: name,
+  sourceText: fs.readFileSync(path.join(repo, 'Benchmarks', name), 'utf8'),
   stagedJsonText: '', supportConfigJson: '', options: { outputMode: 'both', splitCondensedValveFlange: true } }).job);
 const ARGV = ['--coords-mode', 'first', '--weight-scale', '10', '--split-condensed-valve-flange', '--use-restraint-type-based-on-json'];
 function engine(dir, input, uxml) {
@@ -53,19 +53,31 @@ function listed(sc) {
   return out;
 }
 
-let shared;
-async function setup() {
-  if (shared) return shared;
-  const run = await runUxmlSupportsStage(job());
+/** E4b review B2: every node and support of the source missing from the final document is listed as removed. */
+function removedIds(base, final) {
+  const now = entities(final);
+  return new Set([...entities(base).keys()].filter((uid) => !now.has(uid) && !base.pipelines.some((p) => p.uid === uid)));
+}
+function listedRemoved(sc) {
+  const out = new Set();
+  for (const r of sc.removed) { out.add(r.id); for (const s of r.supports || []) out.add(s.id); }
+  for (const n of [...sc.nodes.flatMap((x) => x.ids), ...sc.notInCii]) for (const s of n.supports || []) if (s.removed) out.add(s.id);
+  return out;
+}
+
+const shared = new Map();
+async function setup(name = 'WSW-2-RE-AFC.xml', withXml = true) {
+  if (shared.has(name)) return shared.get(name);
+  const run = await runUxmlSupportsStage(job(name));
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'e4b-sidecar-'));
   fs.writeFileSync(path.join(dir, 'doc.json'), JSON.stringify(run.engineUxml));
   const doc = engine(dir, path.join(dir, 'doc.json'), true);
   fs.writeFileSync(path.join(dir, 'in.xml'), run.xmlText);
-  const xml = engine(dir, path.join(dir, 'in.xml'), false);
+  const xml = withXml ? engine(dir, path.join(dir, 'in.xml'), false) : null;
   fs.rmSync(dir, { recursive: true, force: true });
   const rec = engineChangeSteps(run.namesUxml, doc.rows);
-  shared = { run, doc, xml, rec };
-  return shared;
+  shared.set(name, { run, doc, xml, rec });
+  return shared.get(name);
 }
 
 test('the engine lists the node ids of every CII node number; the CII is today\'s', async () => {
@@ -86,6 +98,22 @@ test('the engine lists the node ids of every CII node number; the CII is today\'
   assert.ok(!map.nodes.some((n) => n.cii === 770));
 });
 
+test('a NodeNumber the engine does not read as a number is not mapped to a CII node (review B3)', async () => {
+  const { run, doc } = await setup();
+  const edited = structuredClone(run.engineUxml);
+  const target = edited.pipelines.flatMap((p) => p.components).find((c) => c.values.NodeNumber?.text === '-1');
+  assert.ok(target, 'an unnumbered node');
+  const nodes = doc.nodeMap.nodes.map((n) => n.cii);
+  target.values.NodeNumber.text = `${nodes[0]}.0`;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'e4b-b3-'));
+  fs.writeFileSync(path.join(dir, 'doc.json'), JSON.stringify(edited));
+  const out = engine(dir, path.join(dir, 'doc.json'), true);
+  fs.rmSync(dir, { recursive: true, force: true });
+  assert.equal(out.cii, doc.cii, 'the engine ignores "N.0"');
+  assert.ok(!out.nodeMap.nodes.some((n) => n.ids.includes(target.uid)), 'so does the node map');
+  assert.equal(out.nodeMap.notInCii.find((n) => n.id === target.uid)?.nodeNumber, `${nodes[0]}.0`);
+});
+
 test('the sidecar lists exactly what changed, node id wise, with the "|" name history', async () => {
   const { run, doc, rec } = await setup();
   const sc = buildCiiSidecar({ model: 'WSW-2-RE-AFC.xml', cii: { name: 'WSW-2-RE-AFC.cii' }, chain: run.chain, engineDeltas: rec.deltas,
@@ -96,6 +124,7 @@ test('the sidecar lists exactly what changed, node id wise, with the "|" name hi
   const want = directDiff(run.chain.base, rec.uxml);
   assert.ok(want.size > 100);
   assert.deepEqual([...listed(sc)].sort(), [...want].sort(), 'no change missing, none extra');
+  assert.deepEqual([...listedRemoved(sc)].sort(), [...removedIds(run.chain.base, rec.uxml)].sort(), 'every removed node and support');
   const byId = new Map([...sc.nodes.flatMap((n) => n.ids), ...sc.notInCii].map((n) => [n.id, n]));
   assert.ok(run.changes.names.length > 0);
   for (const n of run.changes.names) {
@@ -109,4 +138,17 @@ test('the sidecar lists exactly what changed, node id wise, with the "|" name hi
   const noNames = buildCiiSidecar({ chain: { ...run.chain, deltas: run.chain.deltas.filter((d) => d.stage !== 'supports:names') }, engineDeltas: rec.deltas,
     finalDoc: rec.uxml, nodeMap: doc.nodeMap });
   assert.ok([...want].some((x) => !listed(noNames).has(x)), 'the names step is needed');
+});
+
+test('EF-05: the supports of joined-away duplicate nodes are listed with them (review B2)', async () => {
+  const { run, doc, rec } = await setup('EF-05-PRO.TEST.xml', false);
+  const sc = buildCiiSidecar({ model: 'EF-05-PRO.TEST.xml', chain: run.chain, engineDeltas: rec.deltas, finalDoc: rec.uxml,
+    nodeMap: doc.nodeMap, names: run.changes.names, conflicts: run.changes.conflicts, notRecorded: rec.notRecorded });
+  const want = removedIds(run.chain.base, rec.uxml);
+  assert.ok(want.size > 300, String(want.size));
+  assert.deepEqual([...listedRemoved(sc)].sort(), [...want].sort(), 'no removed node or support missing, none extra');
+  const withSupports = sc.removed.filter((r) => r.joinedInto && r.supports?.length);
+  assert.ok(withSupports.length >= 25, String(withSupports.length));
+  assert.deepEqual([...listed(sc)].sort(), [...directDiff(run.chain.base, rec.uxml)].sort(), 'values as before');
+  assert.equal(sc.document.notRecorded, rec.notRecorded);
 });

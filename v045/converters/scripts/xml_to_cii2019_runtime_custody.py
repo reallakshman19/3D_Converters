@@ -235,9 +235,13 @@ def main() -> None:
     if args.input_uxml and args.uxml_changes_out:
         # E4b step 2: with the changes, which UXML node ids made each CII node number (for the sidecar).
         cii_numbers = {edge.from_node.node_number for edge in model.edges} | {edge.to_node.node_number for edge in model.edges}
-        nodes = uxml_tree.node_map(input_xml, cii_numbers, list(base.MERGED_COINCIDENT_ORPHAN_NODES))
-        args.uxml_changes_out.write_text(json.dumps({"schema": "uxml-engine-changes/v1", "rows": uxml_changes, "nodeMap": nodes},
-                                                    indent=1), encoding="utf-8")
+        # A node map failure only means no sidecar: the CII is written and stays the document's (E4b review N3).
+        try:
+            nodes, map_error = uxml_tree.node_map(input_xml, cii_numbers, list(base.MERGED_COINCIDENT_ORPHAN_NODES)), None
+        except Exception as exc:  # noqa: BLE001
+            nodes, map_error = None, f"{type(exc).__name__}: {exc}"
+        args.uxml_changes_out.write_text(json.dumps({"schema": "uxml-engine-changes/v1", "rows": uxml_changes, "nodeMap": nodes,
+                                                     **({"nodeMapError": map_error} if map_error else {})}, indent=1), encoding="utf-8")
     if args.diagnostics_out:
         args.diagnostics_out.write_text(base._build_diagnostics_report(model), encoding="utf-8")
     print(

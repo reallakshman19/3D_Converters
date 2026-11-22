@@ -166,10 +166,11 @@ async function runWorkflow(job, runtime) {
   if (parity.engineUxml && result?.ok && result.engineUxml?.used && result.ciiText) {
     const ciiName = result.ciiName || `${String(engineJob.sourceName || 'model').replace(/\.[^.]+$/, '')}.cii`;
     try {
-      if (!result.engineUxml.nodeMap) throw new Error('the CII engine gave no node map');
+      if (!result.engineUxml.nodeMap) throw new Error(`the CII engine gave no node map${result.engineUxml.nodeMapError ? ` (${result.engineUxml.nodeMapError})` : ''}`);
       const sidecar = buildCiiSidecar({ model: engineJob.sourceName, cii: { name: ciiName, sha256: await ciiSha256(result.ciiText) }, chain: parity.uxmlChain,
         engineDeltas: recorded?.deltas || [], finalDoc: recorded?.uxml || parity.enrichedUxml || parity.engineUxml, nodeMap: result.engineUxml.nodeMap,
-        names: parity.uxmlChanges?.names || [], conflicts: parity.uxmlChanges?.conflicts || [] });
+        names: parity.uxmlChanges?.names || [], notRecorded: recorded?.notRecorded || 0,
+        conflicts: [...(parity.uxmlChanges?.conflicts || []), ...(recorded?.conflicts || []).map((c) => ({ ...c, stage: c.stage || 'engine' }))] });
       noteSidecarOnRunRecord(engineJob.sourceName, sidecar, { made: true, fileName: sidecarFileName(ciiName), nodes: sidecar.nodes.length, revision: sidecar.document.revision });
       parity.logs = [...(parity.logs || []), `CII sidecar made: ${sidecar.nodes.length} CII node(s) with their node ids, name history and recorded changes (Download CII sidecar).`];
     } catch (error) {
