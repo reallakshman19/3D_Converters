@@ -164,6 +164,195 @@ function ciiElements(text) {
 }
 const kidsOf = (el, tag) => [...el.childNodes].filter((c) => c.nodeType === 1 && String(c.localName || c.nodeName).replace(/^.*:/, '') === tag);
 
+/** S-fix step 2: the CII's support blocks, in order: per block its written slots [node, type, stiffness, gap, friction, cx, cy, cz]. */
+function ciiSupports(text) {
+  const lines = String(text).split(/\r?\n/), at = lines.findIndex((l) => /^#\$ RESTRANT/.test(l));
+  const end = lines.findIndex((l, i) => i > at && /^#\$ /.test(l));
+  const rows = lines.slice(at + 1, end);
+  assert.equal(rows.length % 24, 0);
+  return Array.from({ length: rows.length / 24 }, (_, b) => Array.from({ length: 6 }, (_, k) => [
+    ...rows[b * 24 + k * 4].trim().split(/\s+/).slice(0, 5), ...rows[b * 24 + k * 4 + 1].trim().split(/\s+/)].map(Number))
+    .filter((slot) => slot[0] !== 0));
+}
+const near = (a, b) => Math.abs(a - b) <= 1e-5 * Math.max(1, Math.abs(a), Math.abs(b));
+function assertWrittenAsInCii(supports, cii) {
+  const want = ciiSupports(cii);
+  assert.equal(supports.length, want.length, 'one entry per CII support block');
+  supports.forEach((b, i) => {
+    assert.equal(b.written.length, want[i].length, `block ${i + 1}: support count`);
+    b.written.forEach((s, k) => {
+      const [node, type, stiffness, gap, friction, ...cos] = want[i][k];
+      assert.equal(b.cii, node);
+      assert.equal(s.type, type);
+      for (const [x, y] of [[s.stiffness, stiffness], [s.gap, gap], [s.friction, friction], ...s.cosines.map((c, j) => [c, cos[j]])]) {
+        assert.ok(near(x, y), `CII node ${node} support ${k + 1}: ${x} vs ${y}`);
+      }
+    });
+  });
+}
+const sidecarOf = (name, { run, doc, rec }) => buildCiiSidecar({ model: name, chain: run.chain, engineDeltas: rec.deltas, finalDoc: rec.uxml,
+  nodeMap: doc.nodeMap, names: run.changes.names });
+/** Independent of the sidecar: each UXML support id -> the node id that holds it, and each node id -> its NodeNumber. */
+function holders(doc) {
+  const of = new Map(), number = new Map();
+  for (const c of doc.pipelines.flatMap((p) => p.components)) {
+    number.set(c.uid, Number(c.values.NodeNumber?.text));
+    for (const r of c.restraints || []) of.set(r.uid, c.uid);
+  }
+  return { of, number };
+}
+
+test('S-fix step 2, WSW: the engine lists each CII support as written, the CII equals the XML route\'s; each support names its source', async () => {
+  const { run, doc, xml, rec } = await setup();
+  assert.equal(doc.cii, xml.cii, 'same CII as from the XML');
+  assertWrittenAsInCii(doc.nodeMap.supports, doc.cii);
+  const sc = sidecarOf('WSW-2-RE-AFC.xml', { run, doc, rec });
+  assert.deepEqual(sc.ciiSupports.map((b) => b.cii), doc.nodeMap.supports.map((b) => b.cii));
+  const { of } = holders(rec.uxml);
+  const under = new Map(doc.nodeMap.nodes.map((n) => [n.cii, new Set(n.ids)]));
+  const from = {};
+  for (const b of sc.ciiSupports) {
+    for (const s of b.written) {
+      from[s.from] = (from[s.from] || 0) + 1;
+      if (s.from === 'xml') assert.ok(of.get(s.support) === s.id && under.get(b.cii).has(s.id), JSON.stringify(s));
+      if (s.from === 'moved') assert.ok(of.get(s.support) === s.fromId && !under.get(b.cii).has(s.fromId), JSON.stringify(s));
+    }
+  }
+  assert.ok(from.xml > 0 && from.openEnd > 0, JSON.stringify(from));
+  assert.equal(from.engine, undefined, JSON.stringify(from));
+  // A sidecar from an engine that did not list its supports says so (null), never an empty list.
+  assert.equal(buildCiiSidecar({ chain: run.chain, finalDoc: rec.uxml, nodeMap: { ...doc.nodeMap, supports: undefined } }).ciiSupports, null);
+});
+
+test('S-fix step 2, EF-05: the 11 supports step 10 moves from unnumbered nodes name the unnumbered node they came from', async () => {
+  const { run, doc, rec } = await setup('EF-05-PRO.TEST.xml', false);
+  assertWrittenAsInCii(doc.nodeMap.supports, doc.cii);
+  const sc = sidecarOf('EF-05-PRO.TEST.xml', { run, doc, rec });
+  const { of, number } = holders(rec.uxml);
+  const moved = sc.ciiSupports.flatMap((b) => b.written.filter((s) => s.from === 'moved').map((s) => ({ cii: b.cii, ...s })));
+  assert.equal(moved.length, 11, JSON.stringify(moved.map((m) => m.cii)));
+  for (const m of moved) {
+    assert.equal(of.get(m.support), m.fromId);
+    assert.ok(number.get(m.fromId) <= 0, `CII node ${m.cii}: moved from NodeNumber ${number.get(m.fromId)}`);
+  }
+  assert.ok(moved.some((m) => m.cii === 800), 'node 800 (K1)');
+  const count = (f) => sc.ciiSupports.flatMap((b) => b.written).filter((s) => s.from === f).length;
+  assert.equal(count('openEnd'), 30);
+  assert.equal(count('engine'), 0);
+});
+
+test('S-fix step 2: a numbered ANCI node without a support gets the engine rule\'s +Y, listed as the rule on that node id', async () => {
+  const { run, doc } = await setup();
+  const edited = structuredClone(run.engineUxml);
+  const comps = edited.pipelines.flatMap((p) => p.components);
+  // A CII element carries one support block: a node next to a supported node would take that block (as step 10 does today).
+  const held = new Set(doc.nodeMap.supports.map((b) => b.cii));
+  const nextToHeld = (n) => doc.nodeMap.elements.some((e) => (e.from === n && held.has(e.to)) || (e.to === n && held.has(e.from)));
+  const target = comps.find((c) => Number(c.values.NodeNumber?.text) > 0 && !(c.restraints || []).length && c.values.ComponentType
+    && doc.nodeMap.nodes.find((n) => n.ids.includes(c.uid))?.ids.length === 1 && !held.has(Number(c.values.NodeNumber.text))
+    && !nextToHeld(Number(c.values.NodeNumber.text)));
+  assert.ok(target, 'a plain numbered node');
+  target.values.ComponentType.text = 'ANCI';
+  // At a point with several ids (a branch's first node on its parent's node) the rule names only the ANCI one.
+  const sharedAt = (c) => doc.nodeMap.nodes.find((n) => n.ids.includes(c.uid));
+  const shared = comps.find((c) => c !== target && Number(c.values.NodeNumber?.text) > 0 && !(c.restraints || []).length && c.values.ComponentType
+    && sharedAt(c)?.ids.length > 1 && !held.has(sharedAt(c).cii) && !nextToHeld(sharedAt(c).cii)
+    && sharedAt(c).ids.every((id) => !(comps.find((x) => x.uid === id).restraints || []).length));
+  assert.ok(shared, 'a plain node at a point with several ids');
+  shared.values.ComponentType.text = 'ANCI';
+  // Two supports at one CII node are listed in the CII's slot order: a second XML support added to a held node.
+  const one = comps.find((c) => (c.restraints || []).length === 1 && doc.nodeMap.supports.find((b) => b.cii === Number(c.values.NodeNumber?.text))
+    ?.written.map((w) => w.source).join() === c.restraints[0].uid);
+  assert.ok(one, 'a node with one XML support');
+  const extra = structuredClone(one.restraints[0]);
+  extra.uid = `${extra.uid}-sfix2`;
+  extra.values.Type.text = /Z/.test(extra.values.Type.text) ? '+X' : '+Z';
+  one.restraints.push(extra);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sfix2-anci-'));
+  fs.writeFileSync(path.join(dir, 'doc.json'), JSON.stringify(edited));
+  const out = engine(dir, path.join(dir, 'doc.json'), true);
+  fs.rmSync(dir, { recursive: true, force: true });
+  assertWrittenAsInCii(out.nodeMap.supports, out.cii);
+  const sc = buildCiiSidecar({ chain: { base: edited, deltas: [] }, finalDoc: edited, nodeMap: out.nodeMap });
+  const at = sc.ciiSupports.find((b) => b.cii === Number(target.values.NodeNumber.text));
+  assert.deepEqual(at?.written.map((s) => [s.from, s.rule, s.ids, s.type, s.friction]), [['rule', 'componentType', [target.uid], 14, 0.3]]);
+  const at2 = sc.ciiSupports.find((b) => b.cii === sharedAt(shared).cii);
+  assert.deepEqual(at2?.written.map((s) => [s.from, s.rule, s.ids]), [['rule', 'componentType', [shared.uid]]]);
+  const atOne = sc.ciiSupports.find((b) => b.cii === Number(one.values.NodeNumber.text));
+  assert.deepEqual(atOne?.written.map((s) => [s.from, s.support]), [['xml', one.restraints[0].uid], ['xml', extra.uid]]);
+  assert.notEqual(atOne.written[0].type, atOne.written[1].type);
+  // Only those nodes are new; every other support keeps its source.
+  const key = (x) => x.ciiSupports.flatMap((b) => b.written.map((s) => `${b.cii} ${s.from} ${s.support || ''}`)).sort();
+  const before = buildCiiSidecar({ chain: { base: run.engineUxml, deltas: [] }, finalDoc: run.engineUxml, nodeMap: doc.nodeMap });
+  const mine = (k) => [at.cii, at2.cii, atOne.cii].some((n) => k.startsWith(`${n} `));
+  assert.deepEqual(key(sc).filter((k) => !mine(k)), key(before).filter((k) => !mine(k)), `targets ${at.cii} ${at2.cii} ${atOne.cii}`);
+});
+
+/** Runs the engine on an edited copy of a document: {cii, nodeMap, sidecar}. */
+function engineOn(edited) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sfix2-edit-'));
+  fs.writeFileSync(path.join(dir, 'doc.json'), JSON.stringify(edited));
+  const out = engine(dir, path.join(dir, 'doc.json'), true);
+  fs.rmSync(dir, { recursive: true, force: true });
+  return { ...out, sidecar: buildCiiSidecar({ chain: { base: edited, deltas: [] }, finalDoc: edited, nodeMap: out.nodeMap }) };
+}
+
+test('S-fix step 2 (review N1): a support\'s source never changes the CII; identical supports at one CII node are written once', async () => {
+  const { run } = await setup();
+  const doc = (copies) => {
+    const edited = structuredClone(run.engineUxml);
+    const comps = edited.pipelines.flatMap((p) => p.components);
+    const byNumber = new Map();
+    for (const c of comps) {
+      const n = Number(c.values.NodeNumber?.text);
+      if (n > 0) byNumber.set(n, [...(byNumber.get(n) || []), c]);
+    }
+    // Two node ids at one CII number (a branch's first node on its parent's node), neither with a support.
+    const pair = [...byNumber.values()].find((cs) => cs.length > 1 && cs.every((c) => !(c.restraints || []).length));
+    const donor = comps.find((c) => (c.restraints || []).length === 1);
+    const uids = pair.slice(0, copies).map((c, k) => {
+      const r = structuredClone(donor.restraints[0]);
+      r.uid = `${r.uid}-sfix2-${k}`;
+      c.restraints = [r];
+      return r.uid;
+    });
+    return { edited, at: Number(pair[0].values.NodeNumber.text), ids: pair.map((c) => c.uid), uids };
+  };
+  const one = doc(1), two = doc(2);
+  const a = engineOn(one.edited), b = engineOn(two.edited);
+  // The same values under two support ids are one support: the source id takes no part in comparing supports.
+  assert.equal(b.cii, a.cii, 'same CII with one or two copies');
+  assertWrittenAsInCii(b.nodeMap.supports, b.cii);
+  const at = b.sidecar.ciiSupports.find((x) => x.cii === two.at);
+  assert.equal(at?.written.length, 1, JSON.stringify(at));
+  assert.equal(at.written[0].from, 'xml');
+  assert.ok(two.uids.includes(at.written[0].support) && two.ids.includes(at.written[0].id), JSON.stringify(at.written[0]));
+});
+
+test('S-fix step 2 (review N2): a gap, the no-friction value and explicit direction cosines are listed as the CII writes them', async () => {
+  const { run } = await setup();
+  const edited = structuredClone(run.engineUxml);
+  const node = edited.pipelines.flatMap((p) => p.components).find((c) => (c.restraints || []).length === 1 && Number(c.values.NodeNumber?.text) > 0);
+  const set = (r, k, v) => {
+    r.values[k] = { text: v };
+    if (r.fieldOrder && !r.fieldOrder.includes(k)) r.fieldOrder.push(k);
+  };
+  const gap = structuredClone(node.restraints[0]);
+  gap.uid += '-sfix2-gap';
+  set(gap, 'Type', '+X'); set(gap, 'Gap', '5.5'); set(gap, 'Friction', '-1.0101');
+  const cos = structuredClone(node.restraints[0]);
+  cos.uid += '-sfix2-cos';
+  set(cos, 'Type', 'X'); set(cos, 'DirectionCosineX', '0.6'); set(cos, 'DirectionCosineY', '0'); set(cos, 'DirectionCosineZ', '0.8'); set(cos, 'Friction', '0.25');
+  node.restraints.push(gap, cos);
+  const out = engineOn(edited);
+  assertWrittenAsInCii(out.nodeMap.supports, out.cii);
+  const at = out.sidecar.ciiSupports.find((x) => x.cii === Number(node.values.NodeNumber.text));
+  const row = (uid) => at?.written.find((s) => s.support === uid);
+  assert.ok(row(gap.uid) && row(cos.uid), JSON.stringify(at));
+  assert.deepEqual([row(gap.uid).gap, row(gap.uid).friction, row(gap.uid).cosines], [5.5, 0, [1, 0, 0]], 'gap kept; -1.0101 means no friction');
+  assert.deepEqual([row(cos.uid).gap, row(cos.uid).friction, row(cos.uid).cosines], [0, 0.25, [0.6, 0, 0.8]], 'the given direction');
+});
+
 for (const name of ['WSW-2-RE-AFC.xml', 'EF-05-PRO.TEST.xml']) {
   test(`T1 ${name}: the engine names the node id behind each CII element end; the sidecar places every id in the Enriched XML`, async () => {
     const { run, doc, rec } = await setup(name, false);

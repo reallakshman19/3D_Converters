@@ -93,6 +93,33 @@ export function enrichedPlaces(xmlText, finalDoc) {
   return { ok: true, nodes, branches: branchAt };
 }
 
+/**
+ * S-fix step 2 (Owner 23 Nov 2026, "Start step 2"; road map "S-fix plan"): each CII support block as step 10 wrote it
+ * (the engine's node map `supports`: type code, stiffness, gap, friction and direction as in the RESTRANT record), and
+ * where each support came from:
+ *   xml: the UXML support id, on a node id written to that CII node;
+ *   moved: the UXML support id, on another node id (an unnumbered node's support placed here, or a dropped node's; a node
+ *     the engine joins into this CII node is one of its ids, so its supports are xml);
+ *   rule: made by the engine's rule (componentType: e.g. +Y at a numbered ANCI node; keyword: DTXR text), with the ids;
+ *   openEnd: the engine's anchor at an open end;
+ *   engine: no source known (e.g. a support element a prepare step added; the document holds none).
+ * null when the engine did not list its supports.
+ */
+function writtenSupports(nodeMap, at) {
+  if (!Array.isArray(nodeMap?.supports)) return null;
+  const idsAt = new Map(nodeMap.nodes.map((n) => [n.cii, n.ids || []]));
+  const sourceOf = (cii, w) => {
+    const src = String(w.source || '');
+    if (src === 'openEnd') return { from: 'openEnd' };
+    if (src.startsWith('rule:')) return { from: 'rule', rule: src.slice(5), ids: w.ids || [] };
+    const s = src ? at.get(src) : null;
+    if (s?.kind !== 'support') return { from: 'engine' };
+    return (idsAt.get(cii) || []).includes(s.node) ? { from: 'xml', support: src, id: s.node } : { from: 'moved', support: src, fromId: s.node };
+  };
+  return nodeMap.supports.map((b) => ({ cii: b.cii, written: (b.written || []).map((w) => ({ type: w.type, stiffness: w.stiffness,
+    gap: w.gap, friction: w.friction, cosines: w.cosines, ...sourceOf(b.cii, w) })) }));
+}
+
 export function buildCiiSidecar({ model, cii = {}, chain, engineDeltas = [], finalDoc, nodeMap, names = [], conflicts = [], notRecorded = 0, enriched = null, createdAt = new Date().toISOString() }) {
   if (!chain?.base || !finalDoc || !Array.isArray(nodeMap?.nodes)) throw new Error('CII_SIDECAR_INPUT: the document chain, final document and node map are needed');
   const deltas = [...(chain.deltas || []), ...engineDeltas];
@@ -157,6 +184,8 @@ export function buildCiiSidecar({ model, cii = {}, chain, engineDeltas = [], fin
     // T1: the CII's elements in order with the node ids their ends were written from (the engine's), and the Enriched
     // XML the places are in. The transfer by node id refuses another Enriched XML.
     elements: (nodeMap.elements || []).map((e) => ({ from: e.from, to: e.to, fromId: e.fromId, toId: e.toId })),
+    // S-fix step 2: the supports step 10 wrote, per CII node, and where each came from (closes E4b review N5).
+    ciiSupports: writtenSupports(nodeMap, at),
     enriched: !enriched ? null : places?.ok ? { sha256: enriched.sha256 || null, branches: places.branches }
       : { sha256: enriched.sha256 || null, error: places?.error || 'no Enriched XML text' },
   };

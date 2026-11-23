@@ -11,6 +11,7 @@ Adds two narrow mechanics on top of xml_to_cii2019_direction:
 from __future__ import annotations
 
 from collections import Counter
+from dataclasses import replace
 import math
 import sys
 
@@ -140,6 +141,40 @@ def _runtime_bend_payload(model: base.ConversionModel) -> list[str]:
     return lines
 
 
+def _with_source(spec_map: dict, source: str) -> dict:
+    return {n: tuple(replace(s, source=source) if hasattr(s, "source") else s for s in specs) for n, specs in spec_map.items()}
+
+
+def written_supports(model: base.ConversionModel, document: base.XmlDocument, support_config: dict) -> list[dict]:
+    """S-fix step 2 (Owner 23 Nov 2026, "Start step 2"; road map "S-fix plan"): each CII support block as step 10 writes
+    it (the RESTRANT payload's own slots and values) with where each support came from, for the sidecar:
+    `source` = the UXML support id it was read from, or "rule:componentType" / "rule:keyword" (then `ids` = the node ids
+    at that number the rule read), or "openEnd"; '' when the engine made it with no source (a prepare step's element)."""
+    ids_at: dict[int, list[str]] = {}
+    typed_at: dict[int, list[str]] = {}
+    for branch in document.branches:
+        for node in branch.nodes:
+            if node.node_number and node.node_number > 0 and node.source_id:
+                ids_at.setdefault(node.node_number, []).append(node.source_id)
+                if direction._component_type_to_xml_type(node.component_type, support_config):
+                    typed_at.setdefault(node.node_number, []).append(node.source_id)
+    out = []
+    for assigned in model.restraints:
+        written = []
+        for spec in assigned.specs[: base.RESTRAINT_SLOTS_PER_AUX]:
+            source = "openEnd" if spec.is_open_end else getattr(spec, "source", "")
+            row = {"type": int(spec.type_code), "stiffness": float(spec.stiffness), "gap": float(spec.gap),
+                   "friction": float(patched._cii_friction_value(spec.friction, support_config)),
+                   "cosines": [float(c) for c in direction._direction_for_spec(spec)], "source": source}
+            if source == "rule:componentType":
+                row["ids"] = typed_at.get(assigned.node_number, [])
+            elif source == "rule:keyword":
+                row["ids"] = ids_at.get(assigned.node_number, [])
+            written.append(row)
+        out.append({"cii": assigned.node_number, "written": written})
+    return out
+
+
 def install_runtime_custody_patch() -> None:
     # direction imported above has already installed its direction-cosine and
     # tolerant-restraint patches. Wrap that active implementation rather than
@@ -201,6 +236,10 @@ def main() -> None:
     document = base._parse_xml_document(input_xml)
     component_specs = direction._component_type_restraint_specs(document, support_config)
     dtxr_specs, node_number_kind_map = patched._build_keyword_restraint_specs(input_xml, support_config)
+    if args.input_uxml:
+        # S-fix step 2: the engine's own supports say which rule made them (the sidecar lists each CII support's source).
+        component_specs = _with_source(component_specs, "rule:componentType")
+        dtxr_specs = _with_source(dtxr_specs, "rule:keyword")
     xml_specs = base._build_explicit_restraint_specs(document.branches)
     explicit_specs = (
         dict(xml_specs)
@@ -248,6 +287,7 @@ def main() -> None:
             # in CAESAR II; names the id the engine took a node's values from).
             nodes["elements"] = [{"from": e.from_node.node_number, "to": e.to_node.node_number,
                                   "fromId": e.from_node.source_id, "toId": e.to_node.source_id} for e in model.edges]
+            nodes["supports"] = written_supports(model, document, support_config)
         args.uxml_changes_out.write_text(json.dumps({"schema": "uxml-engine-changes/v1", "rows": uxml_changes, "nodeMap": nodes,
                                                      **({"nodeMapError": map_error} if map_error else {})}, indent=1), encoding="utf-8")
     if args.diagnostics_out:
