@@ -9,7 +9,7 @@ map to the same CII element edge.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import math
 import re
 import sys
@@ -87,6 +87,10 @@ class DirectionRestraintSpec:
     friction: float
     is_open_end: bool
     direction_cosines: tuple[float, float, float] | None = None
+    # S-fix step 2 (Owner 23 Nov 2026, "Start step 2"): where the support came from, for the CII sidecar: the UXML
+    # support id it was read from ('' on the XML route, or for a support element a prepare step added), or the engine
+    # rule that made it ("rule:componentType", "rule:keyword"). Not compared, so the CII cannot change.
+    source: str = field(default="", compare=False)
 
 
 def _normalize_direction(values: tuple[float, float, float] | None) -> tuple[float, float, float] | None:
@@ -182,6 +186,7 @@ def _parse_restraints_with_direction(node_element: ET.Element, namespace: str) -
                 friction=0.0 if friction is None else friction,
                 is_open_end=False,
                 direction_cosines=direction_cosines,
+                source=base._source_id(restraint_element),
             )
         )
     return tuple(specs)
