@@ -98,7 +98,8 @@ export function enrichedPlaces(xmlText, finalDoc) {
  * (the engine's node map `supports`: type code, stiffness, gap, friction and direction as in the RESTRANT record), and
  * where each support came from:
  *   xml: the UXML support id, on a node id written to that CII node;
- *   moved: the UXML support id, on another node id (an unnumbered node's support placed here, or a joined/dropped node's);
+ *   moved: the UXML support id, on another node id (an unnumbered node's support placed here, or a dropped node's; a node
+ *     the engine joins into this CII node is one of its ids, so its supports are xml);
  *   rule: made by the engine's rule (componentType: e.g. +Y at a numbered ANCI node; keyword: DTXR text), with the ids;
  *   openEnd: the engine's anchor at an open end;
  *   engine: no source known (e.g. a support element a prepare step added; the document holds none).
